@@ -1,0 +1,39 @@
+#include "token.h"
+using namespace xel::token;
+
+std::map<Token::Type, std::string> Token::type_map = {
+    {Type::TOKEN_EOF,   "eof"},
+    {Type::ILLEGAL,     "illegal"},
+    {Type::INTEGER,     "integer"},
+    {Type::FLOAT,       "float"},
+    {Type::PLUS,        "+"},
+    {Type::MINUS,       "-"},
+    {Type::ASTERISK,    "*"},
+    {Type::SLASH,       "/"},
+    {Type::MOD,         "%"},
+    {Type::LPAREN,      "("},
+    {Type::RPAREN,      ")"},
+    {Type::SEMICOLON,   ";"},
+};
+
+Token& Token::operator=(const Token& other){
+    if (this == &other) return *this;
+    type = other.type;
+    literal = other.literal;
+    return *this;
+}
+
+Token::Type Token::get_type() const {
+    return type;
+}
+
+std::string Token::get_name() const {
+    auto it = type_map.find(type);
+    if (it != type_map.end())
+        return it->second;
+    else return "?[token]?";
+}
+
+std::string Token::get_literal() const {
+    return literal;
+}
