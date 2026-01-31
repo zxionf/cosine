@@ -13,5 +13,5 @@ std::string Node::get_name() {
     auto it = _type_map.find(_type);
     if (it != _type_map.end())
         return it->second;
-    else return "?[node]?";
+    else return "?[unkown ast node]?";
 }

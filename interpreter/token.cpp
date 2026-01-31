@@ -4,6 +4,7 @@ using namespace xel::token;
 std::map<Token::Type, std::string> Token::type_map = {
     {Type::TOKEN_EOF,   "eof"},
     {Type::ILLEGAL,     "illegal"},
+    {Type::IDENTIFIER,  "identifier"},
     {Type::INTEGER,     "integer"},
     {Type::FLOAT,       "float"},
     {Type::PLUS,        "+"},
@@ -31,7 +32,7 @@ std::string Token::get_name() const {
     auto it = type_map.find(type);
     if (it != type_map.end())
         return it->second;
-    else return "?[token]?";
+    else return "?[unknow_token_name]?";
 }
 
 std::string Token::get_literal() const {

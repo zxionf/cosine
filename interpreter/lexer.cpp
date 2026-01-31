@@ -25,12 +25,15 @@ Token Lexer::next_token(){
     skip_whitespace();
     switch (ch) { 
         case ';':
+            return Token(Token::Type::SEMICOLON, {ch});
         case '(':
             return Token(Token::Type::LPAREN, {ch});
         case ')':
             return Token(Token::Type::RPAREN, {ch});
         case ',':
+            return Token(Token::Type::COMMA, {ch});
         case '.':
+            return Token(Token::Type::DOT, {ch});
         case '+':
             return new_token(Token::Type::PLUS, {ch});
         case '-':
@@ -40,6 +43,7 @@ Token Lexer::next_token(){
         case '/':
             return new_token(Token::Type::SLASH, {ch});
         case '=':
+            return new_token(Token::Type::ASSIGN, {ch});
         case '!':
         case '&':
         case '|':
@@ -52,11 +56,15 @@ Token Lexer::next_token(){
             if(is_digit(ch)){
                 std::string number = read_number();
                 unread_char();
-                return new_token(Token::Type::INTEGER, number);
+                if(!next_char_is_letter()) return new_token(Token::Type::INTEGER, number);
+                else return new_token(Token::Type::ILLEGAL, "error reading number");
             }
-            else {
-                return new_token(Token::Type::ILLEGAL, {ch});
+            else if(is_letter(ch)){
+                std::string identifier = read_identifier();
+                unread_char();
+                return new_token(Token::Type::IDENTIFIER, identifier);
             }
+            else return new_token(Token::Type::ILLEGAL, {ch});
     }
 }
 
@@ -85,12 +93,26 @@ void Lexer::unread_char(){
 bool Lexer::is_digit(char ch){
     return ch >= '0' && ch <= '9';
 }
+bool Lexer::is_letter(char ch){
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_';
+}
 std::string Lexer::read_number(){
     int pos_ = pos;
     while(is_digit(ch)){
         read_char();
     }
     return input.substr(pos_, pos - pos_);
+}
+std::string Lexer::read_identifier(){
+    int pos_ = pos;
+    while(is_letter(ch) ||  is_digit(ch)){
+        read_char();
+    }
+    return input.substr(pos_, pos - pos_);
+}
+bool Lexer::next_char_is_letter(){
+    if(next_pos >= inputlen) return false;
+    return is_letter(input[next_pos]);
 }
 Token Lexer::new_token(Token::Type type, const std::string& literal){
     return Token(type, literal);
