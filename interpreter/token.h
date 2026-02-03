@@ -31,7 +31,9 @@ namespace xel::token
                 SEMICOLON,      // ;
                 COLON,          // :
                 DOT,            // .
-                QUESTION        // ?
+                QUESTION,       // ?
+                // 关键字
+                KEYWORD_VAR,    // var
             };
             Token() = default;
             Token(Type type, const std::string& literal) : type(type), literal(literal) {}
@@ -42,11 +44,13 @@ namespace xel::token
             Type get_type() const;
             std::string get_literal() const;
             std::string get_name() const;
+            static Type find_keyword(const std::string& ind);
 
         private:
             Type type;              // 类型
             std::string literal;    // 字面量
             int line;               // TODO 行号
-            static std::map<Type, std::string> type_map; // 类型名称
+            static std::map<Type, std::string> type_map; // 类型->名称
+            static std::map<std::string, Type> keyword_map; // 名称->关键字
     };
 }

@@ -12,7 +12,9 @@ namespace xel::ast
 
             virtual std::string to_string() override
             {
-                return _expression->to_string();
+                if(_expression)
+                    return _expression->to_string();
+                else return "{null expression}";
             }
 
         public:

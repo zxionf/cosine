@@ -62,7 +62,8 @@ Token Lexer::next_token(){
             else if(is_letter(ch)){
                 std::string identifier = read_identifier();
                 unread_char();
-                return new_token(Token::Type::IDENTIFIER, identifier);
+                Token::Type keyword = Token::find_keyword(identifier);
+                return new_token(keyword, identifier);
             }
             else return new_token(Token::Type::ILLEGAL, {ch});
     }

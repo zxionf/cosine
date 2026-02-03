@@ -17,6 +17,10 @@ std::map<Token::Type, std::string> Token::type_map = {
     {Type::SEMICOLON,   ";"},
 };
 
+std::map<std::string, Token::Type> Token::keyword_map = {
+    {"var", Type::KEYWORD_VAR},
+};
+
 Token& Token::operator=(const Token& other){
     if (this == &other) return *this;
     type = other.type;
@@ -33,6 +37,13 @@ std::string Token::get_name() const {
     if (it != type_map.end())
         return it->second;
     else return "?[unknow_token_name]?";
+}
+
+Token::Type Token::find_keyword(const std::string& ind) {
+    auto it = keyword_map.find(ind);
+    if (it != keyword_map.end())
+        return it->second;
+    else return Type::IDENTIFIER;
 }
 
 std::string Token::get_literal() const {
