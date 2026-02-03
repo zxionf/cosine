@@ -19,11 +19,12 @@ namespace xel::object
 
             Object() = default;
             Object(Type type) :_type(type){}
-            virtual ~Object() = default;
+            Object(const std::string& literal) {}
+            // virtual ~Object() = default;
 
             Type get_type() const { return _type; }
             std::string get_name() const;
-            virtual std::string to_string() = 0;
+            // virtual std::string to_string() = 0;
 
             static std::shared_ptr<Object> new_error(const char* format, ...);
             static std::shared_ptr<Object> new_integer(int32_t value);

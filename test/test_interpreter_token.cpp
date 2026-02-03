@@ -4,11 +4,9 @@
 int main(){
 
     auto lexer = new xel::lexer::Lexer("test.xel");
-    while(true){
-        auto token = lexer->next_token();
-        std::cout << token.get_name() << ": " << token.get_literal() << std::endl;
-        if(token.get_type() == xel::token::Token::Type::TOKEN_EOF)
-            break;
+    lexer->get_tokens();
+    for(auto token : lexer->get_tokens()){
+        std::cout << token.to_string() << std::endl;
     }
     return 0;
 }

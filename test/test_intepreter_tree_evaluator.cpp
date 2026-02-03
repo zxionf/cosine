@@ -25,8 +25,8 @@ int main(){
     // 求值
     std::shared_ptr<Evaluator> evaluator = std::make_shared<Evaluator>();
     std::shared_ptr<Object> result = evaluator->eval(program);
-    if(result)
-        std::cout << result->to_string() << std::endl;
-    else std::cout << "NULL" << std::endl;
+    // if(result)
+        // std::cout << result->to_string() << std::endl;
+    // else std::cout << "NULL" << std::endl;
     return 0;
 }

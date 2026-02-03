@@ -2,23 +2,23 @@
 using namespace xel::token;
 
 std::map<Token::Type, std::string> Token::type_map = {
-    {Type::TOKEN_EOF,   "eof"},
-    {Type::ILLEGAL,     "illegal"},
-    {Type::IDENTIFIER,  "identifier"},
-    {Type::INTEGER,     "integer"},
-    {Type::FLOAT,       "float"},
-    {Type::PLUS,        "+"},
-    {Type::MINUS,       "-"},
-    {Type::ASTERISK,    "*"},
-    {Type::SLASH,       "/"},
-    {Type::MOD,         "%"},
-    {Type::LPAREN,      "("},
-    {Type::RPAREN,      ")"},
-    {Type::SEMICOLON,   ";"},
+    // {Type::TOKEN_EOF,   "eof"},
+    // {Type::ILLEGAL,     "illegal"},
+    // {Type::IDENTIFIER,  "identifier"},
+    // {Type::INTEGER,     "integer"},
+    // {Type::FLOAT,       "float"},
+    // {Type::PLUS,        "+"},
+    // {Type::MINUS,       "-"},
+    // {Type::ASTERISK,    "*"},
+    // {Type::SLASH,       "/"},
+    // {Type::MOD,         "%"},
+    // {Type::LPAREN,      "("},
+    // {Type::RPAREN,      ")"},
+    // {Type::SEMICOLON,   ";"},
 };
 
 std::map<std::string, Token::Type> Token::keyword_map = {
-    {"var", Type::KEYWORD_VAR},
+    // {"var", Type::KEYWORD_VAR},
 };
 
 Token& Token::operator=(const Token& other){
@@ -47,5 +47,9 @@ Token::Type Token::find_keyword(const std::string& ind) {
 }
 
 std::string Token::get_literal() const {
-    return literal;
+    return lexeme;
+}
+
+std::string Token::to_string() const {
+    return "Token(" + get_name() + ", " + get_literal() + ")";
 }

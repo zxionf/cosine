@@ -41,9 +41,9 @@ int main(){
         {
             // 求值
             std::shared_ptr<Object> result = evaluator->eval(program);
-            if(result)
-                std::cout << result->to_string() << std::endl;
-            else std::cout << "NULL" << std::endl;
+            // if(result)
+                // std::cout << result->to_string() << std::endl;
+            // else std::cout << "NULL" << std::endl;
         }
           
     }

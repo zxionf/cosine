@@ -19,7 +19,7 @@ std::map<Token::Type, Parser::prefix_parse_fn> Parser::_prefix_parse_fns = {
 std::map<Token::Type, Parser::infix_parse_fn> Parser::_infix_parse_fns = {
     {Token::Type::PLUS,       &Parser::parse_infix},
     {Token::Type::MINUS,      &Parser::parse_infix},
-    {Token::Type::ASTERISK,   &Parser::parse_infix},
+    // {Token::Type::ASTERISK,   &Parser::parse_infix},
     {Token::Type::SLASH,      &Parser::parse_infix},
 };
 
