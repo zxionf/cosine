@@ -1,6 +1,4 @@
 #include "parser.h"
-using namespace xel;
-
 #include "runtime_error.h"
 
 std::shared_ptr<Expr> Parser::parse() {
@@ -29,7 +27,7 @@ std::shared_ptr<Expr> Parser::equality() {
 
 template<typename... Type>
 bool Parser::match(Type... types) {
-    if (check(types) || ...) {
+    if ((check(types) || ...)) {
         advance();
         return true;
     }

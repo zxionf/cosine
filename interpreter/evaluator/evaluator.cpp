@@ -1,0 +1,132 @@
+#include "evaluator.h"
+using namespace xel;
+#include "../runtime_error.h"
+
+void Evaluator::interpret(std::shared_ptr<Expr> expression){
+    try {
+        std::any value = evaluate(expression);
+        std::printf("%s", stringify(value).c_str());
+    } catch (std::runtime_error error) {
+        // TODO : report
+        // Lox.runtimeError(error);
+    }
+}
+
+std::any Evaluator::visitLiteralExpr(std::shared_ptr<Literal> expr) {
+    return expr->_value;
+}
+
+std::any Evaluator::visitGroupingExpr(std::shared_ptr<Grouping> expr) {
+    return expr->_expression;
+}
+
+std::any Evaluator::evaluate(std::shared_ptr<Expr> expr) {
+    return expr->accept(this);
+}
+
+std::any Evaluator::visitUnaryExpr(std::shared_ptr<Unary> expr) {
+    std::any right = evaluate(expr->_right);
+
+    switch (expr->_op.get_type()) {
+        case Token::Type::BANG:
+            return !is_truthy(right);
+        case Token::Type::MINUS:
+            check_number_operand(expr->_op, right);
+            return - std::any_cast<double>(right);
+    }
+
+    // Unreachable.
+    return nullptr;
+}
+
+bool Evaluator::is_truthy(const std::any& object) {
+    if (!object.has_value()) return false;
+    if (object.type() == typeid(double)) return std::any_cast<double>(object);
+    return true;
+}
+
+// TODO : optimize
+bool Evaluator::is_equal(const std::any& a, const std::any& b) {
+    if (!a.has_value() && !b.has_value()) return true;
+    if (a.has_value()) return false;
+    if (a.type() != b.type()) return false;
+
+    return &a == &b;
+  }
+
+std::any Evaluator::visitBinaryExpr(std::shared_ptr<Binary> expr) {
+    std::any left = evaluate(expr->_left);
+    std::any right = evaluate(expr->_right); 
+
+    switch (expr->_op.get_type()) {
+        // != ==
+        case Token::Type::BANG_EQUAL: return !is_equal(left, right);
+        case Token::Type::EQUAL_EQUAL: return is_equal(left, right);
+        // > >= < <=
+        case Token::Type::GREATER:
+            check_number_operands(expr->_op, left, right);
+            return std::any_cast<double>(left) > std::any_cast<double>(right);
+        case Token::Type::GREATER_EQUAL:
+            check_number_operands(expr->_op, left, right);
+            return std::any_cast<double>(left) >= std::any_cast<double>(right);
+        case Token::Type::LESS:
+            check_number_operands(expr->_op, left, right);
+            return std::any_cast<double>(left) < std::any_cast<double>(right);
+        case Token::Type::LESS_EQUAL:
+            check_number_operands(expr->_op, left, right);
+            return std::any_cast<double>(left) <= std::any_cast<double>(right);
+        // + - * /
+        case Token::Type::PLUS:
+            if (left.type() == typeid(double) && right.type() == typeid(double))
+                return std::any_cast<double>(left) + std::any_cast<double>(right);
+            if (left.type() == typeid(std::string) && right.type() == typeid(std::string))
+                return std::any_cast<std::string>(left) + std::any_cast<std::string>(right);
+            throw error(expr->_op,"Operands must be two numbers or two strings.");
+        case Token::Type::MINUS:
+            check_number_operands(expr->_op, left, right);
+            return std::any_cast<double>(left) - std::any_cast<double>(right);
+        case Token::Type::SLASH:
+            check_number_operands(expr->_op, left, right);
+            return std::any_cast<double>(left) / std::any_cast<double>(right);
+        case Token::Type::STAR:
+            check_number_operands(expr->_op, left, right);
+            return std::any_cast<double>(left) * std::any_cast<double>(right);
+    }
+
+    // Unreachable.
+    return nullptr;
+}
+
+void Evaluator::check_number_operand(const Token& op, const std::any& operand) {
+    if (operand.type() == typeid(double)) return;
+    throw error(op, "Operand must be a number.");
+}
+
+void Evaluator::check_number_operands(const Token& op, const std::any& left, const std::any& right) {
+    if (left.type() == typeid(double) && right.type() == typeid(double)) return;
+    throw error(op, "Operands must be numbers.");
+}
+
+std::runtime_error Evaluator::error(const Token& token, const std::string& message) {
+    xel::runtime_error::error(token.get_line(), message);
+    return std::runtime_error(message);
+}
+
+std::string Evaluator::stringify(const std::any& object) {
+    if (!object.has_value()) return "nil";
+
+    std::string rel;
+    if (object.type() == typeid(double)) {
+        double num = std::any_cast<double>(object);
+        std::string text = std::to_string(num);
+        if (text.size() >= 2 && text.substr(text.size() - 2) == ".0") {
+            // 移除最后两个字符
+            text = text.substr(0, text.size() - 2);
+        }
+        rel = text;
+    }
+    else if (object.type() == typeid(std::string)) {
+        rel = std::any_cast<std::string>(object);
+    }
+    return rel;
+}

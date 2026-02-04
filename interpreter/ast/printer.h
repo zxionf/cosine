@@ -20,8 +20,8 @@ namespace xel
             }
 
             std::any visitLiteralExpr(std::shared_ptr<Literal> expr) override {
-                if (expr->_value._type == Object::Type::STRING) {
-                    return "\"" + std::any_cast<std::string>(expr->_value._value) + "\"";
+                if (expr->_value.type() == typeid(std::string)) {
+                    return "\"" + std::any_cast<std::string>(expr->_value) + "\"";
                 }
                 return std::to_string(std::any_cast<double>(expr->_value));
             }

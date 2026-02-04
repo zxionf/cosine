@@ -64,13 +64,13 @@ namespace xel
     // 字面值表达式
     class Literal : public Expr, public std::enable_shared_from_this<Literal> {
     public:
-        explicit Literal(Object value) : _value(std::move(value)) {}
+        explicit Literal(std::any value) : _value(std::move(value)) {}
         
         std::any accept(ExprVisitor* visitor) override {
             return visitor->visitLiteralExpr(shared_from_this());
         }
         
-        Object _value;
+        std::any _value;
     };
 
     // 一元表达式

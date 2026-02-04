@@ -1,6 +1,5 @@
 #pragma once
 #include "token.h"
-using namespace xel;
 
 #include <list>
 
@@ -31,7 +30,7 @@ namespace xel
             bool is_alpha_numeric(char ch); // 数字或者字母或者下划线
 
             void add_token(Token::Type type);
-            void add_token(Token::Type type, Object literal);
+            void add_token(Token::Type type, const std::any& literal);
 
             void skip_whitespace();
             void read_char();

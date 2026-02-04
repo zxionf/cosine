@@ -3,7 +3,6 @@
 
 #include "../lexer.h"
 #include "../ast/expr.h"
-using namespace xel;
 
 #include <memory>
 
@@ -13,16 +12,17 @@ namespace xel
     {
         public:
             Parser()  = default;
-            Parser(std::list<Token> tokens) :_tokens(std::move(tokens)), _current(tokens.begin()) {}
+            Parser(std::list<Token> tokens) :_tokens(std::move(tokens)), _current(_tokens.begin()) {}
             ~Parser() = default;
 
-        private:
+        public:
             std::shared_ptr<Expr> parse();
             std::shared_ptr<Expr> expression();
             std::shared_ptr<Expr> equality();
 
-            template<typename... Args>
-            bool match(Args... token_types);
+        private:
+            template<typename... Type>
+            bool match(Type... token_types);
             bool check(Token::Type type);
 
             Token advance();

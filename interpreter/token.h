@@ -2,8 +2,7 @@
 
 #include <string>
 #include <map>
-#include "object/object.h"
-using namespace xel;
+#include <any>
 
 namespace xel
 {
@@ -31,7 +30,7 @@ namespace xel
                 TOKEN_EOF
             };
             Token() = default;
-            Token(Type type, const std::string& lexeme, Object literal, int line) : type(type),lexeme(lexeme),literal(literal),line(line) {}
+            Token(Type type, const std::string& lexeme, const std::any& literal, int line) : type(type),lexeme(lexeme),literal(literal),line(line) {}
             ~Token() = default;
 
             Token& operator=(const Token& other);
@@ -39,7 +38,7 @@ namespace xel
             Type get_type() const;
             std::string get_lexeme() const;
             std::string get_name() const;
-            Object get_literal() const;
+            std::any get_literal() const;
             int get_line() const;
 
             std::string to_string() const;
@@ -47,7 +46,7 @@ namespace xel
         private:
             Type type;              // 类型
             std::string lexeme;     // 词素
-            Object literal;         // 值
+            std::any literal;         // 值
             int line;               // 行号
 
             static std::map<Type, std::string> type_map; // 类型->名称

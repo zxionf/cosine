@@ -40,7 +40,7 @@ std::string Token::get_lexeme() const {
     return lexeme;
 }
 
-Object Token::get_literal() const {
+std::any Token::get_literal() const {
     return literal;
 }
 

@@ -48,7 +48,7 @@ std::list<Token> Lexer::get_tokens()
     }
 
     // TODO : optimize Object()
-    tokens.push_back(Token(Token::Type::TOKEN_EOF, "", Object(), line));
+    tokens.push_back(Token(Token::Type::TOKEN_EOF, "", nullptr, line));
     return tokens;
 }
 
@@ -112,10 +112,10 @@ char Lexer::next_char() {
 
 // TODO : optimize
 void Lexer::add_token(Token::Type type) {
-    add_token(type, Object());
+    add_token(type, nullptr);
 }
 
-void Lexer::add_token(Token::Type type, Object literal) {
+void Lexer::add_token(Token::Type type, const std::any& literal) {
     std::string text = source.substr(start, current-start); // start , length
     tokens.push_back(Token(type, text, literal, line));
 }
@@ -165,8 +165,8 @@ void Lexer::read_number() {
 
       while (is_digit(peek_char())) next_char();
     }
-
-    add_token(Token::Type::NUMBER, source.substr(start, current - start));
+    std::string text = source.substr(start, current - start);
+    add_token(Token::Type::NUMBER, std::stod(text));
 }
 
 char Lexer::peek_next_char() {
