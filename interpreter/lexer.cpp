@@ -179,7 +179,7 @@ void Lexer::read_identifier() {
 
     std::string text = source.substr(start, current - start);
     auto it = keywords.find(text);
-    if (it != keywords.end())
+    if (it == keywords.end())
         add_token(Token::Type::IDENTIFIER);
     else add_token(it->second);
   }

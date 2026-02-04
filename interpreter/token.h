@@ -50,6 +50,5 @@ namespace xel::token
             int line;               // 行号
 
             static std::map<Type, std::string> type_map; // 类型->名称
-            static std::map<std::string, Type> keyword_map; // 名称->关键字
     };
 }
