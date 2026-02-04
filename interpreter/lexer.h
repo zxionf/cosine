@@ -1,6 +1,6 @@
 #pragma once
-#include "token.h"
 
+#include "token.h"
 #include <list>
 
 namespace xel
@@ -9,18 +9,18 @@ namespace xel
     {
         public:
             Lexer() = default;
-            Lexer(const std::string& file);
-            Lexer(const char* buffer, size_t size);
+            Lexer(const std::string& file);             // 从文件读取
+            Lexer(const char* buffer, size_t size);     // 从内存中读取
             ~Lexer() = default;
 
-            std::list<Token> get_tokens();
+            std::list<Token> get_tokens();      // 获取所有token
         private:
             bool is_at_end();
             void get_token();
-            char next_char();
+            char next_char();           // _current++
             bool next_char_is(char ch);
             char peek_char();
-            char peek_next_char();
+            char peek_next_char();      // peek 后面第一个字符
 
             void read_string();
             void read_number();
@@ -31,16 +31,7 @@ namespace xel
 
             void add_token(Token::Type type);
             void add_token(Token::Type type, const std::any& literal);
-
-            void skip_whitespace();
-            void read_char();
-            void unread_char();
             
-            
-            bool next_char_is_letter();
-            // std::string read_number();
-            // std::string read_identifier();
-            Token new_token(Token::Type type, const std::string& literal);
         private:
             std::string source;
             std::list<Token> tokens;

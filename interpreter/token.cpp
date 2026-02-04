@@ -21,7 +21,9 @@ std::map<Token::Type, std::string> Token::type_map = {
 Token& Token::operator=(const Token& other){
     if (this == &other) return *this;
     type = other.type;
+    lexeme = other.lexeme;
     literal = other.literal;
+    line = other.line;
     return *this;
 }
 
@@ -33,7 +35,7 @@ std::string Token::get_name() const {
     auto it = type_map.find(type);
     if (it != type_map.end())
         return it->second;
-    else return "?[unknow_token_name]?";
+    else return "[unknow_token_name]";
 }
 
 std::string Token::get_lexeme() const {

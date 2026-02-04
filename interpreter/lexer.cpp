@@ -1,5 +1,6 @@
 #include "lexer.h"
 using namespace xel;
+#include "xel_error.h"
 
 #include <fstream>
 #include <sstream>
@@ -47,8 +48,7 @@ std::list<Token> Lexer::get_tokens()
       get_token();
     }
 
-    // TODO : optimize Object()
-    tokens.push_back(Token(Token::Type::TOKEN_EOF, "", nullptr, line));
+    tokens.emplace_back(Token::Type::TOKEN_EOF, "", nullptr, line);
     return tokens;
 }
 
@@ -75,12 +75,10 @@ void Lexer::get_token()
         case '<': add_token(next_char_is('=') ? Token::Type::LESS_EQUAL : Token::Type::LESS); break;
         case '>': add_token(next_char_is('=') ? Token::Type::GREATER_EQUAL : Token::Type::GREATER); break;
         case '/':
-            if (next_char_is('/')) {
-            // 单行注释
-            while (peek_char() != '\n' && !is_at_end()) next_char();
-            } else {
-            add_token(Token::Type::SLASH);
-            }
+            if (next_char_is('/')) // 单行注释
+                while (peek_char() != '\n' && !is_at_end()) next_char();
+            else
+                add_token(Token::Type::SLASH);
             break;
         case ' ':
         case '\r':
@@ -98,7 +96,7 @@ void Lexer::get_token()
         default:
             if (is_digit(c)) read_number();
             else if (is_alpha(c)) read_identifier();
-            else std::printf("Unexpected character at line %d\n", line);
+            else xel::error::error(line, "Unexpected character.");
             break;
     }
 }
@@ -117,7 +115,7 @@ void Lexer::add_token(Token::Type type) {
 
 void Lexer::add_token(Token::Type type, const std::any& literal) {
     std::string text = source.substr(start, current-start); // start , length
-    tokens.push_back(Token(type, text, literal, line));
+    tokens.emplace_back(Token(type, text, literal, line));
 }
 
 bool Lexer::next_char_is(char expected) {
@@ -134,19 +132,19 @@ char Lexer::peek_char() {
 
 void Lexer::read_string() {
     while (peek_char() != '"' && !is_at_end()) {
-      if (peek_char() == '\n') line++;
-      next_char();
+        if (peek_char() == '\n') line++;
+        next_char();
     }
 
     if (is_at_end()) {
-      std::printf("Unterminated string at line %d\n", line);
-      return;
+        xel::error::error(line, "Unterminated string.");
+        return;
     }
 
     // The closing ".
     next_char();
 
-    // Trim the surrounding quotes.
+    // 获取字符串
     std::string value = source.substr(start + 1, current - 1 - start - 1);
     add_token(Token::Type::STRING, value);
 }
@@ -158,7 +156,7 @@ bool Lexer::is_digit(char c) {
 void Lexer::read_number() {
     while (is_digit(peek_char())) next_char();
 
-    // Look for a fractional part.
+    // 小数部分
     if (peek_char() == '.' && is_digit(peek_next_char())) {
       // Consume the "."
       next_char();
@@ -166,7 +164,7 @@ void Lexer::read_number() {
       while (is_digit(peek_char())) next_char();
     }
     std::string text = source.substr(start, current - start);
-    add_token(Token::Type::NUMBER, std::stod(text));
+    add_token(Token::Type::NUMBER, std::stod(text));    // 默认转成double
 }
 
 char Lexer::peek_next_char() {
@@ -193,102 +191,3 @@ bool Lexer::is_alpha(char c ){
 bool Lexer::is_alpha_numeric(char c){
     return is_alpha(c) || is_digit(c);
 }
-
-// Token Lexer::next_token(){ 
-//     read_char();
-//     skip_whitespace();
-//     switch (ch) { 
-//         case ';':
-//             return Token(Token::Type::SEMICOLON, {ch});
-//         case '(':
-//             return Token(Token::Type::LPAREN, {ch});
-//         case ')':
-//             return Token(Token::Type::RPAREN, {ch});
-//         case ',':
-//             return Token(Token::Type::COMMA, {ch});
-//         case '.':
-//             return Token(Token::Type::DOT, {ch});
-//         case '+':
-//             return new_token(Token::Type::PLUS, {ch});
-//         case '-':
-//             return new_token(Token::Type::MINUS, {ch});
-//         case '*':
-//             return new_token(Token::Type::ASTERISK, {ch});
-//         case '/':
-//             return new_token(Token::Type::SLASH, {ch});
-//         case '=':
-//             return new_token(Token::Type::ASSIGN, {ch});
-//         case '!':
-//         case '&':
-//         case '|':
-//         case '^':
-//         case '~':
-//         case ':':
-//         case '\0':
-//             return new_token(Token::Type::TOKEN_EOF, {});
-//         default:
-//             if(is_digit(ch)){
-//                 std::string number = read_number();
-//                 unread_char();
-//                 if(!next_char_is_letter()) return new_token(Token::Type::INTEGER, number);
-//                 else return new_token(Token::Type::ILLEGAL, "error reading number");
-//             }
-//             else if(is_letter(ch)){
-//                 std::string identifier = read_identifier();
-//                 unread_char();
-//                 Token::Type keyword = Token::find_keyword(identifier);
-//                 return new_token(keyword, identifier);
-//             }
-//             else return new_token(Token::Type::ILLEGAL, {ch});
-//     }
-// }
-
-// void Lexer::skip_whitespace(){
-//     while (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r')
-//     {
-//         read_char();
-//     }
-// }
-// void Lexer::read_char(){
-//     if (next_pos >= inputlen)
-//     {
-//         ch = '\0';
-//         // return;
-//     }else
-//     {
-//         ch = input[next_pos];
-//     }
-//     pos = next_pos;
-//     ++next_pos;
-// }
-// void Lexer::unread_char(){
-//     next_pos = pos;
-//     --pos;
-// }
-// bool Lexer::is_digit(char ch){
-//     return ch >= '0' && ch <= '9';
-// }
-// bool Lexer::is_letter(char ch){
-//     return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch == '_';
-// }
-// std::string Lexer::read_number(){
-//     int pos_ = pos;
-//     while(is_digit(ch)){
-//         read_char();
-//     }
-//     return input.substr(pos_, pos - pos_);
-// }
-// std::string Lexer::read_identifier(){
-//     int pos_ = pos;
-//     while(is_letter(ch) ||  is_digit(ch)){
-//         read_char();
-//     }
-//     return input.substr(pos_, pos - pos_);
-// }
-// bool Lexer::next_char_is_letter(){
-//     if(next_pos >= inputlen) return false;
-//     return is_letter(input[next_pos]);
-// }
-// Token Lexer::new_token(Token::Type type, const std::string& literal){
-//     return Token(type, literal);
-// }

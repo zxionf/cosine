@@ -46,7 +46,7 @@ namespace xel
         private:
             Type type;              // 类型
             std::string lexeme;     // 词素
-            std::any literal;         // 值
+            std::any literal;       // 值
             int line;               // 行号
 
             static std::map<Type, std::string> type_map; // 类型->名称

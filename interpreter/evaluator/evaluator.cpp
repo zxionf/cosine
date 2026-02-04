@@ -1,22 +1,19 @@
 #include "evaluator.h"
 using namespace xel;
-#include "../runtime_error.h"
+#include "../xel_error.h"
 
 void Evaluator::interpret(std::shared_ptr<Expr> expression){
     try {
         std::any value = evaluate(expression);
         std::printf("%s", stringify(value).c_str());
-    } catch (std::runtime_error error) {
-        // TODO : report
-        // Lox.runtimeError(error);
-    }
+    } catch (std::runtime_error error) {}
 }
 
-std::any Evaluator::visitLiteralExpr(std::shared_ptr<Literal> expr) {
+std::any Evaluator::visit_literal_expr(std::shared_ptr<Literal> expr) {
     return expr->_value;
 }
 
-std::any Evaluator::visitGroupingExpr(std::shared_ptr<Grouping> expr) {
+std::any Evaluator::visit_grouping_expr(std::shared_ptr<Grouping> expr) {
     return evaluate(expr->_expression);
 }
 
@@ -24,7 +21,7 @@ std::any Evaluator::evaluate(std::shared_ptr<Expr> expr) {
     return expr->accept(this);
 }
 
-std::any Evaluator::visitUnaryExpr(std::shared_ptr<Unary> expr) {
+std::any Evaluator::visit_unary_expr(std::shared_ptr<Unary> expr) {
     std::any right = evaluate(expr->_right);
 
     switch (expr->_op.get_type()) {
@@ -57,7 +54,7 @@ bool Evaluator::is_equal(const std::any& a, const std::any& b) {
     return false;
   }
 
-std::any Evaluator::visitBinaryExpr(std::shared_ptr<Binary> expr) {
+std::any Evaluator::visit_binary_expr(std::shared_ptr<Binary> expr) {
     std::any left = evaluate(expr->_left);
     std::any right = evaluate(expr->_right); 
 
@@ -111,7 +108,7 @@ void Evaluator::check_number_operands(const Token& op, const std::any& left, con
 }
 
 std::runtime_error Evaluator::error(const Token& token, const std::string& message) {
-    xel::runtime_error::error(token.get_line(), message);
+    xel::runtime_error::error(token, message);
     return std::runtime_error(message);
 }
 

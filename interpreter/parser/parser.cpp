@@ -1,5 +1,6 @@
 #include "parser.h"
-#include "runtime_error.h"
+using namespace xel;
+#include "xel_error.h"
 
 std::shared_ptr<Expr> Parser::parse() {
     try {
@@ -17,7 +18,7 @@ std::shared_ptr<Expr> Parser::equality() {
     std::shared_ptr<Expr> expr = comparison();
 
     while (match(Token::Type::BANG_EQUAL, Token::Type::EQUAL_EQUAL)) {
-        Token op = previous();
+        Token& op = prev_token();
         std::shared_ptr<Expr> right = comparison();
         // expr = new Expr.Binary(expr, operator, right);
         expr = std::make_shared<Binary>(expr, op, right);
@@ -25,10 +26,15 @@ std::shared_ptr<Expr> Parser::equality() {
     return expr;
 }
 
+/*
+* 假设当前 token 是 PLUS
+* match(PLUS, MINUS, STAR);  // 返回 true，token 被消费
+* match(NUMBER, STRING);     // 返回 false，token 未被消费
+*/
 template<typename... Type>
 bool Parser::match(Type... types) {
     if ((check(types) || ...)) {
-        advance();
+        next_token();
         return true;
     }
     return false;
@@ -36,23 +42,23 @@ bool Parser::match(Type... types) {
 
 bool Parser::check(Token::Type type) {
     if (is_at_end()) return false;
-    return peek().get_type() == type;
+    return peek_token().get_type() == type;
 }
 
-Token Parser::advance() {
+Token& Parser::next_token() {
     if (!is_at_end()) _current++;
-    return previous();
+    return prev_token();
 }
 
 bool Parser::is_at_end() {
-    return peek().get_type() == Token::Type::TOKEN_EOF;
+    return peek_token().get_type() == Token::Type::TOKEN_EOF;
 }
 
-Token Parser::peek() {
+Token& Parser::peek_token() {
     return *_current;
 }
 
-Token Parser::previous() {
+Token& Parser::prev_token() {
     return *std::prev(_current);
 }
 
@@ -60,7 +66,7 @@ std::shared_ptr<Expr> Parser::comparison() {
     std::shared_ptr<Expr> expr = term();
 
     while (match(Token::Type::GREATER, Token::Type::GREATER_EQUAL, Token::Type::LESS, Token::Type::LESS_EQUAL)) {
-        Token op = previous();
+        Token& op = prev_token();
         std::shared_ptr<Expr> right = term();
         // expr = new Expr.Binary(expr, operator, right);
         expr = std::make_shared<Binary>(expr, op, right);
@@ -72,7 +78,7 @@ std::shared_ptr<Expr> Parser::term() {
     std::shared_ptr<Expr> expr = factor();
 
     while (match(Token::Type::MINUS, Token::Type::PLUS)) {
-        Token op = previous();
+        Token& op = prev_token();
         std::shared_ptr<Expr> right = factor();
         // expr = new Expr.Binary(expr, operator, right);
         expr = std::make_shared<Binary>(expr, op, right);
@@ -84,7 +90,7 @@ std::shared_ptr<Expr> Parser::factor() {
     std::shared_ptr<Expr> expr = unary();
 
     while (match(Token::Type::SLASH, Token::Type::STAR)) {
-        Token op = previous();
+        Token& op = prev_token();
         std::shared_ptr<Expr> right = unary();
         // expr = new Expr.Binary(expr, operator, right);
         expr = std::make_shared<Binary>(expr, op, right);
@@ -94,7 +100,7 @@ std::shared_ptr<Expr> Parser::factor() {
 
 std::shared_ptr<Expr> Parser::unary() {
     if (match(Token::Type::BANG, Token::Type::MINUS)) {
-        Token op = previous();
+        Token& op = prev_token();
         std::shared_ptr<Expr> right = unary();
         // return new Expr.Unary(operator, right);
         return std::make_shared<Unary>(op, right);
@@ -110,7 +116,7 @@ std::shared_ptr<Expr> Parser::primary() {
 
     if (match(Token::Type::NUMBER, Token::Type::STRING)) {
         // return new Expr.Literal(previous().literal);
-        return std::make_shared<Literal>(previous().get_literal());
+        return std::make_shared<Literal>(prev_token().get_literal());
     }
 
     if (match(Token::Type::LEFT_PAREN)) {
@@ -120,27 +126,27 @@ std::shared_ptr<Expr> Parser::primary() {
         return std::make_shared<Grouping>(expr);
     }
 
-    throw error(peek(), "Expect expression.");
+    throw error(peek_token(), "Expect expression.");
 }
 
-Token Parser::consume(Token::Type type, const std::string& message) {
-    if (check(type)) return advance();
+Token& Parser::consume(Token::Type type, const std::string& message) {
+    if (check(type)) return next_token();
 
-    throw error(peek(), message);
+    throw error(peek_token(), message);
 }
 
-std::runtime_error Parser::error(Token token, const std::string& message) {
-    xel::runtime_error::error(token, message);
+std::runtime_error Parser::error(const Token& token, const std::string& message) {
+    xel::error::error(token, message);
     return std::runtime_error(message);
 }
 
 void Parser::synchronize() {
-    advance();
+    next_token();
 
     while (!is_at_end()) {
-        if (previous().get_type() == Token::Type::SEMICOLON) return;
+        if (prev_token().get_type() == Token::Type::SEMICOLON) return;
 
-        switch (peek().get_type()) {
+        switch (peek_token().get_type()) {
             case Token::Type::CLASS:
             case Token::Type::FUN:
             case Token::Type::VAR:
@@ -151,6 +157,6 @@ void Parser::synchronize() {
             case Token::Type::RETURN:
                 return;
         }
-        advance();
+        next_token();
     }
 }

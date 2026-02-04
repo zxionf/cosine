@@ -1,10 +1,7 @@
 #pragma once
 
-
 #include "../lexer.h"
 #include "../ast/expr.h"
-
-#include <memory>
 
 namespace xel
 {
@@ -16,19 +13,19 @@ namespace xel
             ~Parser() = default;
 
         public:
-            std::shared_ptr<Expr> parse();
-            std::shared_ptr<Expr> expression();
-            std::shared_ptr<Expr> equality();
+            std::shared_ptr<Expr> parse();      // 解析
+            std::shared_ptr<Expr> expression(); // 表达式
+            std::shared_ptr<Expr> equality();   // 等式
 
         private:
             template<typename... Type>
-            bool match(Type... token_types);
-            bool check(Token::Type type);
+            bool match(Type... token_types);    // 匹配
+            bool check(Token::Type type);       // match 的辅助函数
 
-            Token advance();
-            bool is_at_end();
-            Token peek();
-            Token previous();
+            Token& next_token();    // 移动到下一个 token
+            bool   is_at_end();
+            Token& peek_token();    // 返回当前 token
+            Token& prev_token();    // 返回前一个 token
 
             std::shared_ptr<Expr> comparison();
             std::shared_ptr<Expr> term();
@@ -39,8 +36,8 @@ namespace xel
             void synchronize();
 
             // 错误处理
-            Token consume(Token::Type type, const std::string& message);
-            std::runtime_error error(Token token, const std::string& message);
+            Token& consume(Token::Type type, const std::string& message);
+            std::runtime_error error(const Token& token, const std::string& message);
 
         public:
             std::list<Token> _tokens;
