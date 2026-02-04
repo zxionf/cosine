@@ -12,11 +12,11 @@ namespace xel
             }
 
             std::any visitGroupingExpr(std::shared_ptr<Grouping> expr) override {
-                return "(" + print(expr->_expression) + ")";
+                return "(group " + print(expr->_expression) + ")";
             }
 
             std::any visitBinaryExpr(std::shared_ptr<Binary> expr) override {
-                return "(" + print(expr->_left) + " " + expr->_op.get_lexeme() + " " + print(expr->_right) + ")";
+                return "(binary " + print(expr->_left) + " " + expr->_op.get_lexeme() + " " + print(expr->_right) + ")";
             }
 
             std::any visitLiteralExpr(std::shared_ptr<Literal> expr) override {
@@ -27,7 +27,7 @@ namespace xel
             }
 
             std::any visitUnaryExpr(std::shared_ptr<Unary> expr) override {
-                return "(" + expr->_op.get_lexeme() + print(expr->_right) + ")";
+                return "(unary " + expr->_op.get_lexeme() + print(expr->_right) + ")";
             }
 
             ~ASTPrinter() = default;

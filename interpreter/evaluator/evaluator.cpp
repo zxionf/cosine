@@ -17,7 +17,7 @@ std::any Evaluator::visitLiteralExpr(std::shared_ptr<Literal> expr) {
 }
 
 std::any Evaluator::visitGroupingExpr(std::shared_ptr<Grouping> expr) {
-    return expr->_expression;
+    return evaluate(expr->_expression);
 }
 
 std::any Evaluator::evaluate(std::shared_ptr<Expr> expr) {
@@ -48,10 +48,13 @@ bool Evaluator::is_truthy(const std::any& object) {
 // TODO : optimize
 bool Evaluator::is_equal(const std::any& a, const std::any& b) {
     if (!a.has_value() && !b.has_value()) return true;
-    if (a.has_value()) return false;
+    if (!a.has_value() || !b.has_value()) return false;
     if (a.type() != b.type()) return false;
 
-    return &a == &b;
+    if(a.type() == typeid(double)) return std::any_cast<double>(a) == std::any_cast<double>(b);
+    if (a.type() == typeid(std::string)) return std::any_cast<std::string>(a) == std::any_cast<std::string>(b);
+
+    return false;
   }
 
 std::any Evaluator::visitBinaryExpr(std::shared_ptr<Binary> expr) {
@@ -127,6 +130,9 @@ std::string Evaluator::stringify(const std::any& object) {
     }
     else if (object.type() == typeid(std::string)) {
         rel = std::any_cast<std::string>(object);
+    }
+    else if (object.type() == typeid(bool)){
+        rel = std::any_cast<bool>(object) ? "true" : "false";
     }
     return rel;
 }
