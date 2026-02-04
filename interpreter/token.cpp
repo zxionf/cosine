@@ -1,5 +1,5 @@
 #include "token.h"
-using namespace xel::token;
+using namespace xel;
 
 std::map<Token::Type, std::string> Token::type_map = {
     {Type::TOKEN_EOF,   "eof"},
@@ -36,10 +36,18 @@ std::string Token::get_name() const {
     else return "?[unknow_token_name]?";
 }
 
-std::string Token::get_literal() const {
+std::string Token::get_lexeme() const {
     return lexeme;
 }
 
+Object Token::get_literal() const {
+    return literal;
+}
+
+int Token::get_line() const {
+    return line;
+}
+
 std::string Token::to_string() const {
-    return "Token(" + get_name() + ", " + get_literal() + ")";
+    return "Token(" + get_name() + ", " + get_lexeme() + ")";
 }

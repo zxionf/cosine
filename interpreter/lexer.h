@@ -1,10 +1,10 @@
 #pragma once
 #include "token.h"
-using namespace xel::token;
+using namespace xel;
 
 #include <list>
 
-namespace xel::lexer
+namespace xel
 {
     class Lexer
     {

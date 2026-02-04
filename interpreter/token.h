@@ -3,9 +3,9 @@
 #include <string>
 #include <map>
 #include "object/object.h"
-using namespace xel::object;
+using namespace xel;
 
-namespace xel::token
+namespace xel
 {
     class Token
     {
@@ -37,9 +37,10 @@ namespace xel::token
             Token& operator=(const Token& other);
 
             Type get_type() const;
-            std::string get_literal() const;
+            std::string get_lexeme() const;
             std::string get_name() const;
-            static Type find_keyword(const std::string& ind);
+            Object get_literal() const;
+            int get_line() const;
 
             std::string to_string() const;
 

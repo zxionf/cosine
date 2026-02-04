@@ -1,5 +1,5 @@
 #include "lexer.h"
-using namespace xel::lexer;
+using namespace xel;
 
 #include <fstream>
 #include <sstream>

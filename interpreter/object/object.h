@@ -6,7 +6,7 @@
 #include <cstdarg>
 #include <cstdint>
 
-namespace xel::object
+namespace xel
 {
     class Object
     {
@@ -15,22 +15,21 @@ namespace xel::object
             {
                 ERROR,
                 INTEGER,
+                STRING,
             };
 
             Object() = default;
             Object(Type type) :_type(type){}
-            Object(const std::string& literal) {}
+            Object(const std::string& literal): _type(STRING), _value(literal) {}
             // virtual ~Object() = default;
 
             Type get_type() const { return _type; }
             std::string get_name() const;
             // virtual std::string to_string() = 0;
 
-            static std::shared_ptr<Object> new_error(const char* format, ...);
-            static std::shared_ptr<Object> new_integer(int32_t value);
-
-        protected:
+        public:
             Type _type;
+            std::string _value;
             static std::map<Type, std::string> _type_map;
     };
 }

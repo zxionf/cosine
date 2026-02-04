@@ -2,9 +2,7 @@
 #include <lexer.h>
 #include <parser/parser.h>
 #include <evaluator/evaluator.h>
-using namespace xel::lexer;
-using namespace xel::parser;
-using namespace xel::evaluator;
+using namespace xel;
 
 int main(){
     // 词法分析
