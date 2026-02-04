@@ -1,6 +1,6 @@
 #include "parser.h"
 using namespace xel;
-#include "xel_error.h"
+#include "../xel_error.h"
 
 std::shared_ptr<Expr> Parser::parse() {
     try {
