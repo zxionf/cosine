@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../ast/expr.h"
+#include "../ast/stmt.h"
+#include <list>
 
 namespace xel
 {
-    class Evaluator : public ExprVisitor
+    class Evaluator : public ExprVisitor, public StmtVisitor
     {
         public:
             ~Evaluator() = default;
@@ -14,8 +15,12 @@ namespace xel
             std::any visit_unary_expr(std::shared_ptr<Unary> expr) override;
             std::any visit_binary_expr(std::shared_ptr<Binary> expr) override;
 
+            std::any visit_print_stmt(std::shared_ptr<Print> stmt) override;
+            std::any visit_expression_stmt(std::shared_ptr<Expression> stmt) override;
+
             std::any evaluate(std::shared_ptr<Expr> expr);
-            void interpret(std::shared_ptr<Expr> expression);   
+            void interpret(std::shared_ptr<Expr> expression);
+            void interpret(const std::list<std::shared_ptr<Stmt>>& statements);
 
             bool is_truthy(const std::any& object);
             bool is_equal(const std::any& a, const std::any& b);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../lexer.h"
-#include "../ast/expr.h"
+#include "../ast/stmt.h"
 
 namespace xel
 {
@@ -13,9 +13,13 @@ namespace xel
             ~Parser() = default;
 
         public:
-            std::shared_ptr<Expr> parse();      // 解析
-            std::shared_ptr<Expr> expression(); // 表达式
-            std::shared_ptr<Expr> equality();   // 等式
+            // std::shared_ptr<Expr> parse();      // 解析
+            std::list<std::shared_ptr<Stmt>> parse();       // 解析
+            std::shared_ptr<Stmt> statement();              // 语句
+            std::shared_ptr<Stmt> print_statement();        // 打印语句
+            std::shared_ptr<Stmt> expression_statement();   // 表达式语句
+            std::shared_ptr<Expr> expression();             // 表达式
+            std::shared_ptr<Expr> equality();               // 等式
 
         private:
             template<typename... Type>

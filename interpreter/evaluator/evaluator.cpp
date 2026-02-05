@@ -2,7 +2,26 @@
 using namespace xel;
 #include "../xel_error.h"
 
-void Evaluator::interpret(std::shared_ptr<Expr> expression){
+std::any Evaluator::visit_print_stmt(std::shared_ptr<Print> stmt) {
+    std::any value = evaluate(stmt->_expression);
+    std::printf("%s", stringify(value).c_str());
+    return nullptr;
+}
+
+std::any Evaluator::visit_expression_stmt(std::shared_ptr<Expression> stmt) {
+    evaluate(stmt->_expression);
+    return nullptr;
+}
+
+void Evaluator::interpret(const std::list<std::shared_ptr<Stmt>>& statements) {
+    try {
+        for (auto& stmt : statements) {
+            stmt->accept(this);
+        }
+    } catch (std::runtime_error error) {}
+}
+
+void Evaluator::interpret(std::shared_ptr<Expr> expression) {
     try {
         std::any value = evaluate(expression);
         std::printf("%s", stringify(value).c_str());

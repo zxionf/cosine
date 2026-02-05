@@ -2,12 +2,30 @@
 using namespace xel;
 #include "../xel_error.h"
 
-std::shared_ptr<Expr> Parser::parse() {
-    try {
-        return expression();
-    } catch (std::runtime_error error) {
-        return nullptr;
+std::list<std::shared_ptr<Stmt>> Parser::parse() {
+    std::list<std::shared_ptr<Stmt>> statements;
+    while (!is_at_end()) {
+        statements.emplace_back(statement());
     }
+
+    return statements;
+}
+
+std::shared_ptr<Stmt> Parser::statement() {
+    if (match(Token::Type::PRINT)) return print_statement();
+    return expression_statement();
+}
+
+std::shared_ptr<Stmt> Parser::expression_statement() {
+    std::shared_ptr<Expr> expr = expression();
+    consume(Token::Type::SEMICOLON, "Expect ';' after expression.");
+    return std::make_shared<Expression>(expr);
+}
+
+std::shared_ptr<Stmt> Parser::print_statement() {
+    std::shared_ptr<Expr> value = expression();
+    consume(Token::Type::SEMICOLON, "Expect ';' after value.");
+    return std::make_shared<Print>(value);
 }
 
 std::shared_ptr<Expr> Parser::expression() {

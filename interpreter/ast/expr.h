@@ -59,23 +59,25 @@ namespace xel
     };
 
     // 字面值表达式
-    class Literal : public Expr, public std::enable_shared_from_this<Literal> {
-    public:
-        explicit Literal(std::any value); // 缺点：对于左值有一次拷贝
-        
-        std::any accept(ExprVisitor* visitor) override;
-        
-        std::any _value;
+    class Literal : public Expr, public std::enable_shared_from_this<Literal>
+    {
+        public:
+            explicit Literal(std::any value); // 缺点：对于左值有一次拷贝
+            
+            std::any accept(ExprVisitor* visitor) override;
+            
+            std::any _value;
     };
 
     // 一元表达式
-    class Unary : public Expr, public std::enable_shared_from_this<Unary> {
-    public:
-        explicit Unary(Token op, std::shared_ptr<Expr> right);
-        
-        std::any accept(ExprVisitor* visitor) override;
-        
-        Token _op;
-        std::shared_ptr<Expr> _right;
+    class Unary : public Expr, public std::enable_shared_from_this<Unary>
+    {
+        public:
+            explicit Unary(Token op, std::shared_ptr<Expr> right);
+            
+            std::any accept(ExprVisitor* visitor) override;
+            
+            Token _op;
+            std::shared_ptr<Expr> _right;
     };
 }
