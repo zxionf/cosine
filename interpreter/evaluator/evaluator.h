@@ -16,6 +16,7 @@ namespace xel
             std::any visit_unary_expr(std::shared_ptr<Unary> expr) override;
             std::any visit_binary_expr(std::shared_ptr<Binary> expr) override;
             std::any visit_variable_expr(std::shared_ptr<Variable> expr) override;
+            std::any visit_assign_expr(std::shared_ptr<Assign> expr) override;
 
             std::any visit_print_stmt(std::shared_ptr<Print> stmt) override;
             std::any visit_expression_stmt(std::shared_ptr<Expression> stmt) override;

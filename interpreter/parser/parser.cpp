@@ -51,7 +51,26 @@ std::shared_ptr<Stmt> Parser::print_statement() {
 }
 
 std::shared_ptr<Expr> Parser::expression() {
-    return equality();
+    return assignment();
+}
+
+std::shared_ptr<Expr> Parser::assignment() {
+    std::shared_ptr<Expr> expr = equality();
+
+    if (match(Token::Type::EQUAL)) {
+        Token& equals = prev_token();
+        std::shared_ptr<Expr> value = assignment();
+
+        // if (expr instanceof Expr.Variable)
+        auto variable = std::dynamic_pointer_cast<Variable>(expr);
+        if (variable) {
+            Token& name = variable->_name;
+            return std::make_shared<Assign>(name, value);
+        }
+
+        error(equals, "Invalid assignment target."); 
+    }
+    return expr;
 }
 
 std::shared_ptr<Expr> Parser::equality() {

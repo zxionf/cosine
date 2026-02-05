@@ -22,6 +22,12 @@ std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
     return nullptr;
 }
 
+std::any Evaluator::visit_assign_expr(std::shared_ptr<Assign> expr) {
+    std::any value = evaluate(expr->_value);
+    _environment.assign(expr->_name, value);
+    return value;
+}
+
 std::any Evaluator::visit_variable_expr(std::shared_ptr<Variable> expr) {
     return _environment.get(expr->_name);
 }

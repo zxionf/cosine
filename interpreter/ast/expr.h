@@ -14,6 +14,7 @@ namespace xel
     class Literal;
     class Unary;
     class Variable;
+    class Assign;
 
     // 访问者基类
     class ExprVisitor 
@@ -26,6 +27,7 @@ namespace xel
             virtual std::any visit_literal_expr (std::shared_ptr<Literal>   expr) = 0;
             virtual std::any visit_unary_expr   (std::shared_ptr<Unary>     expr) = 0;
             virtual std::any visit_variable_expr(std::shared_ptr<Variable>  expr) = 0;
+            virtual std::any visit_assign_expr  (std::shared_ptr<Assign>    expr) = 0;
     };
 
     // 表达式基类
@@ -34,6 +36,18 @@ namespace xel
         public:
             virtual ~Expr() = default;
             virtual std::any accept(ExprVisitor* visitor) = 0;
+    };
+
+    // 赋值
+    class Assign : public Expr, public std::enable_shared_from_this<Assign>
+    {
+        public:
+            explicit Assign(Token name, std::shared_ptr<Expr> value);
+            
+            std::any accept(ExprVisitor* visitor) override;
+            
+            Token _name;
+            std::shared_ptr<Expr> _value;
     };
 
     // 二元表达式
