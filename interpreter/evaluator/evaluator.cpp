@@ -13,6 +13,19 @@ std::any Evaluator::visit_expression_stmt(std::shared_ptr<Expression> stmt) {
     return nullptr;
 }
 
+std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
+    std::any value = nullptr;
+    if (stmt->_initializer) {
+        value = evaluate(stmt->_initializer);
+    }
+    _environment.define(stmt->_name.get_lexeme(), value);
+    return nullptr;
+}
+
+std::any Evaluator::visit_variable_expr(std::shared_ptr<Variable> expr) {
+    return _environment.get(expr->_name);
+}
+
 void Evaluator::interpret(const std::list<std::shared_ptr<Stmt>>& statements) {
     try {
         for (auto& stmt : statements) {

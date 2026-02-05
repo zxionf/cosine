@@ -22,6 +22,10 @@ namespace xel
             std::shared_ptr<Expr> equality();               // 等式
 
         private:
+            // 对于语句
+            std::shared_ptr<Stmt> declaration();
+            std::shared_ptr<Stmt> var_declaration();
+
             template<typename... Type>
             bool match(Type... token_types);    // 匹配
             bool check(Token::Type type);       // match 的辅助函数

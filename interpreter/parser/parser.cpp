@@ -5,11 +5,33 @@ using namespace xel;
 std::list<std::shared_ptr<Stmt>> Parser::parse() {
     std::list<std::shared_ptr<Stmt>> statements;
     while (!is_at_end()) {
-        statements.emplace_back(statement());
+        statements.emplace_back(declaration());
     }
 
     return statements;
 }
+
+std::shared_ptr<Stmt> Parser::declaration() {
+    try {
+        if (match(Token::Type::VAR)) return var_declaration();
+        return statement();
+    } catch (std::runtime_error error) {
+        synchronize();
+        return nullptr;
+    }
+  }
+
+  std::shared_ptr<Stmt> Parser::var_declaration() {
+    Token& name = consume(Token::Type::IDENTIFIER, "Expect variable name.");
+
+    std::shared_ptr<Expr> initializer = nullptr;
+    if (match(Token::Type::EQUAL)) {
+        initializer = expression();
+    }
+
+    consume(Token::Type::SEMICOLON, "Expect ';' after variable declaration.");
+    return std::make_shared<Var>(name, initializer);
+  }
 
 std::shared_ptr<Stmt> Parser::statement() {
     if (match(Token::Type::PRINT)) return print_statement();
@@ -135,6 +157,11 @@ std::shared_ptr<Expr> Parser::primary() {
     if (match(Token::Type::NUMBER, Token::Type::STRING)) {
         // return new Expr.Literal(previous().literal);
         return std::make_shared<Literal>(prev_token().get_literal());
+    }
+
+    if (match(Token::Type::IDENTIFIER)) {
+        // return new Expr.Variable(previous());
+        return std::make_shared<Variable>(prev_token());
     }
 
     if (match(Token::Type::LEFT_PAREN)) {

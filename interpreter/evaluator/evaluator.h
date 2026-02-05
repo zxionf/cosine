@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ast/stmt.h"
+#include "../environment/environment.h"
 #include <list>
 
 namespace xel
@@ -14,9 +15,11 @@ namespace xel
             std::any visit_grouping_expr(std::shared_ptr<Grouping> expr) override;
             std::any visit_unary_expr(std::shared_ptr<Unary> expr) override;
             std::any visit_binary_expr(std::shared_ptr<Binary> expr) override;
+            std::any visit_variable_expr(std::shared_ptr<Variable> expr) override;
 
             std::any visit_print_stmt(std::shared_ptr<Print> stmt) override;
             std::any visit_expression_stmt(std::shared_ptr<Expression> stmt) override;
+            std::any visit_var_stmt(std::shared_ptr<Var> stmt) override;
 
             std::any evaluate(std::shared_ptr<Expr> expr);
             void interpret(std::shared_ptr<Expr> expression);
@@ -32,5 +35,7 @@ namespace xel
 
             // error
             std::runtime_error error(const Token& token, const std::string& message);
+        public:
+            Environment _environment;
     };
 }

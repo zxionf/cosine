@@ -13,6 +13,7 @@ namespace xel
     class Grouping;
     class Literal;
     class Unary;
+    class Variable;
 
     // 访问者基类
     class ExprVisitor 
@@ -24,6 +25,7 @@ namespace xel
             virtual std::any visit_grouping_expr(std::shared_ptr<Grouping>  expr) = 0;
             virtual std::any visit_literal_expr (std::shared_ptr<Literal>   expr) = 0;
             virtual std::any visit_unary_expr   (std::shared_ptr<Unary>     expr) = 0;
+            virtual std::any visit_variable_expr(std::shared_ptr<Variable>  expr) = 0;
     };
 
     // 表达式基类
@@ -79,5 +81,15 @@ namespace xel
             
             Token _op;
             std::shared_ptr<Expr> _right;
+    };
+
+    class Variable : public Expr, public std::enable_shared_from_this<Variable>
+    {
+        public:
+            explicit Variable(Token name);
+            
+            std::any accept(ExprVisitor* visitor) override;
+            
+            Token _name;
     };
 }

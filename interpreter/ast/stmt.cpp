@@ -8,3 +8,7 @@ std::any Expression::accept(StmtVisitor* visitor) {
 std::any Print::accept(StmtVisitor* visitor) {
     return visitor->visit_print_stmt(shared_from_this());
 }
+
+std::any Var::accept(StmtVisitor* visitor) {
+    return visitor->visit_var_stmt(shared_from_this());
+}

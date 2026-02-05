@@ -27,3 +27,10 @@ Unary::Unary(Token op, std::shared_ptr<Expr> right)
 std::any Unary::accept(ExprVisitor* visitor) {
     return visitor->visit_unary_expr(shared_from_this());
 }
+
+Variable::Variable(Token name)
+    : _name(std::move(name)) {}
+
+std::any Variable::accept(ExprVisitor* visitor) {
+    return visitor->visit_variable_expr(shared_from_this());
+}
