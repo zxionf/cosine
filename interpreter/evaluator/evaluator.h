@@ -43,6 +43,6 @@ namespace xel
             // error
             std::runtime_error error(const Token& token, const std::string& message);
         public:
-            Environment _environment{nullptr};
+            Environment* _environment{new Environment(nullptr)};
     };
 }

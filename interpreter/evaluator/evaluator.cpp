@@ -34,19 +34,19 @@ std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
     if (stmt->_initializer) {
         value = evaluate(stmt->_initializer);
     }
-    _environment.define(stmt->_name.get_lexeme(), value);
+    _environment->define(stmt->_name.get_lexeme(), value);
     return nullptr;
 }
 
 std::any Evaluator::visit_block_stmt(std::shared_ptr<Block> stmt) {
-    execute_block(stmt->_statements, new Environment(&_environment));
+    execute_block(stmt->_statements, new Environment(_environment));
     return nullptr;
 }
 
 void Evaluator::execute_block(std::list<std::shared_ptr<Stmt>> statements, Environment* environment) {
-    Environment previous = _environment;
+    Environment* previous = _environment;
     try {
-        _environment = *environment;
+        _environment = environment;
         for (auto statement : statements)
             execute(statement);
     } catch (...) {
@@ -69,12 +69,12 @@ std::any Evaluator::visit_logical_expr(std::shared_ptr<Logical> expr) {
 
 std::any Evaluator::visit_assign_expr(std::shared_ptr<Assign> expr) {
     std::any value = evaluate(expr->_value);
-    _environment.assign(expr->_name, value);
+    _environment->assign(expr->_name, value);
     return value;
 }
 
 std::any Evaluator::visit_variable_expr(std::shared_ptr<Variable> expr) {
-    return _environment.get(expr->_name);
+    return _environment->get(expr->_name);
 }
 
 void Evaluator::interpret(const std::list<std::shared_ptr<Stmt>>& statements) {
@@ -124,6 +124,7 @@ std::any Evaluator::visit_unary_expr(std::shared_ptr<Unary> expr) {
 bool Evaluator::is_truthy(const std::any& object) {
     if (object.type() == typeid(nullptr)) return false;
     if (!object.has_value()) return false;
+    if (object.type() == typeid(bool)) return std::any_cast<bool>(object);
     if (object.type() == typeid(double)) return std::any_cast<double>(object);
     return true;
 }
