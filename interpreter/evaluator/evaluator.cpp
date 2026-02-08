@@ -13,6 +13,22 @@ std::any Evaluator::visit_expression_stmt(std::shared_ptr<Expression> stmt) {
     return nullptr;
 }
 
+std::any Evaluator::visit_if_stmt(std::shared_ptr<If> stmt) {
+    if (is_truthy(evaluate(stmt->_condition))) {
+        execute(stmt->_then_branch);
+    } else if (stmt->_else_branch) {
+        execute(stmt->_else_branch);
+    }
+    return nullptr;
+}
+
+std::any Evaluator::visit_while_stmt(std::shared_ptr<While> stmt) {
+    while (is_truthy(evaluate(stmt->_condition))) {
+        execute(stmt->_body);
+    }
+    return nullptr;
+}
+
 std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
     std::any value = nullptr;
     if (stmt->_initializer) {
@@ -23,21 +39,32 @@ std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
 }
 
 std::any Evaluator::visit_block_stmt(std::shared_ptr<Block> stmt) {
-    execute_block(stmt->_statements, Environment(&_environment));
+    execute_block(stmt->_statements, new Environment(&_environment));
     return nullptr;
 }
 
-void Evaluator::execute_block(std::list<std::shared_ptr<Stmt>> statements, Environment environment) {
+void Evaluator::execute_block(std::list<std::shared_ptr<Stmt>> statements, Environment* environment) {
     Environment previous = _environment;
     try {
-        _environment = environment;
+        _environment = *environment;
         for (auto statement : statements)
             execute(statement);
     } catch (...) {
-        environment = previous;
+        _environment = previous;
         throw;
     }
     _environment = previous;
+}
+
+std::any Evaluator::visit_logical_expr(std::shared_ptr<Logical> expr) {
+    std::any left = evaluate(expr->_left);
+
+    if (expr->_op.get_type() == Token::Type::OR)
+        if (is_truthy(left)) return left;
+    if (expr->_op.get_type() == Token::Type::AND)
+        if (!is_truthy(left)) return left;
+
+    return evaluate(expr->_right);
 }
 
 std::any Evaluator::visit_assign_expr(std::shared_ptr<Assign> expr) {
@@ -95,6 +122,7 @@ std::any Evaluator::visit_unary_expr(std::shared_ptr<Unary> expr) {
 }
 
 bool Evaluator::is_truthy(const std::any& object) {
+    if (object.type() == typeid(nullptr)) return false;
     if (!object.has_value()) return false;
     if (object.type() == typeid(double)) return std::any_cast<double>(object);
     return true;
@@ -188,6 +216,9 @@ std::string Evaluator::stringify(const std::any& object) {
     }
     else if (object.type() == typeid(bool)){
         rel = std::any_cast<bool>(object) ? "true" : "false";
+    }
+    else if (object.type() == typeid(nullptr)){
+        rel = "nil";
     }
     return rel;
 }

@@ -41,3 +41,10 @@ Assign::Assign(Token name, std::shared_ptr<Expr> value)
 std::any Assign::accept(ExprVisitor* visitor) {
     return visitor->visit_assign_expr(shared_from_this());
 }
+
+Logical::Logical(std::shared_ptr<Expr> left, Token op, std::shared_ptr<Expr> right)
+    : _left(std::move(left)), _op(std::move(op)), _right(std::move(right)) {}
+
+std::any Logical::accept(ExprVisitor* visitor) {
+    return visitor->visit_logical_expr(shared_from_this());
+}

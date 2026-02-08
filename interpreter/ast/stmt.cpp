@@ -16,3 +16,11 @@ std::any Var::accept(StmtVisitor* visitor) {
 std::any Block::accept(StmtVisitor* visitor) {
     return visitor->visit_block_stmt(shared_from_this());
 }
+
+std::any If::accept(StmtVisitor* visitor) {
+    return visitor->visit_if_stmt(shared_from_this());
+}
+
+std::any While::accept(StmtVisitor* visitor) {
+    return visitor->visit_while_stmt(shared_from_this());
+}

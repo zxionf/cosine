@@ -19,9 +19,12 @@ namespace xel
         private:
             // 对于语句
             std::shared_ptr<Stmt> statement();              // 语句
-            std::shared_ptr<Stmt> print_statement();        // 打印语句
+            std::shared_ptr<Stmt> if_statement();           // if 语句
+            std::shared_ptr<Stmt> while_statement();        // while 语句
+            std::shared_ptr<Stmt> for_statement();          // for 语句
+            std::shared_ptr<Stmt> print_statement();        // print 语句
             std::shared_ptr<Stmt> expression_statement();   // 表达式语句
-            std::list<std::shared_ptr<Stmt>> block();       // 块语句
+            std::list<std::shared_ptr<Stmt>> block();       // 语句块
             std::shared_ptr<Stmt> declaration();            // 声明语句
             std::shared_ptr<Stmt> var_declaration();        // 变量声明语句
 
@@ -29,6 +32,8 @@ namespace xel
             std::shared_ptr<Expr> expression();             // 表达式
             std::shared_ptr<Expr> equality();               // 等式
             std::shared_ptr<Expr> assignment();             // 赋值
+            std::shared_ptr<Expr> logical_or();             // 或
+            std::shared_ptr<Expr> logical_and();            // 与
 
             template<typename... Type>
             bool match(Type... token_types);    // 匹配

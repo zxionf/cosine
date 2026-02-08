@@ -15,6 +15,7 @@ namespace xel
     class Unary;
     class Variable;
     class Assign;
+    class Logical;
 
     // 访问者基类
     class ExprVisitor 
@@ -28,6 +29,7 @@ namespace xel
             virtual std::any visit_unary_expr   (std::shared_ptr<Unary>     expr) = 0;
             virtual std::any visit_variable_expr(std::shared_ptr<Variable>  expr) = 0;
             virtual std::any visit_assign_expr  (std::shared_ptr<Assign>    expr) = 0;
+            virtual std::any visit_logical_expr (std::shared_ptr<Logical>   expr) = 0;
     };
 
     // 表达式基类
@@ -97,6 +99,7 @@ namespace xel
             std::shared_ptr<Expr> _right;
     };
 
+    // 变量表达式
     class Variable : public Expr, public std::enable_shared_from_this<Variable>
     {
         public:
@@ -105,5 +108,18 @@ namespace xel
             std::any accept(ExprVisitor* visitor) override;
             
             Token _name;
+    };
+
+    // 逻辑表达式
+    class Logical : public Expr, public std::enable_shared_from_this<Logical>
+    {
+        public:
+            explicit Logical(std::shared_ptr<Expr> left, Token op, std::shared_ptr<Expr> right);
+            
+            std::any accept(ExprVisitor* visitor) override;
+            
+            std::shared_ptr<Expr> _left;
+            Token _op;
+            std::shared_ptr<Expr> _right;
     };
 }

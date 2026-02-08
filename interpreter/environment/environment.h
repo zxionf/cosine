@@ -15,7 +15,7 @@ namespace xel
             void assign(const Token& name, const std::any& value);
             
         private:
-            Environment* _enclosing = nullptr;
+            Environment* _enclosing;
             std::unordered_map<std::string, std::any> _values;
     };
 }
