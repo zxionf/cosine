@@ -12,3 +12,7 @@ std::any Print::accept(StmtVisitor* visitor) {
 std::any Var::accept(StmtVisitor* visitor) {
     return visitor->visit_var_stmt(shared_from_this());
 }
+
+std::any Block::accept(StmtVisitor* visitor) {
+    return visitor->visit_block_stmt(shared_from_this());
+}

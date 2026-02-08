@@ -21,6 +21,7 @@ namespace xel
             std::shared_ptr<Stmt> statement();              // 语句
             std::shared_ptr<Stmt> print_statement();        // 打印语句
             std::shared_ptr<Stmt> expression_statement();   // 表达式语句
+            std::list<std::shared_ptr<Stmt>> block();       // 块语句
             std::shared_ptr<Stmt> declaration();            // 声明语句
             std::shared_ptr<Stmt> var_declaration();        // 变量声明语句
 

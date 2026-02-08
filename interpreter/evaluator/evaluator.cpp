@@ -22,6 +22,24 @@ std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
     return nullptr;
 }
 
+std::any Evaluator::visit_block_stmt(std::shared_ptr<Block> stmt) {
+    execute_block(stmt->_statements, Environment(&_environment));
+    return nullptr;
+}
+
+void Evaluator::execute_block(std::list<std::shared_ptr<Stmt>> statements, Environment environment) {
+    Environment previous = _environment;
+    try {
+        _environment = environment;
+        for (auto statement : statements)
+            execute(statement);
+    } catch (...) {
+        environment = previous;
+        throw;
+    }
+    _environment = previous;
+}
+
 std::any Evaluator::visit_assign_expr(std::shared_ptr<Assign> expr) {
     std::any value = evaluate(expr->_value);
     _environment.assign(expr->_name, value);
@@ -37,7 +55,9 @@ void Evaluator::interpret(const std::list<std::shared_ptr<Stmt>>& statements) {
         for (auto& stmt : statements) {
             stmt->accept(this);
         }
-    } catch (std::runtime_error error) {}
+    } catch (std::runtime_error& error) {
+        throw error;
+    }
 }
 
 void Evaluator::interpret(std::shared_ptr<Expr> expression) {

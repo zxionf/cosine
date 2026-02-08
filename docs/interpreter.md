@@ -1,4 +1,4 @@
-file.xel
+source.xel
 
 token       // 定义符号
 
@@ -10,8 +10,6 @@ parser      // 语法分析
 
 parse       // 解析
 
-object      // 对象->值类型
-
 evaluator   // 评估->用来进行树递归下降求值
 
 ```
@@ -22,8 +20,8 @@ interpreter/
 |   |---node.h      // 抽象语法树节点定义
 |---parser/         // 语法分析
 |   |---parser.h    // 解析
-|---object/         // 对象->值类型
-|   |---object.h    // 值类型定义
 |---evaluator/      // 用来进行树递归下降求值
 |   |---evaluator.h // 树递归下降求值
+|---environment/    // 环境
+|   |---environment.h // 存储变量
 ```

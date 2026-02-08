@@ -35,8 +35,20 @@ std::shared_ptr<Stmt> Parser::declaration() {
 
 std::shared_ptr<Stmt> Parser::statement() {
     if (match(Token::Type::PRINT)) return print_statement();
+    if (match(Token::Type::LEFT_BRACE)) return std::make_shared<Block>(block());
     return expression_statement();
 }
+
+std::list<std::shared_ptr<Stmt>> Parser::block() {
+    std::list<std::shared_ptr<Stmt>> statements{};
+
+    while (!check(Token::Type::RIGHT_BRACE) && !is_at_end()) {
+        statements.emplace_back(declaration());
+    }
+
+    consume(Token::Type::RIGHT_BRACE, "Expect '}' after block.");
+    return statements;
+  }
 
 std::shared_ptr<Stmt> Parser::expression_statement() {
     std::shared_ptr<Expr> expr = expression();

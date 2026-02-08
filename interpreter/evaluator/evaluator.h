@@ -21,10 +21,13 @@ namespace xel
             std::any visit_print_stmt(std::shared_ptr<Print> stmt) override;
             std::any visit_expression_stmt(std::shared_ptr<Expression> stmt) override;
             std::any visit_var_stmt(std::shared_ptr<Var> stmt) override;
+            std::any visit_block_stmt(std::shared_ptr<Block> stmt) override;
 
             std::any evaluate(std::shared_ptr<Expr> expr);
             void interpret(std::shared_ptr<Expr> expression);
             void interpret(const std::list<std::shared_ptr<Stmt>>& statements);
+            void execute(std::shared_ptr<Stmt> stmt) { stmt->accept(this); }
+            void execute_block(std::list<std::shared_ptr<Stmt>> statements, Environment environment);
 
             bool is_truthy(const std::any& object);
             bool is_equal(const std::any& a, const std::any& b);

@@ -10,8 +10,9 @@ std::any Environment::get(const Token& name) {
     auto it = _values.find(name.get_lexeme());
     if (it != _values.end())
         return it->second;
-    else
-        xel::runtime_error::error(name, "Undefined variable '" + name.get_lexeme() + "'.");
+    if (_enclosing != nullptr)
+        return _enclosing->get(name);
+    throw xel::runtime_error::error_(name, "Undefined variable '" + name.get_lexeme() + "'.");
     return nullptr;
 }
 
@@ -20,6 +21,10 @@ void Environment::assign(const Token& name, const std::any& value) {
     if (it != _values.end()) {
         // TODO : optimize
         it->second = value;
+        return;
+    }
+    if (_enclosing != nullptr) {
+        _enclosing->assign(name, value);
         return;
     }
     throw xel::runtime_error::error_(name, "Undefined variable '" + name.get_lexeme() + "'.");
