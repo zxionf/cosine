@@ -12,7 +12,7 @@ namespace xel
     namespace error
     {
         inline void report(int line, const std::string& where, const std::string& message) {
-            std::printf("error: [line %d] %s: %s\n", line, where.c_str(), message.c_str());
+            std::printf("xel error: [line %d] %s: %s\n", line, where.c_str(), message.c_str());
             hadError = true;
         }
 
@@ -31,12 +31,12 @@ namespace xel
     namespace runtime_error
     {
         inline void error(const Token& token, const std::string& message) {
-            std::printf("runtime error: [line %d] %s: %s\n", token.get_line(), token.get_lexeme(), message);
+            std::printf("xel runtime error: [line %d] %s: %s\n", token.get_line(), token.get_lexeme(), message);
             hadRuntimeError = true;
         }
 
         inline std::runtime_error error_(const Token& token, const std::string& message) {
-            std::runtime_error err("runtime error: [line " + std::to_string(token.get_line()) + "] " + token.get_lexeme() + ": " + message);
+            std::runtime_error err("xel runtime error: [line " + std::to_string(token.get_line()) + "] " + token.get_lexeme() + ": " + message);
             hadRuntimeError = true;
             return err;
         }

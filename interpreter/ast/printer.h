@@ -46,10 +46,27 @@ namespace xel
                 return "(logical " + print(expr->_left) + " " + expr->_op.get_lexeme() + " " + print(expr->_right) + ")";
             }
 
+            std::any visit_call_expr(std::shared_ptr<Call> expr) override {
+                std::string result = "(call <" + print(expr->_callee) + ">,";
+                for (auto& arg : expr->_arguments) {
+                    result += " " + print(arg);
+                }
+                result += ")";
+                return result;
+            }
+
             // Stmt
 
             std::string print(std::shared_ptr<Stmt> stmt){
                 return std::any_cast<std::string>(stmt->accept(this));
+            }
+
+            std::string print(std::list<std::shared_ptr<Stmt>> stmts) {
+                std::string result = "(block";
+                for (auto& stmt : stmts) {
+                    result += " " + print(stmt);
+                }
+                return result + ")";
             }
 
             std::any visit_block_stmt(std::shared_ptr<Block> stmt) override {
@@ -86,6 +103,13 @@ namespace xel
                 return "(while " + print(stmt->_condition) + " " + print(stmt->_body) + ")";
             }
 
-            
+            std::any visit_function_stmt(std::shared_ptr<Function> stmt) override {
+                std::string result = "(function " + stmt->_name.get_lexeme() + ")";
+                for (auto& param : stmt->_params) {
+                    result += " " + param.get_lexeme();
+                }
+                result += " " + print(stmt->_body);
+                return result;
+            }
     };
 }

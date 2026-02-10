@@ -1,6 +1,7 @@
 #include "evaluator.h"
 using namespace xel;
 #include "../xel_error.h"
+#include "../ast/callable.h"
 
 std::any Evaluator::visit_print_stmt(std::shared_ptr<Print> stmt) {
     std::any value = evaluate(stmt->_expression);
@@ -38,6 +39,12 @@ std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
     return nullptr;
 }
 
+std::any Evaluator::visit_function_stmt(std::shared_ptr<Function> stmt) {
+    std::shared_ptr<function> func = std::make_shared<function>(stmt);
+    _environment->define(stmt->_name.get_lexeme(), func);
+    return nullptr;
+}
+
 std::any Evaluator::visit_block_stmt(std::shared_ptr<Block> stmt) {
     execute_block(stmt->_statements, new Environment(_environment));
     return nullptr;
@@ -54,6 +61,23 @@ void Evaluator::execute_block(std::list<std::shared_ptr<Stmt>> statements, Envir
         throw;
     }
     _environment = previous;
+}
+
+std::any Evaluator::visit_call_expr(std::shared_ptr<Call> expr) {
+    std::any callee = evaluate(expr->_callee);
+
+    std::vector<std::any> arguments;
+    for (auto argument : expr->_arguments)
+        arguments.push_back(evaluate(argument));
+
+    // TODO : more types
+    if (!(callee.type() == typeid(std::shared_ptr<function>)))
+        throw error(expr->_paren, "Can only call functions and classes.");
+
+    std::shared_ptr<Callable> func = std::any_cast<std::shared_ptr<function>>(callee);
+    if (arguments.size() != func->arity())
+        throw error(expr->_paren, "Expected " + std::to_string(func->arity()) + "arguments but got " + std::to_string(arguments.size()) + " .");
+    return func->call(this, arguments);
 }
 
 std::any Evaluator::visit_logical_expr(std::shared_ptr<Logical> expr) {
@@ -121,6 +145,7 @@ std::any Evaluator::visit_unary_expr(std::shared_ptr<Unary> expr) {
     return nullptr;
 }
 
+// TODO : more types
 bool Evaluator::is_truthy(const std::any& object) {
     if (object.type() == typeid(nullptr)) return false;
     if (!object.has_value()) return false;
@@ -129,7 +154,7 @@ bool Evaluator::is_truthy(const std::any& object) {
     return true;
 }
 
-// TODO : optimize
+// TODO : optimize, more checks
 bool Evaluator::is_equal(const std::any& a, const std::any& b) {
     if (!a.has_value() && !b.has_value()) return true;
     if (!a.has_value() || !b.has_value()) return false;
@@ -195,8 +220,7 @@ void Evaluator::check_number_operands(const Token& op, const std::any& left, con
 }
 
 std::runtime_error Evaluator::error(const Token& token, const std::string& message) {
-    xel::runtime_error::error(token, message);
-    return std::runtime_error(message);
+    return xel::runtime_error::error_(token, message);
 }
 
 std::string Evaluator::stringify(const std::any& object) {

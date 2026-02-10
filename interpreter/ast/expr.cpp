@@ -48,3 +48,10 @@ Logical::Logical(std::shared_ptr<Expr> left, Token op, std::shared_ptr<Expr> rig
 std::any Logical::accept(ExprVisitor* visitor) {
     return visitor->visit_logical_expr(shared_from_this());
 }
+
+Call::Call(std::shared_ptr<Expr> callee, Token paren, std::vector<std::shared_ptr<Expr>> arguments)
+    : _callee(std::move(callee)), _paren(std::move(paren)), _arguments(std::move(arguments)) {}
+
+std::any Call::accept(ExprVisitor* visitor) {
+    return visitor->visit_call_expr(shared_from_this());
+}

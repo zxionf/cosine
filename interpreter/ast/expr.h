@@ -16,6 +16,7 @@ namespace xel
     class Variable;
     class Assign;
     class Logical;
+    class Call;
 
     // 访问者基类
     class ExprVisitor 
@@ -30,6 +31,7 @@ namespace xel
             virtual std::any visit_variable_expr(std::shared_ptr<Variable>  expr) = 0;
             virtual std::any visit_assign_expr  (std::shared_ptr<Assign>    expr) = 0;
             virtual std::any visit_logical_expr (std::shared_ptr<Logical>   expr) = 0;
+            virtual std::any visit_call_expr    (std::shared_ptr<Call>      expr) = 0;
     };
 
     // 表达式基类
@@ -121,5 +123,18 @@ namespace xel
             std::shared_ptr<Expr> _left;
             Token _op;
             std::shared_ptr<Expr> _right;
+    };
+
+    // 函数
+    class Call : public Expr, public std::enable_shared_from_this<Call>
+    {
+        public:
+            explicit Call(std::shared_ptr<Expr> callee, Token paren, std::vector<std::shared_ptr<Expr>> arguments);
+            
+            std::any accept(ExprVisitor* visitor) override;
+            
+            std::shared_ptr<Expr> _callee; // 被调者
+            Token _paren; // 右括号 : 用于运行时错误
+            std::vector<std::shared_ptr<Expr>> _arguments; // 参数
     };
 }

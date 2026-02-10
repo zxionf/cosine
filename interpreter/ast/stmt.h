@@ -13,6 +13,7 @@ namespace xel
     class Block;
     class If;
     class While;
+    class Function;
 
     class StmtVisitor
     {
@@ -25,6 +26,7 @@ namespace xel
             virtual std::any visit_block_stmt(std::shared_ptr<Block> stmt) = 0;
             virtual std::any visit_if_stmt(std::shared_ptr<If> stmt) = 0;
             virtual std::any visit_while_stmt(std::shared_ptr<While> stmt) = 0;
+            virtual std::any visit_function_stmt(std::shared_ptr<Function> stmt) = 0;
     };
 
     class Stmt
@@ -97,5 +99,18 @@ namespace xel
         public:
             std::shared_ptr<Expr> _condition;
             std::shared_ptr<Stmt> _body;
+    };
+
+    // 函数
+    class Function : public Stmt, public std::enable_shared_from_this<Function>
+    {
+        public:
+            // Function() = default;
+            explicit Function(Token name, std::vector<Token> parameters, std::list<std::shared_ptr<Stmt>> body) :_name(std::move(name)), _params(std::move(parameters)), _body(std::move(body)) {}
+            std::any accept(StmtVisitor* visitor) override;
+        public:
+            Token _name;
+            std::vector<Token> _params;
+            std::list<std::shared_ptr<Stmt>> _body;
     };
 }

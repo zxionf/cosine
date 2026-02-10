@@ -18,6 +18,7 @@ namespace xel
             std::any visit_variable_expr(std::shared_ptr<Variable> expr) override;
             std::any visit_assign_expr(std::shared_ptr<Assign> expr) override;
             std::any visit_logical_expr(std::shared_ptr<Logical> expr) override;
+            std::any visit_call_expr(std::shared_ptr<Call> expr) override;
 
             std::any visit_print_stmt(std::shared_ptr<Print> stmt) override;
             std::any visit_expression_stmt(std::shared_ptr<Expression> stmt) override;
@@ -25,6 +26,7 @@ namespace xel
             std::any visit_block_stmt(std::shared_ptr<Block> stmt) override;
             std::any visit_if_stmt(std::shared_ptr<If> stmt) override;
             std::any visit_while_stmt(std::shared_ptr<While> stmt) override;
+            std::any visit_function_stmt(std::shared_ptr<Function> stmt) override;
 
             std::any evaluate(std::shared_ptr<Expr> expr);
             void interpret(std::shared_ptr<Expr> expression);
@@ -43,6 +45,7 @@ namespace xel
             // error
             std::runtime_error error(const Token& token, const std::string& message);
         public:
-            Environment* _environment{new Environment(nullptr)};
+            Environment* _globals = {new Environment};
+            Environment* _environment = _globals;
     };
 }
