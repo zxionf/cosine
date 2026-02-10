@@ -28,3 +28,7 @@ std::any While::accept(StmtVisitor* visitor) {
 std::any Function::accept(StmtVisitor* visitor) {
     return visitor->visit_function_stmt(shared_from_this());
 }
+
+std::any Return::accept(StmtVisitor* visitor) {
+    return visitor->visit_return_stmt(shared_from_this());
+}

@@ -3,6 +3,13 @@ using namespace xel;
 #include "../xel_error.h"
 #include "../ast/callable.h"
 
+Evaluator::Evaluator() {
+    _globals = new Environment();
+    _environment = _globals;
+
+    // _globals->define();
+}
+
 std::any Evaluator::visit_print_stmt(std::shared_ptr<Print> stmt) {
     std::any value = evaluate(stmt->_expression);
     std::printf("%s", stringify(value).c_str());
@@ -39,8 +46,15 @@ std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
     return nullptr;
 }
 
+std::any Evaluator::visit_return_stmt(std::shared_ptr<Return> stmt) {
+    std::any value = nullptr;
+    if (stmt->_value != nullptr)
+        value = evaluate(stmt->_value);
+    throw xel::error::Return(value);
+}
+
 std::any Evaluator::visit_function_stmt(std::shared_ptr<Function> stmt) {
-    std::shared_ptr<function> func = std::make_shared<function>(stmt);
+    std::shared_ptr<function> func = std::make_shared<function>(stmt, _environment);
     _environment->define(stmt->_name.get_lexeme(), func);
     return nullptr;
 }
@@ -219,8 +233,8 @@ void Evaluator::check_number_operands(const Token& op, const std::any& left, con
     throw error(op, "Operands must be numbers.");
 }
 
-std::runtime_error Evaluator::error(const Token& token, const std::string& message) {
-    return xel::runtime_error::error_(token, message);
+xel::runtime_error Evaluator::error(const Token& token, const std::string& message) {
+    return xel::error::error_(token, message);
 }
 
 std::string Evaluator::stringify(const std::any& object) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ast/stmt.h"
+#include "../xel_error.h"
 #include "../environment/environment.h"
 #include <list>
 
@@ -9,6 +10,7 @@ namespace xel
     class Evaluator : public ExprVisitor, public StmtVisitor
     {
         public:
+            Evaluator();
             ~Evaluator() = default;
 
             std::any visit_literal_expr(std::shared_ptr<Literal> expr) override;
@@ -27,6 +29,7 @@ namespace xel
             std::any visit_if_stmt(std::shared_ptr<If> stmt) override;
             std::any visit_while_stmt(std::shared_ptr<While> stmt) override;
             std::any visit_function_stmt(std::shared_ptr<Function> stmt) override;
+            std::any visit_return_stmt(std::shared_ptr<Return> stmt) override;
 
             std::any evaluate(std::shared_ptr<Expr> expr);
             void interpret(std::shared_ptr<Expr> expression);
@@ -43,9 +46,9 @@ namespace xel
             std::string stringify(const std::any& object);
 
             // error
-            std::runtime_error error(const Token& token, const std::string& message);
+            xel::runtime_error error(const Token& token, const std::string& message);
         public:
-            Environment* _globals = {new Environment};
-            Environment* _environment = _globals;
+            Environment* _globals ; // = {new Environment};
+            Environment* _environment ; // = _globals;
     };
 }

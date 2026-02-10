@@ -38,9 +38,19 @@ std::shared_ptr<Stmt> Parser::statement() {
     if (match(Token::Type::FOR)) return for_statement();
     if (match(Token::Type::IF)) return if_statement();
     if (match(Token::Type::WHILE)) return while_statement();
+    if (match(Token::Type::RETURN)) return return_statement();
     if (match(Token::Type::PRINT)) return print_statement();
     if (match(Token::Type::LEFT_BRACE)) return std::make_shared<Block>(block());
     return expression_statement();
+}
+
+std::shared_ptr<Stmt> Parser::return_statement() {
+    Token& keyword = prev_token();
+    std::shared_ptr<Expr> value = nullptr;
+    if (!check(Token::Type::SEMICOLON))
+        value = expression();
+    consume(Token::Type::SEMICOLON, "Expect ';' after return value.");
+    return std::make_shared<Return>(keyword, value);
 }
 
 std::list<std::shared_ptr<Stmt>> Parser::block() {

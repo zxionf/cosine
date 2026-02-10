@@ -14,6 +14,7 @@ namespace xel
     class If;
     class While;
     class Function;
+    class Return;
 
     class StmtVisitor
     {
@@ -27,6 +28,7 @@ namespace xel
             virtual std::any visit_if_stmt(std::shared_ptr<If> stmt) = 0;
             virtual std::any visit_while_stmt(std::shared_ptr<While> stmt) = 0;
             virtual std::any visit_function_stmt(std::shared_ptr<Function> stmt) = 0;
+            virtual std::any visit_return_stmt(std::shared_ptr<Return> stmt) = 0;
     };
 
     class Stmt
@@ -112,5 +114,16 @@ namespace xel
             Token _name;
             std::vector<Token> _params;
             std::list<std::shared_ptr<Stmt>> _body;
+    };
+
+    // 返回语句
+    class Return : public Stmt, public std::enable_shared_from_this<Return>
+    {
+        public:
+            explicit Return(Token keyword, std::shared_ptr<Expr> value) :_keyword(std::move(keyword)), _value(std::move(value)){}
+            std::any accept(StmtVisitor* visitor) override;
+        public:
+            Token _keyword;
+            std::shared_ptr<Expr> _value;
     };
 }
