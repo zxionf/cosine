@@ -50,8 +50,8 @@ namespace xel
         class Return : public std::exception
         {
             public:
-                std::any value;
-                explicit Return(std::any value) :value(std::move(value)) {}
+                var value;
+                explicit Return(var value) :value(std::move(value)) {}
         };
     }
 }

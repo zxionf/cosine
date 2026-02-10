@@ -2,7 +2,6 @@
 
 #include "../token.h"
 
-#include <memory>
 #include <vector>
 
 namespace xel
@@ -24,14 +23,14 @@ namespace xel
         public:
             virtual ~ExprVisitor() = default;
             
-            virtual std::any visit_binary_expr  (std::shared_ptr<Binary>    expr) = 0;
-            virtual std::any visit_grouping_expr(std::shared_ptr<Grouping>  expr) = 0;
-            virtual std::any visit_literal_expr (std::shared_ptr<Literal>   expr) = 0;
-            virtual std::any visit_unary_expr   (std::shared_ptr<Unary>     expr) = 0;
-            virtual std::any visit_variable_expr(std::shared_ptr<Variable>  expr) = 0;
-            virtual std::any visit_assign_expr  (std::shared_ptr<Assign>    expr) = 0;
-            virtual std::any visit_logical_expr (std::shared_ptr<Logical>   expr) = 0;
-            virtual std::any visit_call_expr    (std::shared_ptr<Call>      expr) = 0;
+            virtual var visit_binary_expr  (const std::shared_ptr<Binary>&    expr) = 0;
+            virtual var visit_grouping_expr(const std::shared_ptr<Grouping>&  expr) = 0;
+            virtual var visit_literal_expr (const std::shared_ptr<Literal>&   expr) = 0;
+            virtual var visit_unary_expr   (const std::shared_ptr<Unary>&     expr) = 0;
+            virtual var visit_variable_expr(const std::shared_ptr<Variable>&  expr) = 0;
+            virtual var visit_assign_expr  (const std::shared_ptr<Assign>&    expr) = 0;
+            virtual var visit_logical_expr (const std::shared_ptr<Logical>&   expr) = 0;
+            virtual var visit_call_expr    (const std::shared_ptr<Call>&      expr) = 0;
     };
 
     // 表达式基类
@@ -39,7 +38,7 @@ namespace xel
     {
         public:
             virtual ~Expr() = default;
-            virtual std::any accept(ExprVisitor* visitor) = 0;
+            virtual var accept(ExprVisitor* visitor) = 0;
     };
 
     // 赋值
@@ -48,7 +47,7 @@ namespace xel
         public:
             explicit Assign(Token name, std::shared_ptr<Expr> value);
             
-            std::any accept(ExprVisitor* visitor) override;
+            var accept(ExprVisitor* visitor) override;
             
             Token _name;
             std::shared_ptr<Expr> _value;
@@ -60,7 +59,7 @@ namespace xel
         public:
             explicit Binary(std::shared_ptr<Expr> left, Token op, std::shared_ptr<Expr> right);
             
-            std::any accept(ExprVisitor* visitor) override;
+            var accept(ExprVisitor* visitor) override;
             
             std::shared_ptr<Expr> _left;
             Token _op;
@@ -73,7 +72,7 @@ namespace xel
         public:
             explicit Grouping(std::shared_ptr<Expr> expression);
             
-            std::any accept(ExprVisitor* visitor) override;
+            var accept(ExprVisitor* visitor) override;
             
             std::shared_ptr<Expr> _expression;
     };
@@ -82,11 +81,11 @@ namespace xel
     class Literal : public Expr, public std::enable_shared_from_this<Literal>
     {
         public:
-            explicit Literal(std::any value); // 缺点：对于左值有一次拷贝
+            explicit Literal(var value); // 缺点：对于左值有一次拷贝
             
-            std::any accept(ExprVisitor* visitor) override;
+            var accept(ExprVisitor* visitor) override;
             
-            std::any _value;
+            var _value;
     };
 
     // 一元表达式
@@ -95,7 +94,7 @@ namespace xel
         public:
             explicit Unary(Token op, std::shared_ptr<Expr> right);
             
-            std::any accept(ExprVisitor* visitor) override;
+            var accept(ExprVisitor* visitor) override;
             
             Token _op;
             std::shared_ptr<Expr> _right;
@@ -107,7 +106,7 @@ namespace xel
         public:
             explicit Variable(Token name);
             
-            std::any accept(ExprVisitor* visitor) override;
+            var accept(ExprVisitor* visitor) override;
             
             Token _name;
     };
@@ -118,7 +117,7 @@ namespace xel
         public:
             explicit Logical(std::shared_ptr<Expr> left, Token op, std::shared_ptr<Expr> right);
             
-            std::any accept(ExprVisitor* visitor) override;
+            var accept(ExprVisitor* visitor) override;
             
             std::shared_ptr<Expr> _left;
             Token _op;
@@ -131,7 +130,7 @@ namespace xel
         public:
             explicit Call(std::shared_ptr<Expr> callee, Token paren, std::vector<std::shared_ptr<Expr>> arguments);
             
-            std::any accept(ExprVisitor* visitor) override;
+            var accept(ExprVisitor* visitor) override;
             
             std::shared_ptr<Expr> _callee; // 被调者
             Token _paren; // 右括号 : 用于运行时错误

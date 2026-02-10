@@ -113,7 +113,7 @@ void Lexer::add_token(Token::Type type) {
     add_token(type, nullptr);
 }
 
-void Lexer::add_token(Token::Type type, const std::any& literal) {
+void Lexer::add_token(Token::Type type, const var& literal) {
     std::string text = source.substr(start, current-start); // start , length
     tokens.emplace_back(Token(type, text, literal, line));
 }

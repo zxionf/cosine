@@ -10,12 +10,12 @@ namespace xel
         public:
             Environment() :_enclosing(nullptr) {}
             Environment(Environment* enclosing) :_enclosing(enclosing) {}
-            void define(const std::string& name, const std::any& value);
-            std::any get(const Token& name);
-            void assign(const Token& name, const std::any& value);
+            void define(const std::string& name, const var& value);
+            var get(const Token& name);
+            void assign(const Token& name, const var& value);
             
         private:
             Environment* _enclosing;
-            std::unordered_map<std::string, std::any> _values;
+            std::unordered_map<std::string, var> _values;
     };
 }

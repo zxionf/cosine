@@ -1,3 +1,10 @@
+#### std C++
+
+`std::variant` 是 C++17 引入的类型安全的联合体（union）替代品，它可以存储多种类型中的一种，并且知道当前存储的是哪种类型。
+`std::holds_alternative<double>(obj)` 可以看variant对象是否包含指定类型的数据
+用 `std::holds_alternative`：当你想在运行时检查一个 variant 变量当前存储的是什么类型
+用 `std::is_same_v`：当你在编译时想知道两个类型名称是否相同（通常在模板或 decltype 中使用）
+
 #### imgui窗口
 ```bash
 // 禁止用户操作

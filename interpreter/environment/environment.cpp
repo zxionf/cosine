@@ -1,12 +1,12 @@
 #include "environment.h"
-#include "xel_error.h"
+#include "../xel_error.h"
 using namespace xel;
 
-void Environment::define(const std::string& name, const std::any& value) {
+void Environment::define(const std::string& name, const var& value) {
     _values.emplace(name, value);
 }
 
-std::any Environment::get(const Token& name) {
+var Environment::get(const Token& name) {
     auto it = _values.find(name.get_lexeme());
     if (it != _values.end())
         return it->second;
@@ -16,7 +16,7 @@ std::any Environment::get(const Token& name) {
     return nullptr;
 }
 
-void Environment::assign(const Token& name, const std::any& value) {
+void Environment::assign(const Token& name, const var& value) {
     auto it = _values.find(name.get_lexeme());
     if (it != _values.end()) {
         // TODO : optimize

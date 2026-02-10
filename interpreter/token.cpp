@@ -3,7 +3,7 @@ using namespace xel;
 
 std::map<Token::Type, std::string> Token::type_map = {
     {Type::TOKEN_EOF,   "eof"},
-    // {Type::ILLEGAL,     "illegal"},
+    {Type::PRINT,       "print"},
     {Type::IDENTIFIER,  "identifier"},
     {Type::VAR,         "var"},
     {Type::NUMBER,     "number"},
@@ -42,7 +42,7 @@ std::string Token::get_lexeme() const {
     return lexeme;
 }
 
-std::any Token::get_literal() const {
+var Token::get_literal() const {
     return literal;
 }
 

@@ -10,7 +10,7 @@ namespace xel
     {
         public:
             virtual int arity() = 0;
-            virtual std::any call(Evaluator* evaluator, std::vector<std::any> arguments) = 0;
+            virtual var call(Evaluator* evaluator, std::vector<var> arguments) = 0;
             virtual std::string to_string() {return "callable";}
     };
 
@@ -19,7 +19,7 @@ namespace xel
     {
         public:
             function(std::shared_ptr<Function> declaration, Environment* closure) :_declaration(declaration), _closure(closure) {}
-            std::any call(Evaluator* evaluator, std::vector<std::any> arguments) override{
+            var call(Evaluator* evaluator, std::vector<var> arguments) override{
                 Environment* environment = new Environment(_closure);
                 for(int i=0; i<_declaration->_params.size(); i++)
                     environment->define(_declaration->_params[i].get_lexeme(), arguments[i]);
@@ -46,7 +46,7 @@ namespace xel
     {
         public:
             int arity() override { return 0; }
-            std::any call(Evaluator* evaluator, std::vector<std::any> arguments) override {
+            var call(Evaluator* evaluator, std::vector<var> arguments) override {
                 return static_cast<double>(std::time(nullptr));
             }
             std::string to_string() override { return "<native fn>"; }

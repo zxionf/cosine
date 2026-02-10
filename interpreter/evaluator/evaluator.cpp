@@ -2,26 +2,28 @@
 using namespace xel;
 #include "../xel_error.h"
 #include "../ast/callable.h"
+#include <type_traits>
+#include <cmath>
 
 Evaluator::Evaluator() {
     _globals = new Environment();
     _environment = _globals;
 
-    // _globals->define();
+    _globals->define("clock", std::make_shared<clock>());
 }
 
-std::any Evaluator::visit_print_stmt(std::shared_ptr<Print> stmt) {
-    std::any value = evaluate(stmt->_expression);
+var Evaluator::visit_print_stmt(const std::shared_ptr<Print>& stmt) {
+    var value = evaluate(stmt->_expression);
     std::printf("%s", stringify(value).c_str());
     return nullptr;
 }
 
-std::any Evaluator::visit_expression_stmt(std::shared_ptr<Expression> stmt) {
+var Evaluator::visit_expression_stmt(const std::shared_ptr<Expression>& stmt) {
     evaluate(stmt->_expression);
     return nullptr;
 }
 
-std::any Evaluator::visit_if_stmt(std::shared_ptr<If> stmt) {
+var Evaluator::visit_if_stmt(const std::shared_ptr<If>& stmt) {
     if (is_truthy(evaluate(stmt->_condition))) {
         execute(stmt->_then_branch);
     } else if (stmt->_else_branch) {
@@ -30,15 +32,15 @@ std::any Evaluator::visit_if_stmt(std::shared_ptr<If> stmt) {
     return nullptr;
 }
 
-std::any Evaluator::visit_while_stmt(std::shared_ptr<While> stmt) {
+var Evaluator::visit_while_stmt(const std::shared_ptr<While>& stmt) {
     while (is_truthy(evaluate(stmt->_condition))) {
         execute(stmt->_body);
     }
     return nullptr;
 }
 
-std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
-    std::any value = nullptr;
+var Evaluator::visit_var_stmt(const std::shared_ptr<Var>& stmt) {
+    var value = nullptr;
     if (stmt->_initializer) {
         value = evaluate(stmt->_initializer);
     }
@@ -46,25 +48,25 @@ std::any Evaluator::visit_var_stmt(std::shared_ptr<Var> stmt) {
     return nullptr;
 }
 
-std::any Evaluator::visit_return_stmt(std::shared_ptr<Return> stmt) {
-    std::any value = nullptr;
+var Evaluator::visit_return_stmt(const std::shared_ptr<Return>& stmt) {
+    var value = nullptr;
     if (stmt->_value != nullptr)
         value = evaluate(stmt->_value);
     throw xel::error::Return(value);
 }
 
-std::any Evaluator::visit_function_stmt(std::shared_ptr<Function> stmt) {
+var Evaluator::visit_function_stmt(const std::shared_ptr<Function>& stmt) {
     std::shared_ptr<function> func = std::make_shared<function>(stmt, _environment);
     _environment->define(stmt->_name.get_lexeme(), func);
     return nullptr;
 }
 
-std::any Evaluator::visit_block_stmt(std::shared_ptr<Block> stmt) {
+var Evaluator::visit_block_stmt(const std::shared_ptr<Block>& stmt) {
     execute_block(stmt->_statements, new Environment(_environment));
     return nullptr;
 }
 
-void Evaluator::execute_block(std::list<std::shared_ptr<Stmt>> statements, Environment* environment) {
+void Evaluator::execute_block(const std::list<std::shared_ptr<Stmt>>& statements, Environment* environment) {
     Environment* previous = _environment;
     try {
         _environment = environment;
@@ -77,25 +79,23 @@ void Evaluator::execute_block(std::list<std::shared_ptr<Stmt>> statements, Envir
     _environment = previous;
 }
 
-std::any Evaluator::visit_call_expr(std::shared_ptr<Call> expr) {
-    std::any callee = evaluate(expr->_callee);
+var Evaluator::visit_call_expr(const std::shared_ptr<Call>& expr) {
+    var callee = evaluate(expr->_callee);
 
-    std::vector<std::any> arguments;
+    std::vector<var> arguments;
     for (auto argument : expr->_arguments)
         arguments.push_back(evaluate(argument));
 
-    // TODO : more types
-    if (!(callee.type() == typeid(std::shared_ptr<function>)))
-        throw error(expr->_paren, "Can only call functions and classes.");
+    auto* func = std::get_if<std::shared_ptr<Callable>>(&callee);
+    if(!func) throw error(expr->_paren, "Can only call functions and classes.");
 
-    std::shared_ptr<Callable> func = std::any_cast<std::shared_ptr<function>>(callee);
-    if (arguments.size() != func->arity())
-        throw error(expr->_paren, "Expected " + std::to_string(func->arity()) + "arguments but got " + std::to_string(arguments.size()) + " .");
-    return func->call(this, arguments);
+    if (arguments.size() != (*func)->arity())
+        throw error(expr->_paren, "Expected " + std::to_string((*func)->arity()) + "arguments but got " + std::to_string(arguments.size()) + " .");
+    return (*func)->call(this, arguments);
 }
 
-std::any Evaluator::visit_logical_expr(std::shared_ptr<Logical> expr) {
-    std::any left = evaluate(expr->_left);
+var Evaluator::visit_logical_expr(const std::shared_ptr<Logical>& expr) {
+    var left = evaluate(expr->_left);
 
     if (expr->_op.get_type() == Token::Type::OR)
         if (is_truthy(left)) return left;
@@ -105,13 +105,13 @@ std::any Evaluator::visit_logical_expr(std::shared_ptr<Logical> expr) {
     return evaluate(expr->_right);
 }
 
-std::any Evaluator::visit_assign_expr(std::shared_ptr<Assign> expr) {
-    std::any value = evaluate(expr->_value);
+var Evaluator::visit_assign_expr(const std::shared_ptr<Assign>& expr) {
+    var value = evaluate(expr->_value);
     _environment->assign(expr->_name, value);
     return value;
 }
 
-std::any Evaluator::visit_variable_expr(std::shared_ptr<Variable> expr) {
+var Evaluator::visit_variable_expr(const std::shared_ptr<Variable>& expr) {
     return _environment->get(expr->_name);
 }
 
@@ -120,39 +120,41 @@ void Evaluator::interpret(const std::list<std::shared_ptr<Stmt>>& statements) {
         for (auto& stmt : statements) {
             stmt->accept(this);
         }
-    } catch (std::runtime_error& error) {
-        throw error;
+    } catch (xel::runtime_error& error) {
+        std::printf("%s\n", error.message.c_str());
+        throw;
     }
 }
 
-void Evaluator::interpret(std::shared_ptr<Expr> expression) {
+void Evaluator::interpret(const std::shared_ptr<Expr>& expression) {
     try {
-        std::any value = evaluate(expression);
+        var value = evaluate(expression);
         std::printf("%s", stringify(value).c_str());
     } catch (std::runtime_error error) {}
 }
 
-std::any Evaluator::visit_literal_expr(std::shared_ptr<Literal> expr) {
+var Evaluator::visit_literal_expr(const std::shared_ptr<Literal>& expr) {
     return expr->_value;
 }
 
-std::any Evaluator::visit_grouping_expr(std::shared_ptr<Grouping> expr) {
+var Evaluator::visit_grouping_expr(const std::shared_ptr<Grouping>& expr) {
     return evaluate(expr->_expression);
 }
 
-std::any Evaluator::evaluate(std::shared_ptr<Expr> expr) {
+var Evaluator::evaluate(const std::shared_ptr<Expr>& expr) {
     return expr->accept(this);
 }
 
-std::any Evaluator::visit_unary_expr(std::shared_ptr<Unary> expr) {
-    std::any right = evaluate(expr->_right);
+var Evaluator::visit_unary_expr(const std::shared_ptr<Unary>& expr) {
+    var right = evaluate(expr->_right);
 
     switch (expr->_op.get_type()) {
         case Token::Type::BANG:
             return !is_truthy(right);
         case Token::Type::MINUS:
             check_number_operand(expr->_op, right);
-            return - std::any_cast<double>(right);
+            // return - std::any_cast<double>(right);
+            return - *std::get_if<double>(&right);
     }
 
     // Unreachable.
@@ -160,29 +162,39 @@ std::any Evaluator::visit_unary_expr(std::shared_ptr<Unary> expr) {
 }
 
 // TODO : more types
-bool Evaluator::is_truthy(const std::any& object) {
-    if (object.type() == typeid(nullptr)) return false;
-    if (!object.has_value()) return false;
-    if (object.type() == typeid(bool)) return std::any_cast<bool>(object);
-    if (object.type() == typeid(double)) return std::any_cast<double>(object);
-    return true;
+bool Evaluator::is_truthy(const var& object) {
+    return std::visit([](auto&& arg) -> bool {
+        using T = std::decay_t<decltype(arg)>;
+        
+        if (std::is_same_v<T, std::nullptr_t>) return false;
+        if constexpr (std::is_same_v<T, bool>) return arg;
+        if constexpr (std::is_same_v<T, double>) return arg != 0.0 && !std::isnan(arg);
+        if constexpr (std::is_same_v<T, std::string>) return !arg.empty();
+        // 不会有其他类型
+        return true;
+    },object);
 }
 
 // TODO : optimize, more checks
-bool Evaluator::is_equal(const std::any& a, const std::any& b) {
-    if (!a.has_value() && !b.has_value()) return true;
-    if (!a.has_value() || !b.has_value()) return false;
-    if (a.type() != b.type()) return false;
+bool Evaluator::is_equal(const var& a, const var& b) {
+    if (a.index() != b.index()) return false;
+    return std::visit(overloaded{
+        [](std::nullptr_t, std::nullptr_t) { return true; },
+        [](bool lhs, bool rhs) { return lhs == rhs; },
+        [](double lhs, double rhs) {
+            constexpr double eps = 1e-10;
+            return std::abs(lhs - rhs) < eps;
+        },
+        [](const std::string& lhs, const std::string& rhs) {
+            return lhs == rhs;
+        },
+        [](auto&&, auto&&) { return false; }  // 处理其他类型（如果有）
+    }, a, b);
+}
 
-    if(a.type() == typeid(double)) return std::any_cast<double>(a) == std::any_cast<double>(b);
-    if (a.type() == typeid(std::string)) return std::any_cast<std::string>(a) == std::any_cast<std::string>(b);
-
-    return false;
-  }
-
-std::any Evaluator::visit_binary_expr(std::shared_ptr<Binary> expr) {
-    std::any left = evaluate(expr->_left);
-    std::any right = evaluate(expr->_right); 
+var Evaluator::visit_binary_expr(const std::shared_ptr<Binary>& expr) {
+    var left = evaluate(expr->_left);
+    var right = evaluate(expr->_right); 
 
     switch (expr->_op.get_type()) {
         // != ==
@@ -191,45 +203,53 @@ std::any Evaluator::visit_binary_expr(std::shared_ptr<Binary> expr) {
         // > >= < <=
         case Token::Type::GREATER:
             check_number_operands(expr->_op, left, right);
-            return std::any_cast<double>(left) > std::any_cast<double>(right);
+            return std::get<double>(left) > std::get<double>(right);
         case Token::Type::GREATER_EQUAL:
             check_number_operands(expr->_op, left, right);
-            return std::any_cast<double>(left) >= std::any_cast<double>(right);
+            return std::get<double>(left) >= std::get<double>(right);
         case Token::Type::LESS:
             check_number_operands(expr->_op, left, right);
-            return std::any_cast<double>(left) < std::any_cast<double>(right);
+            return std::get<double>(left) < std::get<double>(right);
         case Token::Type::LESS_EQUAL:
             check_number_operands(expr->_op, left, right);
-            return std::any_cast<double>(left) <= std::any_cast<double>(right);
+            return std::get<double>(left) <= std::get<double>(right);
         // + - * /
         case Token::Type::PLUS:
-            if (left.type() == typeid(double) && right.type() == typeid(double))
-                return std::any_cast<double>(left) + std::any_cast<double>(right);
-            if (left.type() == typeid(std::string) && right.type() == typeid(std::string))
-                return std::any_cast<std::string>(left) + std::any_cast<std::string>(right);
+            // number + number
+            if (std::holds_alternative<double>(left) && std::holds_alternative<double>(right))
+                return std::get<double>(left) + std::get<double>(right);
+            // string + string
+            if (std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
+                return std::get<std::string>(left) + std::get<std::string>(right);
+            // string + number
+            if (std::holds_alternative<std::string>(left) || std::holds_alternative<double>(right))
+                return std::get<std::string>(left) + std::to_string(std::get<double>(right));
+            // number + string
+            if (std::holds_alternative<double>(left) && std::holds_alternative<std::string>(right))
+                return std::to_string(std::get<double>(left)) + std::get<std::string>(right);
             throw error(expr->_op,"Operands must be two numbers or two strings.");
         case Token::Type::MINUS:
             check_number_operands(expr->_op, left, right);
-            return std::any_cast<double>(left) - std::any_cast<double>(right);
+            return std::get<double>(left) - std::get<double>(right);
         case Token::Type::SLASH:
             check_number_operands(expr->_op, left, right);
-            return std::any_cast<double>(left) / std::any_cast<double>(right);
+            return std::get<double>(left) / std::get<double>(right);
         case Token::Type::STAR:
             check_number_operands(expr->_op, left, right);
-            return std::any_cast<double>(left) * std::any_cast<double>(right);
+            return std::get<double>(left) * std::get<double>(right);
     }
 
     // Unreachable.
     return nullptr;
 }
 
-void Evaluator::check_number_operand(const Token& op, const std::any& operand) {
-    if (operand.type() == typeid(double)) return;
+void Evaluator::check_number_operand(const Token& op, const var& operand) {
+    if (std::holds_alternative<double>(operand)) return;
     throw error(op, "Operand must be a number.");
 }
 
-void Evaluator::check_number_operands(const Token& op, const std::any& left, const std::any& right) {
-    if (left.type() == typeid(double) && right.type() == typeid(double)) return;
+void Evaluator::check_number_operands(const Token& op, const var& left, const var& right) {
+    if (std::holds_alternative<double>(left) && std::holds_alternative<double>(right)) return;
     throw error(op, "Operands must be numbers.");
 }
 
@@ -237,12 +257,12 @@ xel::runtime_error Evaluator::error(const Token& token, const std::string& messa
     return xel::error::error_(token, message);
 }
 
-std::string Evaluator::stringify(const std::any& object) {
-    if (!object.has_value()) return "nil";
+std::string Evaluator::stringify(const var& object) {
+    if (std::holds_alternative<std::nullptr_t>(object)) return "nil";
 
     std::string rel;
-    if (object.type() == typeid(double)) {
-        double num = std::any_cast<double>(object);
+    if (std::holds_alternative<double>(object)) {
+        double num = std::get<double>(object);
         std::string text = std::to_string(num);
         if (text.size() >= 2 && text.substr(text.size() - 2) == ".0") {
             // 移除最后两个字符
@@ -250,14 +270,9 @@ std::string Evaluator::stringify(const std::any& object) {
         }
         rel = text;
     }
-    else if (object.type() == typeid(std::string)) {
-        rel = std::any_cast<std::string>(object);
-    }
-    else if (object.type() == typeid(bool)){
-        rel = std::any_cast<bool>(object) ? "true" : "false";
-    }
-    else if (object.type() == typeid(nullptr)){
-        rel = "nil";
-    }
+    if (std::holds_alternative<std::string>(object))
+        rel = std::get<std::string>(object);
+    if (std::holds_alternative<bool>(object))
+        rel = std::get<bool>(object) ? "true" : "false";
     return rel;
 }

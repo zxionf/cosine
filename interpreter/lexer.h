@@ -30,7 +30,7 @@ namespace xel
             bool is_alpha_numeric(char ch); // 数字或者字母或者下划线
 
             void add_token(Token::Type type);
-            void add_token(Token::Type type, const std::any& literal);
+            void add_token(Token::Type type, const var& literal);
             
         private:
             std::string source;
