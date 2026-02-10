@@ -4,6 +4,7 @@ using namespace xel;
 
 #include <fstream>
 #include <sstream>
+#include <regex>
 
 std::map<std::string, Token::Type> Lexer::keywords = {
     {"and",     Token::Type::AND},
@@ -146,6 +147,8 @@ void Lexer::read_string() {
 
     // 获取字符串
     std::string value = source.substr(start + 1, current - 1 - start - 1);
+    std::regex ln{R"(\\n)"};
+    value = std::regex_replace(value, ln, "\n");
     add_token(Token::Type::STRING, value);
 }
 
