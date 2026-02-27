@@ -1,0 +1,49 @@
+{
+  "Function Declaration": {
+    "prefix": ["fun"],
+    "body": [
+      "fun ${1:functionName}(${2:params}) {",
+      "\t${3:// body}",
+      "}"
+    ],
+    "description": "Define a new function"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "if (${1:condition}) {",
+      "\t${2:// then}",
+      "}${3: else {\n\t// else\n}}"
+    ],
+    "description": "If conditional statement"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for (${1:i} = 0; ${1:i} < ${2:length}; ${1:i}++) {",
+      "\t${3:// loop body}",
+      "}"
+    ],
+    "description": "For loop statement"
+  },
+  "Variable Declaration": {
+    "prefix": ["var", "let"],
+    "body": ["${1|var,let|} ${2:variableName} = ${3:value};"],
+    "description": "Declare a variable"
+  },
+  "Class Definition": {
+    "prefix": "class",
+    "body": [
+      "class ${1:ClassName} {",
+      "\tconstructor(${2:params}) {",
+      "\t\t${3:// constructor body}",
+      "\t}",
+      "",
+      "\t${4:methodName}(${5:params}) {",
+      "\t\t${6:// method body}",
+      "\t}",
+      "}"
+    ],
+    "description": "Define a class"
+  }
+}

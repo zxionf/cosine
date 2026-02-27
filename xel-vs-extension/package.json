@@ -1,0 +1,57 @@
+{
+  "name": "xel",
+  "displayName": "xel-lang-support",
+  "description": "xel lang highlight",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.106.0"
+  },
+  "type": "module",
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "xel",
+        "aliases": [
+          "xel",
+          "xel"
+        ],
+        "extensions": [
+          ".xel"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "xel",
+        "scopeName": "source.xel",
+        "path": "./syntaxes/xel.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./ && npm run lint",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint client/src server/src --ext .ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^18.19.130",
+    "@types/vscode": "^1.106.0",
+    "@typescript-eslint/eslint-plugin": "^8.55.0",
+    "@typescript-eslint/parser": "^8.55.0",
+    "typescript": "^4.9.5",
+    "vscode-languageclient": "^9.0.1"
+  },
+  "dependencies": {
+    "eslint": "^10.0.0",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.12"
+  }
+}

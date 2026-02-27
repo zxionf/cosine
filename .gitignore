@@ -18,3 +18,5 @@ examples/*.exe
 
 # si4
 *.si4project/
+
+xel-vs-extension/node_modules/

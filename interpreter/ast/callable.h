@@ -3,6 +3,7 @@
 #include "../evaluator/evaluator.h"
 #include "../xel_error.h"
 #include <ctime>
+#include <chrono>
 
 namespace xel
 {
@@ -47,7 +48,8 @@ namespace xel
         public:
             int arity() override { return 0; }
             var call(Evaluator* evaluator, std::vector<var> arguments) override {
-                return static_cast<double>(std::time(nullptr));
+                auto now = std::chrono::system_clock::now().time_since_epoch();
+                return duration_cast<std::chrono::microseconds>(now).count() / 1000.0;
             }
             std::string to_string() override { return "<native fn>"; }
     };
