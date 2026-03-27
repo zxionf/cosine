@@ -6,8 +6,8 @@
 namespace xel
 {
 
-    inline bool hadError = false;
-    inline bool hadRuntimeError = false;
+    inline static bool hadError = false;
+    inline static bool hadRuntimeError = false;
 
     class runtime_error : public std::exception
     {

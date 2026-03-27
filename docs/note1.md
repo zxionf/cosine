@@ -4,6 +4,7 @@
 `std::holds_alternative<double>(obj)` 可以看variant对象是否包含指定类型的数据
 用 `std::holds_alternative`：当你想在运行时检查一个 variant 变量当前存储的是什么类型
 用 `std::is_same_v`：当你在编译时想知道两个类型名称是否相同（通常在模板或 decltype 中使用）
+`explicit` 是 C++ 中的一个关键字，主要用于防止隐式类型转换和防止拷贝初始化。
 
 #### imgui窗口
 ```bash

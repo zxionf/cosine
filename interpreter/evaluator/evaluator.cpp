@@ -66,6 +66,10 @@ var Evaluator::visit_block_stmt(const std::shared_ptr<Block>& stmt) {
     return nullptr;
 }
 
+void Evaluator::execute(const std::shared_ptr<Expr>& expr, int depth) {
+    _locals.emplace(expr, depth);
+}
+
 void Evaluator::execute_block(const std::list<std::shared_ptr<Stmt>>& statements, Environment* environment) {
     Environment* previous = _environment;
     try {
@@ -107,12 +111,24 @@ var Evaluator::visit_logical_expr(const std::shared_ptr<Logical>& expr) {
 
 var Evaluator::visit_assign_expr(const std::shared_ptr<Assign>& expr) {
     var value = evaluate(expr->_value);
-    _environment->assign(expr->_name, value);
+    // _environment->assign(expr->_name, value);
+    int distance = _locals[expr];
+    auto iter = _locals.find(expr);
+    if (iter != _locals.end()) _environment->assign_at(distance, expr->_name, value);
+    else _globals->assign(expr->_name, value);
     return value;
 }
 
 var Evaluator::visit_variable_expr(const std::shared_ptr<Variable>& expr) {
-    return _environment->get(expr->_name);
+    // return _environment->get(expr->_name);
+    return look_up_variable(expr->_name, expr);
+}
+
+var Evaluator::look_up_variable(const Token& name, const std::shared_ptr<Expr>& expr) {
+    auto iter = _locals.find(expr);
+    if (iter != _locals.end())
+        return _environment->get_at(iter->second, name.get_lexeme());
+    return _globals->get(name);
 }
 
 void Evaluator::interpret(const std::list<std::shared_ptr<Stmt>>& statements) {

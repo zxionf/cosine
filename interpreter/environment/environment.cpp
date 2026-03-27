@@ -16,6 +16,21 @@ var Environment::get(const Token& name) {
     return nullptr;
 }
 
+var Environment::get_at(int distance, const std::string& name) {
+    return ancestor(distance)->_values.at(name);
+}
+
+Environment* Environment::ancestor(int distance) {
+    auto env = this;
+    for (int i = 0; i < distance; i++)
+        env = env->_enclosing;
+    return env;
+}
+
+void Environment::assign_at(int distance, const Token& name, const var& value) {
+    ancestor(distance)->_values.at(name.get_lexeme()) = value;
+}
+
 void Environment::assign(const Token& name, const var& value) {
     auto it = _values.find(name.get_lexeme());
     if (it != _values.end()) {

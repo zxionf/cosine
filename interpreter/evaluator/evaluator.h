@@ -16,6 +16,8 @@ namespace xel
             void interpret(const std::list<std::shared_ptr<Stmt>>& statements);
             void execute_block(const std::list<std::shared_ptr<Stmt>>& statements, Environment* environment);
 
+            void execute(const std::shared_ptr<Expr>& expr, int depth);
+
         private:
             var visit_literal_expr    (const std::shared_ptr<Literal>&    expr) override;
             var visit_grouping_expr   (const std::shared_ptr<Grouping>&   expr) override;
@@ -35,6 +37,8 @@ namespace xel
             var visit_function_stmt   (const std::shared_ptr<Function>&   stmt) override;
             var visit_return_stmt     (const std::shared_ptr<Return>&     stmt) override;
 
+            var look_up_variable(const Token& name, const std::shared_ptr<Expr>& expr);
+
             var evaluate(const std::shared_ptr<Expr>& expr);
             void execute(const std::shared_ptr<Stmt>& stmt) { stmt->accept(this); }
 
@@ -51,5 +55,6 @@ namespace xel
         public:
             Environment* _globals ; // = {new Environment};
             Environment* _environment ; // = _globals;
+            std::unordered_map<std::shared_ptr<Expr>, int> _locals{};
     };
 }

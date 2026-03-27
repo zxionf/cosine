@@ -2,6 +2,7 @@
 #include <lexer.h>
 #include <parser/parser.h>
 #include <evaluator/evaluator.h>
+#include <evaluator/resolver.h>
 using namespace xel;
 
 int main(){
@@ -10,8 +11,9 @@ int main(){
     // 语法分析
     std::shared_ptr<Parser> parser = std::make_shared<Parser>(lexer->get_tokens());
     Evaluator evaluator{};
-    evaluator.interpret(parser->parse());
-    
+    // evaluator.interpret(parser->parse());
+    Resolver resolver{&evaluator};
+    resolver.resolve(parser->parse());
     
     return 0;
 }
