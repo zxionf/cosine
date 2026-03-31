@@ -3,7 +3,7 @@ include_directories(${PROJECT_SOURCE_DIR}/imgui/backends)
 include_directories(${PROJECT_SOURCE_DIR}/interpreter)
 
 add_executable(testglfwinit testglfwinit.cpp)
-target_link_libraries(testglfwinit PRIVATE ${PROJECT_SOURCE_DIR}/libs/glfw/libglfw3.a)
+target_link_libraries(testglfwinit PRIVATE glfw)
 
 file(GLOB_RECURSE imgui_sources 
     ${PROJECT_SOURCE_DIR}/imgui/imgui.h
@@ -28,13 +28,13 @@ add_executable(testimgui
     testimgui.cpp
     ${imgui_sources}
 )
-target_link_libraries(testimgui PRIVATE opengl32 ${PROJECT_SOURCE_DIR}/libs/glfw/libglfw3.a)
+target_link_libraries(testimgui PRIVATE GL glfw)
 
 add_executable(testdll testimgui.cpp ${PROJECT_SOURCE_DIR}/imgui/imgui_demo.cpp)
-target_link_libraries(testdll opengl32 imguifull ${PROJECT_SOURCE_DIR}/libs/glfw/libglfw3dll.a)
+target_link_libraries(testdll GL imguifull glfw)
 
 add_executable(testdocking testdocking.cpp ${PROJECT_SOURCE_DIR}/imgui/imgui_demo.cpp)
-target_link_libraries(testdocking opengl32 imguifull ${PROJECT_SOURCE_DIR}/libs/glfw/libglfw3dll.a)
+target_link_libraries(testdocking GL imguifull glfw)
 
 file(GLOB_RECURSE interpreter_test
     ${PROJECT_SOURCE_DIR}/interpreter/*.cpp

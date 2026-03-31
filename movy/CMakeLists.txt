@@ -22,7 +22,7 @@ file(GLOB_RECURSE imgui_sources
     ${PROJECT_SOURCE_DIR}/imgui/backends/imgui_impl_opengl3_loader.h
 )
 add_library(imguifull SHARED ${imgui_sources})
-target_link_libraries(imguifull PRIVATE ${PROJECT_SOURCE_DIR}/libs/glfw/libglfw3dll.a)
+target_link_libraries(imguifull PRIVATE glfw)
 
 add_executable(movy 
     main.cpp
@@ -30,4 +30,4 @@ add_executable(movy
     ${PROJECT_SOURCE_DIR}/imgui/imgui_demo.cpp
     ${PROJECT_SOURCE_DIR}/ImGuiColorTextEdit/ImTextEditor.cpp
 )
-target_link_libraries(movy opengl32 imguifull ${PROJECT_SOURCE_DIR}/libs/glfw/libglfw3dll.a)
+target_link_libraries(movy GL imguifull glfw)
