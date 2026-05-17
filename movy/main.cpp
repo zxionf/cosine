@@ -90,7 +90,7 @@ int main(int argc, char** argv)
     monospaceFontConfig.SizePixels = 12.0f;
     monospaceFontConfig.GlyphMaxAdvanceX = 12.0f;
     monospaceFontConfig.MergeMode = false;
-    ImFont* monospaceFont = io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/consola.ttf",24.0f, &monospaceFontConfig, io.Fonts->GetGlyphRangesDefault());
+    ImFont* monospaceFont = io.Fonts->AddFontFromFileTTF("/usr/share/fonts/TTF/JetBrains-Maple-Mono-NF-XX-XX/JetBrainsMapleMono-Regular.ttf",24.0f, &monospaceFontConfig, io.Fonts->GetGlyphRangesDefault());
     monospaceFontConfig.MergeMode = true;
     monospaceFontConfig.SizePixels = 24.0f;
     monospaceFontConfig.GlyphMinAdvanceX = 24.0f;
@@ -104,7 +104,7 @@ int main(int argc, char** argv)
             0x4e00, 0x9FAF, // 中日韩统一表意文字
             0,
         };
-    io.Fonts->AddFontFromFileTTF("C:/Windows/Fonts/msyh.ttc",24.0f, &monospaceFontConfig, ranges);
+    io.Fonts->AddFontFromFileTTF("/usr/share/fonts/TTF/JetBrains-Maple-Mono-NF-XX-XX/JetBrainsMapleMono-Regular.ttf",24.0f, &monospaceFontConfig, ranges);
     io.Fonts->Build();
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
