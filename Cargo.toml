@@ -1,0 +1,9 @@
+[package]
+name = "cosine-egui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = "0.32"
+logos = "0.16"
+rfd = "0.15"
