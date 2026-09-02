@@ -20,3 +20,5 @@ examples/*.exe
 *.si4project/
 
 xel-vs-extension/node_modules/
+
+target/
