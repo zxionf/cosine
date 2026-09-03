@@ -13,10 +13,12 @@ namespace xel {
 
 class XelSwapChain {
  public:
-  static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+    static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-  XelSwapChain(XelDevice &deviceRef, VkExtent2D windowExtent);
-  ~XelSwapChain();
+   XelSwapChain(XelDevice &deviceRef, VkExtent2D windowExtent);
+   ~XelSwapChain();
+
+   void recreateSwapChain(VkExtent2D newExtent, VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
 
   XelSwapChain(const XelSwapChain &) = delete;
   void operator=(const XelSwapChain &) = delete;
@@ -37,9 +39,10 @@ class XelSwapChain {
 
   VkResult acquireNextImage(uint32_t *imageIndex);
   VkResult submitCommandBuffers(const VkCommandBuffer *buffers, uint32_t *imageIndex);
+  VkSwapchainKHR getSwapChainKHR() { return swapChain; }
 
  private:
-  void createSwapChain();
+  void createSwapChain(VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
   void createImageViews();
   void createDepthResources();
   void createRenderPass();

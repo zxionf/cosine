@@ -45,10 +45,58 @@ XelSwapChain::~XelSwapChain() {
   vkDestroyRenderPass(device.device(), renderPass, nullptr);
 
   // cleanup synchronization objects
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+  size_t oldImageCount = swapChainImages.size();
+  for (size_t i = 0; i < oldImageCount; i++) {
     vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
+  }
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], nullptr);
     vkDestroyFence(device.device(), inFlightFences[i], nullptr);
+  }
+}
+
+void XelSwapChain::recreateSwapChain(VkExtent2D newExtent, VkSwapchainKHR oldSwapchain) {
+  vkDeviceWaitIdle(device.device());
+
+  size_t oldImageCount = imageCount();
+
+  for (auto framebuffer : swapChainFramebuffers) {
+    vkDestroyFramebuffer(device.device(), framebuffer, nullptr);
+  }
+  swapChainFramebuffers.clear();
+
+  vkDestroyRenderPass(device.device(), renderPass, nullptr);
+
+  for (size_t i = 0; i < swapChainImages.size(); i++) {
+    vkDestroyImageView(device.device(), swapChainImageViews[i], nullptr);
+    vkDestroyImageView(device.device(), depthImageViews[i], nullptr);
+    vkDestroyImage(device.device(), depthImages[i], nullptr);
+    vkFreeMemory(device.device(), depthImageMemorys[i], nullptr);
+  }
+  swapChainImageViews.clear();
+  depthImageViews.clear();
+  depthImages.clear();
+  depthImageMemorys.clear();
+  swapChainImages.clear();
+
+  for (size_t i = 0; i < oldImageCount; i++) {
+    vkDestroySemaphore(device.device(), renderFinishedSemaphores[i], nullptr);
+  }
+  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    vkDestroySemaphore(device.device(), imageAvailableSemaphores[i], nullptr);
+    vkDestroyFence(device.device(), inFlightFences[i], nullptr);
+  }
+
+  windowExtent = newExtent;
+  createSwapChain(oldSwapchain);
+  createImageViews();
+  createRenderPass();
+  createDepthResources();
+  createFramebuffers();
+  createSyncObjects();
+
+  if (oldSwapchain != VK_NULL_HANDLE) {
+    vkDestroySwapchainKHR(device.device(), oldSwapchain, nullptr);
   }
 }
 
@@ -90,7 +138,7 @@ VkResult XelSwapChain::submitCommandBuffers(
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = buffers;
 
-  VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+  VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[*imageIndex]};
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -119,7 +167,7 @@ VkResult XelSwapChain::submitCommandBuffers(
   return result;
 }
 
-void XelSwapChain::createSwapChain() {
+void XelSwapChain::createSwapChain(VkSwapchainKHR oldSwapchain) {
   SwapChainSupportDetails swapChainSupport = device.getSwapChainSupport();
 
   VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
@@ -162,7 +210,7 @@ void XelSwapChain::createSwapChain() {
   createInfo.presentMode = presentMode;
   createInfo.clipped = VK_TRUE;
 
-  createInfo.oldSwapchain = VK_NULL_HANDLE;
+  createInfo.oldSwapchain = oldSwapchain;
 
   if (vkCreateSwapchainKHR(device.device(), &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
     throw std::runtime_error("failed to create swap chain!");
@@ -337,7 +385,7 @@ void XelSwapChain::createDepthResources() {
 
 void XelSwapChain::createSyncObjects() {
   imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  renderFinishedSemaphores.resize(imageCount());
   inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
   imagesInFlight.resize(imageCount(), VK_NULL_HANDLE);
 
@@ -351,10 +399,15 @@ void XelSwapChain::createSyncObjects() {
   for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     if (vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) !=
             VK_SUCCESS ||
-        vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) !=
-            VK_SUCCESS ||
         vkCreateFence(device.device(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
       throw std::runtime_error("failed to create synchronization objects for a frame!");
+    }
+  }
+
+  for (size_t i = 0; i < imageCount(); i++) {
+    if (vkCreateSemaphore(device.device(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) !=
+        VK_SUCCESS) {
+      throw std::runtime_error("failed to create render finished semaphores!");
     }
   }
 }
@@ -373,12 +426,12 @@ VkSurfaceFormatKHR XelSwapChain::chooseSwapSurfaceFormat(
 
 VkPresentModeKHR XelSwapChain::chooseSwapPresentMode(
     const std::vector<VkPresentModeKHR> &availablePresentModes) {
-  for (const auto &availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-      std::cout << "Present mode: Mailbox" << std::endl;
-      return availablePresentMode;
-    }
-  }
+  // for (const auto &availablePresentMode : availablePresentModes) {
+  //   if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+  //     std::cout << "Present mode: Mailbox" << std::endl;
+  //     return availablePresentMode;
+  //   }
+  // }
 
   // for (const auto &availablePresentMode : availablePresentModes) {
   //   if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {

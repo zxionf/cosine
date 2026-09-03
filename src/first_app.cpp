@@ -52,6 +52,11 @@ namespace xel
 
     void FirstApp::createCommandBuffers()
     { 
+        if(!commandBuffers.empty())
+        {
+            vkFreeCommandBuffers(device.device(), device.getCommandPool(), commandBuffers.size(), commandBuffers.data());
+            commandBuffers.clear();
+        }
         commandBuffers.resize(swapChain.imageCount());
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -106,15 +111,37 @@ namespace xel
         uint32_t imageIndex;
         auto result = swapChain.acquireNextImage(&imageIndex);
 
-        if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+        if(result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            recreateSwapChain();
+            return;
+        }
+        else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
         {
             throw std::runtime_error("failed to acquire swap chain image");
         }
 
         result = swapChain.submitCommandBuffers(&commandBuffers[imageIndex], &imageIndex);
-        if(result != VK_SUCCESS)
+        if(result == VK_ERROR_OUT_OF_DATE_KHR)
+        {
+            recreateSwapChain();
+            return;
+        }
+        else if(result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
         {
             throw std::runtime_error("failed to present swap chain image");
         }
+    }
+
+    void FirstApp::recreateSwapChain()
+    {
+        vkDeviceWaitIdle(device.device());
+        VkSwapchainKHR oldSwapchain = swapChain.getSwapChainKHR();
+        pipeline.reset();
+        vkDestroyPipelineLayout(device.device(), pipelineLayout, nullptr);
+        swapChain.recreateSwapChain(window.getExtend(), oldSwapchain);
+        createPipelineLayout();
+        createPipeline();
+        createCommandBuffers();
     }
 }

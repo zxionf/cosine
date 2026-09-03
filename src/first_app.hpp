@@ -28,6 +28,7 @@ namespace xel
         void createPipeline();
         void createCommandBuffers();
         void drawFrame();
+        void recreateSwapChain();
 
         XelWindow window{WIDTH, HEIGHT, "hello vulkan"};
         XelDevice device{window};
