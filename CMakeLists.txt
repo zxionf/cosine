@@ -22,7 +22,8 @@ FetchContent_Declare(
     GIT_TAG 3.4
     GIT_SHALLOW TRUE
 )
-
+# set(GLFW_BUILD_WAYLAND ON CACHE BOOL "Enable Wayland support" FORCE)
+# set(GLFW_BUILD_X11 OFF CACHE BOOL "Disable X11 support" FORCE)
 # 获取 GLFW
 FetchContent_MakeAvailable(glfw)
 
@@ -30,3 +31,5 @@ add_subdirectory(test)
 
 add_subdirectory(movy)
 add_subdirectory(interpreter)
+
+add_subdirectory(src)

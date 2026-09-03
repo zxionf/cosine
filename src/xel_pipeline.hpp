@@ -1,0 +1,50 @@
+#pragma once
+
+#include "xel_device.hpp"
+
+// std
+#include <string>
+#include <vector>
+
+namespace xel
+{
+    struct PipelineConfigInfo
+    {
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
+        VkPipelineViewportStateCreateInfo viewportInfo;
+        VkPipelineRasterizationStateCreateInfo rasterizationInfo;
+        VkPipelineMultisampleStateCreateInfo multisampleInfo;
+        VkPipelineColorBlendAttachmentState colorBlendAttachment;
+        VkPipelineColorBlendStateCreateInfo colorBlendInfo;
+    };
+    class XelPipeline
+    {
+    public:
+        XelPipeline(
+            XelDevice &device,
+            const std::string &vertFilepath,
+            const std::string &fragFilepath,
+            const PipelineConfigInfo &configInfo
+        );
+        ~XelPipeline(){}
+
+        XelPipeline(const XelPipeline &) = delete;
+        void operator=(const XelPipeline&) = delete;
+
+        static PipelineConfigInfo defaultPipelineConfigInfo(uint32_t width, uint32_t height);
+
+    private:
+        static std::vector<char> readFile(const std::string &filepath);
+        void createGraphicsPipeline(
+            const std::string &vertFilepath,
+            const std::string &fragFilepath,
+            const PipelineConfigInfo &configInfo
+        );
+
+        void createShaderModule(const std::vector<char> &code, VkShaderModule *shaderModule);
+        XelDevice &xelDevice;
+        VkPipeline graphicsPipeline;
+        VkShaderModule vertShaderModule;
+        VkShaderModule fragShaderModule;
+    };
+}
