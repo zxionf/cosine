@@ -10,12 +10,17 @@ namespace xel
 {
     struct PipelineConfigInfo
     {
+        VkViewport viewport;
+        VkRect2D scissor;
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyInfo;
-        VkPipelineViewportStateCreateInfo viewportInfo;
         VkPipelineRasterizationStateCreateInfo rasterizationInfo;
         VkPipelineMultisampleStateCreateInfo multisampleInfo;
         VkPipelineColorBlendAttachmentState colorBlendAttachment;
         VkPipelineColorBlendStateCreateInfo colorBlendInfo;
+        VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
+        VkPipelineLayout pipelineLayout = nullptr;
+        VkRenderPass renderPass = nullptr;
+        uint32_t subpass = 0;
     };
     class XelPipeline
     {
@@ -26,7 +31,7 @@ namespace xel
             const std::string &fragFilepath,
             const PipelineConfigInfo &configInfo
         );
-        ~XelPipeline(){}
+        ~XelPipeline();
 
         XelPipeline(const XelPipeline &) = delete;
         void operator=(const XelPipeline&) = delete;

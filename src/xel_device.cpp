@@ -105,7 +105,7 @@ void XelDevice::createInstance() {
     throw std::runtime_error("failed to create instance!");
   }
 
-  hasGflwRequiredInstanceExtensions();
+  // hasGflwRequiredInstanceExtensions();
 }
 
 void XelDevice::pickPhysicalDevice() {
