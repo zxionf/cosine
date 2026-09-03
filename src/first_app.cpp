@@ -7,6 +7,7 @@ namespace xel
 {
     FirstApp::FirstApp()
     {
+        loadModels();
         createPipelineLayout();
         createPipeline();
         createCommandBuffers();
@@ -26,6 +27,17 @@ namespace xel
         }
 
         vkDeviceWaitIdle(device.device());
+    }
+
+    void FirstApp::loadModels()
+    { 
+        std::vector<XelModel::Vertex> vertices
+        {
+            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+        };
+        model = std::make_unique<XelModel>(device, vertices);
     }
 
     void FirstApp::createPipelineLayout()
@@ -91,7 +103,8 @@ namespace xel
             vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
             pipeline->bind(commandBuffers[i]);
-            vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+            model->bind(commandBuffers[i]);
+            model->draw(commandBuffers[i]);
 
             vkCmdEndRenderPass(commandBuffers[i]);
             if(vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS)

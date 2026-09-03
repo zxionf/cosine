@@ -4,6 +4,7 @@
 #include "xel_pipeline.hpp"
 #include "xel_swap_chain.hpp"
 #include "xel_window.hpp"
+#include "xel_model.hpp"
 
 #include <memory>
 
@@ -24,6 +25,7 @@ namespace xel
         void run();
 
     private:
+        void loadModels();
         void createPipelineLayout();
         void createPipeline();
         void createCommandBuffers();
@@ -35,6 +37,7 @@ namespace xel
         std::unique_ptr<XelPipeline> pipeline;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
+        std::unique_ptr<XelModel> model;
         // XelPipeline pipeline{device,
         //     "shaders/simple_shader.vert.spv",
         //     "shaders/simple_shader.frag.spv",
