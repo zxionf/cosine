@@ -13,6 +13,18 @@ namespace xel {
 
 XelSwapChain::XelSwapChain(XelDevice &deviceRef, VkExtent2D extent)
     : device{deviceRef}, windowExtent{extent} {
+  init();
+}
+
+XelSwapChain::XelSwapChain(XelDevice &deviceRef, VkExtent2D extent, std::shared_ptr<XelSwapChain> previous)
+    : device{deviceRef}, windowExtent{extent}, oldSwapChain{previous} {
+  init();
+
+  oldSwapChain = nullptr;
+}
+
+void XelSwapChain::init()
+{
   createSwapChain();
   createImageViews();
   createRenderPass();
@@ -162,7 +174,7 @@ void XelSwapChain::createSwapChain() {
   createInfo.presentMode = presentMode;
   createInfo.clipped = VK_TRUE;
 
-  createInfo.oldSwapchain = VK_NULL_HANDLE;
+  createInfo.oldSwapchain = oldSwapChain == nullptr ? VK_NULL_HANDLE : oldSwapChain->swapChain;
 
   if (vkCreateSwapchainKHR(device.device(), &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
     throw std::runtime_error("failed to create swap chain!");

@@ -29,11 +29,14 @@ namespace xel
         void createPipelineLayout();
         void createPipeline();
         void createCommandBuffers();
+        void freeCommandBuffers();
         void drawFrame();
+        void recreateSwapChain();
+        void recordCommandBuffer(int imageIndex);
 
         XelWindow window{WIDTH, HEIGHT, "hello vulkan"};
         XelDevice device{window};
-        XelSwapChain swapChain{device, window.getExtend()};
+        std::unique_ptr<XelSwapChain> swapChain;
         std::unique_ptr<XelPipeline> pipeline;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;

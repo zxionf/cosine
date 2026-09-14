@@ -19,8 +19,10 @@ namespace xel
     { 
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         window = glfwCreateWindow(width, height, windowName.c_str(), nullptr, nullptr);
+        glfwSetWindowUserPointer(window, this);
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
 
     void XelWindow::createWindowSurface(VkInstance instance, VkSurfaceKHR *surface)
@@ -29,5 +31,13 @@ namespace xel
         {
             throw std::runtime_error("failed to create window surface");
         }
+    }
+
+    void XelWindow::framebufferResizeCallback(GLFWwindow *window, int width, int height)
+    {
+        auto xelWindow = reinterpret_cast<XelWindow *>(glfwGetWindowUserPointer(window));
+        xelWindow->framebufferResized = true;
+        xelWindow->width = width;
+        xelWindow->height = height;
     }
 }

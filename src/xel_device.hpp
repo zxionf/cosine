@@ -39,7 +39,7 @@ namespace xel
 
     // Not copyable or movable
     XelDevice(const XelDevice &) = delete;
-    void operator=(const XelDevice &) = delete;
+    XelDevice& operator=(const XelDevice &) = delete;
     XelDevice(XelDevice &&) = delete;
     XelDevice &operator=(XelDevice &&) = delete;
 
