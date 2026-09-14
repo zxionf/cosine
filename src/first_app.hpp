@@ -4,7 +4,7 @@
 #include "xel_pipeline.hpp"
 #include "xel_swap_chain.hpp"
 #include "xel_window.hpp"
-#include "xel_model.hpp"
+#include "xel_game_object.hpp"
 
 #include <memory>
 
@@ -25,7 +25,7 @@ namespace xel
         void run();
 
     private:
-        void loadModels();
+        void loadGameModels();
         void createPipelineLayout();
         void createPipeline();
         void createCommandBuffers();
@@ -33,6 +33,7 @@ namespace xel
         void drawFrame();
         void recreateSwapChain();
         void recordCommandBuffer(int imageIndex);
+        void renderGameObjects(VkCommandBuffer commandBuffer);
 
         XelWindow window{WIDTH, HEIGHT, "hello vulkan"};
         XelDevice device{window};
@@ -40,7 +41,7 @@ namespace xel
         std::unique_ptr<XelPipeline> pipeline;
         VkPipelineLayout pipelineLayout;
         std::vector<VkCommandBuffer> commandBuffers;
-        std::unique_ptr<XelModel> model;
+        std::vector<XelGameObject> gameObjects;
         // XelPipeline pipeline{device,
         //     "shaders/simple_shader.vert.spv",
         //     "shaders/simple_shader.frag.spv",
