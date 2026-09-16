@@ -1,10 +1,9 @@
 #pragma once
 
 #include "xel_device.hpp"
-#include "xel_pipeline.hpp"
-#include "xel_swap_chain.hpp"
 #include "xel_window.hpp"
 #include "xel_game_object.hpp"
+#include "xel_renderer.hpp"
 
 #include <memory>
 
@@ -26,21 +25,11 @@ namespace xel
 
     private:
         void loadGameModels();
-        void createPipelineLayout();
-        void createPipeline();
-        void createCommandBuffers();
-        void freeCommandBuffers();
-        void drawFrame();
-        void recreateSwapChain();
-        void recordCommandBuffer(int imageIndex);
-        void renderGameObjects(VkCommandBuffer commandBuffer);
 
         XelWindow window{WIDTH, HEIGHT, "hello vulkan"};
         XelDevice device{window};
-        std::unique_ptr<XelSwapChain> swapChain;
-        std::unique_ptr<XelPipeline> pipeline;
-        VkPipelineLayout pipelineLayout;
-        std::vector<VkCommandBuffer> commandBuffers;
+        XelRenderer renderer{window, device};
+
         std::vector<XelGameObject> gameObjects;
         // XelPipeline pipeline{device,
         //     "shaders/simple_shader.vert.spv",

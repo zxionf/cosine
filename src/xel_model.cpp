@@ -1,5 +1,6 @@
 #include "xel_model.hpp"
 
+#include <cstring>
 #include <cassert>
 
 namespace xel

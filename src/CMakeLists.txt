@@ -7,5 +7,7 @@ add_executable(main
     xel_device.cpp
     xel_swap_chain.cpp
     xel_model.cpp
+    xel_renderer.cpp
+    simple_render_system.cpp
 )
 target_link_libraries(main PRIVATE glfw Vulkan::Vulkan)
