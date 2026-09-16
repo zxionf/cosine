@@ -1,5 +1,5 @@
 find_package(Vulkan REQUIRED)
-add_executable(main 
+add_executable(ex0
     main.cpp
     xel_window.cpp
     first_app.cpp
@@ -10,4 +10,11 @@ add_executable(main
     xel_renderer.cpp
     simple_render_system.cpp
 )
-target_link_libraries(main PRIVATE glfw Vulkan::Vulkan)
+target_link_libraries(ex0 PRIVATE glfw Vulkan::Vulkan)
+
+add_executable(ex1
+    ex1.cpp
+    backend/window.cpp
+    backend/device.cpp
+)
+target_link_libraries(ex1 PRIVATE glfw Vulkan::Vulkan)
