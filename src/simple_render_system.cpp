@@ -53,11 +53,11 @@ namespace xel
     {
         assert(pipelineLayout != nullptr && "Cannot create pipeline before pipeline layout");
 
-        PipelineConfigInfo pipelineConfig{};
-        XelPipeline::defaultPipelineConfigInfo(pipelineConfig);
+        backend::PipelineConfigInfo pipelineConfig{};
+        backend::XelPipeline::defaultPipelineConfigInfo(pipelineConfig);
         pipelineConfig.renderPass = renderPass;
         pipelineConfig.pipelineLayout = pipelineLayout;
-        pipeline = std::make_unique<XelPipeline>(device, "shaders/simple_shader.vert.spv", "shaders/simple_shader.frag.spv", pipelineConfig);
+        pipeline = std::make_unique<backend::XelPipeline>(device, "shaders/simple_shader.vert.spv", "shaders/simple_shader.frag.spv", pipelineConfig);
     }
 
     void SimpleRenderSystem::renderGameObjects(VkCommandBuffer commandBuffer, std::vector<XelGameObject> &gameObjects)

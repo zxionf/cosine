@@ -1,4 +1,7 @@
 #include "backend/device.hpp"
+#include "xel_swap_chain.hpp"
+
+#include <memory>
 
 int main()
 {
@@ -6,9 +9,20 @@ int main()
     Window window{800, 600, "Xel"};
     Device device{window};
 
+    using namespace xel;
+    std::unique_ptr<XelSwapChain> swap_chain;
+    if (swap_chain == nullptr) swap_chain = std::make_unique<XelSwapChain>(device, window.get_extent());
+
     while (!window.should_close())
     {
         glfwPollEvents();
+
+        if (window.was_window_resized())
+        {
+            std::shared_ptr<XelSwapChain> old_swap_chain = std::move(swap_chain);
+            swap_chain = std::make_unique<XelSwapChain>(device, window.get_extent(), old_swap_chain);
+            window.reset_window_resized_flag();
+        }
     }
 
     // vkDeviceWaitIdle(device.device());

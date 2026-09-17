@@ -21,7 +21,7 @@ namespace xel
 
     void FirstApp::run()
     {
-        SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass()};
+        SimpleRenderSystem simpleRenderSystem{device, renderer.get_swap_chain_render_pass()};
 
         while (!window.should_close())
         {

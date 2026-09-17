@@ -26,7 +26,7 @@ namespace xel
 
         backend::Device& device;
 
-        std::unique_ptr<XelPipeline> pipeline;
+        std::unique_ptr<backend::XelPipeline> pipeline;
         VkPipelineLayout pipelineLayout;
     };
 }

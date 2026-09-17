@@ -1,12 +1,11 @@
 #pragma once
 
-#include "backend/device.hpp"
+#include "device.hpp"
 
-// std
 #include <string>
 #include <vector>
 
-namespace xel
+namespace xel::backend
 {
     struct PipelineConfigInfo
     {
@@ -31,32 +30,32 @@ namespace xel
     {
     public:
         XelPipeline(
-            backend::Device &device,
-            const std::string &vertFilepath,
-            const std::string &fragFilepath,
-            const PipelineConfigInfo &configInfo
+            Device &device,
+            const std::string &vert_filepath,
+            const std::string &frag_filepath,
+            const PipelineConfigInfo &config_info
         );
         ~XelPipeline();
 
         XelPipeline(const XelPipeline &) = delete;
         XelPipeline& operator=(const XelPipeline&) = delete;
 
-        void bind(VkCommandBuffer commandBuffer);
+        void bind(VkCommandBuffer command_buffer);
 
-        static void defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
+        static void defaultPipelineConfigInfo(PipelineConfigInfo& config_info);
 
     private:
         static std::vector<char> readFile(const std::string &filepath);
         void createGraphicsPipeline(
-            const std::string &vertFilepath,
-            const std::string &fragFilepath,
-            const PipelineConfigInfo &configInfo
+            const std::string &vert_filepath,
+            const std::string &frag_filepath,
+            const PipelineConfigInfo &config_info
         );
 
-        void createShaderModule(const std::vector<char> &code, VkShaderModule *shaderModule);
-        backend::Device &xelDevice;
-        VkPipeline graphicsPipeline;
-        VkShaderModule vertShaderModule;
-        VkShaderModule fragShaderModule;
+        void createShaderModule(const std::vector<char> &code, VkShaderModule *shader_module);
+        Device &device_;
+        VkPipeline graphics_pipeline_;
+        VkShaderModule vert_shader_module_;
+        VkShaderModule frag_shader_module_;
     };
 }

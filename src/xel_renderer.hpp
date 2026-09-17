@@ -1,9 +1,8 @@
 #pragma once
 
 #include "backend/device.hpp"
-#include "xel_pipeline.hpp"
-#include "xel_swap_chain.hpp"
 #include "backend/window.hpp"
+#include "xel_swap_chain.hpp"
 
 #include <memory>
 #include <cassert>
@@ -19,8 +18,8 @@ namespace xel
         XelRenderer(const XelRenderer &) = delete;
         XelRenderer &operator=(const XelRenderer&) = delete;
 
-        VkRenderPass getSwapChainRenderPass() const { return swapChain->getRenderPass(); }
-        bool isFrameInProgress() const { return isFrameStarted; }
+        VkRenderPass get_swap_chain_render_pass() const { return swapChain->getRenderPass(); }
+        bool is_frame_in_progress() const { return isFrameStarted; }
 
         VkCommandBuffer getCurrentCommandBuffer() const
         {
