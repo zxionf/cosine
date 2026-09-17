@@ -19,7 +19,7 @@ namespace xel
         alignas(16) glm::vec3 color;
     };
 
-    SimpleRenderSystem::SimpleRenderSystem(XelDevice &device, VkRenderPass renderPass)
+    SimpleRenderSystem::SimpleRenderSystem(backend::Device &device, VkRenderPass renderPass)
     : device{device}
     {
         createPipelineLayout();

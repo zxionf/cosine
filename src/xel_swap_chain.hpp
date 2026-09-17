@@ -1,6 +1,6 @@
 #pragma once
 
-#include "xel_device.hpp"
+#include "backend/device.hpp"
 
 // vulkan headers
 #include <vulkan/vulkan.h>
@@ -16,8 +16,8 @@ class XelSwapChain {
  public:
   static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-  XelSwapChain(XelDevice &deviceRef, VkExtent2D windowExtent);
-  XelSwapChain(XelDevice &deviceRef, VkExtent2D windowExtent, std::shared_ptr<XelSwapChain> previous);
+  XelSwapChain(backend::Device &deviceRef, VkExtent2D windowExtent);
+  XelSwapChain(backend::Device &deviceRef, VkExtent2D windowExtent, std::shared_ptr<XelSwapChain> previous);
   ~XelSwapChain();
 
   XelSwapChain(const XelSwapChain &) = delete;
@@ -73,7 +73,7 @@ class XelSwapChain {
   std::vector<VkImage> swapChainImages;
   std::vector<VkImageView> swapChainImageViews;
 
-  XelDevice &device;
+  backend::Device &device;
   VkExtent2D windowExtent;
 
   VkSwapchainKHR swapChain;

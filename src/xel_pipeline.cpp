@@ -10,7 +10,7 @@
 namespace xel
 {
 
-    XelPipeline::XelPipeline(XelDevice &device,
+    XelPipeline::XelPipeline(backend::Device &device,
             const std::string &vertFilepath,
             const std::string &fragFilepath,
             const PipelineConfigInfo &configInfo) : xelDevice{device}
@@ -47,7 +47,7 @@ namespace xel
         const std::string &vertFilepath,
         const std::string &fragFilepath,
         const PipelineConfigInfo &configInfo)
-    { 
+    {
         assert(
             configInfo.pipelineLayout != VK_NULL_HANDLE &&
             "Cannot create graphics pipeline: no pipelineLayout provided in configInfo");
@@ -133,7 +133,7 @@ namespace xel
     }
 
     void XelPipeline::defaultPipelineConfigInfo(PipelineConfigInfo &configInfo)
-    { 
+    {
         configInfo.inputAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         configInfo.inputAssemblyInfo.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         configInfo.inputAssemblyInfo.primitiveRestartEnable = VK_FALSE;
@@ -196,7 +196,7 @@ namespace xel
         configInfo.depthStencilInfo.front = {};
         configInfo.depthStencilInfo.back = configInfo.depthStencilInfo.front;
 
-        
+
         configInfo.dynamicStateEnables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         configInfo.dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
         configInfo.dynamicStateInfo.pDynamicStates = configInfo.dynamicStateEnables.data();

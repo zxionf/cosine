@@ -1,7 +1,7 @@
 #pragma once
 
-#include "xel_device.hpp"
-#include "xel_window.hpp"
+#include "backend/device.hpp"
+#include "backend/window.hpp"
 #include "xel_game_object.hpp"
 #include "xel_renderer.hpp"
 
@@ -26,8 +26,8 @@ namespace xel
     private:
         void loadGameModels();
 
-        XelWindow window{WIDTH, HEIGHT, "hello vulkan"};
-        XelDevice device{window};
+        backend::Window window{WIDTH, HEIGHT, "hello vulkan"};
+        backend::Device device{window};
         XelRenderer renderer{window, device};
 
         std::vector<XelGameObject> gameObjects;

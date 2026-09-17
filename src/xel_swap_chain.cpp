@@ -11,12 +11,12 @@
 
 namespace xel {
 
-XelSwapChain::XelSwapChain(XelDevice &deviceRef, VkExtent2D extent)
+XelSwapChain::XelSwapChain(backend::Device &deviceRef, VkExtent2D extent)
     : device{deviceRef}, windowExtent{extent} {
   init();
 }
 
-XelSwapChain::XelSwapChain(XelDevice &deviceRef, VkExtent2D extent, std::shared_ptr<XelSwapChain> previous)
+XelSwapChain::XelSwapChain(backend::Device &deviceRef, VkExtent2D extent, std::shared_ptr<XelSwapChain> previous)
     : device{deviceRef}, windowExtent{extent}, oldSwapChain{previous} {
   init();
 
@@ -107,7 +107,7 @@ VkResult XelSwapChain::submitCommandBuffers(
   submitInfo.pSignalSemaphores = signalSemaphores;
 
   vkResetFences(device.device(), 1, &inFlightFences[currentFrame]);
-  if (vkQueueSubmit(device.graphicsQueue(), 1, &submitInfo, inFlightFences[currentFrame]) !=
+  if (vkQueueSubmit(device.graphics_queue(), 1, &submitInfo, inFlightFences[currentFrame]) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to submit draw command buffer!");
   }
@@ -124,7 +124,7 @@ VkResult XelSwapChain::submitCommandBuffers(
 
   presentInfo.pImageIndices = imageIndex;
 
-  auto result = vkQueuePresentKHR(device.presentQueue(), &presentInfo);
+  auto result = vkQueuePresentKHR(device.present_queue(), &presentInfo);
 
   currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 
@@ -132,7 +132,7 @@ VkResult XelSwapChain::submitCommandBuffers(
 }
 
 void XelSwapChain::createSwapChain() {
-  SwapChainSupportDetails swapChainSupport = device.getSwapChainSupport();
+  backend::SwapChainSupportDetails swapChainSupport = device.get_swap_chain_support();
 
   VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
   VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
@@ -155,10 +155,10 @@ void XelSwapChain::createSwapChain() {
   createInfo.imageArrayLayers = 1;
   createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-  QueueFamilyIndices indices = device.findPhysicalQueueFamilies();
-  uint32_t queueFamilyIndices[] = {indices.graphicsFamily, indices.presentFamily};
+  backend::QueueFamilyIndices indices = device.find_physical_queue_families();
+  uint32_t queueFamilyIndices[] = {indices.graphics_family, indices.present_family};
 
-  if (indices.graphicsFamily != indices.presentFamily) {
+  if (indices.graphics_family != indices.present_family) {
     createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
     createInfo.queueFamilyIndexCount = 2;
     createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -322,7 +322,7 @@ void XelSwapChain::createDepthResources() {
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.flags = 0;
 
-    device.createImageWithInfo(
+    device.create_image_with_info(
         imageInfo,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         depthImages[i],
@@ -418,7 +418,7 @@ VkExtent2D XelSwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabi
 }
 
 VkFormat XelSwapChain::findDepthFormat() {
-  return device.findSupportedFormat(
+  return device.find_supported_format(
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
       VK_IMAGE_TILING_OPTIMAL,
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);

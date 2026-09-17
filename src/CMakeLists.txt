@@ -1,10 +1,10 @@
 find_package(Vulkan REQUIRED)
 add_executable(ex0
     main.cpp
-    xel_window.cpp
+    backend/window.cpp
     first_app.cpp
     xel_pipeline.cpp
-    xel_device.cpp
+    backend/device.cpp
     xel_swap_chain.cpp
     xel_model.cpp
     xel_renderer.cpp

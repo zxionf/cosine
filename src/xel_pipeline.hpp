@@ -1,6 +1,6 @@
 #pragma once
 
-#include "xel_device.hpp"
+#include "backend/device.hpp"
 
 // std
 #include <string>
@@ -31,7 +31,7 @@ namespace xel
     {
     public:
         XelPipeline(
-            XelDevice &device,
+            backend::Device &device,
             const std::string &vertFilepath,
             const std::string &fragFilepath,
             const PipelineConfigInfo &configInfo
@@ -54,7 +54,7 @@ namespace xel
         );
 
         void createShaderModule(const std::vector<char> &code, VkShaderModule *shaderModule);
-        XelDevice &xelDevice;
+        backend::Device &xelDevice;
         VkPipeline graphicsPipeline;
         VkShaderModule vertShaderModule;
         VkShaderModule fragShaderModule;

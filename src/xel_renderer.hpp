@@ -1,9 +1,9 @@
 #pragma once
 
-#include "xel_device.hpp"
+#include "backend/device.hpp"
 #include "xel_pipeline.hpp"
 #include "xel_swap_chain.hpp"
-#include "xel_window.hpp"
+#include "backend/window.hpp"
 
 #include <memory>
 #include <cassert>
@@ -13,7 +13,7 @@ namespace xel
     class XelRenderer
     {
     public:
-        XelRenderer(XelWindow &window, XelDevice &device);
+        XelRenderer(backend::Window &window, backend::Device &device);
         ~XelRenderer();
 
         XelRenderer(const XelRenderer &) = delete;
@@ -44,8 +44,8 @@ namespace xel
         void freeCommandBuffers();
         void recreateSwapChain();
 
-        XelWindow& window;
-        XelDevice& device;
+        backend::Window& window;
+        backend::Device& device;
         std::unique_ptr<XelSwapChain> swapChain;
         std::vector<VkCommandBuffer> commandBuffers;
 

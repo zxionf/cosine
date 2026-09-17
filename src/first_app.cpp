@@ -23,7 +23,7 @@ namespace xel
     {
         SimpleRenderSystem simpleRenderSystem{device, renderer.getSwapChainRenderPass()};
 
-        while (!window.shouldClose())
+        while (!window.should_close())
         {
             glfwPollEvents();
 
@@ -40,7 +40,7 @@ namespace xel
     }
 
     void FirstApp::loadGameModels()
-    { 
+    {
         std::vector<XelModel::Vertex> vertices
         {
             {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},

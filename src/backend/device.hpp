@@ -47,8 +47,16 @@ namespace xel::backend
         VkInstance instance() { return instance_; }
         VkDebugUtilsMessengerEXT debug_messenger() { return debug_messenger_; }
 
-
+        SwapChainSupportDetails get_swap_chain_support() { return query_swap_chain_support(physical_device_); }
         QueueFamilyIndices find_physical_queue_families() { return find_queue_families(physical_device_); }
+        uint32_t find_memory_type(uint32_t type_fliter, VkMemoryPropertyFlags properties);
+        VkFormat find_supported_format(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+        void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer, VkDeviceMemory &buffer_memory);
+        VkCommandBuffer begin_single_time_commands();
+        void end_single_time_commands(VkCommandBuffer command_buffer);
+        void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
+        void copy_buffer_to_image(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer_count);
+        void create_image_with_info(const VkImageCreateInfo &image_info, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &image_memory);
 
         VkPhysicalDeviceProperties properties_;
     private:

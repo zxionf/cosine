@@ -6,7 +6,7 @@
 
 namespace xel
 {
-    XelRenderer::XelRenderer(XelWindow& window, XelDevice& device)
+    XelRenderer::XelRenderer(backend::Window& window, backend::Device& device)
     : window{window}, device{device}
     {
         recreateSwapChain();
@@ -19,11 +19,11 @@ namespace xel
     }
 
     void XelRenderer::recreateSwapChain()
-    { 
-        auto extent = window.getExtend();
+    {
+        auto extent = window.get_extent();
         while (extent.width == 0 || extent.height == 0)
         {
-            extent = window.getExtend();
+            extent = window.get_extent();
             glfwWaitEvents();
         }
 
@@ -51,7 +51,7 @@ namespace xel
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = device.getCommandPool();
+        allocInfo.commandPool = device.get_command_pool();
         allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
         if(vkAllocateCommandBuffers(device.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS)
@@ -62,7 +62,7 @@ namespace xel
 
     void XelRenderer::freeCommandBuffers()
     {
-        vkFreeCommandBuffers(device.device(), device.getCommandPool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+        vkFreeCommandBuffers(device.device(), device.get_command_pool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
         commandBuffers.clear();
     }
 
@@ -72,7 +72,7 @@ namespace xel
 
         auto result = swapChain->acquireNextImage(&currentImageIndex);
 
-        if(result == VK_ERROR_OUT_OF_DATE_KHR) 
+        if(result == VK_ERROR_OUT_OF_DATE_KHR)
         {
             recreateSwapChain();
             return nullptr;
@@ -107,9 +107,9 @@ namespace xel
         }
 
         auto result = swapChain->submitCommandBuffers(&commandBuffer, &currentImageIndex);
-        if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.wasWindowResized())
+        if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.was_window_resized())
         {
-            window.resetWindowResizedFlag();
+            window.reset_window_resized_flag();
             recreateSwapChain();
         }
         if(result != VK_SUCCESS)
