@@ -1,7 +1,7 @@
 #pragma once
 
 #include "backend/device.hpp"
-#include "xel_pipeline.hpp"
+#include "backend/xel_pipeline.hpp"
 #include "xel_game_object.hpp"
 
 #include <memory>

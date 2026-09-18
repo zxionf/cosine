@@ -5,7 +5,7 @@ add_executable(ex0
     first_app.cpp
     backend/xel_pipeline.cpp
     backend/device.cpp
-    xel_swap_chain.cpp
+    backend/swap_chain.cpp
     xel_model.cpp
     xel_renderer.cpp
     simple_render_system.cpp
@@ -18,6 +18,6 @@ add_executable(ex1
     backend/device.cpp
     backend/xel_pipeline.cpp
     xel_model.cpp
-    xel_swap_chain.cpp
+    backend/swap_chain.cpp
 )
 target_link_libraries(ex1 PRIVATE glfw Vulkan::Vulkan)

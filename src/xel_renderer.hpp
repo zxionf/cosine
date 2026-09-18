@@ -2,7 +2,7 @@
 
 #include "backend/device.hpp"
 #include "backend/window.hpp"
-#include "xel_swap_chain.hpp"
+#include "backend/swap_chain.hpp"
 
 #include <memory>
 #include <cassert>
@@ -18,7 +18,7 @@ namespace xel
         XelRenderer(const XelRenderer &) = delete;
         XelRenderer &operator=(const XelRenderer&) = delete;
 
-        VkRenderPass get_swap_chain_render_pass() const { return swapChain->getRenderPass(); }
+        VkRenderPass get_swap_chain_render_pass() const { return swapChain->get_render_pass(); }
         bool is_frame_in_progress() const { return isFrameStarted; }
 
         VkCommandBuffer getCurrentCommandBuffer() const
@@ -45,7 +45,7 @@ namespace xel
 
         backend::Window& window;
         backend::Device& device;
-        std::unique_ptr<XelSwapChain> swapChain;
+        std::unique_ptr<backend::SwapChain> swapChain;
         std::vector<VkCommandBuffer> commandBuffers;
 
         uint32_t currentImageIndex;

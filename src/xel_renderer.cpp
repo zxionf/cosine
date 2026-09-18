@@ -31,14 +31,14 @@ namespace xel
 
         if(swapChain == nullptr)
         {
-            swapChain = std::make_unique<XelSwapChain>(device, extent);
+            swapChain = std::make_unique<backend::SwapChain>(device, extent);
         }
         else
         {
-            std::shared_ptr<XelSwapChain> oldSwapChain = std::move(swapChain);
-            swapChain = std::make_unique<XelSwapChain>(device, extent, oldSwapChain);
+            std::shared_ptr<backend::SwapChain> oldSwapChain = std::move(swapChain);
+            swapChain = std::make_unique<backend::SwapChain>(device, extent, oldSwapChain);
 
-            if (!oldSwapChain->compareSwapFormats(*swapChain.get()))
+            if (!oldSwapChain->compare_swap_formats(*swapChain.get()))
             {
                 throw std::runtime_error("swap chain image (or depth) format has changed");
             }
@@ -47,7 +47,7 @@ namespace xel
 
     void XelRenderer::createCommandBuffers()
     {
-        commandBuffers.resize(XelSwapChain::MAX_FRAMES_IN_FLIGHT);
+        commandBuffers.resize(backend::SwapChain::MAX_FRAMES_IN_FLIGHT);
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -70,7 +70,7 @@ namespace xel
     {
         assert(!isFrameStarted && "cannot begin new frame while another frame is in progress");
 
-        auto result = swapChain->acquireNextImage(&currentImageIndex);
+        auto result = swapChain->acquire_next_image(&currentImageIndex);
 
         if(result == VK_ERROR_OUT_OF_DATE_KHR)
         {
@@ -106,7 +106,7 @@ namespace xel
             throw std::runtime_error("failed to record command buffer");
         }
 
-        auto result = swapChain->submitCommandBuffers(&commandBuffer, &currentImageIndex);
+        auto result = swapChain->submit_command_buffers(&commandBuffer, &currentImageIndex);
         if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window.was_window_resized())
         {
             window.reset_window_resized_flag();
@@ -118,7 +118,7 @@ namespace xel
         }
 
         isFrameStarted = false;
-        currentFrameIndex = (currentFrameIndex + 1) % XelSwapChain::MAX_FRAMES_IN_FLIGHT;
+        currentFrameIndex = (currentFrameIndex + 1) % backend::SwapChain::MAX_FRAMES_IN_FLIGHT;
     }
 
     void XelRenderer::beginSwapChainRenderPass(VkCommandBuffer commandBuffer)
@@ -128,11 +128,11 @@ namespace xel
 
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = swapChain->getRenderPass();
-        renderPassInfo.framebuffer = swapChain->getFrameBuffer(currentImageIndex);
+        renderPassInfo.renderPass = swapChain->get_render_pass();
+        renderPassInfo.framebuffer = swapChain->get_framebuffer(currentImageIndex);
 
         renderPassInfo.renderArea.offset = {0, 0};
-        renderPassInfo.renderArea.extent = swapChain->getSwapChainExtent();
+        renderPassInfo.renderArea.extent = swapChain->get_swap_chain_extent();
 
         std::array<VkClearValue, 2> clearValues{};
         clearValues[0].color = {0.01f, 0.01f, 0.01f, 1.0f};
@@ -145,11 +145,11 @@ namespace xel
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = static_cast<float>(swapChain->getSwapChainExtent().width);
-        viewport.height = static_cast<float>(swapChain->getSwapChainExtent().height);
+        viewport.width = static_cast<float>(swapChain->get_swap_chain_extent().width);
+        viewport.height = static_cast<float>(swapChain->get_swap_chain_extent().height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-        VkRect2D scissor{{0, 0}, swapChain->getSwapChainExtent()};
+        VkRect2D scissor{{0, 0}, swapChain->get_swap_chain_extent()};
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
     }
