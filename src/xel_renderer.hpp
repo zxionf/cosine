@@ -3,6 +3,7 @@
 #include "backend/device.hpp"
 #include "backend/window.hpp"
 #include "backend/swap_chain.hpp"
+#include "ui/ui_context.hpp"
 
 #include <memory>
 #include <cassert>
@@ -15,28 +16,7 @@ namespace xel
         XelRenderer(backend::Window &window, backend::Device &device);
         ~XelRenderer();
 
-        XelRenderer(const XelRenderer &) = delete;
-        XelRenderer &operator=(const XelRenderer&) = delete;
-
-        VkRenderPass get_swap_chain_render_pass() const { return swapChain->get_render_pass(); }
-        bool is_frame_in_progress() const { return isFrameStarted; }
-
-        VkCommandBuffer getCurrentCommandBuffer() const
-        {
-            assert(isFrameStarted && "Cannot get command buffer when frame not in progress");
-            return commandBuffers[currentFrameIndex];
-        }
-
-        int getFrameIndex() const
-        {
-            assert(isFrameStarted && "Cannot get frame index when frame not in progress");
-            return currentFrameIndex;
-        }
-
-        VkCommandBuffer beginFrame();
-        void endFrame();
-        void beginSwapChainRenderPass(VkCommandBuffer commandBuffer);
-        void endSwapChainRenderPass(VkCommandBuffer commandBuffer);
+        void run();
 
     private:
         void createCommandBuffers();
@@ -46,6 +26,7 @@ namespace xel
         backend::Window& window;
         backend::Device& device;
         std::unique_ptr<backend::SwapChain> swapChain;
+        std::unique_ptr<ui::UIContext> uiContext;
         std::vector<VkCommandBuffer> commandBuffers;
 
         uint32_t currentImageIndex;

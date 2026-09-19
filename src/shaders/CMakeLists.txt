@@ -3,7 +3,6 @@ file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.frag"
 )
 
-# 输出目录：构建目录下的 src/shaders
 set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/src/shaders")
 file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
 

@@ -30,6 +30,7 @@ namespace xel::backend
         VkExtent2D get_swap_chain_extent() { return swap_chain_extent_; }
         uint32_t width() { return swap_chain_extent_.width; }
         uint32_t height() { return swap_chain_extent_.height; }
+        VkSwapchainKHR get_swap_chain_handle() { return swap_chain_; }
 
         float extent_aspect_ratio() { return static_cast<float>(swap_chain_extent_.width) / static_cast<float>(swap_chain_extent_.height); }
         VkFormat find_depth_format();

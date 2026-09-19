@@ -1,5 +1,6 @@
 #include "first_app.hpp"
 #include "simple_render_system.hpp"
+#include "ui/ui_context.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -21,22 +22,7 @@ namespace xel
 
     void FirstApp::run()
     {
-        SimpleRenderSystem simpleRenderSystem{device, renderer.get_swap_chain_render_pass()};
-
-        while (!window.should_close())
-        {
-            glfwPollEvents();
-
-            if(auto commandBuffer = renderer.beginFrame())
-            {
-                renderer.beginSwapChainRenderPass(commandBuffer);
-                simpleRenderSystem.renderGameObjects(commandBuffer,gameObjects);
-                renderer.endSwapChainRenderPass(commandBuffer);
-                renderer.endFrame();
-            }
-        }
-
-        vkDeviceWaitIdle(device.device());
+        renderer.run();
     }
 
     void FirstApp::loadGameModels()
