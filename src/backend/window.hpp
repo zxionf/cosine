@@ -22,6 +22,7 @@ namespace xel::backend
         VkExtent2D get_extent() { return { static_cast<uint32_t>(width_), static_cast<uint32_t>(height_)}; }
         bool was_window_resized() { return framebuffer_resized_; }
         void reset_window_resized_flag() { framebuffer_resized_ = false; }
+        GLFWwindow* get_glfw_window() { return window_; }
 
         void create_window_surface(VkInstance instance, VkSurfaceKHR *surface);
     private:

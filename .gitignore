@@ -22,3 +22,5 @@ examples/*.exe
 xel-vs-extension/node_modules/
 
 target/
+
+.cache/

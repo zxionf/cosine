@@ -1,6 +1,7 @@
 #include "backend/device.hpp"
 #include "backend/swap_chain.hpp"
 #include "backend/xel_pipeline.hpp"
+#include "xel_model.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -9,6 +10,7 @@
 
 #include <memory>
 #include <array>
+#include <vector>
 
 int main()
 {
@@ -83,6 +85,15 @@ int main()
                                                                           "shaders/simple_shader.frag.spv",
                                                                           pipeline_config_info);
 
+    // shape
+    std::vector<xel::XelModel::Vertex> vertices
+        {
+            {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+            {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+            {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+        };
+    auto model = std::make_shared<xel::XelModel>(device, vertices);
+    
     while (!window.should_close())
     {
         glfwPollEvents();
@@ -133,7 +144,16 @@ int main()
         vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
         // render
+        pipeline->bind(command_buffer);
 
+        SimplePushConstantData push{};
+        push.offset = glm::vec2{0.0f, 0.0f};
+        push.color = glm::vec3{1.0f, 1.0f, 1.0f};
+        push.transform = glm::mat2(1.0f);
+
+        vkCmdPushConstants(command_buffer, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(SimplePushConstantData), &push);
+        model->bind(command_buffer);
+        model->draw(command_buffer);
 
         // end render pass
         vkCmdEndRenderPass(command_buffer);

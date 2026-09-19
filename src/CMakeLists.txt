@@ -20,8 +20,19 @@ add_executable(ex1
     backend/xel_pipeline.cpp
     xel_model.cpp
     backend/swap_chain.cpp
+    ui/renderer.cpp
 )
 target_link_libraries(ex1 PRIVATE glfw Vulkan::Vulkan)
 
+add_executable(ex2
+    ex2.cpp
+    backend/window.cpp
+    backend/device.cpp
+    backend/xel_pipeline.cpp
+    ui/renderer.cpp
+)
+target_link_libraries(ex2 PRIVATE glfw Vulkan::Vulkan)
+
 add_dependencies(ex0 shaders)
 add_dependencies(ex1 shaders)
+add_dependencies(ex2 shaders)

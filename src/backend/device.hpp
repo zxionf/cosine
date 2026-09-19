@@ -41,6 +41,7 @@ namespace xel::backend
 
         VkCommandPool get_command_pool() { return command_pool_; }
         VkDevice device() { return device_; }
+        VkPhysicalDevice physical_device() { return physical_device_; }
         VkSurfaceKHR surface() { return surface_; }
         VkQueue graphics_queue() { return graphics_queue_; }
         VkQueue present_queue() { return present_queue_; }
