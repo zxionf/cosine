@@ -1,3 +1,4 @@
+add_subdirectory(shaders)
 find_package(Vulkan REQUIRED)
 add_executable(ex0
     main.cpp
@@ -21,3 +22,6 @@ add_executable(ex1
     backend/swap_chain.cpp
 )
 target_link_libraries(ex1 PRIVATE glfw Vulkan::Vulkan)
+
+add_dependencies(ex0 shaders)
+add_dependencies(ex1 shaders)
