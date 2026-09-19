@@ -1,11 +1,23 @@
 #include "backend/device.hpp"
 #include "backend/swap_chain.hpp"
+#include "backend/xel_pipeline.hpp"
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
+#include <glm/gtc/constants.hpp>
 
 #include <memory>
 #include <array>
 
 int main()
 {
+    struct SimplePushConstantData
+    {
+        glm::mat2 transform{1.f};
+        glm::vec2 offset;
+        alignas(16) glm::vec3 color;
+    };
     using namespace xel::backend;
     Window window{800, 600, "Xel"};
     Device device{window};
@@ -47,6 +59,29 @@ int main()
         if (vkAllocateCommandBuffers(device.device(), &alloc_info, command_buffers.data()) != VK_SUCCESS)
             throw std::runtime_error("failed to allocate command buffers!");
     };
+
+    // create pipeline layout
+    VkPipelineLayout pipeline_layout;
+    VkPushConstantRange push_constant_range{};
+    push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    push_constant_range.size = sizeof(SimplePushConstantData);
+    VkPipelineLayoutCreateInfo pipeline_layout_info{};
+    pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipeline_layout_info.setLayoutCount = 0;
+    pipeline_layout_info.pushConstantRangeCount = 1;
+    pipeline_layout_info.pSetLayouts = nullptr;
+    pipeline_layout_info.pPushConstantRanges = &push_constant_range;
+    if (vkCreatePipelineLayout(device.device(), &pipeline_layout_info, nullptr, &pipeline_layout) != VK_SUCCESS)
+        throw std::runtime_error("failed to create pipeline layout!");
+
+    // create pipeline
+    PipelineConfigInfo pipeline_config_info{};
+    XelPipeline::defaultPipelineConfigInfo(pipeline_config_info);
+    pipeline_config_info.renderPass = swap_chain->get_render_pass();
+    pipeline_config_info.pipelineLayout = pipeline_layout;
+    std::unique_ptr<XelPipeline> pipeline = std::make_unique<XelPipeline>(device, "shaders/simple_shader.vert.spv",
+                                                                          "shaders/simple_shader.frag.spv",
+                                                                          pipeline_config_info);
 
     while (!window.should_close())
     {
@@ -98,6 +133,7 @@ int main()
         vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
         // render
+
 
         // end render pass
         vkCmdEndRenderPass(command_buffer);
