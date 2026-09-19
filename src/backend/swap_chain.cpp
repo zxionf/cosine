@@ -35,34 +35,39 @@ namespace xel::backend
 
     SwapChain::~SwapChain()
     {
-        for (auto image_view : swap_chain_image_views_)
+        vkDeviceWaitIdle(device_.device());
+        // framebuffer 依赖 image view，先销毁 framebuffer
+        for (auto fb : swap_chain_framebuffers_)
+            vkDestroyFramebuffer(device_.device(), fb, nullptr);
+        // 再销毁 depth image views / images / memory
+        for (auto view : depth_image_views_)
+            vkDestroyImageView(device_.device(), view, nullptr);
+        for (auto img : depth_images_)
+            vkDestroyImage(device_.device(), img, nullptr);
+        for (auto mem : depth_image_memories_)
+            vkFreeMemory(device_.device(), mem, nullptr);
+        // render pass
+        if (render_pass_ != VK_NULL_HANDLE)
         {
-            vkDestroyImageView(device_.device(), image_view, nullptr);
+            vkDestroyRenderPass(device_.device(), render_pass_, nullptr);
+            render_pass_ = VK_NULL_HANDLE;
         }
-        swap_chain_images_.clear();
-        if (swap_chain_ != nullptr)
+        // swapchain image views
+        for (auto view : swap_chain_image_views_)
+            vkDestroyImageView(device_.device(), view, nullptr);
+        // swapchain
+        if (swap_chain_ != VK_NULL_HANDLE)
         {
             vkDestroySwapchainKHR(device_.device(), swap_chain_, nullptr);
-            swap_chain_ = nullptr;
+            swap_chain_ = VK_NULL_HANDLE;
         }
-        for (int i = 0; i < depth_images_.size(); i++)
-        {
-            vkDestroyImageView(device_.device(), depth_image_views_[i], nullptr);
-            vkDestroyImage(device_.device(), depth_images_[i], nullptr);
-            vkFreeMemory(device_.device(), depth_image_memories_[i], nullptr);
-        }
-        for (auto framebuffer : swap_chain_framebuffers_)
-        {
-            vkDestroyFramebuffer(device_.device(), framebuffer, nullptr);
-        }
-        vkDestroyRenderPass(device_.device(), render_pass_, nullptr);
-
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-        {
-            vkDestroySemaphore(device_.device(), render_finished_semaphores_[i], nullptr);
-            vkDestroySemaphore(device_.device(), image_available_semaphores_[i], nullptr);
-            vkDestroyFence(device_.device(), in_flight_fences_[i], nullptr);
-        }
+        // 最后销毁同步对象，遍历整个 vector
+        for (auto sem : image_available_semaphores_)
+            vkDestroySemaphore(device_.device(), sem, nullptr);
+        for (auto sem : render_finished_semaphores_)
+            vkDestroySemaphore(device_.device(), sem, nullptr);
+        for (auto fence : in_flight_fences_)
+            vkDestroyFence(device_.device(), fence, nullptr);
     }
 
     VkResult SwapChain::acquire_next_image(uint32_t *image_index)
@@ -89,7 +94,7 @@ namespace xel::backend
         submit_info.pWaitDstStageMask = wait_stages;
         submit_info.commandBufferCount = 1;
         submit_info.pCommandBuffers = buffers;
-        VkSemaphore signal_semaphores[] = {render_finished_semaphores_[current_frame_]};
+        VkSemaphore signal_semaphores[] = {render_finished_semaphores_[*image_index]};
         submit_info.signalSemaphoreCount = 1;
         submit_info.pSignalSemaphores = signal_semaphores;
         vkResetFences(device_.device(), 1, &in_flight_fences_[current_frame_]);
@@ -326,7 +331,7 @@ namespace xel::backend
     void SwapChain::create_sync_objects()
     {
         image_available_semaphores_.resize(MAX_FRAMES_IN_FLIGHT);
-        render_finished_semaphores_.resize(MAX_FRAMES_IN_FLIGHT);
+        render_finished_semaphores_.resize(image_count());
         in_flight_fences_.resize(MAX_FRAMES_IN_FLIGHT);
         images_in_flight_.resize(image_count(), VK_NULL_HANDLE);
 
@@ -337,14 +342,20 @@ namespace xel::backend
         fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
+        // 按 frame 数量创建
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            if (vkCreateSemaphore(device_.device(), &semaphore_info, nullptr, &image_available_semaphores_[i]) != VK_SUCCESS ||
-                vkCreateSemaphore(device_.device(), &semaphore_info, nullptr, &render_finished_semaphores_[i]) != VK_SUCCESS ||
-                vkCreateFence(device_.device(), &fence_info, nullptr, &in_flight_fences_[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create synchronization objects for a frame!");
-            }
+            if (vkCreateSemaphore(device_.device(), &semaphore_info, nullptr, &image_available_semaphores_[i]) != VK_SUCCESS)
+                throw std::runtime_error("failed to create image available semaphore!");
+            if (vkCreateFence(device_.device(), &fence_info, nullptr, &in_flight_fences_[i]) != VK_SUCCESS)
+                throw std::runtime_error("failed to create fence!");
+        }
+
+        // 按 image 数量创建
+        for (size_t i = 0; i < render_finished_semaphores_.size(); i++)
+        {
+            if (vkCreateSemaphore(device_.device(), &semaphore_info, nullptr, &render_finished_semaphores_[i]) != VK_SUCCESS)
+                throw std::runtime_error("failed to create render finished semaphore!");
         }
     }
 
