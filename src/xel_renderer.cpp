@@ -111,6 +111,9 @@ namespace xel
         {
             window.reset_window_resized_flag();
             recreateSwapChain();
+            isFrameStarted = false;
+            currentFrameIndex = (currentFrameIndex + 1) % backend::SwapChain::MAX_FRAMES_IN_FLIGHT;
+            return;
         }
         if(result != VK_SUCCESS)
         {

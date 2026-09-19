@@ -116,7 +116,7 @@ int main()
         render_pass_info.renderArea.offset = {0, 0};
         render_pass_info.renderArea.extent = swap_chain->get_swap_chain_extent();
         std::array<VkClearValue, 2> clear_values{};
-        clear_values[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
+        clear_values[0].color = {0.0f, 0.0f, 0.0f, 0.0f};
         clear_values[1].depthStencil = {1.0f, 0};
         render_pass_info.clearValueCount = static_cast<uint32_t>(clear_values.size());
         render_pass_info.pClearValues = clear_values.data();
@@ -147,6 +147,7 @@ int main()
             window.reset_window_resized_flag();
             std::shared_ptr<SwapChain> old_swap_chain = std::move(swap_chain);
             swap_chain = std::make_unique<SwapChain>(device, window.get_extent(), old_swap_chain);
+            continue;
         }
         if (result2 != VK_SUCCESS)
             throw std::runtime_error("failed to present swap chain image!");
