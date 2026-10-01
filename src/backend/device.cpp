@@ -48,6 +48,7 @@ namespace xel::backend
 
     Device::Device(Window &window) : window_{window}
     {
+        if (enable_validation_layers) std::cout << "Enabling validation layers" << std::endl;
         create_instance();
         setup_debug_messenger();
         create_surface();
