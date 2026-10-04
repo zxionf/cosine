@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace xel::backend
+namespace xel::backend::vulkan
 {
     class Window
     {

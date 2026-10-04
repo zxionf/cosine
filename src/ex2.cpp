@@ -1,26 +1,21 @@
-#include "backend/vulkan_context.hpp"
-#include "backend/render_pass.hpp"
-#include "backend/swap_chain.hpp"
-#include "backend/ui_renderer.hpp"
+#include "backend/vulkan/vulkan_context.hpp"
+#include "backend/vulkan/swap_chain.hpp"
+#include "backend/vulkan/ui_renderer.hpp"
+
+
 
 int main()
 {
-    using namespace xel::backend;
+    using namespace xel::backend::vulkan;
     Window window{800, 600, "xel"};
     VulkanContext ctx{window};
-
-    RenderPass renderpass{ctx, SwapChain::query_swapchain_format(ctx)};
-
-    SwapChain* swapchain = new SwapChain{ctx, window.get_extent(), renderpass.handle()};
-
-    UIRenderer renderer{ctx, swapchain, renderpass};
+    SwapChain swap_chain{ctx, window};
+    UIRenderer renderer{ctx, swap_chain};
 
     while (!window.should_close())
     {
         glfwPollEvents();
         renderer.draw_frame();
     }
-
-    vkDeviceWaitIdle(ctx.device());
-
+    ctx.device().waitIdle();
 }

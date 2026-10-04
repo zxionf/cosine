@@ -25,11 +25,10 @@ target_link_libraries(ex1 PRIVATE glfw Vulkan::Vulkan)
 
 add_executable(ex2
     ex2.cpp
-    backend/window.cpp
-    backend/vulkan_context.cpp
-    backend/swap_chain.cpp
-    backend/ui_renderer.cpp
-    backend/render_pass.cpp
+    backend/vulkan/window.cpp
+    backend/vulkan/vulkan_context.cpp
+    backend/vulkan/swap_chain.cpp
+    backend/vulkan/ui_renderer.cpp
 )
 target_link_libraries(ex2 PRIVATE glfw Vulkan::Vulkan)
 

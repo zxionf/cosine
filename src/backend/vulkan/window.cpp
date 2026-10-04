@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-namespace xel::backend
+namespace xel::backend::vulkan
 {
     Window::Window(int width, int height, std::string name) : width_{width}, height_{height}, window_name_{name}
     {
@@ -19,21 +19,13 @@ namespace xel::backend
     {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         window_ = glfwCreateWindow(width_, height_, window_name_.c_str(), nullptr, nullptr);
         glfwSetWindowUserPointer(window_, this);
         glfwSetFramebufferSizeCallback(window_, framebuffer_resize_callback);
 
         GLFWcursor* cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
         glfwSetCursor(window_, cursor);
-    }
-
-    void Window::create_window_surface(VkInstance instance, VkSurfaceKHR *surface)
-    {
-        if (glfwCreateWindowSurface(instance, window_, nullptr, surface) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create window surface!");
-        }
     }
 
     void Window::framebuffer_resize_callback(GLFWwindow *glfwWindow, int width, int height)
