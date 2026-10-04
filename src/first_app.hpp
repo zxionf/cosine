@@ -1,6 +1,6 @@
 #pragma once
 
-#include "backend/device.hpp"
+#include "backend/vulkan_context.hpp"
 #include "backend/window.hpp"
 #include "xel_game_object.hpp"
 #include "xel_renderer.hpp"
@@ -27,11 +27,11 @@ namespace xel
         void loadGameModels();
 
         backend::Window window{WIDTH, HEIGHT, "hello vulkan"};
-        backend::Device device{window};
-        XelRenderer renderer{window, device};
+        backend::VulkanContext vkctx{window};
+        XelRenderer renderer{window, vkctx};
 
         std::vector<XelGameObject> gameObjects;
-        // XelPipeline pipeline{device,
+        // XelPipeline pipeline{vkctx,
         //     "shaders/simple_shader.vert.spv",
         //     "shaders/simple_shader.frag.spv",
         //     XelPipeline::defaultPipelineConfigInfo(WIDTH, HEIGHT)

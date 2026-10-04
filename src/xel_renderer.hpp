@@ -1,6 +1,6 @@
 #pragma once
 
-#include "backend/device.hpp"
+#include "backend/vulkan_context.hpp"
 #include "backend/window.hpp"
 #include "backend/swap_chain.hpp"
 
@@ -12,7 +12,7 @@ namespace xel
     class XelRenderer
     {
     public:
-        XelRenderer(backend::Window &window, backend::Device &device);
+        XelRenderer(backend::Window &window, backend::VulkanContext &context);
         ~XelRenderer();
 
         XelRenderer(const XelRenderer &) = delete;
@@ -44,7 +44,7 @@ namespace xel
         void recreateSwapChain();
 
         backend::Window& window;
-        backend::Device& device;
+        backend::VulkanContext& context;
         std::unique_ptr<backend::SwapChain> swapChain;
         std::vector<VkCommandBuffer> commandBuffers;
 

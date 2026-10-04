@@ -6,8 +6,8 @@
 
 namespace xel
 {
-    XelRenderer::XelRenderer(backend::Window& window, backend::Device& device)
-    : window{window}, device{device}
+    XelRenderer::XelRenderer(backend::Window& window, backend::VulkanContext& context)
+    : window{window}, context{context}
     {
         recreateSwapChain();
         createCommandBuffers();
@@ -27,16 +27,16 @@ namespace xel
             glfwWaitEvents();
         }
 
-        vkDeviceWaitIdle(device.device());
+        vkDeviceWaitIdle(context.device());
 
         if(swapChain == nullptr)
         {
-            swapChain = std::make_unique<backend::SwapChain>(device, extent);
+            swapChain = std::make_unique<backend::SwapChain>(context, extent);
         }
         else
         {
             std::shared_ptr<backend::SwapChain> oldSwapChain = std::move(swapChain);
-            swapChain = std::make_unique<backend::SwapChain>(device, extent, oldSwapChain);
+            swapChain = std::make_unique<backend::SwapChain>(context, extent, oldSwapChain);
 
             if (!oldSwapChain->compare_swap_formats(*swapChain.get()))
             {
@@ -51,10 +51,10 @@ namespace xel
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandPool = device.get_command_pool();
+        allocInfo.commandPool = context.command_pool();
         allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-        if(vkAllocateCommandBuffers(device.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS)
+        if(vkAllocateCommandBuffers(context.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to allocate command buffers");
         }
@@ -62,7 +62,7 @@ namespace xel
 
     void XelRenderer::freeCommandBuffers()
     {
-        vkFreeCommandBuffers(device.device(), device.get_command_pool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+        vkFreeCommandBuffers(context.device(), context.command_pool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
         commandBuffers.clear();
     }
 

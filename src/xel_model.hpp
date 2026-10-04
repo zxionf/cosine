@@ -1,6 +1,6 @@
 #pragma once
 
-#include "backend/device.hpp"
+#include "backend/vulkan_context.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -23,10 +23,10 @@ namespace xel
                 static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
             };
 
-            XelModel(backend::Device& xelDevice, const std::vector<Vertex> &vertices);
+            XelModel(backend::VulkanContext& xelDevice, const std::vector<Vertex> &vertices);
             ~XelModel();
 
-            XelModel(const backend::Device&) = delete;
+            XelModel(const backend::VulkanContext&) = delete;
             XelModel &operator=(const XelModel&) = delete;
 
             void bind(VkCommandBuffer commandBuffer);
@@ -34,7 +34,7 @@ namespace xel
         private:
             void createVertexBuffers(const std::vector<Vertex> &vertices);
 
-            backend::Device& xelDevice;
+            backend::VulkanContext& xelDevice;
             VkBuffer vertexBuffer;
             VkDeviceMemory vertexBufferMemory;
             uint32_t vertexCount;

@@ -10,14 +10,14 @@
 
 namespace xel::backend
 {
-    SwapChain::SwapChain(Device &device, VkExtent2D window_extent)
-    : device_{device}, window_extent_{window_extent}
+    SwapChain::SwapChain(VulkanContext& context, VkExtent2D window_extent, VkRenderPass render_pass)
+    : context_{context}, window_extent_{window_extent}, render_pass_{render_pass}
     {
         init();
     }
 
-    SwapChain::SwapChain(Device &device, VkExtent2D window_extent, std::shared_ptr<SwapChain> previous)
-    : device_{device}, window_extent_{window_extent}, old_swap_chain_{previous}
+    SwapChain::SwapChain(VulkanContext &context, VkExtent2D window_extent, std::shared_ptr<SwapChain> previous)
+    : context_{context}, window_extent_{window_extent}, old_swap_chain_{previous}
     {
         init();
         old_swap_chain_ = nullptr;
@@ -27,53 +27,53 @@ namespace xel::backend
     {
         create_swap_chain();
         create_image_views();
-        create_render_pass();
-        create_depth_resources();
+        // create_render_pass();
+        // create_depth_resources();
         create_framebuffers();
         create_sync_objects();
     }
 
     SwapChain::~SwapChain()
     {
-        vkDeviceWaitIdle(device_.device());
+        vkDeviceWaitIdle(context_.device());
         // framebuffer 依赖 image view，先销毁 framebuffer
         for (auto fb : swap_chain_framebuffers_)
-            vkDestroyFramebuffer(device_.device(), fb, nullptr);
+            vkDestroyFramebuffer(context_.device(), fb, nullptr);
         // 再销毁 depth image views / images / memory
         for (auto view : depth_image_views_)
-            vkDestroyImageView(device_.device(), view, nullptr);
+            vkDestroyImageView(context_.device(), view, nullptr);
         for (auto img : depth_images_)
-            vkDestroyImage(device_.device(), img, nullptr);
+            vkDestroyImage(context_.device(), img, nullptr);
         for (auto mem : depth_image_memories_)
-            vkFreeMemory(device_.device(), mem, nullptr);
+            vkFreeMemory(context_.device(), mem, nullptr);
         // render pass
-        if (render_pass_ != VK_NULL_HANDLE)
-        {
-            vkDestroyRenderPass(device_.device(), render_pass_, nullptr);
-            render_pass_ = VK_NULL_HANDLE;
-        }
+        // if (render_pass_ != VK_NULL_HANDLE)
+        // {
+        //     vkDestroyRenderPass(context_.device(), render_pass_, nullptr);
+        //     render_pass_ = VK_NULL_HANDLE;
+        // }
         // swapchain image views
         for (auto view : swap_chain_image_views_)
-            vkDestroyImageView(device_.device(), view, nullptr);
+            vkDestroyImageView(context_.device(), view, nullptr);
         // swapchain
         if (swap_chain_ != VK_NULL_HANDLE)
         {
-            vkDestroySwapchainKHR(device_.device(), swap_chain_, nullptr);
+            vkDestroySwapchainKHR(context_.device(), swap_chain_, nullptr);
             swap_chain_ = VK_NULL_HANDLE;
         }
         // 最后销毁同步对象，遍历整个 vector
         for (auto sem : image_available_semaphores_)
-            vkDestroySemaphore(device_.device(), sem, nullptr);
+            vkDestroySemaphore(context_.device(), sem, nullptr);
         for (auto sem : render_finished_semaphores_)
-            vkDestroySemaphore(device_.device(), sem, nullptr);
+            vkDestroySemaphore(context_.device(), sem, nullptr);
         for (auto fence : in_flight_fences_)
-            vkDestroyFence(device_.device(), fence, nullptr);
+            vkDestroyFence(context_.device(), fence, nullptr);
     }
 
     VkResult SwapChain::acquire_next_image(uint32_t *image_index)
     {
-        vkWaitForFences(device_.device(), 1, &in_flight_fences_[current_frame_], VK_TRUE, std::numeric_limits<uint64_t>::max());
-        VkResult result = vkAcquireNextImageKHR(device_.device(), swap_chain_, std::numeric_limits<uint64_t>::max(), image_available_semaphores_[current_frame_], VK_NULL_HANDLE, image_index);
+        vkWaitForFences(context_.device(), 1, &in_flight_fences_[current_frame_], VK_TRUE, std::numeric_limits<uint64_t>::max());
+        VkResult result = vkAcquireNextImageKHR(context_.device(), swap_chain_, std::numeric_limits<uint64_t>::max(), image_available_semaphores_[current_frame_], VK_NULL_HANDLE, image_index);
         return result;
     }
 
@@ -81,7 +81,7 @@ namespace xel::backend
     {
         if (images_in_flight_[*image_index] != VK_NULL_HANDLE)
         {
-            vkWaitForFences(device_.device(), 1, &images_in_flight_[*image_index], VK_TRUE, std::numeric_limits<uint64_t>::max());
+            vkWaitForFences(context_.device(), 1, &images_in_flight_[*image_index], VK_TRUE, std::numeric_limits<uint64_t>::max());
         }
         images_in_flight_[*image_index] = in_flight_fences_[current_frame_];
 
@@ -97,8 +97,8 @@ namespace xel::backend
         VkSemaphore signal_semaphores[] = {render_finished_semaphores_[*image_index]};
         submit_info.signalSemaphoreCount = 1;
         submit_info.pSignalSemaphores = signal_semaphores;
-        vkResetFences(device_.device(), 1, &in_flight_fences_[current_frame_]);
-        if (vkQueueSubmit(device_.graphics_queue(), 1, &submit_info, in_flight_fences_[current_frame_]) != VK_SUCCESS)
+        vkResetFences(context_.device(), 1, &in_flight_fences_[current_frame_]);
+        if (vkQueueSubmit(context_.graphics_queue(), 1, &submit_info, in_flight_fences_[current_frame_]) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to submit draw command buffer!");
         }
@@ -110,7 +110,7 @@ namespace xel::backend
         present_info.swapchainCount = 1;
         present_info.pSwapchains = swap_chains;
         present_info.pImageIndices = image_index;
-        auto result = vkQueuePresentKHR(device_.present_queue(), &present_info);
+        auto result = vkQueuePresentKHR(context_.present_queue(), &present_info);
         current_frame_ = (current_frame_ + 1) % MAX_FRAMES_IN_FLIGHT;
 
         return result;
@@ -118,20 +118,19 @@ namespace xel::backend
 
     void SwapChain::create_swap_chain()
     {
-        SwapChainSupportDetails swap_chain_support = device_.get_swap_chain_support();
+        SwapChainSupportDetails swap_chain_support = context_.get_swap_chain_support();
         VkSurfaceFormatKHR surface_format = choose_swap_surface_format(swap_chain_support.formats);
-        VkPresentModeKHR present_mode = choose_swap_present_mode(swap_chain_support.presentModes);
+        VkPresentModeKHR present_mode = choose_swap_present_mode(swap_chain_support.present_modes);
         VkExtent2D extent = choose_swap_extent(swap_chain_support.capabilities);
 
         uint32_t image_count = swap_chain_support.capabilities.minImageCount + 1;
-        if (swap_chain_support.capabilities.maxImageCount > 0 && image_count > swap_chain_support.capabilities.maxImageCount)
-        {
+        if (swap_chain_support.capabilities.maxImageCount > 0 && image_count > swap_chain_support.capabilities.maxImageCount) {
             image_count = swap_chain_support.capabilities.maxImageCount;
         }
 
         VkSwapchainCreateInfoKHR create_info = {};
         create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        create_info.surface = device_.surface();
+        create_info.surface = context_.surface();
         create_info.minImageCount = image_count;
         create_info.imageFormat = surface_format.format;
         create_info.imageColorSpace = surface_format.colorSpace;
@@ -139,17 +138,15 @@ namespace xel::backend
         create_info.imageArrayLayers = 1;
         create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = device_.find_physical_queue_families();
-        uint32_t queue_family_indices[] = {indices.graphics_family, indices.present_family};
+        QueueFamilyIndices indices = context_.find_physical_queue_families();
+        uint32_t queue_family_indices[] = {indices.graphics_family.value(), indices.present_family.value()};
 
-        if (indices.graphics_family != indices.present_family)
-        {
+        if (indices.graphics_family != indices.present_family) {
             create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             create_info.queueFamilyIndexCount = 2;
             create_info.pQueueFamilyIndices = queue_family_indices;
         }
-        else
-        {
+        else {
             create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
             create_info.queueFamilyIndexCount = 0; // optional
             create_info.pQueueFamilyIndices = nullptr; // optional
@@ -162,15 +159,13 @@ namespace xel::backend
         create_info.clipped = VK_TRUE;
         create_info.oldSwapchain = old_swap_chain_ == nullptr ? VK_NULL_HANDLE : old_swap_chain_->swap_chain_;
 
-        if (vkCreateSwapchainKHR(device_.device(), &create_info, nullptr, &swap_chain_) != VK_SUCCESS)
-        {
+        if (vkCreateSwapchainKHR(context_.device(), &create_info, nullptr, &swap_chain_) != VK_SUCCESS) {
             throw std::runtime_error("failed to create swap chain!");
         }
 
-
-        vkGetSwapchainImagesKHR(device_.device(), swap_chain_, &image_count, nullptr);
+        vkGetSwapchainImagesKHR(context_.device(), swap_chain_, &image_count, nullptr);
         swap_chain_images_.resize(image_count);
-        vkGetSwapchainImagesKHR(device_.device(), swap_chain_, &image_count, swap_chain_images_.data());
+        vkGetSwapchainImagesKHR(context_.device(), swap_chain_, &image_count, swap_chain_images_.data());
 
         swap_chain_image_format_ = surface_format.format;
         swap_chain_extent_ = extent;
@@ -186,147 +181,153 @@ namespace xel::backend
             create_info.image = swap_chain_images_[i];
             create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
             create_info.format = swap_chain_image_format_;
+            create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+            create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+            create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+            create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
             create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             create_info.subresourceRange.baseMipLevel = 0;
             create_info.subresourceRange.levelCount = 1;
             create_info.subresourceRange.baseArrayLayer = 0;
             create_info.subresourceRange.layerCount = 1;
-            if (vkCreateImageView(device_.device(), &create_info, nullptr, &swap_chain_image_views_[i]) != VK_SUCCESS)
+            if (vkCreateImageView(context_.device(), &create_info, nullptr, &swap_chain_image_views_[i]) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to create image views!");
             }
         }
     }
 
-    void SwapChain::create_render_pass()
-    {
-        VkAttachmentDescription depth_attachment = {};
-        depth_attachment.format = find_depth_format();
-        depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    // void SwapChain::create_render_pass()
+    // {
+    //     VkAttachmentDescription depth_attachment = {};
+    //     depth_attachment.format = find_depth_format();
+    //     depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    //     depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    //     depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    //     depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    //     depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    //     depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    //     depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference depth_attachment_ref{};
-        depth_attachment_ref.attachment = 1;
-        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    //     VkAttachmentReference depth_attachment_ref{};
+    //     depth_attachment_ref.attachment = 1;
+    //     depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentDescription color_attachment = {};
-        color_attachment.format = get_swap_chain_image_format();
-        color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    //     VkAttachmentDescription color_attachment = {};
+    //     color_attachment.format = get_swap_chain_image_format();
+    //     color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    //     color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    //     color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    //     color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    //     color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    //     color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    //     color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-        VkAttachmentReference colorAttachmentRef = {};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    //     VkAttachmentReference colorAttachmentRef = {};
+    //     colorAttachmentRef.attachment = 0;
+    //     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkSubpassDescription subpass = {};
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-        subpass.pDepthStencilAttachment = &depth_attachment_ref;
+    //     VkSubpassDescription subpass = {};
+    //     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    //     subpass.colorAttachmentCount = 1;
+    //     subpass.pColorAttachments = &colorAttachmentRef;
+    //     subpass.pDepthStencilAttachment = &depth_attachment_ref;
 
-        VkSubpassDependency dependency = {};
-        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependency.srcAccessMask = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstSubpass = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    //     VkSubpassDependency dependency = {};
+    //     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    //     dependency.srcAccessMask = 0;
+    //     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    //     dependency.dstSubpass = 0;
+    //     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    //     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-        std::array<VkAttachmentDescription, 2> attachments = {color_attachment, depth_attachment};
-        VkRenderPassCreateInfo render_pass_info = {};
-        render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        render_pass_info.attachmentCount = static_cast<uint32_t>(attachments.size());
-        render_pass_info.pAttachments = attachments.data();
-        render_pass_info.subpassCount = 1;
-        render_pass_info.pSubpasses = &subpass;
-        render_pass_info.dependencyCount = 1;
-        render_pass_info.pDependencies = &dependency;
+    //     std::array<VkAttachmentDescription, 2> attachments = {color_attachment, depth_attachment};
+    //     VkRenderPassCreateInfo render_pass_info = {};
+    //     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    //     render_pass_info.attachmentCount = static_cast<uint32_t>(attachments.size());
+    //     render_pass_info.pAttachments = attachments.data();
+    //     render_pass_info.subpassCount = 1;
+    //     render_pass_info.pSubpasses = &subpass;
+    //     render_pass_info.dependencyCount = 1;
+    //     render_pass_info.pDependencies = &dependency;
 
-        if (vkCreateRenderPass(device_.device(), &render_pass_info, nullptr, &render_pass_) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create render pass!");
-        }
-    }
+    //     if (vkCreateRenderPass(context_.device(), &render_pass_info, nullptr, &render_pass_) != VK_SUCCESS) {
+    //         throw std::runtime_error("failed to create render pass!");
+    //     }
+    // }
 
     void SwapChain::create_framebuffers()
     {
         swap_chain_framebuffers_.resize(image_count());
         for (size_t i = 0; i < image_count(); i++)
         {
-            std::array<VkImageView, 2> attachments = {swap_chain_image_views_[i], depth_image_views_[i]};
+            VkImageView attachments[] = {swap_chain_image_views_[i]/*, depth_image_views_[i]*/};
 
             VkExtent2D swap_chain_extent = get_swap_chain_extent();
             VkFramebufferCreateInfo framebuffer_info = {};
             framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             framebuffer_info.renderPass = render_pass_;
-            framebuffer_info.attachmentCount = static_cast<uint32_t>(attachments.size());
-            framebuffer_info.pAttachments = attachments.data();
+            // framebuffer_info.attachmentCount = static_cast<uint32_t>(attachments.size());
+            // framebuffer_info.pAttachments = attachments.data();
+            framebuffer_info.attachmentCount = 1;
+            framebuffer_info.pAttachments = attachments;
             framebuffer_info.width = swap_chain_extent.width;
             framebuffer_info.height = swap_chain_extent.height;
             framebuffer_info.layers = 1;
-            if (vkCreateFramebuffer(device_.device(), &framebuffer_info, nullptr, &swap_chain_framebuffers_[i]) != VK_SUCCESS)
+            if (vkCreateFramebuffer(context_.device(), &framebuffer_info, nullptr, &swap_chain_framebuffers_[i]) != VK_SUCCESS)
             {
                 throw std::runtime_error("failed to create framebuffer!");
             }
         }
     }
 
-    void SwapChain::create_depth_resources()
-    {
-        VkFormat depth_format = find_depth_format();
-        swap_chain_depth_format_ = depth_format;
-        VkExtent2D swap_chain_extent = get_swap_chain_extent();
+    // void SwapChain::create_depth_resources()
+    // {
+    //     VkFormat depth_format = find_depth_format();
+    //     swap_chain_depth_format_ = depth_format;
+    //     VkExtent2D swap_chain_extent = get_swap_chain_extent();
 
-        depth_images_.resize(image_count());
-        depth_image_memories_.resize(image_count());
-        depth_image_views_.resize(image_count());
+    //     depth_images_.resize(image_count());
+    //     depth_image_memories_.resize(image_count());
+    //     depth_image_views_.resize(image_count());
 
-        for (int i = 0; i < depth_images_.size(); i++)
-        {
-            VkImageCreateInfo image_info{};
-            image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-            image_info.imageType = VK_IMAGE_TYPE_2D;
-            image_info.extent.width = swap_chain_extent.width;
-            image_info.extent.height = swap_chain_extent.height;
-            image_info.extent.depth = 1;
-            image_info.mipLevels = 1;
-            image_info.arrayLayers = 1;
-            image_info.format = depth_format;
-            image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-            image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-            image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-            image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            image_info.flags = 0;
+    //     for (int i = 0; i < depth_images_.size(); i++)
+    //     {
+    //         VkImageCreateInfo image_info{};
+    //         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    //         image_info.imageType = VK_IMAGE_TYPE_2D;
+    //         image_info.extent.width = swap_chain_extent.width;
+    //         image_info.extent.height = swap_chain_extent.height;
+    //         image_info.extent.depth = 1;
+    //         image_info.mipLevels = 1;
+    //         image_info.arrayLayers = 1;
+    //         image_info.format = depth_format;
+    //         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    //         image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    //         image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    //         image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    //         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    //         image_info.flags = 0;
 
-            device_.create_image_with_info(image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depth_images_[i], depth_image_memories_[i]);
+    //         create_image_with_info(image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depth_images_[i], depth_image_memories_[i]);
 
-            VkImageViewCreateInfo view_info{};
-            view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            view_info.image = depth_images_[i];
-            view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            view_info.format = depth_format;
-            view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            view_info.subresourceRange.baseMipLevel = 0;
-            view_info.subresourceRange.levelCount = 1;
-            view_info.subresourceRange.baseArrayLayer = 0;
-            view_info.subresourceRange.layerCount = 1;
+    //         VkImageViewCreateInfo view_info{};
+    //         view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    //         view_info.image = depth_images_[i];
+    //         view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    //         view_info.format = depth_format;
+    //         view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    //         view_info.subresourceRange.baseMipLevel = 0;
+    //         view_info.subresourceRange.levelCount = 1;
+    //         view_info.subresourceRange.baseArrayLayer = 0;
+    //         view_info.subresourceRange.layerCount = 1;
 
-            if (vkCreateImageView(device_.device(), &view_info, nullptr, &depth_image_views_[i]) != VK_SUCCESS)
-            {
-                throw std::runtime_error("failed to create texture image view!");
-            }
-        }
-    }
+    //         if (vkCreateImageView(context_.device(), &view_info, nullptr, &depth_image_views_[i]) != VK_SUCCESS)
+    //         {
+    //             throw std::runtime_error("failed to create texture image view!");
+    //         }
+    //     }
+    // }
 
     void SwapChain::create_sync_objects()
     {
@@ -345,76 +346,70 @@ namespace xel::backend
         // 按 frame 数量创建
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
         {
-            if (vkCreateSemaphore(device_.device(), &semaphore_info, nullptr, &image_available_semaphores_[i]) != VK_SUCCESS)
+            if (vkCreateSemaphore(context_.device(), &semaphore_info, nullptr, &image_available_semaphores_[i]) != VK_SUCCESS)
                 throw std::runtime_error("failed to create image available semaphore!");
-            if (vkCreateFence(device_.device(), &fence_info, nullptr, &in_flight_fences_[i]) != VK_SUCCESS)
+            if (vkCreateFence(context_.device(), &fence_info, nullptr, &in_flight_fences_[i]) != VK_SUCCESS)
                 throw std::runtime_error("failed to create fence!");
         }
 
         // 按 image 数量创建
         for (size_t i = 0; i < render_finished_semaphores_.size(); i++)
         {
-            if (vkCreateSemaphore(device_.device(), &semaphore_info, nullptr, &render_finished_semaphores_[i]) != VK_SUCCESS)
+            if (vkCreateSemaphore(context_.device(), &semaphore_info, nullptr, &render_finished_semaphores_[i]) != VK_SUCCESS)
                 throw std::runtime_error("failed to create render finished semaphore!");
         }
     }
 
-    VkSurfaceFormatKHR SwapChain::choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR> &available_formats_)
-    {
-        for (const auto &format : available_formats_)
-        {
-            if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-            {
+    VkSurfaceFormatKHR SwapChain::choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR> &available_formats) {
+        for (const auto &format : available_formats) {
+            if (format.format == VK_FORMAT_B8G8R8A8_UNORM && format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
                 return format;
             }
         }
-        return available_formats_[0];
+        return available_formats[0];
     }
 
-    VkPresentModeKHR SwapChain::choose_swap_present_mode(const std::vector<VkPresentModeKHR> &available_modes_)
-    {
-        // for (const auto &mode : available_modes_)
-        // {
-        //     if (mode == VK_PRESENT_MODE_MAILBOX_KHR)
-        //     {
-        //         std::cout << "Present mode: Mailbox" << std::endl;
-        //         return mode;
-        //     }
-        // }
-
-        for (const auto &mode : available_modes_)
-        {
-            if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
-            {
-                std::cout << "Present mode: Immediate" << std::endl;
+    VkPresentModeKHR SwapChain::choose_swap_present_mode(const std::vector<VkPresentModeKHR> &available_modes) {
+        for (const auto &mode : available_modes) {
+            if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                std::cout << "present mode: Mailbox" << std::endl;
                 return mode;
             }
         }
-        std::cout << "Present mode: V-Sync" << std::endl;
+        for (const auto &mode : available_modes) {
+            if (mode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                std::cout << "present mode: Immediate" << std::endl;
+                return mode;
+            }
+        }
+        std::cout << "present mode: V-Sync" << std::endl;
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    VkExtent2D SwapChain::choose_swap_extent(const VkSurfaceCapabilitiesKHR &capabilities_)
+    VkExtent2D SwapChain::choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities)
     {
-        if (capabilities_.currentExtent.width != std::numeric_limits<uint32_t>::max())
-        {
-            return capabilities_.currentExtent;
+        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+            return capabilities.currentExtent;
         }
-        else
-        {
+        else {
             VkExtent2D actual_extent = window_extent_;
-            actual_extent.width = std::max(capabilities_.minImageExtent.width, std::min(capabilities_.maxImageExtent.width, actual_extent.width));
-            actual_extent.height = std::max(capabilities_.minImageExtent.height, std::min(capabilities_.maxImageExtent.height, actual_extent.height));
+            actual_extent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actual_extent.width));
+            actual_extent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actual_extent.height));
 
             return actual_extent;
         }
     }
 
-    VkFormat SwapChain::find_depth_format()
-    {
-        return device_.find_supported_format(
-            {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-            VK_IMAGE_TILING_OPTIMAL,
-            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    // VkFormat SwapChain::find_depth_format()
+    // {
+    //     return context_.find_supported_format(
+    //         {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+    //         VK_IMAGE_TILING_OPTIMAL,
+    //         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    // }
+
+    VkFormat SwapChain::query_swapchain_format(VulkanContext& context) {
+        SwapChainSupportDetails swap_chain_support = context.get_swap_chain_support();
+        return choose_swap_surface_format(swap_chain_support.formats).format;
     }
 } // namespace xel::backend

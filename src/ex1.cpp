@@ -1,4 +1,4 @@
-#include "backend/device.hpp"
+#include "backend/vulkan_context.hpp"
 #include "backend/swap_chain.hpp"
 #include "backend/xel_pipeline.hpp"
 #include "xel_model.hpp"
@@ -22,9 +22,9 @@ int main()
     };
     using namespace xel::backend;
     Window window{800, 600, "Xel"};
-    Device device{window};
+    VulkanContext vkctx{window};
 
-    std::unique_ptr<SwapChain> swap_chain = std::make_unique<SwapChain>(device, window.get_extent());;
+    std::unique_ptr<SwapChain> swap_chain = std::make_unique<SwapChain>(vkctx, window.get_extent());;
     std::vector<VkCommandBuffer> command_buffers;
     uint32_t current_image_index = 0;
 
@@ -33,21 +33,21 @@ int main()
     VkCommandBufferAllocateInfo alloc_info{};
     alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    alloc_info.commandPool = device.get_command_pool();
+    alloc_info.commandPool = vkctx.command_pool();
     alloc_info.commandBufferCount = static_cast<uint32_t>(command_buffers.size());
-    if (vkAllocateCommandBuffers(device.device(), &alloc_info, command_buffers.data()) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(vkctx.device(), &alloc_info, command_buffers.data()) != VK_SUCCESS)
         throw std::runtime_error("failed to allocate command buffers!");
 
     auto recreate_swap_chain = [&]() {
-        vkDeviceWaitIdle(device.device());
+        vkDeviceWaitIdle(vkctx.device());
 
         std::unique_ptr<SwapChain> old_swap_chain = std::move(swap_chain);
         // 如果你的 SwapChain 构造函数要 shared_ptr，就构造一个传进去
-        swap_chain = std::make_unique<SwapChain>(device, window.get_extent(),
+        swap_chain = std::make_unique<SwapChain>(vkctx, window.get_extent(),
                                                 std::shared_ptr<SwapChain>(std::move(old_swap_chain)));
 
         // 释放旧的命令缓冲区（GPU 已经 idle）
-        vkFreeCommandBuffers(device.device(), device.get_command_pool(),
+        vkFreeCommandBuffers(vkctx.device(), vkctx.command_pool(),
                             static_cast<uint32_t>(command_buffers.size()),
                             command_buffers.data());
 
@@ -56,9 +56,9 @@ int main()
         VkCommandBufferAllocateInfo alloc_info{};
         alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        alloc_info.commandPool = device.get_command_pool();
+        alloc_info.commandPool = vkctx.command_pool();
         alloc_info.commandBufferCount = static_cast<uint32_t>(command_buffers.size());
-        if (vkAllocateCommandBuffers(device.device(), &alloc_info, command_buffers.data()) != VK_SUCCESS)
+        if (vkAllocateCommandBuffers(vkctx.device(), &alloc_info, command_buffers.data()) != VK_SUCCESS)
             throw std::runtime_error("failed to allocate command buffers!");
     };
 
@@ -73,7 +73,7 @@ int main()
     pipeline_layout_info.pushConstantRangeCount = 1;
     pipeline_layout_info.pSetLayouts = nullptr;
     pipeline_layout_info.pPushConstantRanges = &push_constant_range;
-    if (vkCreatePipelineLayout(device.device(), &pipeline_layout_info, nullptr, &pipeline_layout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(vkctx.device(), &pipeline_layout_info, nullptr, &pipeline_layout) != VK_SUCCESS)
         throw std::runtime_error("failed to create pipeline layout!");
 
     // create pipeline
@@ -81,7 +81,7 @@ int main()
     XelPipeline::defaultPipelineConfigInfo(pipeline_config_info);
     pipeline_config_info.renderPass = swap_chain->get_render_pass();
     pipeline_config_info.pipelineLayout = pipeline_layout;
-    std::unique_ptr<XelPipeline> pipeline = std::make_unique<XelPipeline>(device, "shaders/simple_shader.vert.spv",
+    std::unique_ptr<XelPipeline> pipeline = std::make_unique<XelPipeline>(vkctx, "shaders/simple_shader.vert.spv",
                                                                           "shaders/simple_shader.frag.spv",
                                                                           pipeline_config_info);
 
@@ -92,8 +92,8 @@ int main()
             {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
             {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
         };
-    auto model = std::make_shared<xel::XelModel>(device, vertices);
-    
+    auto model = std::make_shared<xel::XelModel>(vkctx, vertices);
+
     while (!window.should_close())
     {
         glfwPollEvents();
@@ -166,13 +166,13 @@ int main()
         {
             window.reset_window_resized_flag();
             std::shared_ptr<SwapChain> old_swap_chain = std::move(swap_chain);
-            swap_chain = std::make_unique<SwapChain>(device, window.get_extent(), old_swap_chain);
+            swap_chain = std::make_unique<SwapChain>(vkctx, window.get_extent(), old_swap_chain);
             continue;
         }
         if (result2 != VK_SUCCESS)
             throw std::runtime_error("failed to present swap chain image!");
     }
 
-    vkDeviceWaitIdle(device.device());
+    vkDeviceWaitIdle(vkctx.device());
     return 0;
 }

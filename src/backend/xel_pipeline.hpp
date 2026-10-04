@@ -1,6 +1,6 @@
 #pragma once
 
-#include "device.hpp"
+#include "vulkan_context.hpp"
 
 #include <string>
 #include <vector>
@@ -30,7 +30,7 @@ namespace xel::backend
     {
     public:
         XelPipeline(
-            Device &device,
+            VulkanContext &device,
             const std::string &vert_filepath,
             const std::string &frag_filepath,
             const PipelineConfigInfo &config_info
@@ -53,7 +53,7 @@ namespace xel::backend
         );
 
         void createShaderModule(const std::vector<char> &code, VkShaderModule *shader_module);
-        Device &device_;
+        VulkanContext &context_;
         VkPipeline graphics_pipeline_;
         VkShaderModule vert_shader_module_;
         VkShaderModule frag_shader_module_;

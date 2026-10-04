@@ -1,32 +1,26 @@
-#include <vulkan/vulkan.hpp>
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#include <iostream>
+#include "backend/vulkan_context.hpp"
+#include "backend/render_pass.hpp"
+#include "backend/swap_chain.hpp"
+#include "backend/ui_renderer.hpp"
 
 int main()
 {
-    // create instance
-    vk::Instance instance_;
-    vk::InstanceCreateInfo create_info;
-    vk::ApplicationInfo app_info;
-    app_info.setApiVersion(VK_API_VERSION_1_3);
-    create_info.setPApplicationInfo(&app_info);
-    uint32_t glfw_extension_count = 0;
-    const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
-    create_info.setEnabledExtensionCount(glfw_extension_count);
-    create_info.setPpEnabledExtensionNames(glfw_extensions);
-    create_info.setEnabledLayerCount(0);
+    using namespace xel::backend;
+    Window window{800, 600, "xel"};
+    VulkanContext ctx{window};
 
-    instance_ = vk::createInstance(create_info);
+    RenderPass renderpass{ctx, SwapChain::query_swapchain_format(ctx)};
 
-    printf("glfw extenion count: %d\n", glfw_extension_count);
+    SwapChain* swapchain = new SwapChain{ctx, window.get_extent(), renderpass.handle()};
 
-    for (uint32_t i = 0; i < glfw_extension_count; i++)
-        printf("glfw required extension [%u]: %s\n", i, glfw_extensions[i]);
+    UIRenderer renderer{ctx, swapchain, renderpass};
 
-    auto devices = instance_.enumeratePhysicalDevices();
-    for (auto &device: devices)
-        std::cout<< device.getProperties().deviceName << std::endl;
+    while (!window.should_close())
+    {
+        glfwPollEvents();
+        renderer.draw_frame();
+    }
+
+    vkDeviceWaitIdle(ctx.device());
+
 }

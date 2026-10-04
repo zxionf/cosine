@@ -1,6 +1,6 @@
 #pragma once
 
-#include "backend/device.hpp"
+#include "backend/vulkan_context.hpp"
 #include "backend/xel_pipeline.hpp"
 #include "xel_game_object.hpp"
 
@@ -12,7 +12,7 @@ namespace xel
     {
     public:
 
-        SimpleRenderSystem(backend::Device &device, VkRenderPass renderPass);
+        SimpleRenderSystem(backend::VulkanContext &device, VkRenderPass renderPass);
         ~SimpleRenderSystem();
 
         SimpleRenderSystem(const SimpleRenderSystem &) = delete;
@@ -24,7 +24,7 @@ namespace xel
         void createPipelineLayout();
         void createPipeline(VkRenderPass renderPass);
 
-        backend::Device& device;
+        backend::VulkanContext& device;
 
         std::unique_ptr<backend::XelPipeline> pipeline;
         VkPipelineLayout pipelineLayout;

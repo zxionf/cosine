@@ -21,7 +21,7 @@ namespace xel
 
     void FirstApp::run()
     {
-        SimpleRenderSystem simpleRenderSystem{device, renderer.get_swap_chain_render_pass()};
+        SimpleRenderSystem simpleRenderSystem{vkctx, renderer.get_swap_chain_render_pass()};
 
         while (!window.should_close())
         {
@@ -36,7 +36,7 @@ namespace xel
             }
         }
 
-        vkDeviceWaitIdle(device.device());
+        vkDeviceWaitIdle(vkctx.device());
     }
 
     void FirstApp::loadGameModels()
@@ -47,7 +47,7 @@ namespace xel
             {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
             {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
         };
-        auto model = std::make_shared<XelModel>(device, vertices);
+        auto model = std::make_shared<XelModel>(vkctx, vertices);
 
         auto triangle = XelGameObject::createGameObject();
         triangle.model = model;

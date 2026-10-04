@@ -9,19 +9,19 @@
 namespace xel::backend
 {
 
-    XelPipeline::XelPipeline(Device &device,
+    XelPipeline::XelPipeline(VulkanContext &context,
         const std::string &vert_filepath,
         const std::string &frag_filepath,
-        const PipelineConfigInfo &config_info) : device_{device}
+        const PipelineConfigInfo &config_info) : context_{context}
     {
         createGraphicsPipeline(vert_filepath, frag_filepath, config_info);
     }
 
     XelPipeline::~XelPipeline()
     {
-        vkDestroyShaderModule(device_.device(), vert_shader_module_, nullptr);
-        vkDestroyShaderModule(device_.device(), frag_shader_module_, nullptr);
-        vkDestroyPipeline(device_.device(), graphics_pipeline_, nullptr);
+        vkDestroyShaderModule(context_.device(), vert_shader_module_, nullptr);
+        vkDestroyShaderModule(context_.device(), frag_shader_module_, nullptr);
+        vkDestroyPipeline(context_.device(), graphics_pipeline_, nullptr);
     }
 
     std::vector<char> XelPipeline::readFile(const std::string &filepath)
@@ -103,7 +103,7 @@ namespace xel::backend
         pipeline_info.basePipelineIndex = -1;
         pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateGraphicsPipelines(device_.device(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &graphics_pipeline_) != VK_SUCCESS)
+        if (vkCreateGraphicsPipelines(context_.device(), VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &graphics_pipeline_) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create graphics pipeline");
         }
@@ -116,7 +116,7 @@ namespace xel::backend
         create_info.codeSize = code.size();
         create_info.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
-        if (vkCreateShaderModule(device_.device(), &create_info, nullptr, shader_module) != VK_SUCCESS)
+        if (vkCreateShaderModule(context_.device(), &create_info, nullptr, shader_module) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create shader module");
         }

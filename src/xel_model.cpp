@@ -5,7 +5,7 @@
 
 namespace xel
 {
-    XelModel::XelModel(backend::Device& xelDevice, const std::vector<Vertex> &vertices) : xelDevice{xelDevice}
+    XelModel::XelModel(backend::VulkanContext& context, const std::vector<Vertex> &vertices) : xelDevice{xelDevice}
     {
         createVertexBuffers(vertices);
     }
