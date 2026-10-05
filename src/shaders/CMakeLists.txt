@@ -9,6 +9,9 @@ if(NOT SLANGC_EXECUTABLE)
 endif()
 if(NOT SLANGC_EXECUTABLE)
     set(SLANGC_EXECUTABLE "/home/zxionf/tools/slang/bin/slangc")
+    if(WIN32)
+        set(SLANGC_EXECUTABLE "D:/Program Files/slang-2026.17.1-windows-x86_64/bin/slangc.exe")
+    endif()
 endif()
 
 # 输出目录：构建目录下的 src/shaders

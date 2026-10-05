@@ -30,7 +30,11 @@ add_executable(ex2
     backend/vulkan/swap_chain.cpp
     backend/vulkan/ui_renderer.cpp
 )
-target_link_libraries(ex2 PRIVATE glfw Vulkan::Vulkan)
+target_link_libraries(ex2 PRIVATE glfw Vulkan::Vulkan freetype)
+target_include_directories(ex2 PRIVATE ${STB_INCLUDE_DIR})
+
+add_executable(ex3 ex3.cpp)
+target_link_libraries(ex3 PRIVATE freetype)
 
 add_dependencies(ex0 shaders)
 add_dependencies(ex1 shaders)

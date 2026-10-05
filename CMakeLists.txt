@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 4.0.0)
 project(cosvideo)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -26,6 +26,27 @@ FetchContent_Declare(
 # set(GLFW_BUILD_X11 OFF CACHE BOOL "Disable X11 support" FORCE)
 # 获取 GLFW
 FetchContent_MakeAvailable(glfw)
+
+set(FT_DISABLE_ZLIB       TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_BZIP2      TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_PNG        TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_HARFBUZZ   TRUE CACHE BOOL "" FORCE)
+set(FT_DISABLE_BROTLI     TRUE CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    freetype
+    GIT_REPOSITORY https://github.com/freetype/freetype.git
+    GIT_TAG        VER-2-13-3
+    GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(freetype)
+
+FetchContent_Declare(
+    stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    GIT_TAG master
+)
+FetchContent_MakeAvailable(stb)
+set(STB_INCLUDE_DIR ${stb_SOURCE_DIR} CACHE INTERNAL "stb include dir")
 
 add_subdirectory(test)
 
