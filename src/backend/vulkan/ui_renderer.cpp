@@ -8,6 +8,7 @@ namespace xel::backend::vulkan
     {
         create_pipeline();
         create_command_pool();
+        create_vertex_buffer();
         create_command_buffers();
         create_sync_objects();
     }
@@ -47,7 +48,14 @@ namespace xel::backend::vulkan
         };
 
         // 顶点输入
-        vk::PipelineVertexInputStateCreateInfo vertex_input_info;
+        auto vertex_binding_description = Vertex::get_binding_description();
+        auto vertex_attribute_description = Vertex::get_attribute_description();
+        vk::PipelineVertexInputStateCreateInfo vertex_input_info{
+            .vertexBindingDescriptionCount = 1,
+            .pVertexBindingDescriptions = &vertex_binding_description,
+            .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_description.size()),
+            .pVertexAttributeDescriptions = vertex_attribute_description.data()
+        };
         vk::PipelineInputAssemblyStateCreateInfo input_assembly_info{
             .topology = vk::PrimitiveTopology::eTriangleList
         };
@@ -146,6 +154,63 @@ namespace xel::backend::vulkan
         };
 
         command_pool_ = vk::raii::CommandPool{context_.device(), poolInfo};
+    }
+
+    void UIRenderer::create_vertex_buffer()
+    {
+        vk::DeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+        auto [staging_buffer, staging_buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        void* data_staging = staging_buffer_memory.mapMemory(0, buffer_size);
+        memcpy(data_staging, vertices.data(), (size_t)buffer_size);
+        staging_buffer_memory.unmapMemory();
+
+        std::tie(vertex_buffer_, vertex_buffer_memory_) = create_buffer(buffer_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        copy_buffer(staging_buffer, vertex_buffer_, buffer_size);
+    }
+
+    void UIRenderer::copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size)
+    {
+        vk::CommandBufferAllocateInfo alloc_info{
+            .commandPool = command_pool_,
+            .level = vk::CommandBufferLevel::ePrimary,
+            .commandBufferCount = 1
+        };
+        vk::raii::CommandBuffer command_copy_buffer = std::move(context_.device().allocateCommandBuffers(alloc_info).front());
+        command_copy_buffer.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+        command_copy_buffer.copyBuffer(*src, *dst, vk::BufferCopy{0, 0, size});
+        command_copy_buffer.end();
+
+        context_.graphics_queue().submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &*command_copy_buffer}, nullptr);
+        context_.graphics_queue().waitIdle();
+    }
+
+    uint32_t UIRenderer::find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties)
+    {
+        vk::PhysicalDeviceMemoryProperties mem_properties = context_.physical_device().getMemoryProperties();
+        for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++) {
+            if ((type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+                return i;
+            }
+        }
+        throw std::runtime_error("failed to find suitable memory type!");
+    }
+
+    std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> UIRenderer::create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
+    {
+        vk::BufferCreateInfo buffer_info{
+            .size = size,
+            .usage = usage,
+            .sharingMode = vk::SharingMode::eExclusive
+        };
+        vk::raii::Buffer buffer = vk::raii::Buffer(context_.device(), buffer_info);
+        vk::MemoryRequirements mem_requirements = buffer.getMemoryRequirements();
+        vk::MemoryAllocateInfo alloc_info{
+            .allocationSize = mem_requirements.size,
+            .memoryTypeIndex = find_memory_type(mem_requirements.memoryTypeBits, properties)
+        };
+        vk::raii::DeviceMemory buffer_memory = vk::raii::DeviceMemory(context_.device(), alloc_info);
+        buffer.bindMemory(*buffer_memory, 0);
+        return {std::move(buffer), std::move(buffer_memory)};
     }
 
     void UIRenderer::create_command_buffers()
@@ -253,9 +318,10 @@ namespace xel::backend::vulkan
 
 		command_buffer.beginRendering(rendering_info);
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
+        command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
 		command_buffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swap_chain_.extent().width), static_cast<float>(swap_chain_.extent().height), 0.0f, 1.0f));
 		command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
-		command_buffer.draw(3, 1, 0, 0);
+		command_buffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 		command_buffer.endRendering();
 
 		// After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR

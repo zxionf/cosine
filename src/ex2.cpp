@@ -7,7 +7,7 @@
 int main()
 {
     using namespace xel::backend::vulkan;
-    Window window{800, 600, "xel"};
+    Window window{400, 300, "xel"};
     VulkanContext ctx{window};
     SwapChain swap_chain{ctx, window};
     UIRenderer renderer{ctx, swap_chain};

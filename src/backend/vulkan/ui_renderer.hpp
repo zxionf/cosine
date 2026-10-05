@@ -3,8 +3,37 @@
 #include "vulkan_context.hpp"
 #include "swap_chain.hpp"
 
+#include <glm/glm.hpp>
+
 namespace xel::backend::vulkan
 {
+
+    struct Vertex
+    {
+        glm::vec2 pos;
+        glm::vec3 color;
+
+        static vk::VertexInputBindingDescription get_binding_description()
+        {
+            return {
+                .binding = 0,
+                .stride = sizeof(Vertex),
+                .inputRate = vk::VertexInputRate::eVertex
+            };
+        }
+        static std::array<vk::VertexInputAttributeDescription, 2> get_attribute_description()
+        {
+            return {{{.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
+               {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)}}};
+        }
+    };
+
+    const std::vector<Vertex> vertices = {
+        {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
+        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+    };
+
     class UIRenderer
     {
     public:
@@ -18,10 +47,16 @@ namespace xel::backend::vulkan
     private:
         void create_pipeline();
         void create_command_pool();
+        void create_vertex_buffer();
         void create_command_buffers();
         void create_sync_objects();
 
         void record_command_buffer(uint32_t image_index);
+
+        std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties);
+        void copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size);
+
+        uint32_t find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties);
 
         std::vector<char> read_file(const std::string& filename);
         vk::raii::ShaderModule create_shader_module(const std::vector<char>& code) const;
@@ -39,6 +74,8 @@ namespace xel::backend::vulkan
         vk::raii::Pipeline       pipeline_        = nullptr;
 
         vk::raii::CommandPool   command_pool_   = nullptr;
+        vk::raii::Buffer        vertex_buffer_  = nullptr;
+        vk::raii::DeviceMemory  vertex_buffer_memory_ = nullptr;
         std::vector<vk::raii::CommandBuffer> command_buffers_;
 
         std::vector<vk::raii::Semaphore> present_complete_semaphores_;

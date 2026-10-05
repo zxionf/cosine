@@ -1,6 +1,6 @@
 #include "swap_chain.hpp"
 
-
+#include <iostream>
 
 namespace xel::backend::vulkan
 {
@@ -26,7 +26,7 @@ namespace xel::backend::vulkan
         if (window_.should_close()) {
             return;
         }
-        
+
         context_.device().waitIdle();
 
         cleanup();
@@ -90,10 +90,16 @@ namespace xel::backend::vulkan
     }
 
     vk::PresentModeKHR SwapChain::choose_swap_chain_present_mode(const std::vector<vk::PresentModeKHR>& available_present_modes) {
-        assert(std::ranges::any_of(available_present_modes, [](auto presentMode) { return presentMode == vk::PresentModeKHR::eFifo; }));
-        return std::ranges::any_of(available_present_modes, [](const vk::PresentModeKHR value) { return vk::PresentModeKHR::eMailbox == value; }) ?
+        // assert(std::ranges::any_of(available_present_modes, [](auto presentMode) { return presentMode == vk::PresentModeKHR::eFifo; }));
+        // return std::ranges::any_of(available_present_modes, [](const vk::PresentModeKHR value) { return vk::PresentModeKHR::eMailbox == value; }) ?
+        //         vk::PresentModeKHR::eMailbox :
+        //         vk::PresentModeKHR::eFifo;
+        auto result = std::ranges::any_of(available_present_modes, [](const vk::PresentModeKHR value) { return vk::PresentModeKHR::eMailbox == value; }) ?
                 vk::PresentModeKHR::eMailbox :
                 vk::PresentModeKHR::eFifo;
+        // if (result == vk::PresentModeKHR::eMailbox) std::cout << "present mode: Mailbox" << std::endl;
+        // if (result == vk::PresentModeKHR::eFifo) std::cout << "present mode: FIFO" << std::endl;
+        return result;
     }
 
     vk::Extent2D SwapChain::choose_swap_chain_extent(const vk::SurfaceCapabilitiesKHR& capabilities)
