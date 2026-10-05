@@ -29,9 +29,14 @@ namespace xel::backend::vulkan
     };
 
     const std::vector<Vertex> vertices = {
-        {{0.0f, -0.5f}, {1.0f, 1.0f, 1.0f}},
-        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+    };
+
+    const std::vector<uint16_t> indices = {
+        0, 1, 2, 2, 3, 0
     };
 
     class UIRenderer
@@ -48,6 +53,7 @@ namespace xel::backend::vulkan
         void create_pipeline();
         void create_command_pool();
         void create_vertex_buffer();
+        void create_index_buffer();
         void create_command_buffers();
         void create_sync_objects();
 
@@ -73,9 +79,11 @@ namespace xel::backend::vulkan
         vk::raii::PipelineLayout pipeline_layout_ = nullptr;
         vk::raii::Pipeline       pipeline_        = nullptr;
 
-        vk::raii::CommandPool   command_pool_   = nullptr;
-        vk::raii::Buffer        vertex_buffer_  = nullptr;
+        vk::raii::CommandPool   command_pool_         = nullptr;
+        vk::raii::Buffer        vertex_buffer_        = nullptr;
         vk::raii::DeviceMemory  vertex_buffer_memory_ = nullptr;
+        vk::raii::Buffer        index_buffer_         = nullptr;
+        vk::raii::DeviceMemory  index_buffer_memory_  = nullptr;
         std::vector<vk::raii::CommandBuffer> command_buffers_;
 
         std::vector<vk::raii::Semaphore> present_complete_semaphores_;

@@ -9,6 +9,7 @@ namespace xel::backend::vulkan
         create_pipeline();
         create_command_pool();
         create_vertex_buffer();
+        create_index_buffer();
         create_command_buffers();
         create_sync_objects();
     }
@@ -168,6 +169,18 @@ namespace xel::backend::vulkan
         copy_buffer(staging_buffer, vertex_buffer_, buffer_size);
     }
 
+    void UIRenderer::create_index_buffer()
+    {
+        vk::DeviceSize buffer_size = sizeof(indices[0]) * indices.size();
+        auto [staging_buffer, staging_buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        void* data_staging = staging_buffer_memory.mapMemory(0, buffer_size);
+        memcpy(data_staging, indices.data(), (size_t)buffer_size);
+        staging_buffer_memory.unmapMemory();
+
+        std::tie(index_buffer_, index_buffer_memory_) = create_buffer(buffer_size, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        copy_buffer(staging_buffer, index_buffer_, buffer_size);
+    }
+
     void UIRenderer::copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size)
     {
         vk::CommandBufferAllocateInfo alloc_info{
@@ -319,9 +332,11 @@ namespace xel::backend::vulkan
 		command_buffer.beginRendering(rendering_info);
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
         command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
+        command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
 		command_buffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swap_chain_.extent().width), static_cast<float>(swap_chain_.extent().height), 0.0f, 1.0f));
 		command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
-		command_buffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+		// command_buffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
+        command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 		command_buffer.endRendering();
 
 		// After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
