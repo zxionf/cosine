@@ -8,6 +8,8 @@ namespace xel::backend::vulkan
     {
         create_pipeline();
         create_command_pool();
+        vertices = ShapeMaker::makeRingVertices(0.5f, 0.25f, 16);
+        indices = ShapeMaker::makeRingIndices(vertices.size());
         create_vertex_buffer();
         create_index_buffer();
         create_command_buffers();
@@ -88,7 +90,7 @@ namespace xel::backend::vulkan
             .depthClampEnable        = vk::False,
             .rasterizerDiscardEnable = vk::False,
             .polygonMode             = vk::PolygonMode::eFill,
-            .cullMode                = vk::CullModeFlagBits::eBack,
+            .cullMode                = vk::CullModeFlagBits::eNone,
             .frontFace               = vk::FrontFace::eClockwise,
             .depthBiasEnable         = vk::False,
             .lineWidth               = 1.0f
