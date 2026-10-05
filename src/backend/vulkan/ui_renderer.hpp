@@ -3,6 +3,7 @@
 #include "vulkan_context.hpp"
 #include "swap_chain.hpp"
 
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
 namespace xel::backend::vulkan
@@ -26,6 +27,13 @@ namespace xel::backend::vulkan
             return {{{.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
                {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)}}};
         }
+    };
+
+    struct UniformBufferObject
+    {
+        alignas(16) glm::mat4 model;
+        alignas(16) glm::mat4 view;
+        alignas(16) glm::mat4 proj;
     };
 
     // const std::vector<Vertex> vertices = {};
@@ -151,12 +159,18 @@ namespace xel::backend::vulkan
         void draw_frame();
 
     private:
+        void create_descriptor_set_layout();
         void create_pipeline();
         void create_command_pool();
         void create_vertex_buffer();
         void create_index_buffer();
+        void create_uniform_buffers();
+        void create_descriptor_pool();
+        void create_descriptor_sets();
         void create_command_buffers();
         void create_sync_objects();
+
+        void update_uniform_buffer(uint32_t current_image);
 
         void record_command_buffer(uint32_t image_index);
 
@@ -177,15 +191,24 @@ namespace xel::backend::vulkan
             vk::PipelineStageFlags2 dst_stage_mask
         );
 
+        vk::raii::DescriptorSetLayout descriptor_set_layout_ = nullptr;
+
         vk::raii::PipelineLayout pipeline_layout_ = nullptr;
         vk::raii::Pipeline       pipeline_        = nullptr;
 
         vk::raii::CommandPool   command_pool_         = nullptr;
+        std::vector<vk::raii::CommandBuffer> command_buffers_;
         vk::raii::Buffer        vertex_buffer_        = nullptr;
         vk::raii::DeviceMemory  vertex_buffer_memory_ = nullptr;
         vk::raii::Buffer        index_buffer_         = nullptr;
         vk::raii::DeviceMemory  index_buffer_memory_  = nullptr;
-        std::vector<vk::raii::CommandBuffer> command_buffers_;
+
+        vk::raii::DescriptorPool descriptor_pool_ = nullptr;
+        std::vector<vk::raii::DescriptorSet> descriptor_sets_;
+
+        std::vector<vk::raii::Buffer> uniform_buffers_;
+        std::vector<vk::raii::DeviceMemory> uniform_buffers_memory_;
+        std::vector<void*> uniform_buffers_mapped_;
 
         std::vector<vk::raii::Semaphore> present_complete_semaphores_;
         std::vector<vk::raii::Semaphore> render_finished_semaphores_;

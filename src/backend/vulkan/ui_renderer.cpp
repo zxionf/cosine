@@ -1,21 +1,43 @@
 #include "ui_renderer.hpp"
 
 #include <fstream>
+#include <chrono>
+
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace xel::backend::vulkan
 {
     UIRenderer::UIRenderer(VulkanContext& context, SwapChain& swap_chain) : context_{context}, swap_chain_{swap_chain}
     {
+        create_descriptor_set_layout();
         create_pipeline();
         create_command_pool();
         vertices = ShapeMaker::makeRingVertices(0.5f, 0.25f, 16);
         indices = ShapeMaker::makeRingIndices(vertices.size());
         create_vertex_buffer();
         create_index_buffer();
+        create_uniform_buffers();
+        create_descriptor_pool();
+        create_descriptor_sets();
         create_command_buffers();
         create_sync_objects();
     }
     UIRenderer::~UIRenderer() {}
+
+    void UIRenderer::create_descriptor_set_layout()
+    {
+        vk::DescriptorSetLayoutBinding ubo_layout_binding{
+            .binding = 0,
+            .descriptorType = vk::DescriptorType::eUniformBuffer,
+            .descriptorCount = 1,
+            .stageFlags = vk::ShaderStageFlagBits::eVertex
+        };
+        vk::DescriptorSetLayoutCreateInfo layout_info{
+            .bindingCount = 1,
+            .pBindings = &ubo_layout_binding
+        };
+        descriptor_set_layout_ = vk::raii::DescriptorSetLayout{context_.device(), layout_info};
+    }
 
     void UIRenderer::create_pipeline()
     {
@@ -91,7 +113,7 @@ namespace xel::backend::vulkan
             .rasterizerDiscardEnable = vk::False,
             .polygonMode             = vk::PolygonMode::eFill,
             .cullMode                = vk::CullModeFlagBits::eNone,
-            .frontFace               = vk::FrontFace::eClockwise,
+            .frontFace               = vk::FrontFace::eCounterClockwise,
             .depthBiasEnable         = vk::False,
             .lineWidth               = 1.0f
         };
@@ -117,7 +139,8 @@ namespace xel::backend::vulkan
 
         // 管线布局
         vk::PipelineLayoutCreateInfo pipeline_layout_info{
-            .setLayoutCount = 0,
+            .setLayoutCount = 1,
+            .pSetLayouts = &*descriptor_set_layout_,
             .pushConstantRangeCount = 0
         };
 
@@ -228,6 +251,60 @@ namespace xel::backend::vulkan
         return {std::move(buffer), std::move(buffer_memory)};
     }
 
+    void UIRenderer::create_uniform_buffers()
+    {
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vk::DeviceSize buffer_size = sizeof(UniformBufferObject);
+            auto [buffer, buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eUniformBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+            uniform_buffers_.emplace_back(std::move(buffer));
+            uniform_buffers_memory_.emplace_back(std::move(buffer_memory));
+            uniform_buffers_mapped_.emplace_back(uniform_buffers_memory_.back().mapMemory(0, buffer_size));
+        }
+    }
+
+    void UIRenderer::create_descriptor_pool()
+    {
+        vk::DescriptorPoolSize pool_size{
+            .type = vk::DescriptorType::eUniformBuffer,
+            .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+        };
+        vk::DescriptorPoolCreateInfo pool_info{
+            .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+            .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+            .poolSizeCount = 1,
+            .pPoolSizes = &pool_size
+        };
+        descriptor_pool_ = vk::raii::DescriptorPool(context_.device(), pool_info);
+    }
+
+    void UIRenderer::create_descriptor_sets()
+    {
+        std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, *descriptor_set_layout_);
+        vk::DescriptorSetAllocateInfo alloc_info{
+            .descriptorPool = descriptor_pool_,
+            .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
+            .pSetLayouts = layouts.data()
+        };
+        descriptor_sets_ = context_.device().allocateDescriptorSets(alloc_info);
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            vk::DescriptorBufferInfo buffer_info{
+                .buffer = uniform_buffers_[i],
+                .offset = 0,
+                .range = sizeof(UniformBufferObject)
+            };
+            vk::WriteDescriptorSet descriptor_write{
+                .dstSet          = descriptor_sets_[i],
+                .dstBinding      = 0,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType  = vk::DescriptorType::eUniformBuffer,
+                .pBufferInfo     = &buffer_info
+            };
+            context_.device().updateDescriptorSets(descriptor_write, {});
+        }
+    }
+
     void UIRenderer::create_command_buffers()
     {
         vk::CommandBufferAllocateInfo alloc_info{
@@ -249,6 +326,21 @@ namespace xel::backend::vulkan
         }
     }
 
+    void UIRenderer::update_uniform_buffer(uint32_t current_image)
+    {
+        static auto start_time = std::chrono::high_resolution_clock::now();
+
+        auto current_time = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time).count();
+
+        UniformBufferObject ubo;
+        ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swap_chain_.extent().width) / static_cast<float>(swap_chain_.extent().height), 0.1f, 10.0f);
+
+        memcpy(uniform_buffers_mapped_[current_image], &ubo, sizeof(ubo));
+    }
+
     void UIRenderer::draw_frame()
     {
         auto fence_result = context_.device().waitForFences(*in_flight_fences_[frame_index_], vk::True, UINT64_MAX);
@@ -265,6 +357,9 @@ namespace xel::backend::vulkan
             assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
             throw std::runtime_error("failed to acquire swap chain image!");
         }
+
+        update_uniform_buffer(frame_index_);
+
         // Only reset the fence if we are submitting work
         context_.device().resetFences(*in_flight_fences_[frame_index_]);
 
@@ -335,8 +430,9 @@ namespace xel::backend::vulkan
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
         command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
         command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
-		command_buffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(swap_chain_.extent().width), static_cast<float>(swap_chain_.extent().height), 0.0f, 1.0f));
+		command_buffer.setViewport(0, vk::Viewport(0.0f, static_cast<float>(swap_chain_.extent().height), static_cast<float>(swap_chain_.extent().width), -static_cast<float>(swap_chain_.extent().height), 0.0f, 1.0f));
 		command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_], nullptr);
 		// command_buffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
         command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 		command_buffer.endRendering();
