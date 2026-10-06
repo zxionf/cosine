@@ -2,8 +2,6 @@
 #include "backend/vulkan/swap_chain.hpp"
 #include "backend/vulkan/ui_renderer.hpp"
 
-
-
 int main()
 {
     using namespace xel::backend::vulkan;

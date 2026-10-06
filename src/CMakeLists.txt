@@ -1,4 +1,5 @@
 add_subdirectory(shaders)
+add_subdirectory(textures)
 find_package(Vulkan REQUIRED)
 add_executable(ex0
     main.cpp
@@ -38,4 +39,4 @@ target_link_libraries(ex3 PRIVATE freetype)
 
 add_dependencies(ex0 shaders)
 add_dependencies(ex1 shaders)
-add_dependencies(ex2 shaders)
+add_dependencies(ex2 shaders textures)

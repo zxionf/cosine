@@ -5,6 +5,9 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 namespace xel::backend::vulkan
 {
     UIRenderer::UIRenderer(VulkanContext& context, SwapChain& swap_chain) : context_{context}, swap_chain_{swap_chain}
@@ -12,8 +15,11 @@ namespace xel::backend::vulkan
         create_descriptor_set_layout();
         create_pipeline();
         create_command_pool();
-        vertices = ShapeMaker::makeRingVertices(0.5f, 0.25f, 16);
-        indices = ShapeMaker::makeRingIndices(vertices.size());
+        create_texture_image();
+        create_texture_image_view();
+        create_texture_sampler();
+        // vertices = ShapeMaker::makeRingVertices(0.5f, 0.25f, 16);
+        // indices = ShapeMaker::makeRingIndices(vertices.size());
         create_vertex_buffer();
         create_index_buffer();
         create_uniform_buffers();
@@ -26,15 +32,22 @@ namespace xel::backend::vulkan
 
     void UIRenderer::create_descriptor_set_layout()
     {
-        vk::DescriptorSetLayoutBinding ubo_layout_binding{
-            .binding = 0,
-            .descriptorType = vk::DescriptorType::eUniformBuffer,
-            .descriptorCount = 1,
-            .stageFlags = vk::ShaderStageFlagBits::eVertex
-        };
+        std::array<vk::DescriptorSetLayoutBinding, 2> ubo_layout_bindings{{
+            {
+                .binding = 0,
+                .descriptorType = vk::DescriptorType::eUniformBuffer,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eVertex
+            },{
+                .binding = 1,
+                .descriptorType = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = 1,
+                .stageFlags = vk::ShaderStageFlagBits::eFragment
+            }
+        }};
         vk::DescriptorSetLayoutCreateInfo layout_info{
-            .bindingCount = 1,
-            .pBindings = &ubo_layout_binding
+            .bindingCount = static_cast<uint32_t>(ubo_layout_bindings.size()),
+            .pBindings = ubo_layout_bindings.data()
         };
         descriptor_set_layout_ = vk::raii::DescriptorSetLayout{context_.device(), layout_info};
     }
@@ -182,6 +195,164 @@ namespace xel::backend::vulkan
         command_pool_ = vk::raii::CommandPool{context_.device(), poolInfo};
     }
 
+    void UIRenderer::create_texture_image()
+    {
+        int tex_width, tex_height, tex_channels;
+        stbi_uc* pixels = stbi_load("textures/texture.jpg", &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+        vk::DeviceSize image_size = tex_width * tex_height * 4;
+        if (!pixels) {
+            throw std::runtime_error("failed to load texture image!");
+        }
+
+        auto [staging_buffer, staging_buffer_memory] = create_buffer(image_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        void* data = staging_buffer_memory.mapMemory(0, image_size);
+        memcpy(data, pixels, (size_t)image_size);
+        staging_buffer_memory.unmapMemory();
+        stbi_image_free(pixels);
+
+        std::tie(texture_image_, texture_image_memory_) = create_image(tex_width, tex_height, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+        vk::raii::CommandBuffer command_buffer = begin_single_time_commands();
+        transition_image_layout(command_buffer, texture_image_, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+        copy_buffer_to_image(command_buffer, staging_buffer, texture_image_, static_cast<uint32_t>(tex_width), static_cast<uint32_t>(tex_height));
+        transition_image_layout(command_buffer, texture_image_, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+        end_single_time_commands(std::move(command_buffer));
+    }
+
+    void UIRenderer::create_texture_sampler()
+    {
+        vk::PhysicalDeviceProperties properties = context_.physical_device().getProperties();
+        vk::SamplerCreateInfo sampler_info{
+            .magFilter = vk::Filter::eLinear,
+            .minFilter = vk::Filter::eLinear,
+            .mipmapMode = vk::SamplerMipmapMode::eLinear,
+            .addressModeU = vk::SamplerAddressMode::eRepeat,
+            .addressModeV = vk::SamplerAddressMode::eRepeat,
+            .addressModeW = vk::SamplerAddressMode::eRepeat,
+            .mipLodBias = 0.0f,
+            .anisotropyEnable = properties.limits.maxSamplerAnisotropy > 1.0f ? vk::True : vk::False,
+            .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+            .compareEnable = vk::False,
+            .compareOp = vk::CompareOp::eAlways,
+            .minLod = 0.0f,
+            .maxLod = 0.0f
+        };
+        texture_sampler_ = vk::raii::Sampler{context_.device(), sampler_info};
+    }
+
+    void UIRenderer::create_texture_image_view()
+    {
+        texture_image_view_ = create_image_view(*texture_image_, vk::Format::eR8G8B8A8Srgb);
+    }
+
+    vk::raii::ImageView UIRenderer::create_image_view(const vk::Image& image, vk::Format format)
+    {
+        // TODO
+        /* 这个函数可以用来化简swapchain中create_image_views()函数*/
+        vk::ImageViewCreateInfo view_info{
+            .image   = image,
+            .viewType = vk::ImageViewType::e2D,
+            .format   = format,
+            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .baseMipLevel = 0, .levelCount = 1, .baseArrayLayer = 0, .layerCount = 1}
+        };
+        return vk::raii::ImageView{context_.device(), view_info};
+    }
+
+    std::pair<vk::raii::Image, vk::raii::DeviceMemory> UIRenderer::create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties)
+    {
+        vk::ImageCreateInfo image_info{
+            .imageType   = vk::ImageType::e2D,
+            .format      = format,
+            .extent      = vk::Extent3D{width, height, 1},
+            .mipLevels   = 1,
+            .arrayLayers = 1,
+            .tiling      = tiling,
+            .usage       = usage,
+            .sharingMode = vk::SharingMode::eExclusive
+        };
+        vk::raii::Image image = vk::raii::Image{context_.device(), image_info};
+
+        vk::MemoryRequirements mem_requirements = image.getMemoryRequirements();
+        vk::MemoryAllocateInfo alloc_info{
+            .allocationSize = mem_requirements.size,
+            .memoryTypeIndex = find_memory_type(mem_requirements.memoryTypeBits, properties)
+        };
+        vk::raii::DeviceMemory image_memory = vk::raii::DeviceMemory{context_.device(), alloc_info};
+        image.bindMemory(image_memory, 0);
+        return {std::move(image), std::move(image_memory)};
+    }
+
+    void UIRenderer::copy_buffer_to_image(vk::raii::CommandBuffer& command_buffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height)
+    {
+        vk::BufferImageCopy region{
+            .bufferOffset      = 0,
+            .bufferRowLength   = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource  = {.aspectMask = vk::ImageAspectFlagBits::eColor, .mipLevel = 0, .baseArrayLayer = 0, .layerCount = 1},
+            .imageOffset       = vk::Offset3D{0, 0, 0},
+            .imageExtent       = vk::Extent3D{width, height, 1}
+        };
+        command_buffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, region);
+    }
+
+    void UIRenderer::transition_image_layout(vk::raii::CommandBuffer& command_buffer, const vk::raii::Image& image, vk::ImageLayout old_layout, vk::ImageLayout new_layout)
+    {
+        vk::ImageMemoryBarrier barrier{
+            .oldLayout = old_layout,
+            .newLayout = new_layout,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .image = image,
+            .subresourceRange = {.aspectMask = vk::ImageAspectFlagBits::eColor, .levelCount = 1, .layerCount = 1}
+        };
+        vk::PipelineStageFlags source_stage;
+        vk::PipelineStageFlags destination_stage;
+
+        if (old_layout == vk::ImageLayout::eUndefined && new_layout == vk::ImageLayout::eTransferDstOptimal) {
+            barrier.srcAccessMask = {};
+            barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+            source_stage      = vk::PipelineStageFlagBits::eTopOfPipe;
+            destination_stage = vk::PipelineStageFlagBits::eTransfer;
+        } else if (old_layout == vk::ImageLayout::eTransferDstOptimal && new_layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+            barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+            source_stage      = vk::PipelineStageFlagBits::eTransfer;
+            destination_stage = vk::PipelineStageFlagBits::eFragmentShader;
+        } else {
+            throw std::invalid_argument("unsupported layout transition!");
+        }
+        command_buffer.pipelineBarrier(source_stage, destination_stage, {}, {}, nullptr, barrier);
+    }
+
+    vk::raii::CommandBuffer UIRenderer::begin_single_time_commands()
+    {
+        vk::CommandBufferAllocateInfo alloc_info{
+            .commandPool = command_pool_,
+            .level = vk::CommandBufferLevel::ePrimary,
+            .commandBufferCount = 1
+        };
+        vk::raii::CommandBuffer command_buffer = std::move(vk::raii::CommandBuffers(context_.device(), alloc_info).front());
+
+        vk::CommandBufferBeginInfo begin_info{
+            .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit
+        };
+        command_buffer.begin(begin_info);
+
+        return std::move(command_buffer);
+    }
+
+    void UIRenderer::end_single_time_commands(vk::raii::CommandBuffer&& command_buffer)
+    {
+        command_buffer.end();
+
+        vk::SubmitInfo submit_info{
+            .commandBufferCount = 1,
+            .pCommandBuffers = &*command_buffer
+        };
+        context_.graphics_queue().submit(submit_info, nullptr);
+        context_.graphics_queue().waitIdle();
+    }
+
     void UIRenderer::create_vertex_buffer()
     {
         vk::DeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
@@ -208,18 +379,9 @@ namespace xel::backend::vulkan
 
     void UIRenderer::copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size)
     {
-        vk::CommandBufferAllocateInfo alloc_info{
-            .commandPool = command_pool_,
-            .level = vk::CommandBufferLevel::ePrimary,
-            .commandBufferCount = 1
-        };
-        vk::raii::CommandBuffer command_copy_buffer = std::move(context_.device().allocateCommandBuffers(alloc_info).front());
-        command_copy_buffer.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-        command_copy_buffer.copyBuffer(*src, *dst, vk::BufferCopy{0, 0, size});
-        command_copy_buffer.end();
-
-        context_.graphics_queue().submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &*command_copy_buffer}, nullptr);
-        context_.graphics_queue().waitIdle();
+        vk::raii::CommandBuffer command_copy_buffer = begin_single_time_commands();
+        command_copy_buffer.copyBuffer(*src, *dst, vk::BufferCopy{.size = size});
+        end_single_time_commands(std::move(command_copy_buffer));
     }
 
     uint32_t UIRenderer::find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties)
@@ -264,15 +426,20 @@ namespace xel::backend::vulkan
 
     void UIRenderer::create_descriptor_pool()
     {
-        vk::DescriptorPoolSize pool_size{
-            .type = vk::DescriptorType::eUniformBuffer,
-            .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
-        };
+        std::array<vk::DescriptorPoolSize, 2> pool_size{{
+            {
+                .type = vk::DescriptorType::eUniformBuffer,
+                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+            },{
+                .type = vk::DescriptorType::eCombinedImageSampler,
+                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+            }
+        }};
         vk::DescriptorPoolCreateInfo pool_info{
             .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
             .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
-            .poolSizeCount = 1,
-            .pPoolSizes = &pool_size
+            .poolSizeCount = static_cast<uint32_t>(pool_size.size()),
+            .pPoolSizes = pool_size.data()
         };
         descriptor_pool_ = vk::raii::DescriptorPool(context_.device(), pool_info);
     }
@@ -293,14 +460,28 @@ namespace xel::backend::vulkan
                 .offset = 0,
                 .range = sizeof(UniformBufferObject)
             };
-            vk::WriteDescriptorSet descriptor_write{
-                .dstSet          = descriptor_sets_[i],
-                .dstBinding      = 0,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType  = vk::DescriptorType::eUniformBuffer,
-                .pBufferInfo     = &buffer_info
+            vk::DescriptorImageInfo image_info{
+                .sampler = texture_sampler_,
+                .imageView = texture_image_view_,
+                .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
             };
+            std::array<vk::WriteDescriptorSet, 2> descriptor_write{{
+                {
+                    .dstSet          = descriptor_sets_[i],
+                    .dstBinding      = 0,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType  = vk::DescriptorType::eUniformBuffer,
+                    .pBufferInfo     = &buffer_info
+                },{
+                    .dstSet          = descriptor_sets_[i],
+                    .dstBinding      = 1,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
+                    .pImageInfo      = &image_info
+                }
+            }};
             context_.device().updateDescriptorSets(descriptor_write, {});
         }
     }
@@ -333,9 +514,11 @@ namespace xel::backend::vulkan
         auto current_time = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time).count();
 
+        time /= 3.0f;
+
         UniformBufferObject ubo;
         ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        ubo.view = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swap_chain_.extent().width) / static_cast<float>(swap_chain_.extent().height), 0.1f, 10.0f);
 
         memcpy(uniform_buffers_mapped_[current_image], &ubo, sizeof(ubo));

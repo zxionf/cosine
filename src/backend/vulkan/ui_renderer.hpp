@@ -13,6 +13,7 @@ namespace xel::backend::vulkan
     {
         glm::vec2 pos;
         glm::vec3 color;
+        glm::vec2 uv;
 
         static vk::VertexInputBindingDescription get_binding_description()
         {
@@ -22,10 +23,13 @@ namespace xel::backend::vulkan
                 .inputRate = vk::VertexInputRate::eVertex
             };
         }
-        static std::array<vk::VertexInputAttributeDescription, 2> get_attribute_description()
+        static std::array<vk::VertexInputAttributeDescription, 3> get_attribute_description()
         {
-            return {{{.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
-               {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)}}};
+            return {{
+                {.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
+                {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)},
+                {.location = 2, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, uv)}
+            }};
         }
     };
 
@@ -36,9 +40,17 @@ namespace xel::backend::vulkan
         alignas(16) glm::mat4 proj;
     };
 
-    // const std::vector<Vertex> vertices = {};
+    const std::vector<Vertex> vertices = {
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+    };
 
-    // const std::vector<uint16_t> indices = {};
+    const std::vector<uint16_t> indices = {
+        0, 1, 2,
+        2, 3, 0
+    };
 
     struct ShapeMaker
     {
@@ -150,8 +162,8 @@ namespace xel::backend::vulkan
     public:
         constexpr static int MAX_FRAMES_IN_FLIGHT = 2;
 
-        std::vector<Vertex> vertices = {};
-        std::vector<uint16_t> indices = {};
+        // std::vector<Vertex> vertices = {};
+        // std::vector<uint16_t> indices = {};
 
         UIRenderer(VulkanContext& context, SwapChain& swap_chain);
         ~UIRenderer();
@@ -162,6 +174,9 @@ namespace xel::backend::vulkan
         void create_descriptor_set_layout();
         void create_pipeline();
         void create_command_pool();
+        void create_texture_image();
+        void create_texture_image_view();
+        void create_texture_sampler();
         void create_vertex_buffer();
         void create_index_buffer();
         void create_uniform_buffers();
@@ -173,6 +188,24 @@ namespace xel::backend::vulkan
         void update_uniform_buffer(uint32_t current_image);
 
         void record_command_buffer(uint32_t image_index);
+
+        std::pair<vk::raii::Image, vk::raii::DeviceMemory> create_image(
+            uint32_t width,
+            uint32_t height,
+            vk::Format format,
+            vk::ImageTiling tiling,
+            vk::ImageUsageFlags usage,
+            vk::MemoryPropertyFlags properties
+        );
+
+        vk::raii::CommandBuffer begin_single_time_commands();
+        void end_single_time_commands(vk::raii::CommandBuffer&& command_buffer);
+
+        vk::raii::ImageView create_image_view(const vk::Image& image, vk::Format format);
+
+        void transition_image_layout(vk::raii::CommandBuffer& command_buffer, const vk::raii::Image& image, vk::ImageLayout old_layout, vk::ImageLayout new_layout);
+
+        void copy_buffer_to_image(vk::raii::CommandBuffer& command_buffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height);
 
         std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties);
         void copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size);
@@ -202,6 +235,11 @@ namespace xel::backend::vulkan
         vk::raii::DeviceMemory  vertex_buffer_memory_ = nullptr;
         vk::raii::Buffer        index_buffer_         = nullptr;
         vk::raii::DeviceMemory  index_buffer_memory_  = nullptr;
+
+        vk::raii::Image        texture_image_        = nullptr;
+        vk::raii::DeviceMemory texture_image_memory_ = nullptr;
+        vk::raii::ImageView    texture_image_view_   = nullptr;
+        vk::raii::Sampler      texture_sampler_      = nullptr;
 
         vk::raii::DescriptorPool descriptor_pool_ = nullptr;
         std::vector<vk::raii::DescriptorSet> descriptor_sets_;

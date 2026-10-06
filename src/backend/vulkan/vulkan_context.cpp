@@ -146,7 +146,7 @@ namespace xel::backend::vulkan
         vk::PhysicalDeviceVulkan13Features,
         vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>
         freatures_chain = {
-            {},
+            {.features = {.samplerAnisotropy = VK_TRUE}},
             {.shaderDrawParameters = VK_TRUE},
             {.synchronization2 = true, .dynamicRendering = VK_TRUE},
             {.extendedDynamicState = VK_TRUE}
@@ -185,7 +185,8 @@ namespace xel::backend::vulkan
             vk::PhysicalDeviceVulkan11Features,
             vk::PhysicalDeviceVulkan13Features,
             vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
-        bool supports_required_features = features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters &&
+        bool supports_required_features = features.template get<vk::PhysicalDeviceFeatures2>().features.samplerAnisotropy &&
+                                        features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters &&
                                         features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
                                         features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState;
         return support_vulkan1_3 && supports_graphics && supports_all_required_extensions && supports_required_features;
