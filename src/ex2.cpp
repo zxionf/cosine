@@ -1,6 +1,8 @@
 #include "backend/vulkan/vulkan_context.hpp"
 #include "backend/vulkan/swap_chain.hpp"
-#include "backend/vulkan/ui_renderer.hpp"
+#include "backend/vulkan/font_renderer.hpp"
+
+#include <iostream>
 
 int main()
 {
@@ -8,7 +10,7 @@ int main()
     Window window{400, 300, "xel"};
     VulkanContext ctx{window};
     SwapChain swap_chain{ctx, window};
-    UIRenderer renderer{ctx, swap_chain};
+    FontRenderer renderer{ctx, swap_chain};
 
     while (!window.should_close())
     {
@@ -16,4 +18,6 @@ int main()
         renderer.draw_frame();
     }
     ctx.device().waitIdle();
+
+    std::cout << __FILE__ << std::endl;
 }

@@ -31,6 +31,9 @@ Sampler2D texture;
 [shader("fragment")]
 float4 fragMain(VSOutput vertIn) : SV_TARGET {
     // return float4(vertIn.fragTexCoord, 0.0, 1.0);
-    float2 uv = (vertIn.fragTexCoord - 0.5) * 0.2 + 0.5;
-    return texture.Sample(uv);
+    // float2 uv = (vertIn.fragTexCoord - 0.5) * 0.8 + 0.5;
+    // float coverage = texture.Sample(vertIn.fragTexCoord).r;
+    float coverage = texture.Sample(vertIn.fragTexCoord).r;
+    return float4(1.0, 1.0, 1.0, coverage);  // 白色字，Alpha = 覆盖率
+    // return float4(1,1,1,texture.Sample(vertIn.fragTexCoord).r);
 }
