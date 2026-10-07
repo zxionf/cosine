@@ -1,0 +1,30 @@
+#pragma once
+
+#include "vertex.hpp"
+
+#include <vector>
+
+namespace xel::graphics
+{
+    class Triangle
+    {
+    public:
+        Triangle() {
+            vertices.push_back(Vertex{glm::vec3{0.0f, 0.5f, 0.0f}, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec2{0.5f, 1.0f}});
+            vertices.push_back(Vertex{glm::vec3{0.5f, -0.5f, 0.0f}, glm::vec3{0.0f, 1.0f, 0.0f}, glm::vec2{1.0f, 0.0f}});
+            vertices.push_back(Vertex{glm::vec3{-0.5f, -0.5f, 0.0f}, glm::vec3{0.0f, 0.0f, 1.0f}, glm::vec2{0.0f, 0.0f}});
+            indices = {0, 1, 2};
+        }
+        ~Triangle() {
+            vertices.clear();
+            indices.clear();
+        }
+
+        std::vector<Vertex> get_vertices() const { return vertices; }
+        std::vector<uint16_t> get_indices() const { return indices; }
+    private:
+        std::vector<Vertex> vertices;
+        std::vector<uint16_t> indices;
+    };
+
+} // namespace xel::graphics

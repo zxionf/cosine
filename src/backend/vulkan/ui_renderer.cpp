@@ -1,4 +1,5 @@
 #include "ui_renderer.hpp"
+#include "../../graphics/triangle.hpp"
 
 #include <fstream>
 #include <chrono>
@@ -23,8 +24,12 @@ namespace xel::backend::vulkan
         create_texture_sampler();
         // vertices = ShapeMaker::makeRingVertices(0.5f, 0.25f, 16);
         // indices = ShapeMaker::makeRingIndices(vertices.size());
-        create_vertex_buffer();
-        create_index_buffer();
+        // graphics::Triangle triangle;
+        // vertices = triangle.get_vertices();
+        // indices = triangle.get_indices();
+        // create_vertex_buffer();
+        // create_index_buffer();
+        create_dynamic_buffers();
         create_uniform_buffers();
         create_descriptor_pool();
         create_descriptor_sets();
@@ -360,29 +365,29 @@ namespace xel::backend::vulkan
         context_.graphics_queue().waitIdle();
     }
 
-    void UIRenderer::create_vertex_buffer()
-    {
-        vk::DeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
-        auto [staging_buffer, staging_buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        void* data_staging = staging_buffer_memory.mapMemory(0, buffer_size);
-        memcpy(data_staging, vertices.data(), (size_t)buffer_size);
-        staging_buffer_memory.unmapMemory();
+    // void UIRenderer::create_vertex_buffer()
+    // {
+        // vk::DeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+        // auto [staging_buffer, staging_buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        // void* data_staging = staging_buffer_memory.mapMemory(0, buffer_size);
+        // memcpy(data_staging, vertices.data(), (size_t)buffer_size);
+        // staging_buffer_memory.unmapMemory();
 
-        std::tie(vertex_buffer_, vertex_buffer_memory_) = create_buffer(buffer_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        copy_buffer(staging_buffer, vertex_buffer_, buffer_size);
-    }
+        // std::tie(vertex_buffer_, vertex_buffer_memory_) = create_buffer(buffer_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        // copy_buffer(staging_buffer, vertex_buffer_, buffer_size);
+    // }
 
-    void UIRenderer::create_index_buffer()
-    {
-        vk::DeviceSize buffer_size = sizeof(indices[0]) * indices.size();
-        auto [staging_buffer, staging_buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-        void* data_staging = staging_buffer_memory.mapMemory(0, buffer_size);
-        memcpy(data_staging, indices.data(), (size_t)buffer_size);
-        staging_buffer_memory.unmapMemory();
+    // void UIRenderer::create_index_buffer()
+    // {
+        // vk::DeviceSize buffer_size = sizeof(indices[0]) * indices.size();
+        // auto [staging_buffer, staging_buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        // void* data_staging = staging_buffer_memory.mapMemory(0, buffer_size);
+        // memcpy(data_staging, indices.data(), (size_t)buffer_size);
+        // staging_buffer_memory.unmapMemory();
 
-        std::tie(index_buffer_, index_buffer_memory_) = create_buffer(buffer_size, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
-        copy_buffer(staging_buffer, index_buffer_, buffer_size);
-    }
+        // std::tie(index_buffer_, index_buffer_memory_) = create_buffer(buffer_size, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        // copy_buffer(staging_buffer, index_buffer_, buffer_size);
+    // }
 
     void UIRenderer::copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size)
     {
@@ -514,7 +519,17 @@ namespace xel::backend::vulkan
         }
     }
 
-    void UIRenderer::update_uniform_buffer(uint32_t current_image)
+    void UIRenderer::update_push_constants()
+    {
+        PushConstant push_constant{
+            .scale = glm::vec2(2),
+            .translate = glm::vec2(0),
+            .time = static_cast<float>(glfwGetTime())
+        };
+        command_buffers_[frame_index_].pushConstants<PushConstant>(pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, push_constant);
+    }
+
+    void UIRenderer::update_uniform_buffer()
     {
         static auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -528,17 +543,60 @@ namespace xel::backend::vulkan
         ubo.view = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swap_chain_.extent().width) / static_cast<float>(swap_chain_.extent().height), 0.1f, 10.0f);
 
-        memcpy(uniform_buffers_mapped_[current_image], &ubo, sizeof(ubo));
+        memcpy(uniform_buffers_mapped_[frame_index_], &ubo, sizeof(ubo));
     }
 
     void UIRenderer::draw_frame()
+    {
+        begin_frame();
+
+        vertices_.clear();
+        indices_.clear();
+
+        for (auto vertex : triangle_.get_vertices()) {
+            vertices_.push_back(vertex);
+        }
+        for (auto index : triangle_.get_indices()) {
+            indices_.push_back(index);
+        }
+
+        update_uniform_buffer();
+
+        // Only reset the fence if we are submitting work
+        context_.device().resetFences(*in_flight_fences_[frame_index_]);
+
+        command_buffers_[frame_index_].reset();
+        // record_command_buffer(current_image_index_);
+        auto& command_buffer = command_buffers_[frame_index_];
+        command_buffer.begin({});
+        update_push_constants();
+        upload_vertex_data();
+        begin_rendering(command_buffer);
+        // command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
+        // command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
+        // command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        if (current_vertex_buffer_size_ > 0) {
+            command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
+            command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexType::eUint16);
+            command_buffer.drawIndexed(static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
+        }
+
+        end_rendering(command_buffer);
+        command_buffer.end();
+        end_frame();
+    }
+
+    void UIRenderer::begin_frame()
     {
         auto fence_result = context_.device().waitForFences(*in_flight_fences_[frame_index_], vk::True, UINT64_MAX);
         if (fence_result != vk::Result::eSuccess) {
             throw std::runtime_error("failed to wait for fence!");
         }
 
-        auto [result, image_index] = swap_chain_.handle().acquireNextImage(UINT64_MAX, *present_complete_semaphores_[frame_index_], nullptr);
+        auto [result, index] = swap_chain_.handle().acquireNextImage(UINT64_MAX, *present_complete_semaphores_[frame_index_], nullptr);
+
+        image_index_ = index;
+
         if (result == vk::Result::eErrorOutOfDateKHR) {
             swap_chain_.recreate();
             return;
@@ -547,15 +605,10 @@ namespace xel::backend::vulkan
             assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
             throw std::runtime_error("failed to acquire swap chain image!");
         }
+    }
 
-        update_uniform_buffer(frame_index_);
-
-        // Only reset the fence if we are submitting work
-        context_.device().resetFences(*in_flight_fences_[frame_index_]);
-
-        command_buffers_[frame_index_].reset();
-        record_command_buffer(image_index);
-
+    void UIRenderer::end_frame()
+    {
         vk::PipelineStageFlags wait_destination_stage_mask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
         const vk::SubmitInfo   submitInfo{
             .waitSemaphoreCount   = 1,
@@ -564,7 +617,7 @@ namespace xel::backend::vulkan
             .commandBufferCount   = 1,
             .pCommandBuffers      = &*command_buffers_[frame_index_],
             .signalSemaphoreCount = 1,
-            .pSignalSemaphores    = &*render_finished_semaphores_[image_index]
+            .pSignalSemaphores    = &*render_finished_semaphores_[image_index_]
         };
 
         context_.graphics_queue().submit(submitInfo, *in_flight_fences_[frame_index_]);
@@ -572,19 +625,19 @@ namespace xel::backend::vulkan
         static bool prev_f11_pressed = false;
         bool f11_pressed = glfwGetKey(context_.window().get_glfw_window(), GLFW_KEY_F11) == GLFW_PRESS;
         if (f11_pressed && !prev_f11_pressed) {
-            save_swapchain_image_to_png(image_index, "output.png");
+            save_swapchain_image_to_png(image_index_, "output.png");
             std::cout << "saved image to output.png" << std::endl;
         }
         prev_f11_pressed = f11_pressed;
 
         const vk::PresentInfoKHR present_info_khr{
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores    = &*render_finished_semaphores_[image_index],
+            .pWaitSemaphores    = &*render_finished_semaphores_[image_index_],
             .swapchainCount     = 1,
             .pSwapchains        = &*swap_chain_.handle(),
-            .pImageIndices      = &image_index
+            .pImageIndices      = &image_index_
         };
-        result = context_.graphics_queue().presentKHR(present_info_khr);
+        auto result = context_.graphics_queue().presentKHR(present_info_khr);
         if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR || context_.window().was_window_resized())) {
             context_.window().reset_window_resized_flag();
             swap_chain_.recreate();
@@ -596,14 +649,27 @@ namespace xel::backend::vulkan
         frame_index_ = (frame_index_ + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    void UIRenderer::record_command_buffer(uint32_t image_index)
+    void UIRenderer::end_rendering(vk::raii::CommandBuffer& command_buffer)
     {
-        auto& command_buffer = command_buffers_[frame_index_];
-        command_buffer.begin({});
+		command_buffer.endRendering();
 
-		// Before starting rendering, transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
+		// After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
 		transition_image_layout(
-		    image_index,
+		    image_index_,
+		    vk::ImageLayout::eColorAttachmentOptimal,
+		    vk::ImageLayout::ePresentSrcKHR,
+		    vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
+		    {},                                                        // dstAccessMask
+		    vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
+		    vk::PipelineStageFlagBits2::eBottomOfPipe                  // dstStage
+		);
+    }
+
+    void UIRenderer::begin_rendering(vk::raii::CommandBuffer& command_buffer)
+    {
+        // Before starting rendering, transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
+		transition_image_layout(
+		    image_index_,
 		    vk::ImageLayout::eUndefined,
 		    vk::ImageLayout::eColorAttachmentOptimal,
 		    {},                                                        // srcAccessMask (no need to wait for previous operations)
@@ -613,7 +679,7 @@ namespace xel::backend::vulkan
 		);
 		vk::ClearValue              clear_color     = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
 		vk::RenderingAttachmentInfo attachment_info = {
-		    .imageView   = swap_chain_.image_views()[image_index],
+		    .imageView   = swap_chain_.image_views()[image_index_],
 		    .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
 		    .loadOp      = vk::AttachmentLoadOp::eClear,
 		    .storeOp     = vk::AttachmentStoreOp::eStore,
@@ -626,8 +692,7 @@ namespace xel::backend::vulkan
 
 		command_buffer.beginRendering(rendering_info);
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
-        command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
-        command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
+
         float windowW = static_cast<float>(swap_chain_.extent().width);
         float windowH = static_cast<float>(swap_chain_.extent().height);
         float windowAspect = windowW / windowH;
@@ -662,29 +727,79 @@ namespace xel::backend::vulkan
 		command_buffer.setViewport(0, vk::Viewport(vpX, vpY, vpW, vpH, 0.0f, 1.0f));
 		command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
 
-        PushConstant push_constant{
-            .scale = glm::vec2(2),
-            .translate = glm::vec2(0),
-            .time = static_cast<float>(glfwGetTime())
-        };
-        command_buffer.pushConstants<PushConstant>(pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, push_constant);
-
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_], nullptr);
-		// command_buffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
-        command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-		command_buffer.endRendering();
+    }
 
-		// After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
-		transition_image_layout(
-		    image_index,
-		    vk::ImageLayout::eColorAttachmentOptimal,
-		    vk::ImageLayout::ePresentSrcKHR,
-		    vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
-		    {},                                                        // dstAccessMask
-		    vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-		    vk::PipelineStageFlagBits2::eBottomOfPipe                  // dstStage
-		);
-		command_buffer.end();
+    void UIRenderer::create_dynamic_buffers()
+    {
+        vk::DeviceSize vtx_size = sizeof(Vertex) * MAX_VERTICES_;
+        vk::DeviceSize idx_size = sizeof(uint16_t) * MAX_INDICES_;
+
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            {
+                // vertex staging
+                auto [buf, mem] = create_buffer(vtx_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+                staging_vertex_buffers_.push_back(std::move(buf));
+                staging_vertex_memories_.push_back(std::move(mem));
+                staging_vertex_mapped_.push_back(staging_vertex_memories_.back().mapMemory(0, vtx_size));
+            }{
+                // vertex device-local
+                auto [buf, mem] = create_buffer(vtx_size, vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+                device_vertex_buffers_.push_back(std::move(buf));
+                device_vertex_memories_.push_back(std::move(mem));
+            }{
+                // index staging
+                auto [buf, mem] = create_buffer(idx_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+                staging_index_buffers_.push_back(std::move(buf));
+                staging_index_memories_.push_back(std::move(mem));
+                staging_index_mapped_.push_back(staging_index_memories_.back().mapMemory(0, idx_size));
+            }{
+                auto [buf, mem] = create_buffer(idx_size, vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, vk::MemoryPropertyFlagBits::eDeviceLocal);
+                device_index_buffers_.push_back(std::move(buf));
+                device_index_memories_.push_back(std::move(mem));
+            }
+        }
+    }
+
+    void UIRenderer::upload_vertex_data()
+    {
+        current_vertex_buffer_size_ = vertices_.size() * sizeof(Vertex);
+        current_index_buffer_size_ = indices_.size() * sizeof(uint16_t);
+
+        if (current_vertex_buffer_size_ == 0) return;
+
+        memcpy(staging_vertex_mapped_[frame_index_], vertices_.data(), current_vertex_buffer_size_);
+        memcpy(staging_index_mapped_[frame_index_], indices_.data(), current_index_buffer_size_);
+
+        command_buffers_[frame_index_].copyBuffer(*staging_vertex_buffers_[frame_index_], *device_vertex_buffers_[frame_index_], vk::BufferCopy{.size = current_vertex_buffer_size_});
+        command_buffers_[frame_index_].copyBuffer(*staging_index_buffers_[frame_index_], *device_index_buffers_[frame_index_], vk::BufferCopy{.size = current_index_buffer_size_});
+
+        vk::BufferMemoryBarrier2 barriers[2] = {
+            {
+                .srcStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+                .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                .dstStageMask  = vk::PipelineStageFlagBits2::eVertexInput,
+                .dstAccessMask = vk::AccessFlagBits2::eVertexAttributeRead,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .buffer = *device_vertex_buffers_[frame_index_],
+                .offset = 0,
+                .size   = current_vertex_buffer_size_
+            },
+            {
+                .srcStageMask  = vk::PipelineStageFlagBits2::eTransfer,
+                .srcAccessMask = vk::AccessFlagBits2::eTransferWrite,
+                .dstStageMask  = vk::PipelineStageFlagBits2::eVertexInput,
+                .dstAccessMask = vk::AccessFlagBits2::eIndexRead,
+                .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+                .buffer = *device_index_buffers_[frame_index_],
+                .offset = 0,
+                .size   = current_index_buffer_size_
+            }
+        };
+        vk::DependencyInfo dep_info = {.bufferMemoryBarrierCount = 2, .pBufferMemoryBarriers = barriers};
+        command_buffers_[frame_index_].pipelineBarrier2(dep_info);
     }
 
     void UIRenderer::transition_image_layout(

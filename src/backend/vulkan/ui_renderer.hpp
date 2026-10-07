@@ -2,37 +2,14 @@
 
 #include "vulkan_context.hpp"
 #include "swap_chain.hpp"
+#include "../../graphics/vertex.hpp"
+#include "../../graphics/triangle.hpp"
 
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
 namespace xel::backend::vulkan
 {
-
-    struct Vertex
-    {
-        glm::vec2 pos;
-        glm::vec3 color;
-        glm::vec2 uv;
-
-        static vk::VertexInputBindingDescription get_binding_description()
-        {
-            return {
-                .binding = 0,
-                .stride = sizeof(Vertex),
-                .inputRate = vk::VertexInputRate::eVertex
-            };
-        }
-        static std::array<vk::VertexInputAttributeDescription, 3> get_attribute_description()
-        {
-            return {{
-                {.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
-                {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32Sfloat, .offset = offsetof(Vertex, color)},
-                {.location = 2, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, uv)}
-            }};
-        }
-    };
-
     struct UniformBufferObject
     {
         alignas(16) glm::mat4 model;
@@ -47,122 +24,18 @@ namespace xel::backend::vulkan
         float time;
     };
 
-    const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-    };
+    using Vertex = graphics::Vertex;
+    // const std::vector<Vertex> vertices = {
+    //     {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+    //     {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+    //     {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+    //     {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+    // };
 
-    const std::vector<uint16_t> indices = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
-    struct ShapeMaker
-    {
-        // 生成正 N 边形
-        // n: 边数，radius: 外接圆半径，rotation_deg: 旋转角度
-        static std::vector<Vertex> makePolygonVertices(int n, float radius, float rotation_deg)
-        {
-            std::vector<Vertex> verts;
-            float rot = rotation_deg * 3.14159265f / 180.0f;
-            for (int i = 0; i < n; i++) {
-                float angle = rot + i * 2.0f * 3.14159265f / n - 3.14159265f / 2.0f;
-                float x = std::cos(angle) * radius;
-                float y = std::sin(angle) * radius;
-                // 颜色按角度渐变
-                float t = (float)i / n;
-                verts.push_back({{x, y}, {t, 1.0f - t, 0.5f}});
-            }
-            return verts;
-        }
-
-        // 生成心形
-        // scale: 缩放，segments: 采样段数（越多越平滑）
-        static std::vector<Vertex> makeHeartVertices(float scale, int segments)
-        {
-            std::vector<Vertex> verts;
-            for (int i = 0; i <= segments; i++) {
-                float t = (float)i / segments * 2.0f * 3.14159265f;
-                // 心形参数方程
-                float x = 16.0f * std::pow(std::sin(t), 3.0f);
-                float y = 13.0f * std::cos(t) - 5.0f * std::cos(2.0f * t)
-                        - 2.0f * std::cos(3.0f * t) - std::cos(4.0f * t);
-                // 缩放到 [-0.5, 0.5] 范围
-                x = x / 16.0f * scale;
-                y = -y / 16.0f * scale;  // 翻转 Y，让心形正立
-
-                float r = (x + scale) / (2.0f * scale);
-                float g = (y + scale) / (2.0f * scale);
-                verts.push_back({{x, y}, {1.0f, 0.2f + g * 0.5f, 0.4f + r * 0.4f}});
-            }
-            return verts;
-        }
-
-        // 生成花瓣图形
-        // petals: 花瓣数，r_outer: 外半径，r_inner: 内半径
-        static std::vector<Vertex> makeFlowerVertices(int petals, float r_outer, float r_inner, int segments)
-        {
-            std::vector<Vertex> verts;
-            for (int i = 0; i <= segments; i++) {
-                float t = (float)i / segments * 2.0f * 3.14159265f;
-                // r 随角度做正弦波动，形成花瓣
-                float r = r_inner + (r_outer - r_inner) * std::abs(std::sin(t * petals / 2.0f));
-                float x = std::cos(t) * r;
-                float y = std::sin(t) * r;
-                float hue = t / (2.0f * 3.14159265f);
-                verts.push_back({{x, y}, {hue, 0.5f + 0.5f * std::sin(t), 1.0f - hue}});
-            }
-            return verts;
-        }
-
-        static std::vector<uint16_t> makeFanIndices(size_t vertex_count)
-        {
-            std::vector<uint16_t> indices;
-            for (size_t i = 1; i + 1 < vertex_count; i++) {
-                indices.push_back(0);
-                indices.push_back((uint16_t)i);
-                indices.push_back((uint16_t)(i + 1));
-            }
-            return indices;
-        }
-
-        // 生成环形
-        // r_outer: 外半径，r_inner: 内半径，segments: 段数
-        static std::vector<Vertex> makeRingVertices(float r_outer, float r_inner, int segments)
-        {
-            std::vector<Vertex> verts;
-            for (int i = 0; i <= segments; i++) {
-                float t = (float)i / segments * 2.0f * 3.14159265f;
-                float cx = std::cos(t);
-                float cy = std::sin(t);
-                float hue = (float)i / segments;
-
-                // 外圈
-                verts.push_back({{cx * r_outer, cy * r_outer}, {hue, 0.8f, 1.0f - hue}});
-                // 内圈
-                verts.push_back({{cx * r_inner, cy * r_inner}, {hue, 0.4f, 1.0f - hue}});
-            }
-            return verts;
-        }
-
-        static std::vector<uint16_t> makeRingIndices(size_t vertex_count)
-        {
-            std::vector<uint16_t> indices;
-            // 每两个顶点（外圈、内圈）构成一个四边形，拆成两个三角形
-            for (size_t i = 0; i + 3 < vertex_count; i += 2) {
-                indices.push_back((uint16_t)(i));
-                indices.push_back((uint16_t)(i + 1));
-                indices.push_back((uint16_t)(i + 2));
-
-                indices.push_back((uint16_t)(i + 1));
-                indices.push_back((uint16_t)(i + 3));
-                indices.push_back((uint16_t)(i + 2));
-            }
-            return indices;
-        }
-    };
+    // const std::vector<uint16_t> indices = {
+    //     0, 1, 2,
+    //     2, 3, 0
+    // };
 
     class UIRenderer
     {
@@ -177,6 +50,9 @@ namespace xel::backend::vulkan
 
         void draw_frame();
 
+        void begin_frame();
+        void end_frame();
+
     private:
         void create_descriptor_set_layout();
         void create_pipeline();
@@ -184,17 +60,26 @@ namespace xel::backend::vulkan
         void create_texture_image();
         void create_texture_image_view();
         void create_texture_sampler();
-        void create_vertex_buffer();
-        void create_index_buffer();
+        void create_dynamic_buffers();
+        // void create_vertex_buffer();
+        // void create_index_buffer();
         void create_uniform_buffers();
         void create_descriptor_pool();
         void create_descriptor_sets();
         void create_command_buffers();
         void create_sync_objects();
 
-        void update_uniform_buffer(uint32_t current_image);
+        void update_uniform_buffer();
+        void update_push_constants();
 
-        void record_command_buffer(uint32_t image_index);
+        void upload_vertex_data();
+
+        void begin_rendering(vk::raii::CommandBuffer& command_buffer);
+        void end_rendering(vk::raii::CommandBuffer& command_buffer);
+
+        // void record_command_buffer(uint32_t image_index);
+        vk::raii::CommandBuffer& begin_command_buffer();
+        void end_command_buffer(vk::raii::CommandBuffer& command_buffer);
 
         std::pair<vk::raii::Image, vk::raii::DeviceMemory> create_image(
             uint32_t width,
@@ -240,10 +125,10 @@ namespace xel::backend::vulkan
 
         vk::raii::CommandPool   command_pool_         = nullptr;
         std::vector<vk::raii::CommandBuffer> command_buffers_;
-        vk::raii::Buffer        vertex_buffer_        = nullptr;
-        vk::raii::DeviceMemory  vertex_buffer_memory_ = nullptr;
-        vk::raii::Buffer        index_buffer_         = nullptr;
-        vk::raii::DeviceMemory  index_buffer_memory_  = nullptr;
+        // vk::raii::Buffer        vertex_buffer_        = nullptr;
+        // vk::raii::DeviceMemory  vertex_buffer_memory_ = nullptr;
+        // vk::raii::Buffer        index_buffer_         = nullptr;
+        // vk::raii::DeviceMemory  index_buffer_memory_  = nullptr;
 
         vk::raii::Image        texture_image_        = nullptr;
         vk::raii::DeviceMemory texture_image_memory_ = nullptr;
@@ -261,6 +146,30 @@ namespace xel::backend::vulkan
         std::vector<vk::raii::Semaphore> render_finished_semaphores_;
         std::vector<vk::raii::Fence>     in_flight_fences_;
         uint32_t frame_index_ = 0;
+        uint32_t image_index_ = 0;
+
+        // 顶点和索引
+        std::vector<vk::raii::Buffer>       staging_vertex_buffers_;
+        std::vector<vk::raii::DeviceMemory> staging_vertex_memories_;
+        std::vector<void*>                  staging_vertex_mapped_;
+
+        std::vector<vk::raii::Buffer>       staging_index_buffers_;
+        std::vector<vk::raii::DeviceMemory> staging_index_memories_;
+        std::vector<void*>                  staging_index_mapped_;
+
+        std::vector<vk::raii::Buffer>       device_vertex_buffers_;
+        std::vector<vk::raii::DeviceMemory> device_vertex_memories_;
+        std::vector<vk::raii::Buffer>       device_index_buffers_;
+        std::vector<vk::raii::DeviceMemory> device_index_memories_;
+
+        std::vector<Vertex>                 vertices_;
+        std::vector<uint16_t>               indices_;
+        vk::DeviceSize                      current_vertex_buffer_size_ = 0;
+        vk::DeviceSize                      current_index_buffer_size_  = 0;
+        static constexpr size_t MAX_VERTICES_ = 65536;
+        static constexpr size_t MAX_INDICES_ = 65536 * 3 / 2;
+
+        graphics::Triangle triangle_;
 
         VulkanContext& context_;
         SwapChain& swap_chain_;
