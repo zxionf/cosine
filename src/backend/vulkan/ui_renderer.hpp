@@ -40,6 +40,13 @@ namespace xel::backend::vulkan
         alignas(16) glm::mat4 proj;
     };
 
+    struct PushConstant
+    {
+        glm::vec2 scale;
+        glm::vec2 translate;
+        float time;
+    };
+
     const std::vector<Vertex> vertices = {
         {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
         {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
@@ -223,6 +230,8 @@ namespace xel::backend::vulkan
             vk::PipelineStageFlags2 src_stage_mask,
             vk::PipelineStageFlags2 dst_stage_mask
         );
+
+        void save_swapchain_image_to_png(uint32_t image_index, const std::string& path);
 
         vk::raii::DescriptorSetLayout descriptor_set_layout_ = nullptr;
 

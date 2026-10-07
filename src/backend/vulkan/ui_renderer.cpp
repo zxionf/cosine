@@ -2,11 +2,14 @@
 
 #include <fstream>
 #include <chrono>
+#include <iostream>
 
 #include <glm/gtc/matrix_transform.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 
 namespace xel::backend::vulkan
 {
@@ -55,7 +58,7 @@ namespace xel::backend::vulkan
     void UIRenderer::create_pipeline()
     {
         // 作色器
-        vk::raii::ShaderModule shader_module = create_shader_module(read_file("shaders/a.slang.spv"));
+        vk::raii::ShaderModule shader_module = create_shader_module(read_file("shaders/ui.slang.spv"));
 
         vk::PipelineShaderStageCreateInfo vertex_shader_info{
             .stage = vk::ShaderStageFlagBits::eVertex,
@@ -73,6 +76,9 @@ namespace xel::backend::vulkan
             vertex_shader_info,
             fragment_shader_info
         };
+
+        // 推送常量
+        vk::PushConstantRange push_constant_range{vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, sizeof(PushConstant)};
 
         // 动态状态
         std::vector<vk::DynamicState> dynamic_states = {
@@ -154,7 +160,8 @@ namespace xel::backend::vulkan
         vk::PipelineLayoutCreateInfo pipeline_layout_info{
             .setLayoutCount = 1,
             .pSetLayouts = &*descriptor_set_layout_,
-            .pushConstantRangeCount = 0
+            .pushConstantRangeCount = 1,
+            .pPushConstantRanges = &push_constant_range
         };
 
         pipeline_layout_ = vk::raii::PipelineLayout{context_.device(), pipeline_layout_info};
@@ -562,6 +569,14 @@ namespace xel::backend::vulkan
 
         context_.graphics_queue().submit(submitInfo, *in_flight_fences_[frame_index_]);
 
+        static bool prev_f11_pressed = false;
+        bool f11_pressed = glfwGetKey(context_.window().get_glfw_window(), GLFW_KEY_F11) == GLFW_PRESS;
+        if (f11_pressed && !prev_f11_pressed) {
+            save_swapchain_image_to_png(image_index, "output.png");
+            std::cout << "saved image to output.png" << std::endl;
+        }
+        prev_f11_pressed = f11_pressed;
+
         const vk::PresentInfoKHR present_info_khr{
             .waitSemaphoreCount = 1,
             .pWaitSemaphores    = &*render_finished_semaphores_[image_index],
@@ -613,8 +628,47 @@ namespace xel::backend::vulkan
 		command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
         command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
         command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
-		command_buffer.setViewport(0, vk::Viewport(0.0f, static_cast<float>(swap_chain_.extent().height), static_cast<float>(swap_chain_.extent().width), -static_cast<float>(swap_chain_.extent().height), 0.0f, 1.0f));
+        float windowW = static_cast<float>(swap_chain_.extent().width);
+        float windowH = static_cast<float>(swap_chain_.extent().height);
+        float windowAspect = windowW / windowH;
+
+        float contentAspect = 1.0f;  // 你的内容原始宽高比，按实际改
+
+        float vpW, vpH, vpX, vpY;
+        // if (windowAspect > contentAspect) {
+        //     // 窗口更宽，按高度适应，左右留黑边
+        //     vpH = windowH;
+        //     vpW = windowH * contentAspect;
+        //     vpX = (windowW - vpW) * 0.5f;
+        //     vpY = 0.0f;
+        // } else {
+        //     // 窗口更高，按宽度适应，上下留黑边
+        //     vpW = windowW;
+        //     vpH = windowW / contentAspect;
+        //     vpX = 0.0f;
+        //     vpY = (windowH - vpH) * 0.5f;
+        // }
+        if (windowAspect > contentAspect) {
+            vpW = windowW;
+            vpH = windowW / contentAspect;
+            vpX = 0.0f;
+            vpY = (windowH - vpH) * 0.5f;  // 负值，上下超出
+        } else {
+            vpH = windowH;
+            vpW = windowH * contentAspect;
+            vpX = (windowW - vpW) * 0.5f;  // 负值，左右超出
+            vpY = 0.0f;
+        }
+		command_buffer.setViewport(0, vk::Viewport(vpX, vpY, vpW, vpH, 0.0f, 1.0f));
 		command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
+
+        PushConstant push_constant{
+            .scale = glm::vec2(2),
+            .translate = glm::vec2(0),
+            .time = static_cast<float>(glfwGetTime())
+        };
+        command_buffer.pushConstants<PushConstant>(pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, push_constant);
+
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_], nullptr);
 		// command_buffer.draw(static_cast<uint32_t>(vertices.size()), 1, 0, 0);
         command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
@@ -663,6 +717,92 @@ namespace xel::backend::vulkan
                 .imageMemoryBarrierCount = 1,
                 .pImageMemoryBarriers    = &barrier};
         command_buffers_[frame_index_].pipelineBarrier2(dependency_info);
+    }
+
+    void UIRenderer::save_swapchain_image_to_png(uint32_t image_index, const std::string& path)
+    {
+        vk::Extent2D extent = swap_chain_.extent();
+        vk::DeviceSize image_size = extent.width * extent.height * 4; // RGBA8
+
+        // 1. 创建 host-visible 缓冲区
+        auto [staging_buffer, staging_memory] = create_buffer(
+            image_size,
+            vk::BufferUsageFlagBits::eTransferDst,
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+        // 2. 录制拷贝命令
+        vk::raii::CommandBuffer cmd = begin_single_time_commands();
+
+        // 交换链图像当前处于 ePresentSrcKHR 或 eColorAttachmentOptimal
+        // 先转到 eTransferSrcOptimal
+        vk::ImageMemoryBarrier barrier{
+            .srcAccessMask = vk::AccessFlagBits::eMemoryRead,
+            .dstAccessMask = vk::AccessFlagBits::eTransferRead,
+            .oldLayout = vk::ImageLayout::ePresentSrcKHR,          // 或 eColorAttachmentOptimal
+            .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .image = swap_chain_.images()[image_index],
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
+        };
+        cmd.pipelineBarrier(
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::PipelineStageFlagBits::eTransfer,
+            {}, {}, nullptr, barrier);
+
+        // 拷贝图像到缓冲区
+        vk::BufferImageCopy region{
+            .bufferOffset = 0,
+            .bufferRowLength = 0,
+            .bufferImageHeight = 0,
+            .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .imageOffset = vk::Offset3D{0, 0, 0},
+            .imageExtent = vk::Extent3D{extent.width, extent.height, 1}
+        };
+        cmd.copyImageToBuffer(
+            swap_chain_.images()[image_index],
+            vk::ImageLayout::eTransferSrcOptimal,
+            staging_buffer,
+            region);
+
+        // 转回 ePresentSrcKHR（如果后面还要 present）
+        vk::ImageMemoryBarrier barrier2{
+            .srcAccessMask = vk::AccessFlagBits::eTransferRead,
+            .dstAccessMask = {},
+            .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .newLayout = vk::ImageLayout::ePresentSrcKHR,
+            .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
+            .image = swap_chain_.images()[image_index],
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
+        };
+        cmd.pipelineBarrier(
+            vk::PipelineStageFlagBits::eTransfer,
+            vk::PipelineStageFlagBits::eAllCommands,
+            {}, {}, nullptr, barrier2);
+
+        end_single_time_commands(std::move(cmd));
+
+        // 3. map 并写 PNG
+        void* data = staging_memory.mapMemory(0, image_size);
+
+        // 注意：交换链格式可能是 BGRA，stb 写 PNG 需要 RGBA
+        // 如果格式是 B8G8R8A8，需要交换 R 和 B
+        std::vector<uint8_t> pixels(static_cast<uint8_t*>(data),
+                                    static_cast<uint8_t*>(data) + image_size);
+
+        // 如果格式是 BGRA，交换通道
+        vk::Format fmt = swap_chain_.surface_format().format;
+        if (fmt == vk::Format::eB8G8R8A8Srgb || fmt == vk::Format::eB8G8R8A8Unorm) {
+            for (size_t i = 0; i < pixels.size(); i += 4) {
+                std::swap(pixels[i], pixels[i + 2]); // B <-> R
+            }
+        }
+
+        stbi_write_png(path.c_str(), extent.width, extent.height, 4,
+                    pixels.data(), extent.width * 4);
+
+        staging_memory.unmapMemory();
     }
 
     vk::raii::ShaderModule UIRenderer::create_shader_module(const std::vector<char>& code) const {

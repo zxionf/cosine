@@ -18,6 +18,13 @@ struct VSOutput
     float2 fragTexCoord;
 };
 
+struct PushConstants
+{
+    float time;
+};
+[[vk::push_constant]]
+ConstantBuffer<PushConstants> pc;
+
 [shader("vertex")]
 VSOutput vertMain(VSInput input) {
     VSOutput output;
@@ -34,6 +41,6 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
     // float2 uv = (vertIn.fragTexCoord - 0.5) * 0.8 + 0.5;
     // float coverage = texture.Sample(vertIn.fragTexCoord).r;
     float coverage = texture.Sample(vertIn.fragTexCoord).r;
-    return float4(1.0, 1.0, 1.0, coverage);  // 白色字，Alpha = 覆盖率
+    return float4(cos(pc.time), 1.0, 1.0, coverage);  // 白色字，Alpha = 覆盖率
     // return float4(1,1,1,texture.Sample(vertIn.fragTexCoord).r);
 }
