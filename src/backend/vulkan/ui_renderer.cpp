@@ -19,6 +19,7 @@ namespace xel::backend::vulkan
         create_descriptor_set_layout();
         create_pipeline();
         create_command_pool();
+        create_white_texture();
         create_texture_image();
         create_texture_image_view();
         create_texture_sampler();
@@ -205,6 +206,25 @@ namespace xel::backend::vulkan
         };
 
         command_pool_ = vk::raii::CommandPool{context_.device(), poolInfo};
+    }
+
+    void UIRenderer::create_white_texture()
+    {
+        uint8_t white_pixel[4] = {255, 255, 255, 255};
+        vk::DeviceSize image_size = 4;
+
+        auto [staging_buffer, staging_memory] = create_buffer(image_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        void* data = staging_memory.mapMemory(0, image_size);
+        memcpy(data, white_pixel, (size_t)image_size);
+        staging_memory.unmapMemory();
+        std::tie(white_image_, white_image_memory_) = create_image(1, 1, vk::Format::eR8G8B8A8Unorm, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        // upload
+        vk::raii::CommandBuffer cmd = begin_single_time_commands();
+        transition_image_layout(cmd, white_image_, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
+        copy_buffer_to_image(cmd, staging_buffer, white_image_, 1, 1);
+        transition_image_layout(cmd, white_image_, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+        end_single_time_commands(std::move(cmd));
+        white_image_view_ = create_image_view(*white_image_, vk::Format::eR8G8B8A8Unorm);
     }
 
     void UIRenderer::create_texture_image()
@@ -441,15 +461,15 @@ namespace xel::backend::vulkan
         std::array<vk::DescriptorPoolSize, 2> pool_size{{
             {
                 .type = vk::DescriptorType::eUniformBuffer,
-                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2
             },{
                 .type = vk::DescriptorType::eCombinedImageSampler,
-                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT)
+                .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2
             }
         }};
         vk::DescriptorPoolCreateInfo pool_info{
             .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-            .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT),
+            .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2,
             .poolSizeCount = static_cast<uint32_t>(pool_size.size()),
             .pPoolSizes = pool_size.data()
         };
@@ -458,12 +478,13 @@ namespace xel::backend::vulkan
 
     void UIRenderer::create_descriptor_sets()
     {
-        std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, *descriptor_set_layout_);
+        std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT * 2, *descriptor_set_layout_);
         vk::DescriptorSetAllocateInfo alloc_info{
             .descriptorPool = descriptor_pool_,
             .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
             .pSetLayouts = layouts.data()
         };
+        // descriptor_sets_ = context_.device().allocateDescriptorSets(alloc_info);
         descriptor_sets_ = context_.device().allocateDescriptorSets(alloc_info);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -472,26 +493,48 @@ namespace xel::backend::vulkan
                 .offset = 0,
                 .range = sizeof(UniformBufferObject)
             };
+            vk::DescriptorImageInfo white_info{
+                .sampler = texture_sampler_,
+                .imageView = white_image_view_,
+                .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+            };
             vk::DescriptorImageInfo image_info{
                 .sampler = texture_sampler_,
                 .imageView = texture_image_view_,
                 .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
             };
-            std::array<vk::WriteDescriptorSet, 2> descriptor_write{{
+
+            auto& white_set = descriptor_sets_[i * 2 + WHITE];
+            auto& texture_set = descriptor_sets_[i * 2 + TEXTURE];
+            std::array<vk::WriteDescriptorSet, 4> descriptor_write{{
                 {
-                    .dstSet          = descriptor_sets_[i],
+                    .dstSet          = texture_set,
                     .dstBinding      = 0,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType  = vk::DescriptorType::eUniformBuffer,
                     .pBufferInfo     = &buffer_info
                 },{
-                    .dstSet          = descriptor_sets_[i],
+                    .dstSet          = texture_set,
                     .dstBinding      = 1,
                     .dstArrayElement = 0,
                     .descriptorCount = 1,
                     .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
                     .pImageInfo      = &image_info
+                },{
+                    .dstSet          = white_set,
+                    .dstBinding      = 0,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType  = vk::DescriptorType::eUniformBuffer,
+                    .pBufferInfo     = &buffer_info
+                },{
+                    .dstSet          = white_set,
+                    .dstBinding      = 1,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
+                    .pImageInfo      = &white_info
                 }
             }};
             context_.device().updateDescriptorSets(descriptor_write, {});
@@ -575,6 +618,7 @@ namespace xel::backend::vulkan
         // command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
         // command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
         // command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_ * 2 + WHITE], nullptr);
         if (current_vertex_buffer_size_ > 0) {
             command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
             command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexType::eUint16);
@@ -726,8 +770,6 @@ namespace xel::backend::vulkan
         }
 		command_buffer.setViewport(0, vk::Viewport(vpX, vpY, vpW, vpH, 0.0f, 1.0f));
 		command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
-
-        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_], nullptr);
     }
 
     void UIRenderer::create_dynamic_buffers()

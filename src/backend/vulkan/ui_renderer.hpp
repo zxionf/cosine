@@ -41,6 +41,7 @@ namespace xel::backend::vulkan
     {
     public:
         constexpr static int MAX_FRAMES_IN_FLIGHT = 2;
+        enum TextureSlot {WHITE = 0, TEXTURE = 1};
 
         // std::vector<Vertex> vertices = {};
         // std::vector<uint16_t> indices = {};
@@ -57,6 +58,7 @@ namespace xel::backend::vulkan
         void create_descriptor_set_layout();
         void create_pipeline();
         void create_command_pool();
+        void create_white_texture();
         void create_texture_image();
         void create_texture_image_view();
         void create_texture_sampler();
@@ -78,26 +80,18 @@ namespace xel::backend::vulkan
         void end_rendering(vk::raii::CommandBuffer& command_buffer);
 
         // void record_command_buffer(uint32_t image_index);
-        vk::raii::CommandBuffer& begin_command_buffer();
-        void end_command_buffer(vk::raii::CommandBuffer& command_buffer);
+        // vk::raii::CommandBuffer& begin_command_buffer();
+        // void end_command_buffer(vk::raii::CommandBuffer& command_buffer);
+        vk::raii::DescriptorSet& descriptor_set(uint32_t index, TextureSlot slot) { return descriptor_sets_[index * 2 + static_cast<uint32_t>(slot)]; }
 
-        std::pair<vk::raii::Image, vk::raii::DeviceMemory> create_image(
-            uint32_t width,
-            uint32_t height,
-            vk::Format format,
-            vk::ImageTiling tiling,
-            vk::ImageUsageFlags usage,
-            vk::MemoryPropertyFlags properties
-        );
+        std::pair<vk::raii::Image, vk::raii::DeviceMemory> create_image(uint32_t width, uint32_t height,  vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
+        vk::raii::ImageView create_image_view(const vk::Image& image, vk::Format format);
+        void copy_buffer_to_image(vk::raii::CommandBuffer& command_buffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height);
 
         vk::raii::CommandBuffer begin_single_time_commands();
         void end_single_time_commands(vk::raii::CommandBuffer&& command_buffer);
 
-        vk::raii::ImageView create_image_view(const vk::Image& image, vk::Format format);
-
         void transition_image_layout(vk::raii::CommandBuffer& command_buffer, const vk::raii::Image& image, vk::ImageLayout old_layout, vk::ImageLayout new_layout);
-
-        void copy_buffer_to_image(vk::raii::CommandBuffer& command_buffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height);
 
         std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties);
         void copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size);
@@ -134,6 +128,10 @@ namespace xel::backend::vulkan
         vk::raii::DeviceMemory texture_image_memory_ = nullptr;
         vk::raii::ImageView    texture_image_view_   = nullptr;
         vk::raii::Sampler      texture_sampler_      = nullptr;
+
+        vk::raii::Image        white_image_        = nullptr;
+        vk::raii::DeviceMemory white_image_memory_ = nullptr;
+        vk::raii::ImageView    white_image_view_   = nullptr;
 
         vk::raii::DescriptorPool descriptor_pool_ = nullptr;
         std::vector<vk::raii::DescriptorSet> descriptor_sets_;

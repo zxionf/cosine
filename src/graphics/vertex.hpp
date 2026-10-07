@@ -11,7 +11,7 @@ namespace xel::graphics
     struct Vertex
     {
         glm::vec2 pos;
-        glm::vec3 color;
+        glm::vec4 color;
         glm::vec2 uv;
 
         static vk::VertexInputBindingDescription get_binding_description()
