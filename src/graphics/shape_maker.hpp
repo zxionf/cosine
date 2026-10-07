@@ -19,7 +19,7 @@ namespace xel::graphics
                 float y = std::sin(angle) * radius;
                 // 颜色按角度渐变
                 float t = (float)i / n;
-                verts.push_back({{x, y}, {t, 1.0f - t, 0.5f}});
+                verts.push_back({{x, y}, {t, 1.0f - t, 0.5f, 1.0f}});
             }
             return verts;
         }
@@ -41,7 +41,7 @@ namespace xel::graphics
 
                 float r = (x + scale) / (2.0f * scale);
                 float g = (y + scale) / (2.0f * scale);
-                verts.push_back({{x, y}, {1.0f, 0.2f + g * 0.5f, 0.4f + r * 0.4f}});
+                verts.push_back({{x, y}, {1.0f, 0.2f + g * 0.5f, 0.4f + r * 0.4f, 1.0f}});
             }
             return verts;
         }
@@ -58,7 +58,7 @@ namespace xel::graphics
                 float x = std::cos(t) * r;
                 float y = std::sin(t) * r;
                 float hue = t / (2.0f * 3.14159265f);
-                verts.push_back({{x, y}, {hue, 0.5f + 0.5f * std::sin(t), 1.0f - hue}});
+                verts.push_back({{x, y}, {hue, 0.5f + 0.5f * std::sin(t), 1.0f - hue, 1.0f}});
             }
             return verts;
         }
@@ -86,9 +86,9 @@ namespace xel::graphics
                 float hue = (float)i / segments;
 
                 // 外圈
-                verts.push_back({{cx * r_outer, cy * r_outer}, {hue, 0.8f, 1.0f - hue}});
+                verts.push_back({{cx * r_outer, cy * r_outer}, {hue, 0.8f, 1.0f - hue, 1.0f}});
                 // 内圈
-                verts.push_back({{cx * r_inner, cy * r_inner}, {hue, 0.4f, 1.0f - hue}});
+                verts.push_back({{cx * r_inner, cy * r_inner}, {hue, 0.4f, 1.0f - hue, 1.0f}});
             }
             return verts;
         }

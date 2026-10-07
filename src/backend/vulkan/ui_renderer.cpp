@@ -565,8 +565,8 @@ namespace xel::backend::vulkan
     void UIRenderer::update_push_constants()
     {
         PushConstant push_constant{
-            .scale = glm::vec2(2),
-            .translate = glm::vec2(0),
+            .scale      = glm::vec2(2.0f / swap_chain_.extent().width, 2.0f / swap_chain_.extent().height),
+            .translate  = glm::vec2(-1.0f,                             -1.0f),
             .time = static_cast<float>(glfwGetTime())
         };
         command_buffers_[frame_index_].pushConstants<PushConstant>(pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, push_constant);
@@ -596,7 +596,13 @@ namespace xel::backend::vulkan
         vertices_.clear();
         indices_.clear();
 
+        auto W = static_cast<float>(swap_chain_.extent().width);
+        auto H = static_cast<float>(swap_chain_.extent().height);
         for (auto vertex : triangle_.get_vertices()) {
+            // ndc2pixel
+            // vertex.pos.x = (vertex.pos.x * 0.5f + 0.5f) * W;
+            // vertex.pos.y = (vertex.pos.y * 0.5f + 0.5f) * H;
+            vertex.pos = (vertex.pos * 0.5f + 0.5f) * glm::vec2(W, H);
             vertices_.push_back(vertex);
         }
         for (auto index : triangle_.get_indices()) {
@@ -739,11 +745,11 @@ namespace xel::backend::vulkan
 
         float windowW = static_cast<float>(swap_chain_.extent().width);
         float windowH = static_cast<float>(swap_chain_.extent().height);
-        float windowAspect = windowW / windowH;
+        // float windowAspect = windowW / windowH;
 
-        float contentAspect = 1.0f;  // 你的内容原始宽高比，按实际改
+        // float contentAspect = 1.0f;  // 你的内容原始宽高比，按实际改
 
-        float vpW, vpH, vpX, vpY;
+        // float vpW, vpH, vpX, vpY;
         // if (windowAspect > contentAspect) {
         //     // 窗口更宽，按高度适应，左右留黑边
         //     vpH = windowH;
@@ -757,18 +763,19 @@ namespace xel::backend::vulkan
         //     vpX = 0.0f;
         //     vpY = (windowH - vpH) * 0.5f;
         // }
-        if (windowAspect > contentAspect) {
-            vpW = windowW;
-            vpH = windowW / contentAspect;
-            vpX = 0.0f;
-            vpY = (windowH - vpH) * 0.5f;  // 负值，上下超出
-        } else {
-            vpH = windowH;
-            vpW = windowH * contentAspect;
-            vpX = (windowW - vpW) * 0.5f;  // 负值，左右超出
-            vpY = 0.0f;
-        }
-		command_buffer.setViewport(0, vk::Viewport(vpX, vpY, vpW, vpH, 0.0f, 1.0f));
+        // if (windowAspect > contentAspect) {
+        //     vpW = windowW;
+        //     vpH = windowW / contentAspect;
+        //     vpX = 0.0f;
+        //     vpY = (windowH - vpH) * 0.5f;  // 负值，上下超出
+        // } else {
+        //     vpH = windowH;
+        //     vpW = windowH * contentAspect;
+        //     vpX = (windowW - vpW) * 0.5f;  // 负值，左右超出
+        //     vpY = 0.0f;
+        // }
+		// command_buffer.setViewport(0, vk::Viewport(vpX, vpY, vpW, vpH, 0.0f, 1.0f));
+		command_buffer.setViewport(0, vk::Viewport(0, 0, windowW, windowH, 0.0f, 1.0f));
 		command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
     }
 
