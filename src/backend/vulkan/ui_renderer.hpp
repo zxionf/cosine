@@ -3,8 +3,6 @@
 #include "vulkan_context.hpp"
 #include "swap_chain.hpp"
 #include "../../graphics/drawable.hpp"
-#include "../../graphics/vertex.hpp"
-#include "../../graphics/triangle.hpp"
 
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
@@ -26,34 +24,33 @@ namespace xel::backend::vulkan
         glm::vec2 translate;
         float time;
     };
-    // const std::vector<Vertex> vertices = {
-    //     {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    //     {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    //     {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    //     {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-    // };
-
-    // const std::vector<uint16_t> indices = {
-    //     0, 1, 2,
-    //     2, 3, 0
-    // };
 
     class UIRenderer
     {
     public:
         constexpr static int MAX_FRAMES_IN_FLIGHT = 2;
         enum TextureSlot {WHITE = 0, TEXTURE = 1};
-
-        // std::vector<Vertex> vertices = {};
-        // std::vector<uint16_t> indices = {};
+        struct CharMetrics { int min_x; int max_x; };
 
         UIRenderer(VulkanContext& context, SwapChain& swap_chain);
         ~UIRenderer();
 
         void draw_frame();
+        void begin();
+        void end();
 
-        void begin_frame();
-        void end_frame();
+        void draw(const graphics::Drawable& d);
+
+        void draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color);
+        void draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color);
+        void draw_rect(float x, float y, float width, float height, glm::vec4 color);
+        void draw_rect_uv(float x, float y, float width, float height, glm::vec4 color, float u0, float v0, float u1, float v1);
+        void draw_char(float x, float y, float width, char ch, glm::vec4 color);
+        void draw_text(float x, float y, float width, const std::string& text, glm::vec4 color);
+        void process_mouse_move(float x, float y);
+
+        uint32_t vertices_count() const { return batch_.vertices.size(); }
+        uint32_t indices_count() const { return batch_.indices.size(); }
 
     private:
         void create_descriptor_set_layout();
@@ -77,6 +74,8 @@ namespace xel::backend::vulkan
 
         void upload_vertex_data();
 
+        void begin_frame();
+        void end_frame();
         void begin_rendering(vk::raii::CommandBuffer& command_buffer);
         void end_rendering(vk::raii::CommandBuffer& command_buffer);
 
@@ -111,19 +110,10 @@ namespace xel::backend::vulkan
             vk::PipelineStageFlags2 dst_stage_mask
         );
 
-
-        void draw(const graphics::Drawable& d);
-
-        void draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color);
-        void draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color);
-        void draw_rect(float x, float y, float width, float height, glm::vec4 color);
-        void draw_rect_uv(float x, float y, float width, float height, glm::vec4 color, float u0, float v0, float u1, float v1);
-        struct CharMetrics { int min_x; int max_x; };
-        std::array<CharMetrics, 256> char_metrics_{};
         int font_cell_px_ = 8;
+        std::array<CharMetrics, 256> char_metrics_{};
+
         void compute_char_width_ratio(int tex_width, unsigned char* pixels);
-        void draw_char(float x, float y, float width, char ch, glm::vec4 color);
-        void draw_text(float x, float y, float width, const std::string& text, glm::vec4 color);
 
         void save_swapchain_image_to_png(uint32_t image_index, const std::string& path);
 
@@ -180,10 +170,8 @@ namespace xel::backend::vulkan
         // std::vector<uint16_t>               indices_;
         vk::DeviceSize                      current_vertex_buffer_size_ = 0;
         vk::DeviceSize                      current_index_buffer_size_  = 0;
-        static constexpr size_t MAX_VERTICES_ = 65536;
-        static constexpr size_t MAX_INDICES_ = 65536 * 3 / 2;
-
-        // graphics::Triangle triangle_;
+        static constexpr size_t MAX_VERTICES_ = 65536 * 4;
+        static constexpr size_t MAX_INDICES_ = 65536 * 4 * 3 / 2;
 
         VulkanContext& context_;
         SwapChain& swap_chain_;

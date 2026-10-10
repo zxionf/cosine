@@ -2,6 +2,8 @@
 
 #include "drawable.hpp"
 
+#include <functional>
+
 #include <glm/glm.hpp>
 
 namespace xel::graphics
@@ -31,6 +33,14 @@ namespace xel::graphics
             });
         }
 
+        bool hit_test(float x, float y) const
+        {
+            return x >= x_ && x <= x_ + w_ && y >= y_ && y <= y_ + h_;
+        }
+
+        // bool on_mouse
+
+        std::function<void()> on_click_;
     private:
         float x_, y_, w_, h_;
         glm::vec4 color_;

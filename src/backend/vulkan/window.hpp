@@ -24,9 +24,9 @@ namespace xel::backend::vulkan
         void reset_window_resized_flag() { framebuffer_resized_ = false; }
         GLFWwindow* get_glfw_window() { return window_; }
 
-        void create_window_surface(VkInstance instance, VkSurfaceKHR *surface);
     private:
         static void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
+        static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
         void init_window();
 
         int width_;

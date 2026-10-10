@@ -1,6 +1,7 @@
 #include "window.hpp"
 
 #include <stdexcept>
+#include <iostream>
 
 namespace xel::backend::vulkan
 {
@@ -24,6 +25,7 @@ namespace xel::backend::vulkan
         window_ = glfwCreateWindow(width_, height_, window_name_.c_str(), nullptr, nullptr);
         glfwSetWindowUserPointer(window_, this);
         glfwSetFramebufferSizeCallback(window_, framebuffer_resize_callback);
+        // glfwSetMouseButtonCallback(window_, mouse_button_callback);
 
         // glfwSetWindowOpacity(window_, 0.5);
 
@@ -37,5 +39,13 @@ namespace xel::backend::vulkan
         xelWindow->framebuffer_resized_ = true;
         xelWindow->width_ = width;
         xelWindow->height_ = height;
+    }
+
+    void Window::mouse_button_callback(GLFWwindow* glfwWindow, int button, int action, int mods)
+    {
+        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
+        double mx, my;
+        glfwGetCursorPos(glfwWindow, &mx, &my);
+        std::cout << mx << "," << my << "\n";
     }
 }

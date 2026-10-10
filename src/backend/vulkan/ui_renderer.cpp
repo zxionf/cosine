@@ -653,7 +653,7 @@ namespace xel::backend::vulkan
         glm::vec2 c{x2 - px, y2 - py};
         glm::vec2 d{x2 + px, y2 + py};
 
-        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
+        uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
 
         // 4 个顶点，UV 随便填（用白纹理采样恒为 1）
         batch_.vertices.push_back({{a.x, a.y}, color, {0.0f, 0.0f}});
@@ -663,14 +663,14 @@ namespace xel::backend::vulkan
 
         // 两个三角形
         batch_.indices.insert(batch_.indices.end(), {
-            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
-            base, static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3)
+            base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
+            base, static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3)
         });
     }
 
     void UIRenderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
     {
-        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
+        uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
         // 0  3
         // 1  2
         batch_.vertices.push_back({{x,         y}, color, {0.0f, 0.0f}});
@@ -678,14 +678,14 @@ namespace xel::backend::vulkan
         batch_.vertices.push_back({{x + w, y + h}, color, {0.0f, 0.0f}});
         batch_.vertices.push_back({{x,     y + h}, color, {0.0f, 0.0f}});
         batch_.indices.insert(batch_.indices.end(), {
-            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
-            static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
+            base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
+            static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3), base
         });
     }
 
     void UIRenderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color, float u0, float v0, float u1, float v1)
     {
-        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
+        uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
         // 0  3
         // 1  2
         batch_.vertices.push_back({{x,         y}, color, {u0, v0}});
@@ -693,19 +693,19 @@ namespace xel::backend::vulkan
         batch_.vertices.push_back({{x + w, y + h}, color, {u1, v1}});
         batch_.vertices.push_back({{x,     y + h}, color, {u0, v1}});
         batch_.indices.insert(batch_.indices.end(), {
-            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
-            static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
+            base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
+            static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3), base
         });
     }
 
     void UIRenderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color)
     {
-        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
+        uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
         batch_.vertices.push_back({{x1, y1}, color, {0.0f, 0.0f}});
         batch_.vertices.push_back({{x2, y2}, color, {0.0f, 0.0f}});
         batch_.vertices.push_back({{x3, y3}, color, {0.0f, 0.0f}});
         batch_.indices.insert(batch_.indices.end(), {
-            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2)
+            base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2)
         });
     }
 
@@ -735,14 +735,14 @@ namespace xel::backend::vulkan
         // v0 += halfTexel;
         // u1 -= halfTexel;
         // v1 -= halfTexel;
-        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
+        uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
         batch_.vertices.push_back({{x,            y}, color, {u0, v0}});
         batch_.vertices.push_back({{x + w,        y}, color, {u1, v0}});
         batch_.vertices.push_back({{x + w, y + size}, color, {u1, v1}});
         batch_.vertices.push_back({{x,     y + size}, color, {u0, v1}});
         batch_.indices.insert(batch_.indices.end(), {
-            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
-            static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
+            base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
+            static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3), base
         });
     }
 
@@ -765,13 +765,19 @@ namespace xel::backend::vulkan
         }
     }
 
-    void UIRenderer::draw_frame()
+    void UIRenderer::process_mouse_move(float x, float y)
+    {}
+
+    void UIRenderer::begin()
     {
         begin_frame();
 
         batch_.vertices.clear();
         batch_.indices.clear();
+    }
 
+    void UIRenderer::draw_frame()
+    {
         // auto W = static_cast<float>(swap_chain_.extent().width);
         // auto H = static_cast<float>(swap_chain_.extent().height);
         // for (auto vertex : triangle_.get_vertices()) {
@@ -809,11 +815,11 @@ namespace xel::backend::vulkan
 
         draw_text(100.0f, 300.0f, 80.0f, "Hello,World!", {0, 1, 0, 1});
         draw_text(100.0f, 380.0f, 80.0f, std::format("{:.1f}", time), {0, 1, 0, 1});
+    }
 
+    void UIRenderer::end()
+    {
         update_uniform_buffer();
-
-        // Only reset the fence if we are submitting work
-        context_.device().resetFences(*in_flight_fences_[frame_index_]);
 
         command_buffers_[frame_index_].reset();
         // record_command_buffer(current_image_index_);
@@ -828,7 +834,7 @@ namespace xel::backend::vulkan
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_ * 2 + TEXTURE], nullptr);
         if (current_vertex_buffer_size_ > 0) {
             command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
-            command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexType::eUint16);
+            command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexTypeValue<decltype(batch_.indices)::value_type>::value);
             command_buffer.drawIndexed(static_cast<uint32_t>(batch_.indices.size()), 1, 0, 0, 0);
         }
 
@@ -856,6 +862,9 @@ namespace xel::backend::vulkan
             assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
             throw std::runtime_error("failed to acquire swap chain image!");
         }
+
+        // Only reset the fence if we are submitting work
+        context_.device().resetFences(*in_flight_fences_[frame_index_]);
     }
 
     void UIRenderer::end_frame()
@@ -983,7 +992,7 @@ namespace xel::backend::vulkan
     void UIRenderer::create_dynamic_buffers()
     {
         vk::DeviceSize vtx_size = sizeof(Vertex) * MAX_VERTICES_;
-        vk::DeviceSize idx_size = sizeof(uint16_t) * MAX_INDICES_;
+        vk::DeviceSize idx_size = sizeof(uint32_t) * MAX_INDICES_;
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
             {
@@ -1014,7 +1023,7 @@ namespace xel::backend::vulkan
     void UIRenderer::upload_vertex_data()
     {
         current_vertex_buffer_size_ = batch_.vertices.size() * sizeof(Vertex);
-        current_index_buffer_size_ = batch_.indices.size() * sizeof(uint16_t);
+        current_index_buffer_size_ = batch_.indices.size() * sizeof(uint32_t);
 
         if (current_vertex_buffer_size_ == 0) return;
 

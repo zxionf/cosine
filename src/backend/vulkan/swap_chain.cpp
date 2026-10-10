@@ -19,9 +19,9 @@ namespace xel::backend::vulkan
     void SwapChain::recreate()
     {
         int width = 0, height = 0;
-        glfwGetFramebufferSize(window_.get_glfw_window(), &width, &height);
         while ((width == 0 || height == 0) && !window_.should_close()) {
             glfwGetFramebufferSize(window_.get_glfw_window(), &width, &height);
+            glfwPollEvents();
         }
         if (window_.should_close()) {
             return;
@@ -85,7 +85,7 @@ namespace xel::backend::vulkan
 
     vk::SurfaceFormatKHR SwapChain::choose_swap_surface_format(const std::vector<vk::SurfaceFormatKHR>& available_formats) {
         const auto format_it = std::ranges::find_if(available_formats, [](const auto& format){
-            return format.format == vk::Format::eB8G8R8A8Unorm && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear;
+            return format.format == vk::Format::eB8G8R8A8Srgb && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear;
         });
         return format_it != available_formats.end() ? *format_it : available_formats[0];
     }
