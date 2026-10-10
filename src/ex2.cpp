@@ -8,7 +8,7 @@
 int main()
 {
     using namespace xel::backend::vulkan;
-    Window window{400, 300, "xel"};
+    Window window{400, 400, "xel"};
     VulkanContext ctx{window};
     SwapChain swap_chain{ctx, window};
     // FontRenderer renderer{ctx, swap_chain};

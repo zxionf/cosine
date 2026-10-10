@@ -4,6 +4,8 @@
 #include <fstream>
 #include <chrono>
 #include <iostream>
+#include <cmath>
+#include <format>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -151,7 +153,14 @@ namespace xel::backend::vulkan
 
         // 颜色混合
         vk::PipelineColorBlendAttachmentState color_blend_attachment{
-            .blendEnable    = vk::False,
+            .blendEnable    = vk::True,
+            .srcColorBlendFactor = vk::BlendFactor::eOne,
+            .dstColorBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+            .colorBlendOp        = vk::BlendOp::eAdd,
+            .srcAlphaBlendFactor = vk::BlendFactor::eOne,
+            // .dstAlphaBlendFactor = vk::BlendFactor::eZero,
+            .dstAlphaBlendFactor = vk::BlendFactor::eOneMinusSrcAlpha,
+            .alphaBlendOp        = vk::BlendOp::eAdd,
             .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA
         };
 
@@ -227,14 +236,42 @@ namespace xel::backend::vulkan
         white_image_view_ = create_image_view(*white_image_, vk::Format::eR8G8B8A8Unorm);
     }
 
+    void UIRenderer::compute_char_width_ratio(int tex_width, unsigned char* pixels)
+    {
+        constexpr int COLS = 16;
+        constexpr int ROWS = 16;
+        font_cell_px_ = tex_width / COLS;   // 128 / 16 = 8
+        for (int idx = 0; idx < 256; idx++) {
+            int col = idx % COLS;
+            int row = idx / COLS;
+            int ox = col * font_cell_px_;
+            int oy = row * font_cell_px_;
+            int min_x = font_cell_px_;
+            int max_x = -1;
+            for (int py = 0; py < font_cell_px_; py++) {
+                for (int px = 0; px < font_cell_px_; px++) {
+                    int pidx = ((oy + py) * tex_width + (ox + px)) * 4;
+                    unsigned char alpha = pixels[pidx + 3];
+                    if (alpha > 0) {                  // 非透明像素
+                        if (px < min_x) min_x = px;
+                        if (px > max_x) max_x = px;
+                    }
+                }
+            }
+            char_metrics_[idx] = {min_x, max_x};
+        }
+    }
+
     void UIRenderer::create_texture_image()
     {
         int tex_width, tex_height, tex_channels;
-        stbi_uc* pixels = stbi_load("textures/texture.jpg", &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+        stbi_uc* pixels = stbi_load("default8.png", &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
         vk::DeviceSize image_size = tex_width * tex_height * 4;
         if (!pixels) {
             throw std::runtime_error("failed to load texture image!");
         }
+
+        compute_char_width_ratio(tex_width, pixels);
 
         auto [staging_buffer, staging_buffer_memory] = create_buffer(image_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
         void* data = staging_buffer_memory.mapMemory(0, image_size);
@@ -255,9 +292,9 @@ namespace xel::backend::vulkan
     {
         vk::PhysicalDeviceProperties properties = context_.physical_device().getProperties();
         vk::SamplerCreateInfo sampler_info{
-            .magFilter = vk::Filter::eLinear,
-            .minFilter = vk::Filter::eLinear,
-            .mipmapMode = vk::SamplerMipmapMode::eLinear,
+            .magFilter = vk::Filter::eNearest,
+            .minFilter = vk::Filter::eNearest,
+            .mipmapMode = vk::SamplerMipmapMode::eNearest,
             .addressModeU = vk::SamplerAddressMode::eRepeat,
             .addressModeV = vk::SamplerAddressMode::eRepeat,
             .addressModeW = vk::SamplerAddressMode::eRepeat,
@@ -589,6 +626,139 @@ namespace xel::backend::vulkan
         memcpy(uniform_buffers_mapped_[frame_index_], &ubo, sizeof(ubo));
     }
 
+    void UIRenderer::draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color)
+    {
+        // 方向
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float len = std::sqrt(dx * dx + dy * dy);
+        if (len < 1e-6f) return;  // 退化线段，跳过
+
+        // 单位方向 + 垂直方向（乘以半宽）
+        float ux = dx / len;
+        float uy = dy / len;
+        float half_w = width * 0.5f;
+        float px = -uy * half_w;
+        float py =  ux * half_w;
+
+        // 四个角点
+        glm::vec2 a{x1 + px, y1 + py};
+        glm::vec2 b{x1 - px, y1 - py};
+        glm::vec2 c{x2 - px, y2 - py};
+        glm::vec2 d{x2 + px, y2 + py};
+
+        uint16_t base = static_cast<uint16_t>(vertices_.size());
+
+        // 4 个顶点，UV 随便填（用白纹理采样恒为 1）
+        vertices_.push_back({{a.x, a.y}, color, {0.0f, 0.0f}});
+        vertices_.push_back({{b.x, b.y}, color, {0.0f, 0.0f}});
+        vertices_.push_back({{c.x, c.y}, color, {0.0f, 0.0f}});
+        vertices_.push_back({{d.x, d.y}, color, {0.0f, 0.0f}});
+
+        // 两个三角形
+        indices_.insert(indices_.end(), {
+            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
+            base, static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3)
+        });
+    }
+
+    void UIRenderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
+    {
+        uint16_t base = static_cast<uint16_t>(vertices_.size());
+        // 0  3
+        // 1  2
+        vertices_.push_back({{x,         y}, color, {0.0f, 0.0f}});
+        vertices_.push_back({{x + w,     y}, color, {0.0f, 0.0f}});
+        vertices_.push_back({{x + w, y + h}, color, {0.0f, 0.0f}});
+        vertices_.push_back({{x,     y + h}, color, {0.0f, 0.0f}});
+        indices_.insert(indices_.end(), {
+            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
+            static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
+        });
+    }
+
+    void UIRenderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color, float u0, float v0, float u1, float v1)
+    {
+        uint16_t base = static_cast<uint16_t>(vertices_.size());
+        // 0  3
+        // 1  2
+        vertices_.push_back({{x,         y}, color, {u0, v0}});
+        vertices_.push_back({{x + w,     y}, color, {u1, v0}});
+        vertices_.push_back({{x + w, y + h}, color, {u1, v1}});
+        vertices_.push_back({{x,     y + h}, color, {u0, v1}});
+        indices_.insert(indices_.end(), {
+            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
+            static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
+        });
+    }
+
+    void UIRenderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color)
+    {
+        uint16_t base = static_cast<uint16_t>(vertices_.size());
+        vertices_.push_back({{x1, y1}, color, {0.0f, 0.0f}});
+        vertices_.push_back({{x2, y2}, color, {0.0f, 0.0f}});
+        vertices_.push_back({{x3, y3}, color, {0.0f, 0.0f}});
+        indices_.insert(indices_.end(), {
+            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2)
+        });
+    }
+
+    void UIRenderer::draw_char(float x, float y, float size, char ch, glm::vec4 color)
+    {
+        int index = static_cast<unsigned char>(ch);
+        const auto& m = char_metrics_[index];
+        if (m.max_x < m.min_x) return;
+
+        int col = index % 16;
+        int row = index / 16;
+
+        constexpr float cellUV = 1.0f / 16.0f;
+        float u_cell = col * cellUV;
+        float v_cell = row * cellUV;
+
+        // 字符在格子内的 UV 范围
+        float u0 = u_cell + (m.min_x       / 16.0f) / font_cell_px_;
+        float u1 = u_cell + ((m.max_x + 1) / 16.0f) / font_cell_px_;
+        float v0 = v_cell;
+        float v1 = v_cell + cellUV;
+        float ratio = static_cast<float>(m.max_x - m.min_x + 1) / font_cell_px_;
+        float w = size * ratio;
+        // 内缩半个像素
+        // constexpr float halfTexel = 0.5f / 256.0f;
+        // u0 += halfTexel;
+        // v0 += halfTexel;
+        // u1 -= halfTexel;
+        // v1 -= halfTexel;
+        uint16_t base = static_cast<uint16_t>(vertices_.size());
+        vertices_.push_back({{x,            y}, color, {u0, v0}});
+        vertices_.push_back({{x + w,        y}, color, {u1, v0}});
+        vertices_.push_back({{x + w, y + size}, color, {u1, v1}});
+        vertices_.push_back({{x,     y + size}, color, {u0, v1}});
+        indices_.insert(indices_.end(), {
+            base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
+            static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
+        });
+    }
+
+    void UIRenderer::draw_text(float x, float y, float size, const std::string& text, glm::vec4 color)
+    {
+        float pen_x = x;
+        for (char ch : text) {
+            int index = static_cast<unsigned char>(ch);
+            if (ch == ' ') {
+                pen_x += size * 0.5f;
+                continue;
+            }
+            if (ch == '\n') {
+                pen_x = x;
+                y += size;
+                continue;
+            }
+            draw_char(pen_x, y, size, ch, color);
+            pen_x += size * static_cast<float>(char_metrics_[index].max_x - char_metrics_[index].min_x + 2) / font_cell_px_;
+        }
+    }
+
     void UIRenderer::draw_frame()
     {
         begin_frame();
@@ -609,6 +779,32 @@ namespace xel::backend::vulkan
             indices_.push_back(index);
         }
 
+        draw_line(100.0f, 100.0f, 200.0f, 100.0f, 2.0f, {1, 0, 0, 1});
+        draw_line(150.0f,  50.0f, 150.0f, 150.0f, 2.0f, {0, 1, 0, 1});
+
+        // draw_rect(600.0f, 800.0f, 600.0f, 600.0f, {1, 1, 1, 1});
+        draw_rect_uv(620.0f, 800.0f, 600.0f, 600.0f, {0, 1, 0, 0.4}, 0.0f, 0.0f, 1.0f, 1.0f);
+
+        draw_line(100.0f, 100.0f, 300.0f, 300.0f, 6.0f, {0, 1, 0, 1});
+        float time = static_cast<float>(glfwGetTime());
+        constexpr float PI = 3.14159265358979f;
+        float step = 2.0f * PI / 3.0f;
+
+        float x0 = 300 + 150 * std::cos(time);
+        float y0 = 300 + 150 * std::sin(time);
+
+        float x1 = 300 + 150 * std::cos(time + step);
+        float y1 = 300 + 150 * std::sin(time + step);
+
+        float x2 = 300 + 150 * std::cos(time + 2.0f * step);
+        float y2 = 300 + 150 * std::sin(time + 2.0f * step);
+        draw_triangle(x0, y0, x1, y1, x2, y2, {1, 0, 0, 1});
+
+        draw_char(300.0f+30*cos(time*4), 300.0f+40*sin(time*4), 20.0f, 'H', {0, 1, 0, 1});
+
+        draw_text(100.0f, 300.0f, 80.0f, "Hello,World!", {0, 1, 0, 1});
+        draw_text(100.0f, 380.0f, 80.0f, std::format("{:.1f}", time), {0, 1, 0, 1});
+
         update_uniform_buffer();
 
         // Only reset the fence if we are submitting work
@@ -624,7 +820,7 @@ namespace xel::backend::vulkan
         // command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
         // command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
         // command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_ * 2 + WHITE], nullptr);
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_ * 2 + TEXTURE], nullptr);
         if (current_vertex_buffer_size_ > 0) {
             command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
             command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexType::eUint16);
@@ -727,7 +923,7 @@ namespace xel::backend::vulkan
 		    vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
 		    vk::PipelineStageFlagBits2::eColorAttachmentOutput         // dstStage
 		);
-		vk::ClearValue              clear_color     = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+		vk::ClearValue              clear_color     = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
 		vk::RenderingAttachmentInfo attachment_info = {
 		    .imageView   = swap_chain_.image_views()[image_index_],
 		    .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,

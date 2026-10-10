@@ -11,7 +11,7 @@ namespace xel::graphics
     {
     public:
         Triangle() {
-            vertices = ShapeMaker::makeHeartVertices(0.3f, 36);
+            vertices = ShapeMaker::makePolygonVertices(64, 0.4f, 0);
             indices = ShapeMaker::makeFanIndices(vertices.size());
             // vertices.push_back(Vertex{glm::vec2{0.f, 0.f}, glm::vec4{1.0f, 0.0f, 0.0f, 1.0f}, glm::vec2{0.5f, 1.0f}});
             // vertices.push_back(Vertex{glm::vec2{20.f, 0.f}, glm::vec4{0.0f, 1.0f, 0.0f, 1.0f}, glm::vec2{1.0f, 0.0f}});

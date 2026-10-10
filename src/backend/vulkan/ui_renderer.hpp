@@ -110,6 +110,17 @@ namespace xel::backend::vulkan
             vk::PipelineStageFlags2 dst_stage_mask
         );
 
+        void draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color);
+        void draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color);
+        void draw_rect(float x, float y, float width, float height, glm::vec4 color);
+        void draw_rect_uv(float x, float y, float width, float height, glm::vec4 color, float u0, float v0, float u1, float v1);
+        struct CharMetrics { int min_x; int max_x; };
+        std::array<CharMetrics, 256> char_metrics_{};
+        int font_cell_px_ = 8;
+        void compute_char_width_ratio(int tex_width, unsigned char* pixels);
+        void draw_char(float x, float y, float width, char ch, glm::vec4 color);
+        void draw_text(float x, float y, float width, const std::string& text, glm::vec4 color);
+
         void save_swapchain_image_to_png(uint32_t image_index, const std::string& path);
 
         vk::raii::DescriptorSetLayout descriptor_set_layout_ = nullptr;

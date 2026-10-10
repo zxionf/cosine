@@ -57,8 +57,8 @@ namespace xel::backend::vulkan
             .imageUsage       = vk::ImageUsageFlagBits::eColorAttachment,
             .imageSharingMode = vk::SharingMode::eExclusive,
             .preTransform     = surface_capabilities.currentTransform,
-            // .compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
-            .compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::ePreMultiplied,
+            .compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+            // .compositeAlpha   = vk::CompositeAlphaFlagBitsKHR::ePreMultiplied,
             .presentMode      = present_mode,
             .clipped          = true
         };
