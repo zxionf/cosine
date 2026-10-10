@@ -2,6 +2,7 @@
 
 #include "vulkan_context.hpp"
 #include "swap_chain.hpp"
+#include "../../graphics/drawable.hpp"
 #include "../../graphics/vertex.hpp"
 #include "../../graphics/triangle.hpp"
 
@@ -10,6 +11,8 @@
 
 namespace xel::backend::vulkan
 {
+    using Vertex = graphics::Vertex;
+
     struct UniformBufferObject
     {
         alignas(16) glm::mat4 model;
@@ -23,8 +26,6 @@ namespace xel::backend::vulkan
         glm::vec2 translate;
         float time;
     };
-
-    using Vertex = graphics::Vertex;
     // const std::vector<Vertex> vertices = {
     //     {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
     //     {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
@@ -110,6 +111,9 @@ namespace xel::backend::vulkan
             vk::PipelineStageFlags2 dst_stage_mask
         );
 
+
+        void draw(const graphics::Drawable& d);
+
         void draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color);
         void draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color);
         void draw_rect(float x, float y, float width, float height, glm::vec4 color);
@@ -171,14 +175,15 @@ namespace xel::backend::vulkan
         std::vector<vk::raii::Buffer>       device_index_buffers_;
         std::vector<vk::raii::DeviceMemory> device_index_memories_;
 
-        std::vector<Vertex>                 vertices_;
-        std::vector<uint16_t>               indices_;
+        graphics::DrawBatch batch_;
+        // std::vector<Vertex>                 vertices_;
+        // std::vector<uint16_t>               indices_;
         vk::DeviceSize                      current_vertex_buffer_size_ = 0;
         vk::DeviceSize                      current_index_buffer_size_  = 0;
         static constexpr size_t MAX_VERTICES_ = 65536;
         static constexpr size_t MAX_INDICES_ = 65536 * 3 / 2;
 
-        graphics::Triangle triangle_;
+        // graphics::Triangle triangle_;
 
         VulkanContext& context_;
         SwapChain& swap_chain_;

@@ -1,33 +1,33 @@
 #pragma once
 
-#include "vertex.hpp"
-#include "shape_maker.hpp"
+#include "drawable.hpp"
 
-#include <vector>
+#include <glm/glm.hpp>
 
 namespace xel::graphics
 {
-    class Triangle
+    class Triangle : public Drawable
     {
     public:
-        Triangle() {
-            vertices = ShapeMaker::makePolygonVertices(64, 0.4f, 0);
-            indices = ShapeMaker::makeFanIndices(vertices.size());
-            // vertices.push_back(Vertex{glm::vec2{0.f, 0.f}, glm::vec4{1.0f, 0.0f, 0.0f, 1.0f}, glm::vec2{0.5f, 1.0f}});
-            // vertices.push_back(Vertex{glm::vec2{20.f, 0.f}, glm::vec4{0.0f, 1.0f, 0.0f, 1.0f}, glm::vec2{1.0f, 0.0f}});
-            // vertices.push_back(Vertex{glm::vec2{0.f, 20.f}, glm::vec4{0.0f, 0.0f, 1.0f, 1.0f}, glm::vec2{0.0f, 0.0f}});
-            // indices = {0, 1, 2};
-        }
-        ~Triangle() {
-            vertices.clear();
-            indices.clear();
+        Triangle(float x0, float y0, float x1, float y1, float x2, float y2, glm::vec4 color)
+        : p0_{x0, y0}, p1_{x1, y1}, p2_{x2, y2}, color_{color}
+        {}
+
+        void append_to(DrawBatch& batch) const override
+        {
+            uint16_t base = static_cast<uint16_t>(batch.vertices.size());
+            batch.vertices.push_back({p0_, color_, {0,0}});
+            batch.vertices.push_back({p1_, color_, {0,0}});
+            batch.vertices.push_back({p2_, color_, {0,0}});
+
+            batch.indices.push_back(base);
+            batch.indices.push_back(base + 1);
+            batch.indices.push_back(base + 2);
         }
 
-        std::vector<Vertex> get_vertices() const { return vertices; }
-        std::vector<uint16_t> get_indices() const { return indices; }
     private:
-        std::vector<Vertex> vertices;
-        std::vector<uint16_t> indices;
+        glm::vec2 p0_, p1_, p2_;
+        glm::vec4 color_;
     };
 
 } // namespace xel::graphics

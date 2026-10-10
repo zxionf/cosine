@@ -1,5 +1,6 @@
 #include "ui_renderer.hpp"
 #include "../../graphics/triangle.hpp"
+#include "../../graphics/rectangle.hpp"
 
 #include <fstream>
 #include <chrono>
@@ -626,6 +627,11 @@ namespace xel::backend::vulkan
         memcpy(uniform_buffers_mapped_[frame_index_], &ubo, sizeof(ubo));
     }
 
+    void UIRenderer::draw(const graphics::Drawable& d)
+    {
+        d.append_to(batch_);
+    }
+
     void UIRenderer::draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color)
     {
         // 方向
@@ -647,16 +653,16 @@ namespace xel::backend::vulkan
         glm::vec2 c{x2 - px, y2 - py};
         glm::vec2 d{x2 + px, y2 + py};
 
-        uint16_t base = static_cast<uint16_t>(vertices_.size());
+        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
 
         // 4 个顶点，UV 随便填（用白纹理采样恒为 1）
-        vertices_.push_back({{a.x, a.y}, color, {0.0f, 0.0f}});
-        vertices_.push_back({{b.x, b.y}, color, {0.0f, 0.0f}});
-        vertices_.push_back({{c.x, c.y}, color, {0.0f, 0.0f}});
-        vertices_.push_back({{d.x, d.y}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{a.x, a.y}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{b.x, b.y}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{c.x, c.y}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{d.x, d.y}, color, {0.0f, 0.0f}});
 
         // 两个三角形
-        indices_.insert(indices_.end(), {
+        batch_.indices.insert(batch_.indices.end(), {
             base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
             base, static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3)
         });
@@ -664,14 +670,14 @@ namespace xel::backend::vulkan
 
     void UIRenderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
     {
-        uint16_t base = static_cast<uint16_t>(vertices_.size());
+        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
         // 0  3
         // 1  2
-        vertices_.push_back({{x,         y}, color, {0.0f, 0.0f}});
-        vertices_.push_back({{x + w,     y}, color, {0.0f, 0.0f}});
-        vertices_.push_back({{x + w, y + h}, color, {0.0f, 0.0f}});
-        vertices_.push_back({{x,     y + h}, color, {0.0f, 0.0f}});
-        indices_.insert(indices_.end(), {
+        batch_.vertices.push_back({{x,         y}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{x + w,     y}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{x + w, y + h}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{x,     y + h}, color, {0.0f, 0.0f}});
+        batch_.indices.insert(batch_.indices.end(), {
             base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
             static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
         });
@@ -679,14 +685,14 @@ namespace xel::backend::vulkan
 
     void UIRenderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color, float u0, float v0, float u1, float v1)
     {
-        uint16_t base = static_cast<uint16_t>(vertices_.size());
+        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
         // 0  3
         // 1  2
-        vertices_.push_back({{x,         y}, color, {u0, v0}});
-        vertices_.push_back({{x + w,     y}, color, {u1, v0}});
-        vertices_.push_back({{x + w, y + h}, color, {u1, v1}});
-        vertices_.push_back({{x,     y + h}, color, {u0, v1}});
-        indices_.insert(indices_.end(), {
+        batch_.vertices.push_back({{x,         y}, color, {u0, v0}});
+        batch_.vertices.push_back({{x + w,     y}, color, {u1, v0}});
+        batch_.vertices.push_back({{x + w, y + h}, color, {u1, v1}});
+        batch_.vertices.push_back({{x,     y + h}, color, {u0, v1}});
+        batch_.indices.insert(batch_.indices.end(), {
             base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
             static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
         });
@@ -694,11 +700,11 @@ namespace xel::backend::vulkan
 
     void UIRenderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color)
     {
-        uint16_t base = static_cast<uint16_t>(vertices_.size());
-        vertices_.push_back({{x1, y1}, color, {0.0f, 0.0f}});
-        vertices_.push_back({{x2, y2}, color, {0.0f, 0.0f}});
-        vertices_.push_back({{x3, y3}, color, {0.0f, 0.0f}});
-        indices_.insert(indices_.end(), {
+        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
+        batch_.vertices.push_back({{x1, y1}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{x2, y2}, color, {0.0f, 0.0f}});
+        batch_.vertices.push_back({{x3, y3}, color, {0.0f, 0.0f}});
+        batch_.indices.insert(batch_.indices.end(), {
             base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2)
         });
     }
@@ -729,12 +735,12 @@ namespace xel::backend::vulkan
         // v0 += halfTexel;
         // u1 -= halfTexel;
         // v1 -= halfTexel;
-        uint16_t base = static_cast<uint16_t>(vertices_.size());
-        vertices_.push_back({{x,            y}, color, {u0, v0}});
-        vertices_.push_back({{x + w,        y}, color, {u1, v0}});
-        vertices_.push_back({{x + w, y + size}, color, {u1, v1}});
-        vertices_.push_back({{x,     y + size}, color, {u0, v1}});
-        indices_.insert(indices_.end(), {
+        uint16_t base = static_cast<uint16_t>(batch_.vertices.size());
+        batch_.vertices.push_back({{x,            y}, color, {u0, v0}});
+        batch_.vertices.push_back({{x + w,        y}, color, {u1, v0}});
+        batch_.vertices.push_back({{x + w, y + size}, color, {u1, v1}});
+        batch_.vertices.push_back({{x,     y + size}, color, {u0, v1}});
+        batch_.indices.insert(batch_.indices.end(), {
             base, static_cast<uint16_t>(base + 1), static_cast<uint16_t>(base + 2),
             static_cast<uint16_t>(base + 2), static_cast<uint16_t>(base + 3), base
         });
@@ -763,21 +769,21 @@ namespace xel::backend::vulkan
     {
         begin_frame();
 
-        vertices_.clear();
-        indices_.clear();
+        batch_.vertices.clear();
+        batch_.indices.clear();
 
-        auto W = static_cast<float>(swap_chain_.extent().width);
-        auto H = static_cast<float>(swap_chain_.extent().height);
-        for (auto vertex : triangle_.get_vertices()) {
-            // ndc2pixel
-            // vertex.pos.x = (vertex.pos.x * 0.5f + 0.5f) * W;
-            // vertex.pos.y = (vertex.pos.y * 0.5f + 0.5f) * H;
-            vertex.pos = (vertex.pos * 0.5f + 0.5f) * glm::vec2(W, H);
-            vertices_.push_back(vertex);
-        }
-        for (auto index : triangle_.get_indices()) {
-            indices_.push_back(index);
-        }
+        // auto W = static_cast<float>(swap_chain_.extent().width);
+        // auto H = static_cast<float>(swap_chain_.extent().height);
+        // for (auto vertex : triangle_.get_vertices()) {
+        //     // ndc2pixel
+        //     // vertex.pos.x = (vertex.pos.x * 0.5f + 0.5f) * W;
+        //     // vertex.pos.y = (vertex.pos.y * 0.5f + 0.5f) * H;
+        //     vertex.pos = (vertex.pos * 0.5f + 0.5f) * glm::vec2(W, H);
+        //     vertices_.push_back(vertex);
+        // }
+        // for (auto index : triangle_.get_indices()) {
+        //     indices_.push_back(index);
+        // }
 
         draw_line(100.0f, 100.0f, 200.0f, 100.0f, 2.0f, {1, 0, 0, 1});
         draw_line(150.0f,  50.0f, 150.0f, 150.0f, 2.0f, {0, 1, 0, 1});
@@ -789,16 +795,15 @@ namespace xel::backend::vulkan
         float time = static_cast<float>(glfwGetTime());
         constexpr float PI = 3.14159265358979f;
         float step = 2.0f * PI / 3.0f;
-
         float x0 = 300 + 150 * std::cos(time);
         float y0 = 300 + 150 * std::sin(time);
-
         float x1 = 300 + 150 * std::cos(time + step);
         float y1 = 300 + 150 * std::sin(time + step);
-
         float x2 = 300 + 150 * std::cos(time + 2.0f * step);
         float y2 = 300 + 150 * std::sin(time + 2.0f * step);
         draw_triangle(x0, y0, x1, y1, x2, y2, {1, 0, 0, 1});
+
+        draw(graphics::Rectangle{0.0f, 0.0f, 40.0f, 40.0f, {0, 1, 0, 0.4}});
 
         draw_char(300.0f+30*cos(time*4), 300.0f+40*sin(time*4), 20.0f, 'H', {0, 1, 0, 1});
 
@@ -824,7 +829,7 @@ namespace xel::backend::vulkan
         if (current_vertex_buffer_size_ > 0) {
             command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
             command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexType::eUint16);
-            command_buffer.drawIndexed(static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
+            command_buffer.drawIndexed(static_cast<uint32_t>(batch_.indices.size()), 1, 0, 0, 0);
         }
 
         end_rendering(command_buffer);
@@ -1008,13 +1013,13 @@ namespace xel::backend::vulkan
 
     void UIRenderer::upload_vertex_data()
     {
-        current_vertex_buffer_size_ = vertices_.size() * sizeof(Vertex);
-        current_index_buffer_size_ = indices_.size() * sizeof(uint16_t);
+        current_vertex_buffer_size_ = batch_.vertices.size() * sizeof(Vertex);
+        current_index_buffer_size_ = batch_.indices.size() * sizeof(uint16_t);
 
         if (current_vertex_buffer_size_ == 0) return;
 
-        memcpy(staging_vertex_mapped_[frame_index_], vertices_.data(), current_vertex_buffer_size_);
-        memcpy(staging_index_mapped_[frame_index_], indices_.data(), current_index_buffer_size_);
+        memcpy(staging_vertex_mapped_[frame_index_], batch_.vertices.data(), current_vertex_buffer_size_);
+        memcpy(staging_index_mapped_[frame_index_], batch_.indices.data(), current_index_buffer_size_);
 
         command_buffers_[frame_index_].copyBuffer(*staging_vertex_buffers_[frame_index_], *device_vertex_buffers_[frame_index_], vk::BufferCopy{.size = current_vertex_buffer_size_});
         command_buffers_[frame_index_].copyBuffer(*staging_index_buffers_[frame_index_], *device_index_buffers_[frame_index_], vk::BufferCopy{.size = current_index_buffer_size_});
