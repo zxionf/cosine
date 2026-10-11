@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 
-namespace xel::backend::vulkan
+namespace xel::backend
 {
     Window::Window(int width, int height, std::string name) : width_{width}, height_{height}, window_name_{name}
     {
@@ -23,9 +23,8 @@ namespace xel::backend::vulkan
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
         window_ = glfwCreateWindow(width_, height_, window_name_.c_str(), nullptr, nullptr);
-        glfwSetWindowUserPointer(window_, this);
-        glfwSetFramebufferSizeCallback(window_, framebuffer_resize_callback);
-        // glfwSetMouseButtonCallback(window_, mouse_button_callback);
+
+        // glfwSetFramebufferSizeCallback(window_, framebuffer_resize_callback);
 
         // glfwSetWindowOpacity(window_, 0.5);
 
@@ -39,13 +38,5 @@ namespace xel::backend::vulkan
         xelWindow->framebuffer_resized_ = true;
         xelWindow->width_ = width;
         xelWindow->height_ = height;
-    }
-
-    void Window::mouse_button_callback(GLFWwindow* glfwWindow, int button, int action, int mods)
-    {
-        auto window = reinterpret_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
-        double mx, my;
-        glfwGetCursorPos(glfwWindow, &mx, &my);
-        std::cout << mx << "," << my << "\n";
     }
 }

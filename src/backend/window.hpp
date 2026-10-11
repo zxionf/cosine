@@ -1,15 +1,21 @@
 #pragma once
 
+#include "../events/event.hpp"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include <string>
+#include <functional>
 
-namespace xel::backend::vulkan
+namespace xel::backend
 {
     class Window
     {
     public:
+        using EventCallback = std::function<void(const xel::event::Event&)>;
+        void set_event_callback(const EventCallback& callback) { event_callback_ = std::move(callback); };
+
         Window(int width, int height, std::string name);
         ~Window();
 
@@ -24,14 +30,15 @@ namespace xel::backend::vulkan
         void reset_window_resized_flag() { framebuffer_resized_ = false; }
         GLFWwindow* get_glfw_window() { return window_; }
 
-    private:
         static void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
-        static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+    private:
         void init_window();
 
         int width_;
         int height_;
         bool framebuffer_resized_ = false;
+
+        EventCallback event_callback_;
 
         std::string window_name_;
         GLFWwindow* window_ = nullptr;

@@ -3,25 +3,24 @@ add_subdirectory(textures)
 find_package(Vulkan REQUIRED)
 add_executable(ex0
     main.cpp
-    first_app.cpp
-    xel_model.cpp
-    simple_render_system.cpp
 )
 target_link_libraries(ex0 PRIVATE glfw Vulkan::Vulkan)
 
 add_executable(ex4
     ex4.cpp
-    backend/vulkan/window.cpp
+    backend/window.cpp
     backend/vulkan/vulkan_context.cpp
     backend/vulkan/swap_chain.cpp
     backend/vulkan/ui_renderer.cpp
+    xel_application.cpp
+    ui/vbox.cpp
 )
 target_include_directories(ex4 PRIVATE ${STB_INCLUDE_DIR})
 target_link_libraries(ex4 PRIVATE glfw Vulkan::Vulkan)
 
 add_executable(ex2
     ex2.cpp
-    backend/vulkan/window.cpp
+    backend/window.cpp
     backend/vulkan/vulkan_context.cpp
     backend/vulkan/swap_chain.cpp
     backend/vulkan/ui_renderer.cpp

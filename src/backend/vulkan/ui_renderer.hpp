@@ -82,9 +82,6 @@ namespace xel::backend::vulkan
         void begin_rendering(vk::raii::CommandBuffer& command_buffer);
         void end_rendering(vk::raii::CommandBuffer& command_buffer);
 
-        // void record_command_buffer(uint32_t image_index);
-        // vk::raii::CommandBuffer& begin_command_buffer();
-        // void end_command_buffer(vk::raii::CommandBuffer& command_buffer);
         vk::raii::DescriptorSet& descriptor_set(uint32_t index, TextureSlot slot) { return descriptor_sets_[index * 2 + static_cast<uint32_t>(slot)]; }
 
         std::pair<vk::raii::Image, vk::raii::DeviceMemory> create_image(uint32_t width, uint32_t height,  vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
