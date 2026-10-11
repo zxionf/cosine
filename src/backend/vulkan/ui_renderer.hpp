@@ -40,6 +40,8 @@ namespace xel::backend::vulkan
         void end();
 
         void draw(const graphics::Drawable& d);
+        void set_scissor(float x, float y, float w, float h);
+        void reset_scissor();
 
         void draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color);
         void draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color);
@@ -49,8 +51,9 @@ namespace xel::backend::vulkan
         void draw_text(float x, float y, float width, const std::string& text, glm::vec4 color);
         void process_mouse_move(float x, float y);
 
-        uint32_t vertices_count() const { return batch_.vertices.size(); }
-        uint32_t indices_count() const { return batch_.indices.size(); }
+        // 大概统计
+        uint32_t vertices_count() const { uint32_t ret=0; for(const auto& batch : batches_){ret += batch.vertices.size();} return ret; }
+        uint32_t indices_count() const { uint32_t ret=0; for(const auto& batch : batches_){ret += batch.indices.size();} return ret; }
 
     private:
         void create_descriptor_set_layout();
@@ -113,6 +116,8 @@ namespace xel::backend::vulkan
         int font_cell_px_ = 8;
         std::array<CharMetrics, 256> char_metrics_{};
 
+        void flush_batch();
+
         void compute_char_width_ratio(int tex_width, unsigned char* pixels);
 
         void save_swapchain_image_to_png(uint32_t image_index, const std::string& path);
@@ -166,10 +171,9 @@ namespace xel::backend::vulkan
         std::vector<vk::raii::DeviceMemory> device_index_memories_;
 
         graphics::DrawBatch batch_;
-        // std::vector<Vertex>                 vertices_;
-        // std::vector<uint16_t>               indices_;
-        vk::DeviceSize                      current_vertex_buffer_size_ = 0;
-        vk::DeviceSize                      current_index_buffer_size_  = 0;
+        std::vector<graphics::DrawBatch> batches_;
+        size_t batch_index_ = 0;
+        graphics::DrawBatch& acquire_batch();
         static constexpr size_t MAX_VERTICES_ = 65536 * 4;
         static constexpr size_t MAX_INDICES_ = 65536 * 4 * 3 / 2;
 

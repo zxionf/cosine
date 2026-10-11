@@ -632,6 +632,48 @@ namespace xel::backend::vulkan
         d.append_to(batch_);
     }
 
+    graphics::DrawBatch& UIRenderer::acquire_batch()
+    {
+        if (batch_index_ < batches_.size()) {
+            auto& b = batches_[batch_index_];
+            b.vertices.clear();
+            b.indices.clear();
+            b.scissor = {0, 0, swap_chain_.extent().width, swap_chain_.extent().height};
+            b.vertex_offset = 0;
+            b.index_offset = 0;
+            batch_index_ ++;
+            return b;
+        }
+        batches_.emplace_back();
+        batch_index_ ++;
+        return batches_.back();
+    }
+
+    void UIRenderer::flush_batch()
+    {
+        if (batch_.vertices.empty()) return;
+        auto& b = acquire_batch();
+        b.vertices.insert(b.vertices.end(), batch_.vertices.begin(), batch_.vertices.end());
+        b.indices.insert(b.indices.end(), batch_.indices.begin(), batch_.indices.end());
+        b.scissor = batch_.scissor;
+
+        batch_.vertices.clear();
+        batch_.indices.clear();
+    }
+
+    void UIRenderer::set_scissor(float x, float y, float w, float h)
+    {
+        if (batch_.scissor != glm::vec4(x, y, w, h)) {
+            flush_batch();
+            batch_.scissor = {x, y, w, h};
+        }
+    }
+
+    void UIRenderer::reset_scissor()
+    {
+        set_scissor(0.0f, 0.0f, static_cast<float>(swap_chain_.extent().width), static_cast<float>(swap_chain_.extent().height));
+    }
+
     void UIRenderer::draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color)
     {
         // 方向
@@ -772,8 +814,14 @@ namespace xel::backend::vulkan
     {
         begin_frame();
 
-        batch_.vertices.clear();
-        batch_.indices.clear();
+        batch_index_ = 0;
+        // batch_.vertices.clear();
+        // batch_.indices.clear();
+        // batch_.index_offset = 0;
+        // batch_.vertex_offset = 0;
+        batches_.clear();
+        reset_scissor();
+
     }
 
     void UIRenderer::draw_frame()
@@ -826,16 +874,27 @@ namespace xel::backend::vulkan
         auto& command_buffer = command_buffers_[frame_index_];
         command_buffer.begin({});
         update_push_constants();
+        flush_batch();
         upload_vertex_data();
         begin_rendering(command_buffer);
         // command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
         // command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
         // command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_ * 2 + TEXTURE], nullptr);
-        if (current_vertex_buffer_size_ > 0) {
-            command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
-            command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexTypeValue<decltype(batch_.indices)::value_type>::value);
-            command_buffer.drawIndexed(static_cast<uint32_t>(batch_.indices.size()), 1, 0, 0, 0);
+        // if (current_vertex_buffer_size_ > 0) {
+        //     command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
+        //     command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexTypeValue<decltype(batch_.indices)::value_type>::value);
+        //     command_buffer.drawIndexed(static_cast<uint32_t>(batch_.indices.size()), 1, 0, 0, 0);
+        // }
+        for (const auto& batch : batches_) {
+            vk::Rect2D scissor{
+                .offset = {std::max(0, (int)batch.scissor.x), std::max(0, (int)batch.scissor.y)},
+                .extent = {std::min((uint32_t)batch.scissor.z, swap_chain_.extent().width), std::min((uint32_t)batch.scissor.w, swap_chain_.extent().height)}
+            };
+            command_buffer.setScissor(0, scissor);
+            command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {batch.vertex_offset});
+            command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], batch.index_offset, vk::IndexType::eUint32);
+            command_buffer.drawIndexed(static_cast<uint32_t>(batch.indices.size()), 1, 0, 0, 0);
         }
 
         end_rendering(command_buffer);
@@ -1022,16 +1081,27 @@ namespace xel::backend::vulkan
 
     void UIRenderer::upload_vertex_data()
     {
-        current_vertex_buffer_size_ = batch_.vertices.size() * sizeof(Vertex);
-        current_index_buffer_size_ = batch_.indices.size() * sizeof(uint32_t);
+        if (batches_.empty()) return;
+        vk::DeviceSize total_vertex_bytes = 0;
+        vk::DeviceSize total_index_bytes  = 0;
+        for (auto& batch : batches_) {
+            batch.vertex_offset = static_cast<uint32_t>(total_vertex_bytes);
+            batch.index_offset  = static_cast<uint32_t>(total_index_bytes);
+            total_vertex_bytes += batch.vertices.size() * sizeof(Vertex);
+            total_index_bytes  += batch.indices.size()  * sizeof(uint32_t);
+        }
+        uint8_t* vtx_dst = static_cast<uint8_t*>(staging_vertex_mapped_[frame_index_]);
+        uint8_t* idx_dst = static_cast<uint8_t*>(staging_index_mapped_[frame_index_]);
 
-        if (current_vertex_buffer_size_ == 0) return;
+        for (const auto& batch : batches_) {
+            size_t vtx_size = batch.vertices.size() * sizeof(Vertex);
+            size_t idx_size = batch.indices.size()  * sizeof(uint32_t);
+            memcpy(vtx_dst + batch.vertex_offset, batch.vertices.data(), vtx_size);
+            memcpy(idx_dst + batch.index_offset,  batch.indices.data(),  idx_size);
+        }
 
-        memcpy(staging_vertex_mapped_[frame_index_], batch_.vertices.data(), current_vertex_buffer_size_);
-        memcpy(staging_index_mapped_[frame_index_], batch_.indices.data(), current_index_buffer_size_);
-
-        command_buffers_[frame_index_].copyBuffer(*staging_vertex_buffers_[frame_index_], *device_vertex_buffers_[frame_index_], vk::BufferCopy{.size = current_vertex_buffer_size_});
-        command_buffers_[frame_index_].copyBuffer(*staging_index_buffers_[frame_index_], *device_index_buffers_[frame_index_], vk::BufferCopy{.size = current_index_buffer_size_});
+        command_buffers_[frame_index_].copyBuffer(*staging_vertex_buffers_[frame_index_], *device_vertex_buffers_[frame_index_], vk::BufferCopy{.size = total_vertex_bytes});
+        command_buffers_[frame_index_].copyBuffer(*staging_index_buffers_[frame_index_], *device_index_buffers_[frame_index_], vk::BufferCopy{.size = total_index_bytes});
 
         vk::BufferMemoryBarrier2 barriers[2] = {
             {
@@ -1043,7 +1113,7 @@ namespace xel::backend::vulkan
                 .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .buffer = *device_vertex_buffers_[frame_index_],
                 .offset = 0,
-                .size   = current_vertex_buffer_size_
+                .size   = total_vertex_bytes
             },
             {
                 .srcStageMask  = vk::PipelineStageFlagBits2::eTransfer,
@@ -1054,7 +1124,7 @@ namespace xel::backend::vulkan
                 .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
                 .buffer = *device_index_buffers_[frame_index_],
                 .offset = 0,
-                .size   = current_index_buffer_size_
+                .size   = total_index_bytes
             }
         };
         vk::DependencyInfo dep_info = {.bufferMemoryBarrierCount = 2, .pBufferMemoryBarriers = barriers};

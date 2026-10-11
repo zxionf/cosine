@@ -10,8 +10,11 @@ namespace xel::graphics
     {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
+        uint32_t vertex_offset = 0;
+        uint32_t index_offset = 0;
         // TextureId texture;
         // scissor bendmode
+        glm::vec4 scissor;
     };
 
     class Drawable
