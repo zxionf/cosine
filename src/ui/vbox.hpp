@@ -12,12 +12,12 @@ namespace xel::ui
     public:
         Vbox(float x, float y, float width, float height);
         ~Vbox();
-        void debug() { debug_ = true; }
+        void debug() override { debug_ = true; }
 
         void add(std::unique_ptr<Widget> child);
         void append_to(graphics::DrawBatch& batch) const override;
 
-        void layout();
+        void layout() override;
 
         float x() const override { return x_; }
         float y() const override { return y_; }
@@ -25,6 +25,7 @@ namespace xel::ui
         float height() const override { return height_; }
 
         void set_position(float x, float y) override { x_ = x; y_ = y; }
+        void set_size(float width, float height) override { width_ = width; height_ = height; }
     private:
         float x_ = 0;
         float y_ = 0;

@@ -14,6 +14,7 @@ add_executable(ex4
     backend/vulkan/ui_renderer.cpp
     xel_application.cpp
     ui/vbox.cpp
+    ui/root.cpp
 )
 target_include_directories(ex4 PRIVATE ${STB_INCLUDE_DIR})
 target_link_libraries(ex4 PRIVATE glfw Vulkan::Vulkan)

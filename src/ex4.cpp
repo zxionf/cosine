@@ -4,6 +4,7 @@
 #include "xel_application.hpp"
 #include "ui/vbox.hpp"
 #include "ui/rect.hpp"
+#include "ui/root.hpp"
 
 float srgb_to_linear(float c) {
     return (c <= 0.04045f) ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f);
@@ -36,6 +37,9 @@ int main()
     vbox.add(std::make_unique<xel::ui::Rect>(0, 0, 100, 100, glm::vec4{0.1f, 0.5f, 0.0f, 1.0f}));
     vbox.add(std::make_unique<xel::ui::Rect>(0, 0, 100, 200, glm::vec4{0.1f, 0.5f, 0.4f, 1.0f}));
     vbox.layout();
+
+    xel::ui::UIRoot root{0, 0, 1000, 600};
+
     while (!app.window_.should_close())
     {
         glfwPollEvents();

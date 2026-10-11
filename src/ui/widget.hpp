@@ -15,6 +15,10 @@ namespace xel::ui
         virtual float height() const = 0;
 
         virtual void set_position(float x, float y) = 0;
+        virtual void set_size(float width, float height) = 0;
+
+        virtual void debug() {}
+        virtual void layout() {}
 
         // 内边距
         virtual float padding_left()   const { return 0; }
@@ -23,9 +27,9 @@ namespace xel::ui
         virtual float padding_bottom() const { return 0; }
 
         // 外边距
-        virtual float margin_left()   const { return 0; }
-        virtual float margin_right()  const { return 0; }
-        virtual float margin_top()    const { return 0; }
-        virtual float margin_bottom() const { return 0; }
+        virtual float margin_left()    const { return 0; }
+        virtual float margin_right()   const { return 0; }
+        virtual float margin_top()     const { return 0; }
+        virtual float margin_bottom()  const { return 0; }
     };
 } // namespace xel::ui
