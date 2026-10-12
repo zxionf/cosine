@@ -5,22 +5,35 @@
 
 namespace xel::ui
 {
-    class Rect : public Widget
+    struct Rect
     {
-    public:
-        Rect(float x, float y, float width, float height, glm::vec4 color) : x_{x}, y_{y}, width_{width}, height_{height}, color_{color} {}
-        void append_to(graphics::DrawBatch& batch) const override {
-            graphics::Rectangle rectangle(x_, y_, width_, height_, color_);
-            rectangle.append_to(batch);
-        }
-        float x() const override { return x_; }
-        float y() const override { return y_; }
-        float width() const override { return width_; }
-        float height() const override { return height_; }
+        glm::vec2 pos;
+        glm::vec2 size;
+        glm::vec4 color;
 
-        void set_position(float x, float y) override { x_ = x; y_ = y; }
-    private:
-        float x_, y_, width_, height_;
-        glm::vec4 color_;
+        float left()   const { return pos.x; }
+        float right()  const { return pos.x + size.x; }
+        float top()    const { return pos.y; }
+        float bottom() const { return pos.y + size.y; }
     };
+
+    template <std::size_t I>
+    float get(const Rect& r) {
+        if constexpr (I == 0) return r.pos.x;
+        else if constexpr (I == 1) return r.pos.y;
+        else if constexpr (I == 2) return r.size.x;
+        else                  return r.size.y;
+    }
 } // namespace xel::ui
+
+namespace std {
+
+template <>
+struct tuple_size<xel::ui::Rect> : integral_constant<size_t, 4> {};
+
+template <size_t I>
+struct tuple_element<I, xel::ui::Rect> {
+    using type = float;
+};
+
+} // namespace std

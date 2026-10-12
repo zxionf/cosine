@@ -11,6 +11,7 @@ namespace xel::ui
     {
     public:
         Vbox(float x, float y, float width, float height);
+        Vbox(glm::vec2 pos, glm::vec2 size);
         ~Vbox();
         void debug() override { debug_ = true; }
 
@@ -24,13 +25,9 @@ namespace xel::ui
         float width() const override { return width_; }
         float height() const override { return height_; }
 
-        void set_position(float x, float y) override { x_ = x; y_ = y; }
-        void set_size(float width, float height) override { width_ = width; height_ = height; }
+        // void set_position(float x, float y) override { x_ = x; y_ = y; }
+        // void set_size(float width, float height) override { width_ = width; height_ = height; }
     private:
-        float x_ = 0;
-        float y_ = 0;
-        float width_ = 0;
-        float height_ = 0;
 
         float spacing_ = 4.0f;
         float padding_ = 4.0f;

@@ -2,9 +2,17 @@
 
 namespace xel::ui
 {
-    Vbox::Vbox(float x, float y, float width, float height)
-    : x_{x}, y_{y}, width_{width}, height_{height}
-    {}
+    Vbox::Vbox(float x, float y, float w, float height)
+    {
+        set_pos(x, y);
+        set_size(w, height);
+    }
+
+    Vbox::Vbox(glm::vec2 pos, glm::vec2 size)
+    {
+        set_pos(pos);
+        set_size(size);
+    }
 
     Vbox::~Vbox()
     {}
@@ -16,9 +24,9 @@ namespace xel::ui
 
     void Vbox::layout()
     {
-        float cur_y = y_ + padding_;
+        float cur_y = y() + padding_;
         for (auto& child : children_) {
-            child->set_position(x_ + padding_, cur_y);
+            child->set_pos(x() + padding_, cur_y);
             cur_y += child->height() + spacing_;
         }
     }
@@ -26,10 +34,11 @@ namespace xel::ui
     void Vbox::append_to(graphics::DrawBatch& batch) const
     {
         if (debug_) {
-            graphics::Line top_l{x_, y_, x_ + width_, y_, 1.0f, {0, 1, 0, 1}};
-            graphics::Line right_l{x_ + width_, y_, x_ + width_, y_ + height_, 1.0f, {0, 1, 0, 1}};
-            graphics::Line bottom_l{x_, y_ + height_, x_ + width_, y_ + height_, 1.0f, {0, 1, 0, 1}};
-            graphics::Line left_l{x_, y_, x_, y_ + height_, 1.0f, {0, 1, 0, 1}};
+            auto [x, y, w, h] = local_bounds();
+            graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, {0, 1, 0, 1}};
+            graphics::Line right_l  {x + w, y,      x + w,  y + h,  1.0f, {0, 1, 0, 1}};
+            graphics::Line bottom_l {x,     y + h,  x + w,  y + h,  1.0f, {0, 1, 0, 1}};
+            graphics::Line left_l   {x,     y,      x,      y + h,  1.0f, {0, 1, 0, 1}};
             top_l.append_to(batch);
             right_l.append_to(batch);
             bottom_l.append_to(batch);
