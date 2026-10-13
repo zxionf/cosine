@@ -8,27 +8,27 @@
 
 namespace xel::graphics
 {
-    struct Vertex
-    {
-        glm::vec2 pos;
-        glm::vec4 color;
-        glm::vec2 uv;
+struct Vertex
+{
+    glm::vec2 pos;
+    glm::vec4 color;
+    glm::vec2 uv;
 
-        static vk::VertexInputBindingDescription get_binding_description()
-        {
-            return {
-                .binding = 0,
-                .stride = sizeof(Vertex),
-                .inputRate = vk::VertexInputRate::eVertex
-            };
-        }
-        static std::array<vk::VertexInputAttributeDescription, 3> get_attribute_description()
-        {
-            return {{
-                {.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
-                {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32A32Sfloat, .offset = offsetof(Vertex, color)},
-                {.location = 2, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, uv)}
-            }};
-        }
-    };
+    static vk::VertexInputBindingDescription get_binding_description()
+    {
+        return {
+            .binding = 0,
+            .stride = sizeof(Vertex),
+            .inputRate = vk::VertexInputRate::eVertex
+        };
+    }
+    static std::array<vk::VertexInputAttributeDescription, 3> get_attribute_description()
+    {
+        return {{
+            {.location = 0, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, pos)},
+            {.location = 1, .binding = 0, .format = vk::Format::eR32G32B32A32Sfloat, .offset = offsetof(Vertex, color)},
+            {.location = 2, .binding = 0, .format = vk::Format::eR32G32Sfloat, .offset = offsetof(Vertex, uv)}
+        }};
+    }
+};
 } // namespace xel::graphics
