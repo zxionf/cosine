@@ -15,15 +15,10 @@ namespace xel::ui
         ~Vbox();
         void debug() override { debug_ = true; }
 
-        void add(std::unique_ptr<Widget> child);
+        void add(std::unique_ptr<Widget> child) override;
         void append_to(graphics::DrawBatch& batch) const override;
 
         void layout() override;
-
-        float x() const override { return x_; }
-        float y() const override { return y_; }
-        float width() const override { return width_; }
-        float height() const override { return height_; }
 
         // void set_position(float x, float y) override { x_ = x; y_ = y; }
         // void set_size(float width, float height) override { width_ = width; height_ = height; }

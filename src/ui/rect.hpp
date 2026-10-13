@@ -9,7 +9,6 @@ namespace xel::ui
     {
         glm::vec2 pos;
         glm::vec2 size;
-        glm::vec4 color;
 
         float left()   const { return pos.x; }
         float right()  const { return pos.x + size.x; }

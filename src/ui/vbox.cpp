@@ -33,17 +33,7 @@ namespace xel::ui
 
     void Vbox::append_to(graphics::DrawBatch& batch) const
     {
-        if (debug_) {
-            auto [x, y, w, h] = local_bounds();
-            graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, {0, 1, 0, 1}};
-            graphics::Line right_l  {x + w, y,      x + w,  y + h,  1.0f, {0, 1, 0, 1}};
-            graphics::Line bottom_l {x,     y + h,  x + w,  y + h,  1.0f, {0, 1, 0, 1}};
-            graphics::Line left_l   {x,     y,      x,      y + h,  1.0f, {0, 1, 0, 1}};
-            top_l.append_to(batch);
-            right_l.append_to(batch);
-            bottom_l.append_to(batch);
-            left_l.append_to(batch);
-        }
+        if (debug_) { debug_rect(batch); }
         for (auto& child : children_) {
             child->append_to(batch);
         }

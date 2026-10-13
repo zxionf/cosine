@@ -3,7 +3,7 @@
 #include "backend/vulkan/ui_renderer.hpp"
 #include "xel_application.hpp"
 #include "ui/vbox.hpp"
-#include "ui/rect.hpp"
+#include "ui/color_rect.hpp"
 #include "ui/root.hpp"
 
 float srgb_to_linear(float c) {
@@ -32,13 +32,15 @@ int main()
 {
     xel::Application app{1200, 800, "XEL"};
 
-    xel::ui::Vbox vbox{800, 80, 200, 400};
-    vbox.debug();
-    vbox.add(std::make_unique<xel::ui::Rect>(0, 0, 100, 100, glm::vec4{0.1f, 0.5f, 0.0f, 1.0f}));
-    vbox.add(std::make_unique<xel::ui::Rect>(0, 0, 100, 200, glm::vec4{0.1f, 0.5f, 0.4f, 1.0f}));
-    vbox.layout();
+    auto vbox = std::make_unique<xel::ui::Vbox>(800, 80, 200, 400);
+    vbox->debug();
+    vbox->add(std::make_unique<xel::ui::ColorRect>(0, 0, 100, 100, glm::vec4{0.1f, 0.5f, 0.0f, 1.0f}));
+    vbox->add(std::make_unique<xel::ui::ColorRect>(0, 0, 100, 200, glm::vec4{0.1f, 0.5f, 0.4f, 1.0f}));
+    vbox->layout();
 
     xel::ui::UIRoot root{0, 0, 1000, 600};
+    root.debug();
+    root.add(std::move(vbox));
 
     while (!app.window_.should_close())
     {
@@ -62,7 +64,7 @@ int main()
         app.renderer_.draw_text(700.0f, 160.0f, 24.0f*6, "XEL", {1.f, 0.f, 0.f, 1.0f});
         app.renderer_.reset_scissor();
 
-        app.renderer_.draw(vbox);
+        app.renderer_.draw(root);
 
         uint32_t vertices_count = app.renderer_.vertices_count();
         uint32_t indices_count = app.renderer_.indices_count();
@@ -70,6 +72,9 @@ int main()
         app.renderer_.draw_text(23.0f, 47.0f, 24.0f, std::format("indices: >{}", indices_count), {0.0f, 0.0f, 0.0f, 0.8f});
         app.renderer_.draw_text(20.0f, 20.0f, 24.0f, std::format("vertices: >{}", vertices_count), {0.0f, 1.0f, 0.0f, 0.8f});
         app.renderer_.draw_text(20.0f, 44.0f, 24.0f, std::format("indices: >{}", indices_count), {0.0f, 1.0f, 0.0f, 0.8f});
+
+        // app.renderer_.draw_frame();
+
         app.renderer_.end();
     }
     app.vulkan_context_.device().waitIdle();
