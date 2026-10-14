@@ -27,6 +27,17 @@ public:
         graphics::Rectangle rectangle(x(), y(), width(), height(), color_);
         rectangle.append_to(batch);
     }
+
+    glm::vec2 measure(glm::vec2 constraints) override
+    {
+        return local_bounds().size;
+    }
+
+    void arrange(Rect slot) override
+    {
+        set_pos(slot.pos);
+        set_size(slot.size);
+    }
 private:
     glm::vec4 color_;
 };

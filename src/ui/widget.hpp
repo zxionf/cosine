@@ -6,6 +6,7 @@
 #include "align.hpp"
 
 #include <memory>
+#include <optional>
 
 namespace xel::ui
 {
@@ -45,6 +46,7 @@ public:
     virtual glm::vec2 measure(glm::vec2 constraints) = 0;
     virtual void arrange(Rect slot) = 0;
     void set_align(Align a) { align_self_ = a; has_align_ = true; }
+    std::optional<Align> align_self() const { return has_align_ ? std::optional<Align>(align_self_) : std::nullopt; }
 
     // 内边距
     virtual float padding_left()   const { return 0; }

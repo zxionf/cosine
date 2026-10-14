@@ -29,4 +29,19 @@ void UIRoot::layout()
         child->layout();
     }
 }
+
+glm::vec2 UIRoot::measure(glm::vec2 constraints)
+{
+    for (auto& child : children_) {
+        child->measure(constraints);
+    }
+    return local_bounds().size;
+}
+
+void UIRoot::arrange(Rect slot)
+{
+    for (auto& child : children_) {
+        child->arrange(slot);
+    }
+}
 } // namespace xel::ui
