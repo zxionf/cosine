@@ -19,7 +19,7 @@ Application::~Application()
 void Application::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-    app->event_tester_.process_event(event::InputEvent{event::InputEvent::Type::MouseScroll, button, action, mods});
+    // app->event_tester_.process_event(event::InputEvent{event::InputEvent::Type::MouseScroll, button, action, mods});
 }
 
 void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)

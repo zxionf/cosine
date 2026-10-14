@@ -33,7 +33,7 @@ void Vbox::layout()
 
 void Vbox::append_to(graphics::DrawBatch& batch) const
 {
-    if (debug_) { debug_rect(batch); }
+    if (is_debug()) { debug_rect(batch); }
     for (auto& child : children_) {
         child->append_to(batch);
     }

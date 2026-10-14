@@ -3,6 +3,7 @@
 #include "../graphics/drawable.hpp"
 #include "../graphics/line.hpp"
 #include "rect.hpp"
+#include "align.hpp"
 
 #include <memory>
 
@@ -26,7 +27,8 @@ public:
     virtual void set_size(glm::vec2 size) { local_.size = size; }
 
     virtual void add(std::unique_ptr<Widget> child) {}
-    virtual void debug() {}
+    virtual void debug() { debug_ = true; }
+    bool is_debug() const { return debug_; }
     void debug_rect(graphics::DrawBatch& batch) const {
         auto [x, y, w, h] = local_;
         graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, {0, 1, 0, 1}};
@@ -38,7 +40,11 @@ public:
         bottom_l.append_to(batch);
         left_l.append_to(batch);
     }
+
     virtual void layout() {}
+    virtual glm::vec2 measure(glm::vec2 constraints) = 0;
+    virtual void arrange(Rect slot) = 0;
+    void set_align(Align a) { align_self_ = a; has_align_ = true; }
 
     // 内边距
     virtual float padding_left()   const { return 0; }
@@ -54,5 +60,8 @@ public:
 private:
     Rect local_;
     bool visible_ = true;
+    bool debug_ = false;
+    Align align_self_ = Align::top_left();
+    bool has_align_ = false;
 };
 } // namespace xel::ui

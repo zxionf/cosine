@@ -24,3 +24,6 @@ xel-vs-extension/node_modules/
 target/
 
 .cache/
+
+# clion
+cmake-build-debug/
