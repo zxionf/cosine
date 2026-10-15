@@ -26,6 +26,7 @@ void UIRoot::append_to(graphics::DrawBatch& batch) const
 void UIRoot::layout()
 {
     for (auto& child : children_) {
+        child->set_pos(x()+child->x(), y()+child->y());
         child->layout();
     }
 }

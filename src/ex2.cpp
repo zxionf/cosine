@@ -14,7 +14,7 @@ struct Particle {
     float vx, vy;
 };
 
-void draw_circle(xel::backend::vulkan::UIRenderer& ui, float cx, float cy, float r,
+void draw_circle(xel::backend::vulkan::Renderer& ui, float cx, float cy, float r,
                  glm::vec4 color, int segments = 12)
 {
     constexpr float PI = 3.14159265358979f;
@@ -32,10 +32,10 @@ void draw_circle(xel::backend::vulkan::UIRenderer& ui, float cx, float cy, float
 int main()
 {
     using namespace xel::backend::vulkan;
-    Window window{1200, 800, "xel"};
+    xel::backend::Window window{1200, 800, "xel"};
     VulkanContext ctx{window};
     SwapChain swap_chain{ctx, window};
-    UIRenderer renderer{ctx, swap_chain};
+    Renderer renderer{ctx, swap_chain};
 
     constexpr float PI = 3.14159265358979f;
 

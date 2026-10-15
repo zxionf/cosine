@@ -25,15 +25,15 @@ struct PushConstant
     float time;
 };
 
-class UIRenderer
+class Renderer
 {
 public:
     constexpr static int MAX_FRAMES_IN_FLIGHT = 2;
     enum TextureSlot {WHITE = 0, TEXTURE = 1};
     struct CharMetrics { int min_x; int max_x; };
 
-    UIRenderer(VulkanContext& context, SwapChain& swap_chain);
-    ~UIRenderer();
+    Renderer(VulkanContext& context, SwapChain& swap_chain);
+    ~Renderer();
 
     void draw_frame();
     void begin();

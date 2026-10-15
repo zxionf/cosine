@@ -17,7 +17,7 @@
 
 namespace xel::backend::vulkan
 {
-UIRenderer::UIRenderer(VulkanContext& context, SwapChain& swap_chain) : context_{context}, swap_chain_{swap_chain}
+Renderer::Renderer(VulkanContext& context, SwapChain& swap_chain) : context_{context}, swap_chain_{swap_chain}
 {
     create_descriptor_set_layout();
     create_pipeline();
@@ -40,9 +40,9 @@ UIRenderer::UIRenderer(VulkanContext& context, SwapChain& swap_chain) : context_
     create_command_buffers();
     create_sync_objects();
 }
-UIRenderer::~UIRenderer() {}
+Renderer::~Renderer() {}
 
-void UIRenderer::create_descriptor_set_layout()
+void Renderer::create_descriptor_set_layout()
 {
     std::array<vk::DescriptorSetLayoutBinding, 2> ubo_layout_bindings{{
         {
@@ -64,7 +64,7 @@ void UIRenderer::create_descriptor_set_layout()
     descriptor_set_layout_ = vk::raii::DescriptorSetLayout{context_.device(), layout_info};
 }
 
-void UIRenderer::create_pipeline()
+void Renderer::create_pipeline()
 {
     // 作色器
     vk::raii::ShaderModule shader_module = create_shader_module(read_file("shaders/ui.slang.spv"));
@@ -208,7 +208,7 @@ void UIRenderer::create_pipeline()
     pipeline_ = vk::raii::Pipeline{context_.device(), nullptr, pipeline_create_info_chain.get<vk::GraphicsPipelineCreateInfo>()};
 }
 
-void UIRenderer::create_command_pool()
+void Renderer::create_command_pool()
 {
     vk::CommandPoolCreateInfo poolInfo{
         .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
@@ -218,7 +218,7 @@ void UIRenderer::create_command_pool()
     command_pool_ = vk::raii::CommandPool{context_.device(), poolInfo};
 }
 
-void UIRenderer::create_white_texture()
+void Renderer::create_white_texture()
 {
     uint8_t white_pixel[4] = {255, 255, 255, 255};
     vk::DeviceSize image_size = 4;
@@ -237,7 +237,7 @@ void UIRenderer::create_white_texture()
     white_image_view_ = create_image_view(*white_image_, vk::Format::eR8G8B8A8Unorm);
 }
 
-void UIRenderer::compute_char_width_ratio(int tex_width, unsigned char* pixels)
+void Renderer::compute_char_width_ratio(int tex_width, unsigned char* pixels)
 {
     constexpr int COLS = 16;
     constexpr int ROWS = 16;
@@ -263,7 +263,7 @@ void UIRenderer::compute_char_width_ratio(int tex_width, unsigned char* pixels)
     }
 }
 
-void UIRenderer::create_texture_image()
+void Renderer::create_texture_image()
 {
     int tex_width, tex_height, tex_channels;
     stbi_uc* pixels = stbi_load("default8.png", &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
@@ -289,7 +289,7 @@ void UIRenderer::create_texture_image()
     end_single_time_commands(std::move(command_buffer));
 }
 
-void UIRenderer::create_texture_sampler()
+void Renderer::create_texture_sampler()
 {
     vk::PhysicalDeviceProperties properties = context_.physical_device().getProperties();
     vk::SamplerCreateInfo sampler_info{
@@ -310,12 +310,12 @@ void UIRenderer::create_texture_sampler()
     texture_sampler_ = vk::raii::Sampler{context_.device(), sampler_info};
 }
 
-void UIRenderer::create_texture_image_view()
+void Renderer::create_texture_image_view()
 {
     texture_image_view_ = create_image_view(*texture_image_, vk::Format::eR8G8B8A8Srgb);
 }
 
-vk::raii::ImageView UIRenderer::create_image_view(const vk::Image& image, vk::Format format)
+vk::raii::ImageView Renderer::create_image_view(const vk::Image& image, vk::Format format)
 {
     // TODO
     /* 这个函数可以用来化简swapchain中create_image_views()函数*/
@@ -328,7 +328,7 @@ vk::raii::ImageView UIRenderer::create_image_view(const vk::Image& image, vk::Fo
     return vk::raii::ImageView{context_.device(), view_info};
 }
 
-std::pair<vk::raii::Image, vk::raii::DeviceMemory> UIRenderer::create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties)
+std::pair<vk::raii::Image, vk::raii::DeviceMemory> Renderer::create_image(uint32_t width, uint32_t height, vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties)
 {
     vk::ImageCreateInfo image_info{
         .imageType   = vk::ImageType::e2D,
@@ -352,7 +352,7 @@ std::pair<vk::raii::Image, vk::raii::DeviceMemory> UIRenderer::create_image(uint
     return {std::move(image), std::move(image_memory)};
 }
 
-void UIRenderer::copy_buffer_to_image(vk::raii::CommandBuffer& command_buffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height)
+void Renderer::copy_buffer_to_image(vk::raii::CommandBuffer& command_buffer, const vk::raii::Buffer& buffer, vk::raii::Image& image, uint32_t width, uint32_t height)
 {
     vk::BufferImageCopy region{
         .bufferOffset      = 0,
@@ -365,7 +365,7 @@ void UIRenderer::copy_buffer_to_image(vk::raii::CommandBuffer& command_buffer, c
     command_buffer.copyBufferToImage(buffer, image, vk::ImageLayout::eTransferDstOptimal, region);
 }
 
-void UIRenderer::transition_image_layout(vk::raii::CommandBuffer& command_buffer, const vk::raii::Image& image, vk::ImageLayout old_layout, vk::ImageLayout new_layout)
+void Renderer::transition_image_layout(vk::raii::CommandBuffer& command_buffer, const vk::raii::Image& image, vk::ImageLayout old_layout, vk::ImageLayout new_layout)
 {
     vk::ImageMemoryBarrier barrier{
         .oldLayout = old_layout,
@@ -394,7 +394,7 @@ void UIRenderer::transition_image_layout(vk::raii::CommandBuffer& command_buffer
     command_buffer.pipelineBarrier(source_stage, destination_stage, {}, {}, nullptr, barrier);
 }
 
-vk::raii::CommandBuffer UIRenderer::begin_single_time_commands()
+vk::raii::CommandBuffer Renderer::begin_single_time_commands()
 {
     vk::CommandBufferAllocateInfo alloc_info{
         .commandPool = command_pool_,
@@ -411,7 +411,7 @@ vk::raii::CommandBuffer UIRenderer::begin_single_time_commands()
     return std::move(command_buffer);
 }
 
-void UIRenderer::end_single_time_commands(vk::raii::CommandBuffer&& command_buffer)
+void Renderer::end_single_time_commands(vk::raii::CommandBuffer&& command_buffer)
 {
     command_buffer.end();
 
@@ -423,7 +423,7 @@ void UIRenderer::end_single_time_commands(vk::raii::CommandBuffer&& command_buff
     context_.graphics_queue().waitIdle();
 }
 
-// void UIRenderer::create_vertex_buffer()
+// void Renderer::create_vertex_buffer()
 // {
     // vk::DeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
     // auto [staging_buffer, staging_buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -435,7 +435,7 @@ void UIRenderer::end_single_time_commands(vk::raii::CommandBuffer&& command_buff
     // copy_buffer(staging_buffer, vertex_buffer_, buffer_size);
 // }
 
-// void UIRenderer::create_index_buffer()
+// void Renderer::create_index_buffer()
 // {
     // vk::DeviceSize buffer_size = sizeof(indices[0]) * indices.size();
     // auto [staging_buffer, staging_buffer_memory] = create_buffer(buffer_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
@@ -447,14 +447,14 @@ void UIRenderer::end_single_time_commands(vk::raii::CommandBuffer&& command_buff
     // copy_buffer(staging_buffer, index_buffer_, buffer_size);
 // }
 
-void UIRenderer::copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size)
+void Renderer::copy_buffer(vk::raii::Buffer& src, vk::raii::Buffer& dst, vk::DeviceSize size)
 {
     vk::raii::CommandBuffer command_copy_buffer = begin_single_time_commands();
     command_copy_buffer.copyBuffer(*src, *dst, vk::BufferCopy{.size = size});
     end_single_time_commands(std::move(command_copy_buffer));
 }
 
-uint32_t UIRenderer::find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties)
+uint32_t Renderer::find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlags properties)
 {
     vk::PhysicalDeviceMemoryProperties mem_properties = context_.physical_device().getMemoryProperties();
     for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++) {
@@ -465,7 +465,7 @@ uint32_t UIRenderer::find_memory_type(uint32_t type_filter, vk::MemoryPropertyFl
     throw std::runtime_error("failed to find suitable memory type!");
 }
 
-std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> UIRenderer::create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
+std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> Renderer::create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
 {
     vk::BufferCreateInfo buffer_info{
         .size = size,
@@ -483,7 +483,7 @@ std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> UIRenderer::create_buffer(vk
     return {std::move(buffer), std::move(buffer_memory)};
 }
 
-void UIRenderer::create_uniform_buffers()
+void Renderer::create_uniform_buffers()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vk::DeviceSize buffer_size = sizeof(UniformBufferObject);
@@ -494,7 +494,7 @@ void UIRenderer::create_uniform_buffers()
     }
 }
 
-void UIRenderer::create_descriptor_pool()
+void Renderer::create_descriptor_pool()
 {
     std::array<vk::DescriptorPoolSize, 2> pool_size{{
         {
@@ -514,7 +514,7 @@ void UIRenderer::create_descriptor_pool()
     descriptor_pool_ = vk::raii::DescriptorPool(context_.device(), pool_info);
 }
 
-void UIRenderer::create_descriptor_sets()
+void Renderer::create_descriptor_sets()
 {
     std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT * 2, *descriptor_set_layout_);
     vk::DescriptorSetAllocateInfo alloc_info{
@@ -579,7 +579,7 @@ void UIRenderer::create_descriptor_sets()
     }
 }
 
-void UIRenderer::create_command_buffers()
+void Renderer::create_command_buffers()
 {
     vk::CommandBufferAllocateInfo alloc_info{
         .commandPool = command_pool_,
@@ -589,7 +589,7 @@ void UIRenderer::create_command_buffers()
     command_buffers_ = vk::raii::CommandBuffers(context_.device(), alloc_info);
 }
 
-void UIRenderer::create_sync_objects()
+void Renderer::create_sync_objects()
 {
     assert(present_complete_semaphores_.empty() && render_finished_semaphores_.empty() && in_flight_fences_.empty());
     for (size_t i = 0; i < swap_chain_.images().size(); i++)
@@ -600,7 +600,7 @@ void UIRenderer::create_sync_objects()
     }
 }
 
-void UIRenderer::update_push_constants()
+void Renderer::update_push_constants()
 {
     PushConstant push_constant{
         .scale      = glm::vec2(2.0f / swap_chain_.extent().width, 2.0f / swap_chain_.extent().height),
@@ -610,7 +610,7 @@ void UIRenderer::update_push_constants()
     command_buffers_[frame_index_].pushConstants<PushConstant>(pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, push_constant);
 }
 
-void UIRenderer::update_uniform_buffer()
+void Renderer::update_uniform_buffer()
 {
     static auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -627,12 +627,12 @@ void UIRenderer::update_uniform_buffer()
     memcpy(uniform_buffers_mapped_[frame_index_], &ubo, sizeof(ubo));
 }
 
-void UIRenderer::draw(const graphics::Drawable& d)
+void Renderer::draw(const graphics::Drawable& d)
 {
     d.append_to(batch_);
 }
 
-graphics::DrawBatch& UIRenderer::acquire_batch()
+graphics::DrawBatch& Renderer::acquire_batch()
 {
     if (batch_index_ < batches_.size()) {
         auto& b = batches_[batch_index_];
@@ -649,7 +649,7 @@ graphics::DrawBatch& UIRenderer::acquire_batch()
     return batches_.back();
 }
 
-void UIRenderer::flush_batch()
+void Renderer::flush_batch()
 {
     if (batch_.vertices.empty()) return;
     auto& b = acquire_batch();
@@ -661,7 +661,7 @@ void UIRenderer::flush_batch()
     batch_.indices.clear();
 }
 
-void UIRenderer::set_scissor(float x, float y, float w, float h)
+void Renderer::set_scissor(float x, float y, float w, float h)
 {
     if (batch_.scissor != glm::vec4(x, y, w, h)) {
         flush_batch();
@@ -669,12 +669,12 @@ void UIRenderer::set_scissor(float x, float y, float w, float h)
     }
 }
 
-void UIRenderer::reset_scissor()
+void Renderer::reset_scissor()
 {
     set_scissor(0.0f, 0.0f, static_cast<float>(swap_chain_.extent().width), static_cast<float>(swap_chain_.extent().height));
 }
 
-void UIRenderer::draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color)
+void Renderer::draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color)
 {
     // 方向
     float dx = x2 - x1;
@@ -710,7 +710,7 @@ void UIRenderer::draw_line(float x1, float y1, float x2, float y2, float width, 
     });
 }
 
-void UIRenderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
+void Renderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
 {
     uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
     // 0  3
@@ -725,7 +725,7 @@ void UIRenderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
     });
 }
 
-void UIRenderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color, float u0, float v0, float u1, float v1)
+void Renderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color, float u0, float v0, float u1, float v1)
 {
     uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
     // 0  3
@@ -740,7 +740,7 @@ void UIRenderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 colo
     });
 }
 
-void UIRenderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color)
+void Renderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color)
 {
     uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
     batch_.vertices.push_back({{x1, y1}, color, {0.0f, 0.0f}});
@@ -751,7 +751,7 @@ void UIRenderer::draw_triangle(float x1, float y1, float x2, float y2, float x3,
     });
 }
 
-void UIRenderer::draw_char(float x, float y, float size, char ch, glm::vec4 color)
+void Renderer::draw_char(float x, float y, float size, char ch, glm::vec4 color)
 {
     int index = static_cast<unsigned char>(ch);
     const auto& m = char_metrics_[index];
@@ -788,7 +788,7 @@ void UIRenderer::draw_char(float x, float y, float size, char ch, glm::vec4 colo
     });
 }
 
-void UIRenderer::draw_text(float x, float y, float size, const std::string& text, glm::vec4 color)
+void Renderer::draw_text(float x, float y, float size, const std::string& text, glm::vec4 color)
 {
     float pen_x = x;
     for (char ch : text) {
@@ -807,10 +807,10 @@ void UIRenderer::draw_text(float x, float y, float size, const std::string& text
     }
 }
 
-void UIRenderer::process_mouse_move(float x, float y)
+void Renderer::process_mouse_move(float x, float y)
 {}
 
-void UIRenderer::begin()
+void Renderer::begin()
 {
     begin_frame();
 
@@ -824,7 +824,7 @@ void UIRenderer::begin()
 
 }
 
-void UIRenderer::draw_frame()
+void Renderer::draw_frame()
 {
     // auto W = static_cast<float>(swap_chain_.extent().width);
     // auto H = static_cast<float>(swap_chain_.extent().height);
@@ -865,7 +865,7 @@ void UIRenderer::draw_frame()
     draw_text(100.0f, 380.0f, 80.0f, std::format("{:.1f}", time), {0, 1, 0, 1});
 }
 
-void UIRenderer::end()
+void Renderer::end()
 {
     update_uniform_buffer();
 
@@ -902,7 +902,7 @@ void UIRenderer::end()
     end_frame();
 }
 
-void UIRenderer::begin_frame()
+void Renderer::begin_frame()
 {
     auto fence_result = context_.device().waitForFences(*in_flight_fences_[frame_index_], vk::True, UINT64_MAX);
     if (fence_result != vk::Result::eSuccess) {
@@ -926,7 +926,7 @@ void UIRenderer::begin_frame()
     context_.device().resetFences(*in_flight_fences_[frame_index_]);
 }
 
-void UIRenderer::end_frame()
+void Renderer::end_frame()
 {
     vk::PipelineStageFlags wait_destination_stage_mask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
     const vk::SubmitInfo   submitInfo{
@@ -968,7 +968,7 @@ void UIRenderer::end_frame()
     frame_index_ = (frame_index_ + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void UIRenderer::end_rendering(vk::raii::CommandBuffer& command_buffer)
+void Renderer::end_rendering(vk::raii::CommandBuffer& command_buffer)
 {
     command_buffer.endRendering();
 
@@ -984,7 +984,7 @@ void UIRenderer::end_rendering(vk::raii::CommandBuffer& command_buffer)
     );
 }
 
-void UIRenderer::begin_rendering(vk::raii::CommandBuffer& command_buffer)
+void Renderer::begin_rendering(vk::raii::CommandBuffer& command_buffer)
 {
     // Before starting rendering, transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
     transition_image_layout(
@@ -1048,7 +1048,7 @@ void UIRenderer::begin_rendering(vk::raii::CommandBuffer& command_buffer)
     command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
 }
 
-void UIRenderer::create_dynamic_buffers()
+void Renderer::create_dynamic_buffers()
 {
     vk::DeviceSize vtx_size = sizeof(Vertex) * MAX_VERTICES_;
     vk::DeviceSize idx_size = sizeof(uint32_t) * MAX_INDICES_;
@@ -1079,7 +1079,7 @@ void UIRenderer::create_dynamic_buffers()
     }
 }
 
-void UIRenderer::upload_vertex_data()
+void Renderer::upload_vertex_data()
 {
     if (batches_.empty()) return;
     vk::DeviceSize total_vertex_bytes = 0;
@@ -1131,7 +1131,7 @@ void UIRenderer::upload_vertex_data()
     command_buffers_[frame_index_].pipelineBarrier2(dep_info);
 }
 
-void UIRenderer::transition_image_layout(
+void Renderer::transition_image_layout(
         uint32_t                imageIndex,
         vk::ImageLayout         old_layout,
         vk::ImageLayout         new_layout,
@@ -1163,7 +1163,7 @@ void UIRenderer::transition_image_layout(
     command_buffers_[frame_index_].pipelineBarrier2(dependency_info);
 }
 
-void UIRenderer::save_swapchain_image_to_png(uint32_t image_index, const std::string& path)
+void Renderer::save_swapchain_image_to_png(uint32_t image_index, const std::string& path)
 {
     vk::Extent2D extent = swap_chain_.extent();
     vk::DeviceSize image_size = extent.width * extent.height * 4; // RGBA8
@@ -1249,7 +1249,7 @@ void UIRenderer::save_swapchain_image_to_png(uint32_t image_index, const std::st
     staging_memory.unmapMemory();
 }
 
-vk::raii::ShaderModule UIRenderer::create_shader_module(const std::vector<char>& code) const {
+vk::raii::ShaderModule Renderer::create_shader_module(const std::vector<char>& code) const {
     vk::ShaderModuleCreateInfo create_info{
         .codeSize = code.size() * sizeof(char),
         .pCode = reinterpret_cast<const uint32_t*>(code.data())
@@ -1260,7 +1260,7 @@ vk::raii::ShaderModule UIRenderer::create_shader_module(const std::vector<char>&
     return shader_module;
 }
 
-std::vector<char> UIRenderer::read_file(const std::string& filename)
+std::vector<char> Renderer::read_file(const std::string& filename)
 {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {

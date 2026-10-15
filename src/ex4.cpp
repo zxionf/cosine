@@ -4,7 +4,7 @@
 #include "xel_application.hpp"
 #include "ui/vbox.hpp"
 #include "ui/color_rect.hpp"
-#include "ui/root.hpp"
+#include "ui/ui_system.hpp"
 
 float srgb_to_linear(float c) {
     return (c <= 0.04045f) ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f);
@@ -35,16 +35,16 @@ int main()
     auto vbox = std::make_unique<xel::ui::Vbox>(800, 80, 200, 400);
     vbox->debug();
     vbox->add(std::make_unique<xel::ui::ColorRect>(0, 0, 100, 100, glm::vec4{0.1f, 0.5f, 0.0f, 1.0f}));
-    vbox->add(std::make_unique<xel::ui::ColorRect>(0, 0, 100, 200, glm::vec4{0.1f, 0.5f, 0.4f, 1.0f}));
-    vbox->layout();
+    vbox->add(std::make_unique<xel::ui::ColorRect>(0, 0, 150, 200, glm::vec4{0.1f, 0.5f, 0.4f, 1.0f}));
 
-    xel::ui::UIRoot root{0, 0, 1000, 600};
-    root.debug();
-    root.add(std::move(vbox));
+    app.uisys.root()->add(std::move(vbox));
+    app.uisys.root()->debug();
+    app.uisys.root()->layout();
 
     while (!app.window_.should_close())
     {
         glfwPollEvents();
+        app.uisys.tick();
         app.renderer_.begin();
         float window_w = static_cast<float>(app.window_.get_extent().width);
         float window_h = static_cast<float>(app.window_.get_extent().height);
@@ -64,7 +64,7 @@ int main()
         app.renderer_.draw_text(700.0f, 160.0f, 24.0f*6, "XEL", {1.f, 0.f, 0.f, 1.0f});
         app.renderer_.reset_scissor();
 
-        app.renderer_.draw(root);
+        app.renderer_.draw(*app.uisys.root());
 
         uint32_t vertices_count = app.renderer_.vertices_count();
         uint32_t indices_count = app.renderer_.indices_count();

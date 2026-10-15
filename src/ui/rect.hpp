@@ -14,6 +14,8 @@ struct Rect
     float right()  const { return pos.x + size.x; }
     float top()    const { return pos.y; }
     float bottom() const { return pos.y + size.y; }
+
+    bool contains(glm::vec2 pos) const { return pos.x >= left() && pos.x <= right() && pos.y >= top() && pos.y <= bottom(); }
 };
 
 template <std::size_t I>

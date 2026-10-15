@@ -20,14 +20,18 @@ public:
     virtual float width()   const { return local_.size.x; }
     virtual float height()  const { return local_.size.y; }
 
-    Rect local_bounds() const { return local_; }
+    Rect local_bounds()  const { return local_; }
+    Rect global_bounds() const { return global_; }
 
     virtual void set_pos(float x, float y) { local_.pos = {x, y}; }
     virtual void set_size(float width, float height) { local_.size = {width, height}; }
     virtual void set_pos(glm::vec2 pos) { local_.pos = pos; }
     virtual void set_size(glm::vec2 size) { local_.size = size; }
+    virtual void set_global_bounds(Rect bounds) { global_ = bounds; }
 
     virtual void add(std::unique_ptr<Widget> child) {}
+    virtual const std::vector<std::unique_ptr<Widget>>& children() const { static const std::vector<std::unique_ptr<Widget>> empty; return empty; }
+    bool visible() { return visible_; }
     virtual void debug() { debug_ = true; }
     bool is_debug() const { return debug_; }
     void debug_rect(graphics::DrawBatch& batch) const {
@@ -59,11 +63,19 @@ public:
     virtual float margin_right()   const { return 0; }
     virtual float margin_top()     const { return 0; }
     virtual float margin_bottom()  const { return 0; }
-private:
+
+    virtual bool hit_testable() const { return true; }
+    virtual void on_mouse_move(glm::vec2 pos) {}
+    virtual void on_mouse_leave() {}
+    virtual void on_mouse_enter() {}
+
+protected:
+    Rect global_;
     Rect local_;
-    bool visible_ = true;
-    bool debug_ = false;
     Align align_self_ = Align::top_left();
     bool has_align_ = false;
+private:
+    bool visible_ = true;
+    bool debug_ = false;
 };
 } // namespace xel::ui

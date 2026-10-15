@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../events/event.hpp"
+// #include "../events/event.hpp"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -13,8 +13,8 @@ namespace xel::backend
 class Window
 {
 public:
-    using EventCallback = std::function<void(const xel::event::Event&)>;
-    void set_event_callback(const EventCallback& callback) { event_callback_ = std::move(callback); };
+    // using EventCallback = std::function<void(const xel::event::Event&)>;
+    // void set_event_callback(const EventCallback& callback) { event_callback_ = std::move(callback); };
 
     Window(int width, int height, std::string name);
     ~Window();
@@ -38,7 +38,7 @@ private:
     int height_;
     bool framebuffer_resized_ = false;
 
-    EventCallback event_callback_;
+    // EventCallback event_callback_;
 
     std::string window_name_;
     GLFWwindow* window_ = nullptr;

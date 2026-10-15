@@ -15,16 +15,16 @@ public:
     ~Vbox();
 
     void add(std::unique_ptr<Widget> child) override;
+    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
     void append_to(graphics::DrawBatch& batch) const override;
 
     void layout() override;
+    bool hit_testable() const override { return false; }
     glm::vec2 measure(glm::vec2 constraints) override;
     void arrange(Rect slot) override;
     void set_cross_align(Align a) { cross_align_ = a; }
     Align resolve_align(const Widget& child) const;
 
-    // void set_position(float x, float y) override { x_ = x; y_ = y; }
-    // void set_size(float width, float height) override { width_ = width; height_ = height; }
 private:
 
     float spacing_ = 4.0f;

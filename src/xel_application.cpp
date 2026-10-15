@@ -1,4 +1,5 @@
 #include "xel_application.hpp"
+#include "events/event.hpp"
 
 namespace xel
 {
@@ -25,13 +26,19 @@ void Application::mouse_button_callback(GLFWwindow* window, int button, int acti
 void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)
 {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-    app->event_tester_.process_event(event::InputEvent{event::InputEvent::Type::MouseMove, static_cast<float>(mx), static_cast<float>(my)});
+    // app->event_tester_.process_event(event::InputEvent{event::InputEvent::Type::MouseMove, static_cast<float>(mx), static_cast<float>(my)});
+    event::InputEvent event;
+    event.type = event::InputEvent::Type::MouseMove;
+    event.mouse_pos = {static_cast<float>(mx), static_cast<float>(my)};
+    //e.mouse_delta = e.mouse_pos - app->last_mouse_;
+    //app->last_mouse_ = e.mouse_pos;
+    app->uisys.dispatch(event);
 }
 
 void Application::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-    app->event_tester_.process_event(event::InputEvent{.type = event::InputEvent::Type::MouseScroll, .scroll_delta = yoffset});
+    // app->event_tester_.process_event(event::InputEvent{.type = event::InputEvent::Type::MouseScroll, .scroll_delta = yoffset});
 }
 
 } // namespace xel

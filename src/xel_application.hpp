@@ -4,7 +4,7 @@
 #include "backend/vulkan/vulkan_context.hpp"
 #include "backend/vulkan/swap_chain.hpp"
 #include "backend/vulkan/ui_renderer.hpp"
-#include "ui/tester.hpp"
+#include "ui/ui_system.hpp"
 
 namespace xel
 {
@@ -14,8 +14,8 @@ public:
     backend::Window window_;
     backend::vulkan::VulkanContext vulkan_context_;
     backend::vulkan::SwapChain swap_chain_;
-    backend::vulkan::UIRenderer renderer_;
-    ui::Tester event_tester_;
+    backend::vulkan::Renderer renderer_;
+    ui::UISystem uisys;
 
     Application(int window_w, int window_h, const std::string& title);
     ~Application();

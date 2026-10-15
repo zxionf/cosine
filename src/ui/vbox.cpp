@@ -63,6 +63,7 @@ glm::vec2 Vbox::measure(glm::vec2 constraints)
 
 void Vbox::arrange(Rect slot)
 {
+    global_ = slot;
     float y = slot.pos.y;
     for (auto& c : children_) {
         glm::vec2 cs = c->measure(slot.size);
