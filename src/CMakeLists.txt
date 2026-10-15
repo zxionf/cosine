@@ -11,7 +11,7 @@ add_executable(ex4
     backend/window.cpp
     backend/vulkan/vulkan_context.cpp
     backend/vulkan/swap_chain.cpp
-    backend/vulkan/ui_renderer.cpp
+    backend/vulkan/renderer.cpp
     xel_application.cpp
     ui/vbox.cpp
     ui/root.cpp
@@ -25,7 +25,7 @@ add_executable(ex2
     backend/window.cpp
     backend/vulkan/vulkan_context.cpp
     backend/vulkan/swap_chain.cpp
-    backend/vulkan/ui_renderer.cpp
+    backend/vulkan/renderer.cpp
     backend/vulkan/font_renderer.cpp
 )
 target_include_directories(ex2 PRIVATE ${STB_INCLUDE_DIR})

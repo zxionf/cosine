@@ -3,7 +3,7 @@
 #include "backend/window.hpp"
 #include "backend/vulkan/vulkan_context.hpp"
 #include "backend/vulkan/swap_chain.hpp"
-#include "backend/vulkan/ui_renderer.hpp"
+#include "backend/vulkan/renderer.hpp"
 #include "ui/ui_system.hpp"
 
 namespace xel
