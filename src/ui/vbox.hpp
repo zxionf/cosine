@@ -29,7 +29,7 @@ private:
 
     float spacing_ = 4.0f;
     float padding_ = 4.0f;
-    Align cross_align_ = Align::bottom_center();
+    Align cross_align_ = Align::top_center();
 
     std::vector<std::unique_ptr<Widget>> children_;
 };

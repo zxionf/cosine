@@ -31,6 +31,7 @@ public:
 
     virtual void add(std::unique_ptr<Widget> child) {}
     virtual const std::vector<std::unique_ptr<Widget>>& children() const { static const std::vector<std::unique_ptr<Widget>> empty; return empty; }
+    virtual std::unique_ptr<Widget> parent() const { return nullptr; }
     bool visible() { return visible_; }
     virtual void debug() { debug_ = true; }
     bool is_debug() const { return debug_; }
@@ -68,6 +69,7 @@ public:
     virtual void on_mouse_move(glm::vec2 pos) {}
     virtual void on_mouse_leave() {}
     virtual void on_mouse_enter() {}
+    virtual bool on_scroll(glm::vec2 pos, float delta) { return false; }
 
 protected:
     Rect global_;

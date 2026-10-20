@@ -4,7 +4,7 @@
 namespace xel
 {
 Application::Application(int window_w, int window_h, const std::string& title)
-: window_{window_w, window_h, title}, vulkan_context_{window_}, swap_chain_{vulkan_context_, window_}, renderer_{vulkan_context_, swap_chain_}
+: window_{window_w, window_h, title}, vulkan_context_{window_}, swap_chain_{vulkan_context_, window_}, renderer_{vulkan_context_, swap_chain_}, uisys{window_}
 {
     glfwSetWindowUserPointer(window_.get_glfw_window(), this);
 
@@ -26,7 +26,6 @@ void Application::mouse_button_callback(GLFWwindow* window, int button, int acti
 void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)
 {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-    // app->event_tester_.process_event(event::InputEvent{event::InputEvent::Type::MouseMove, static_cast<float>(mx), static_cast<float>(my)});
     event::InputEvent event;
     event.type = event::InputEvent::Type::MouseMove;
     event.mouse_pos = {static_cast<float>(mx), static_cast<float>(my)};
@@ -38,7 +37,13 @@ void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)
 void Application::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-    // app->event_tester_.process_event(event::InputEvent{.type = event::InputEvent::Type::MouseScroll, .scroll_delta = yoffset});
+    event::InputEvent event;
+    event.type = event::InputEvent::Type::MouseScroll;
+    event.scroll_delta = static_cast<float>(yoffset);
+    double mx, my;
+    glfwGetCursorPos(window, &mx, &my);
+    event.mouse_pos = {static_cast<float>(mx), static_cast<float>(my)};
+    app->uisys.dispatch(event);
 }
 
 } // namespace xel

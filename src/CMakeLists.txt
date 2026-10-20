@@ -16,6 +16,7 @@ add_executable(ex4
     ui/vbox.cpp
     ui/root.cpp
     ui/ui_system.cpp
+    ui/scroll_view.cpp
 )
 target_include_directories(ex4 PRIVATE ${STB_INCLUDE_DIR})
 target_link_libraries(ex4 PRIVATE glfw Vulkan::Vulkan)

@@ -68,7 +68,13 @@ void Vbox::arrange(Rect slot)
     for (auto& c : children_) {
         glm::vec2 cs = c->measure(slot.size);
         Align a = resolve_align(*c);
-        float cx = slot.pos.x + (slot.size.x - cs.x) * a.x;
+        float cx;
+        if (a.stretch_x) {
+            cs.x = slot.size.x;
+            cx = slot.pos.x;
+        }else{
+            cx = slot.pos.x + (slot.size.x - cs.x) * a.x;
+        }
 
         Rect child_slot{{cx, y}, {cs.x, cs.y}};
         c->arrange(child_slot);

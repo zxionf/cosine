@@ -25,6 +25,8 @@ private:
     float spacing_ = 0.f;
     float padding_ = 0.f;
 
+    std::unique_ptr<Widget> left_column_;
+
     std::vector<std::unique_ptr<Widget>> children_;
 };
 } // namespace xel::ui
