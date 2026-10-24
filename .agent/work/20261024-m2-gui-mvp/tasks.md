@@ -37,16 +37,22 @@
 - [x] C09 Splitter
 - [x] C10 Tooltip（独立浮层，自动 hover 触发待接）
 
-## M2-D 文本
+## M2-D 文本与字体
 
 - [x] D01 FontAtlas 改 codepoint 维度，支持 UTF-8 解码
 - [x] D02 字形 advance / line height / 文本宽度（基础版）
 - [x] D03 自动换行 / 最大宽度 / 裁剪 / 省略号
-- [ ] D04 字体图集格式与字号策略文档化
-- [ ] D05 CJK 字体来源与 FreeType 生成方案（系统字体或仓库字体）
-- [ ] D06 多字号或按需光栅化 / 评估 SDF
-- [x] D07 TextInput 按 codepoint 维护光标/选择，修复水平滚动后的点击索引
-- [x] D08 FontAtlas / TextInput / 换行测试
+- [x] D04 TextInput 按 codepoint 维护光标/选择，修复水平滚动后的点击索引
+- [x] D05 FontAtlas / TextInput / 换行基础测试
+- [x] D06 FreeType 链接与字体发现（Linux/Windows/`COSINE_CJK_FONT`）
+- [x] D07 `FontAtlasBuilder`：ASCII + GB2312 一级 + 标点，2048×2048 RGBA8，16px
+- [x] D08 字体度量（ascent/descent/line_gap/bearing/advance）与基线排版
+- [x] D09 TTF 缺失回退 `default8.png`，sampler 按字体类型选择 linear/nearest
+- [x] D10 Renderer 上传运行时生成的图集
+- [x] D11 D3 增量字形更新（按需追加 + 纹理更新）
+- [ ] D12 图集格式、字体来源、许可证、字号策略文档
+- [ ] D13 CJK/回退/生成性能测试（CJK + 动态字形测试已加，回退/性能待补）
+- [ ] D14 SDF/MSDF 与多字号后续评估
 
 ## M2-E 渲染与裁剪
 
@@ -84,8 +90,8 @@
 - M2-A 完成：事件、焦点、HiDPI 光标换算、组件 debug 绘制、on_hover
 - M2-B 完成：Hbox、Spacer、padding/margin、flex/grow、min/max、主轴分布、measure 缓存、ScrollView 双轴
 - M2-C 完成：Theme、FontAtlas、Label、Panel、Button、Checkbox、Slider、TextInput、List、Splitter、Tooltip；控件已接入 ex4
-- M2-D 部分完成：UTF-8、codepoint FontAtlas、换行/省略号、TextInput codepoint 光标/点击索引、文本测试
+- M2-D 基本完成：UTF-8、codepoint FontAtlas、换行/省略号、TextInput codepoint 光标/点击索引、FreeType C2 CJK 图集、D3 动态字形与纹理更新、fallback、文本测试
 - 已修复面板不响应：光标坐标按 framebuffer 缩放后与布局坐标一致；debug 树保留但 ex4 已关闭，hover 视觉保留
 - 评估与问题已归档到 `docs/project_assessment.md`；R01–R18 已纳入阶段计划
-- 7/7 ctest 通过；`ex4` 可运行
-- 下一步：M2-D CJK 字体/多字号，然后 M2-E 裁剪栈/draw list
+- 7/7 ctest 通过；`ex4` 可运行，CJK 与动态字形（囧）均正常显示
+- 剩余：D12 字体文档、D13 回退/性能测试、D14 SDF 评估；随后 M2-E 裁剪栈/draw list

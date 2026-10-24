@@ -95,3 +95,13 @@ Change: 20261024-m2-gui-mvp
 Context: M2-D 需要 UTF-8/换行/省略号，而 FontAtlas 之前按 byte 索引、只支持 ASCII
 Decision: FontAtlas 改为 codepoint + unordered_map，新增 UTF-8 编解码、measure_wrapped、append_text_wrapped 与 TextClip；缺失字形回退到 '?'；TextInput 光标/选择按 codepoint 边界移动
 Consequences: UTF-8 文本可输入/测量/换行/裁剪；CJK 在字体图集生成前显示为 '?'，FreeType/CJK 图集仍待完成
+## [20] 2026-10-24 09:27:36 UTC
+Change: 20261024-m2-gui-mvp
+Context: M2-D 字体方案需要确定字体风格、来源、覆盖范围、图集生成与字号策略
+Decision: 统一使用 TTF（A2），default8.png 仅作 fallback；系统字体优先并支持 COSINE_CJK_FONT；覆盖 ASCII + GB2312 一级 + 常用标点（C2）；固定 2048x2048 RGBA8、16px 基准、其他字号缩放；FreeType 运行时生成图集，D3 增量更新作为后续步骤；按 ascent/descent/bearing 做基线排版；SDF/MSDF 后续评估
+Consequences: M2-D 先实现运行时静态 C2 图集与 fallback，再补增量字形更新；打包阶段可选内置 OFL 字体；文本质量与字体依赖增加
+## [21] 2026-10-24 10:16:31 UTC
+Change: 20261024-m2-gui-mvp
+Context: CJK 字形曾显示为白色方块，且 D3 动态字形更新尚未落地
+Decision: FreeType 图集改为预乘 alpha（RGB=A），修复混合导致的方块；FontAtlas 增加动态 add_glyph/ensure_glyph/revision，Renderer 在字形追加后重传图集纹理；Renderer 保留 FontFace 供按需加载
+Consequences: C2 未覆盖的字形可在运行时追加并显示；当前采用整张 2048x2048 纹理重传，后续可优化为 dirty-rect 局部更新

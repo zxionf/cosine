@@ -67,3 +67,8 @@ target_include_directories(test_text PRIVATE
 )
 target_link_libraries(test_text PRIVATE glm::glm glfw)
 add_test(NAME text_utf8 COMMAND test_text)
+
+target_sources(test_text PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas_builder.cpp)
+target_link_libraries(test_text PRIVATE freetype)
+
+target_sources(test_text PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/font_face.cpp)

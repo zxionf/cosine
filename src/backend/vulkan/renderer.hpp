@@ -4,6 +4,7 @@
 #include "swap_chain.hpp"
 #include "../../graphics/drawable.hpp"
 #include "../../graphics/font_atlas.hpp"
+#include "../../graphics/font_face.hpp"
 
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
@@ -111,6 +112,9 @@ private:
     );
 
     graphics::FontAtlas font_atlas_;
+    graphics::FontFace   font_face_;
+    uint64_t             font_atlas_revision_ = 0;
+    void update_font_atlas_texture();
 
     void flush_batch();
     void set_texture_slot(graphics::TextureSlot slot);

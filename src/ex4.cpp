@@ -99,6 +99,10 @@ int main()
     wrapped->set_max_lines(2);
     wrapped->set_ellipsis(true);
     panel->add(std::move(wrapped));
+    panel->add(std::make_unique<xel::ui::Label>("中文：你好，世界"));
+    auto cjk_input = std::make_unique<xel::ui::TextInput>("中文输入", 320.0f);
+    panel->add(std::move(cjk_input));
+    panel->add(std::make_unique<xel::ui::Label>("动态字形：囧"));
     app.uisys.root()->add(std::move(panel));
     while (!app.window_.should_close())
     {

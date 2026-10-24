@@ -1,4 +1,6 @@
 #include "graphics/font_atlas.hpp"
+#include "graphics/font_atlas_builder.hpp"
+#include "graphics/font_face.hpp"
 #include "graphics/utf8.hpp"
 #include "ui/label.hpp"
 #include "ui/text_input.hpp"
@@ -109,6 +111,91 @@ void test_font_atlas_and_wrap()
 
     xel::graphics::set_active_font_atlas(nullptr);
 }
+
+void test_font_builder()
+{
+    const auto font = xel::graphics::find_cjk_font();
+    if (font.path.empty()) {
+        std::cout << "skip font builder test: no CJK font found\n";
+        return;
+    }
+
+    xel::graphics::FontAtlasBuildOptions options;
+    options.font_path = font.path;
+    options.face_index = font.face_index;
+    options.pixel_size = 16;
+    options.atlas_size = 512;
+    options.extra_codepoints = {U'中', U'文', U'你', U'好'};
+
+    xel::graphics::FontAtlas atlas;
+    std::string error;
+    assert(xel::graphics::build_font_atlas(options, atlas, &error));
+    assert(atlas.valid());
+    assert(atlas.smooth());
+    assert(atlas.has_glyph(U'中'));
+    assert(atlas.measure("中文", 16.0f).x > 0.0f);
+
+    xel::graphics::DrawBatch batch;
+    atlas.append_text(batch, 0.0f, 0.0f, 16.0f, "中文你好", glm::vec4{1.0f});
+    assert(!batch.vertices.empty());
+}
+
+void test_font_builder_full_c2()
+{
+    const auto font = xel::graphics::find_cjk_font();
+    if (font.path.empty()) {
+        std::cout << "skip full C2 test: no CJK font found\n";
+        return;
+    }
+
+    const auto root = std::filesystem::path(__FILE__).parent_path().parent_path();
+    xel::graphics::FontAtlasBuildOptions options;
+    options.font_path = font.path;
+    options.face_index = font.face_index;
+    options.pixel_size = 16;
+    options.atlas_size = 2048;
+    options.coverage_file = (root / "assets" / "fonts" / "gb2312_level1.txt").string();
+
+    xel::graphics::FontAtlas atlas;
+    std::string error;
+    assert(xel::graphics::build_font_atlas(options, atlas, &error));
+    assert(atlas.has_glyph(U'中'));
+    const auto* glyph = atlas.glyph(U'中');
+    assert(glyph != nullptr);
+    assert(glyph->width_ratio > 0.0f);
+    assert(glyph->height_ratio > 0.0f);
+
+}
+
+void test_dynamic_glyph_loading()
+{
+    const auto font = xel::graphics::find_cjk_font();
+    if (font.path.empty()) {
+        std::cout << "skip dynamic glyph test: no CJK font found\n";
+        return;
+    }
+
+    xel::graphics::FontFace face;
+    assert(face.load(font.path, font.face_index, 16));
+
+    xel::graphics::FontAtlas atlas;
+    atlas.begin_generated(512, face.metrics(), true);
+    assert(face.add_glyph(atlas, U'A'));
+
+    atlas.set_glyph_loader([&face](xel::graphics::FontAtlas& target, char32_t codepoint) {
+        return face.add_glyph(target, codepoint);
+    });
+
+    assert(!atlas.has_glyph(U'中'));
+    const uint64_t before = atlas.revision();
+    assert(atlas.measure("中", 16.0f).x > 0.0f);
+    assert(atlas.has_glyph(U'中'));
+    assert(atlas.revision() > before);
+
+    xel::graphics::DrawBatch batch;
+    atlas.append_text(batch, 0.0f, 0.0f, 16.0f, "中文", glm::vec4{1.0f});
+    assert(!batch.vertices.empty());
+}
 } // namespace
 
 int main()
@@ -116,6 +203,9 @@ int main()
     test_utf8();
     test_text_input_codepoints();
     test_font_atlas_and_wrap();
+    test_font_builder();
+    test_font_builder_full_c2();
+    test_dynamic_glyph_loading();
 
     std::cout << "text tests passed\n";
     return 0;

@@ -1,6 +1,7 @@
 #include "renderer.hpp"
 #include "../asset_path.hpp"
 #include "../../graphics/triangle.hpp"
+#include "../../graphics/font_atlas_builder.hpp"
 #include "../../graphics/rectangle.hpp"
 
 #include <fstream>
@@ -240,41 +241,106 @@ void Renderer::create_white_texture()
 
 void Renderer::create_texture_image()
 {
-    int tex_width, tex_height, tex_channels;
-    stbi_uc* pixels = stbi_load(asset_path("fonts/default8.png").string().c_str(), &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
-    vk::DeviceSize image_size = tex_width * tex_height * 4;
-    if (!pixels) {
-        throw std::runtime_error("failed to load texture image!");
+    std::string font_error;
+    const auto font = graphics::find_cjk_font();
+    if (!font.path.empty()) {
+        graphics::FontAtlasBuildOptions options;
+        options.font_path = font.path;
+        options.face_index = font.face_index;
+        options.pixel_size = 16;
+        options.atlas_size = 2048;
+        options.coverage_file = asset_path("fonts/gb2312_level1.txt").string();
+
+        if (!graphics::build_font_atlas(options, font_atlas_, &font_error)) {
+            std::cerr << "warning: CJK font atlas build failed: " << font_error
+                      << "; falling back to default8.png\n";
+        }
     }
 
-    font_atlas_.load(tex_width, tex_height, pixels);
-    graphics::set_active_font_atlas(&font_atlas_);
+    if (!font_atlas_.valid()) {
+        int tex_width = 0;
+        int tex_height = 0;
+        int tex_channels = 0;
+        stbi_uc* pixels = stbi_load(asset_path("fonts/default8.png").string().c_str(),
+                                    &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+        if (!pixels) {
+            throw std::runtime_error("failed to load fallback font atlas: default8.png");
+        }
+        font_atlas_.load(tex_width, tex_height, pixels);
+        stbi_image_free(pixels);
+    }
+
+    if (font_atlas_.smooth() && !font.path.empty()) {
+        if (font_face_.load(font.path, font.face_index, 16)) {
+            font_atlas_.set_glyph_loader([this](graphics::FontAtlas& atlas, char32_t codepoint) {
+                return font_face_.add_glyph(atlas, codepoint);
+            });
+        } else {
+            std::cerr << "warning: dynamic CJK glyph loading disabled (font face load failed)\n";
+        }
+    }
+    const uint32_t tex_width = static_cast<uint32_t>(font_atlas_.width());
+    const uint32_t tex_height = static_cast<uint32_t>(font_atlas_.height());
+    const vk::DeviceSize image_size = static_cast<vk::DeviceSize>(tex_width) * tex_height * 4;
 
     auto [staging_buffer, staging_buffer_memory] = create_buffer(image_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     void* data = staging_buffer_memory.mapMemory(0, image_size);
-    memcpy(data, pixels, (size_t)image_size);
+    memcpy(data, font_atlas_.pixels().data(), static_cast<size_t>(image_size));
     staging_buffer_memory.unmapMemory();
-    stbi_image_free(pixels);
 
     std::tie(texture_image_, texture_image_memory_) = create_image(tex_width, tex_height, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal, vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
     vk::raii::CommandBuffer command_buffer = begin_single_time_commands();
     transition_image_layout(command_buffer, texture_image_, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
-    copy_buffer_to_image(command_buffer, staging_buffer, texture_image_, static_cast<uint32_t>(tex_width), static_cast<uint32_t>(tex_height));
+    copy_buffer_to_image(command_buffer, staging_buffer, texture_image_, tex_width, tex_height);
     transition_image_layout(command_buffer, texture_image_, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
     end_single_time_commands(std::move(command_buffer));
+
+    font_atlas_revision_ = font_atlas_.revision();
+    graphics::set_active_font_atlas(&font_atlas_);
+}
+
+void Renderer::update_font_atlas_texture()
+{
+    if (font_atlas_revision_ == font_atlas_.revision()) return;
+
+    const uint32_t width = static_cast<uint32_t>(font_atlas_.width());
+    const uint32_t height = static_cast<uint32_t>(font_atlas_.height());
+    if (width == 0 || height == 0) {
+        font_atlas_revision_ = font_atlas_.revision();
+        return;
+    }
+
+    const vk::DeviceSize image_size = static_cast<vk::DeviceSize>(width) * height * 4;
+    auto [staging_buffer, staging_memory] = create_buffer(
+        image_size,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    void* data = staging_memory.mapMemory(0, image_size);
+    memcpy(data, font_atlas_.pixels().data(), static_cast<std::size_t>(image_size));
+    staging_memory.unmapMemory();
+
+    vk::raii::CommandBuffer command_buffer = begin_single_time_commands();
+    transition_image_layout(command_buffer, texture_image_, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eTransferDstOptimal);
+    copy_buffer_to_image(command_buffer, staging_buffer, texture_image_, width, height);
+    transition_image_layout(command_buffer, texture_image_, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
+    end_single_time_commands(std::move(command_buffer));
+
+    font_atlas_revision_ = font_atlas_.revision();
 }
 
 void Renderer::create_texture_sampler()
 {
     vk::PhysicalDeviceProperties properties = context_.physical_device().getProperties();
+    const vk::Filter filter = font_atlas_.smooth() ? vk::Filter::eLinear : vk::Filter::eNearest;
     vk::SamplerCreateInfo sampler_info{
-        .magFilter = vk::Filter::eNearest,
-        .minFilter = vk::Filter::eNearest,
+        .magFilter = filter,
+        .minFilter = filter,
         .mipmapMode = vk::SamplerMipmapMode::eNearest,
-        .addressModeU = vk::SamplerAddressMode::eRepeat,
-        .addressModeV = vk::SamplerAddressMode::eRepeat,
-        .addressModeW = vk::SamplerAddressMode::eRepeat,
+        .addressModeU = vk::SamplerAddressMode::eClampToEdge,
+        .addressModeV = vk::SamplerAddressMode::eClampToEdge,
+        .addressModeW = vk::SamplerAddressMode::eClampToEdge,
         .mipLodBias = 0.0f,
         .anisotropyEnable = properties.limits.maxSamplerAnisotropy > 1.0f ? vk::True : vk::False,
         .maxAnisotropy = properties.limits.maxSamplerAnisotropy,
@@ -358,6 +424,11 @@ void Renderer::transition_image_layout(vk::raii::CommandBuffer& command_buffer, 
         barrier.srcAccessMask = {};
         barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
         source_stage      = vk::PipelineStageFlagBits::eTopOfPipe;
+        destination_stage = vk::PipelineStageFlagBits::eTransfer;
+    } else if (old_layout == vk::ImageLayout::eShaderReadOnlyOptimal && new_layout == vk::ImageLayout::eTransferDstOptimal) {
+        barrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
+        barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+        source_stage      = vk::PipelineStageFlagBits::eFragmentShader;
         destination_stage = vk::PipelineStageFlagBits::eTransfer;
     } else if (old_layout == vk::ImageLayout::eTransferDstOptimal && new_layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
         barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
@@ -829,6 +900,7 @@ void Renderer::end()
         return;
     }
 
+    update_font_atlas_texture();
     update_uniform_buffer();
 
     command_buffers_[frame_index_].reset();

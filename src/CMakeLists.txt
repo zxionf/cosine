@@ -7,6 +7,8 @@ add_library(cosine_backend STATIC
     backend/vulkan/swap_chain.cpp
     backend/vulkan/renderer.cpp
     graphics/font_atlas.cpp
+    graphics/font_atlas_builder.cpp
+    graphics/font_face.cpp
 )
 target_include_directories(cosine_backend PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -14,7 +16,7 @@ target_include_directories(cosine_backend PUBLIC
 target_include_directories(cosine_backend SYSTEM PUBLIC
     ${STB_INCLUDE_DIR}
 )
-target_link_libraries(cosine_backend PUBLIC glfw Vulkan::Vulkan glm::glm)
+target_link_libraries(cosine_backend PUBLIC glfw Vulkan::Vulkan glm::glm freetype)
 target_compile_definitions(cosine_backend PRIVATE COSINE_ASSET_DIR="${COSINE_ASSET_BUILD_DIR}")
 
 if(MSVC)
