@@ -10,6 +10,7 @@ add_executable(test_ui_layout
     ${PROJECT_SOURCE_DIR}/src/ui/hbox.cpp
     ${PROJECT_SOURCE_DIR}/src/ui/root.cpp
     ${PROJECT_SOURCE_DIR}/src/ui/scroll_view.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas.cpp
 )
 target_link_libraries(test_ui_layout PRIVATE glm::glm)
 
@@ -19,6 +20,7 @@ add_executable(test_ui_events
     ${PROJECT_SOURCE_DIR}/src/ui/vbox.cpp
     ${PROJECT_SOURCE_DIR}/src/ui/root.cpp
     ${PROJECT_SOURCE_DIR}/src/ui/scroll_view.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas.cpp
 )
 target_link_libraries(test_ui_events PRIVATE glm::glm glfw)
 
@@ -43,3 +45,14 @@ set_tests_properties(
     interpreter_tree_evaluator
     PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+add_executable(test_ui_controls
+    test_ui_controls.cpp
+    ${PROJECT_SOURCE_DIR}/src/ui/ui_system.cpp
+    ${PROJECT_SOURCE_DIR}/src/ui/root.cpp
+    ${PROJECT_SOURCE_DIR}/src/ui/vbox.cpp
+    ${PROJECT_SOURCE_DIR}/src/ui/scroll_view.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas.cpp
+)
+target_link_libraries(test_ui_controls PRIVATE glm::glm glfw)
+add_test(NAME ui_controls COMMAND test_ui_controls)

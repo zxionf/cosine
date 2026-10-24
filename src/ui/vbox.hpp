@@ -15,6 +15,7 @@ public:
     ~Vbox() override;
 
     void add(std::unique_ptr<Widget> child) override;
+    void clear_children() { children_.clear(); mark_layout_dirty(); }
     const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
     void append_to(graphics::DrawBatch& batch) const override;
 
@@ -23,6 +24,7 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override;
     void arrange(Rect slot) override;
     void set_cross_align(Align a) { cross_align_ = a; mark_layout_dirty(); }
+    void set_spacing(float spacing) { spacing_ = spacing; mark_layout_dirty(); }
     void set_main_align(MainAlign a) { main_align_ = a; mark_layout_dirty(); }
     Align resolve_align(const Widget& child) const;
     void invalidate_measure() override { measure_valid_ = false; }

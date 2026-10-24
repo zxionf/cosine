@@ -17,10 +17,10 @@ void UIRoot::add(std::unique_ptr<Widget> child)
 
 void UIRoot::append_to(graphics::DrawBatch& batch) const
 {
-    if (is_debug()) { debug_rect(batch); }
     for (auto& child : children_) {
-        child->append_to(batch);
+        if (child->visible()) child->append_to(batch);
     }
+    if (is_debug()) append_debug_tree(batch);
 }
 
 void UIRoot::layout()

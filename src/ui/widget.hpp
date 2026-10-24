@@ -25,6 +25,8 @@ class Widget : public graphics::Drawable
 public:
     virtual ~Widget() = default;
 
+    graphics::TextureSlot texture_slot() const override { return graphics::TextureSlot::Texture; }
+
     virtual float x()       const { return local_.pos.x; }
     virtual float y()       const { return local_.pos.y; }
     virtual float width()   const { return local_.size.x; }
@@ -51,15 +53,29 @@ public:
     // 容器是否把子控件裁剪在自身范围内（命中测试与渲染共用同一语义）
     virtual bool clips_children() const { return false; }
 
-    bool visible() { return visible_; }
+    bool visible() const { return visible_; }
+    bool is_hovered() const { return hovered_; }
+    void set_hovered(bool hovered) { hovered_ = hovered; }
+    void set_visible(bool visible) { visible_ = visible; mark_layout_dirty(); }
     virtual void debug() { debug_ = true; }
     bool is_debug() const { return debug_; }
+    void debug_recursive()
+    {
+        debug();
+        for (const auto& child : children()) child->debug_recursive();
+    }
+    void append_debug_tree(graphics::DrawBatch& batch) const
+    {
+        if (is_debug()) debug_rect(batch);
+        for (const auto& child : children()) child->append_debug_tree(batch);
+    }
     void debug_rect(graphics::DrawBatch& batch) const {
-        auto [x, y, w, h] = local_;
-        graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, {0, 1, 0, 1}};
-        graphics::Line right_l  {x + w, y,      x + w,  y + h,  1.0f, {0, 1, 0, 1}};
-        graphics::Line bottom_l {x,     y + h,  x + w,  y + h,  1.0f, {0, 1, 0, 1}};
-        graphics::Line left_l   {x,     y,      x,      y + h,  1.0f, {0, 1, 0, 1}};
+        auto [x, y, w, h] = global_;
+        const glm::vec4 color = hovered_ ? glm::vec4{1, 0, 1, 1} : glm::vec4{0, 1, 0, 1};
+        graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, color};
+        graphics::Line right_l  {x + w, y,      x + w,  y + h,  1.0f, color};
+        graphics::Line bottom_l {x,     y + h,  x + w,  y + h,  1.0f, color};
+        graphics::Line left_l   {x,     y,      x,      y + h,  1.0f, color};
         top_l.append_to(batch);
         right_l.append_to(batch);
         bottom_l.append_to(batch);
@@ -102,6 +118,7 @@ public:
     virtual bool hit_testable() const { return true; }
     virtual bool focusable() const { return false; }
     virtual bool on_mouse_move(glm::vec2 pos) { (void)pos; return false; }
+    virtual void on_hover(glm::vec2 pos) { (void)pos; }
     virtual void on_mouse_leave() {}
     virtual void on_mouse_enter() {}
     virtual bool on_mouse_down(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
@@ -139,6 +156,7 @@ protected:
 
 private:
     bool visible_ = true;
+    bool hovered_ = false;
     bool debug_ = false;
     bool layout_dirty_ = true;
 };

@@ -37,7 +37,7 @@ void Vbox::append_to(graphics::DrawBatch& batch) const
 {
     if (is_debug()) { debug_rect(batch); }
     for (const auto& child : children_) {
-        child->append_to(batch);
+        if (child->visible()) child->append_to(batch);
     }
 }
 
@@ -79,7 +79,7 @@ glm::vec2 Vbox::measure(glm::vec2 constraints)
         max_w = std::max(max_w, ml + cs.x + mr);
     }
 
-    cached_measure_ = {max_w + pad_l + pad_r, total_h};
+    cached_measure_ = clamp_size({max_w + pad_l + pad_r, total_h});
     cached_constraints_ = constraints;
     measure_valid_ = true;
     return cached_measure_;

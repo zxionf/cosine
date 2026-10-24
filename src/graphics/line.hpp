@@ -1,6 +1,7 @@
 #pragma once
 
 #include "drawable.hpp"
+#include "font_atlas.hpp"
 
 namespace xel::graphics
 {
@@ -13,6 +14,7 @@ public:
 
     void append_to(DrawBatch& batch) const override
     {
+        batch.texture_slot = TextureSlot::Texture;
         // 方向
         float dx = x2_ - x1_;
         float dy = y2_ - y1_;
@@ -34,11 +36,13 @@ public:
 
         uint32_t base = static_cast<uint32_t>(batch.vertices.size());
 
+        const glm::vec2 uv = active_font_atlas() ? active_font_atlas()->white_uv() : glm::vec2{0.0f};
+
         // 4 个顶点，UV 随便填（用白纹理采样恒为 1）
-        batch.vertices.push_back({{a.x, a.y}, color_, {0.0f, 0.0f}});
-        batch.vertices.push_back({{b.x, b.y}, color_, {0.0f, 0.0f}});
-        batch.vertices.push_back({{c.x, c.y}, color_, {0.0f, 0.0f}});
-        batch.vertices.push_back({{d.x, d.y}, color_, {0.0f, 0.0f}});
+        batch.vertices.push_back({{a.x, a.y}, color_, uv});
+        batch.vertices.push_back({{b.x, b.y}, color_, uv});
+        batch.vertices.push_back({{c.x, c.y}, color_, uv});
+        batch.vertices.push_back({{d.x, d.y}, color_, uv});
 
         // 两个三角形
         batch.indices.insert(batch.indices.end(), {
@@ -46,6 +50,8 @@ public:
             base, static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3)
         });
     }
+
+    TextureSlot texture_slot() const override { return TextureSlot::Texture; }
 private:
     float x1_, y1_, x2_, y2_, width_;
     glm::vec4 color_;

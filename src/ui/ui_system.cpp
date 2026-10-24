@@ -146,12 +146,19 @@ void UISystem::dispatch_mouse_move(const event::InputEvent& event)
     Widget* target = path.empty() ? nullptr : path.back();
 
     if (target != hovered_) {
-        if (hovered_) hovered_->on_mouse_leave();
+        if (hovered_) {
+            hovered_->set_hovered(false);
+            hovered_->on_mouse_leave();
+        }
         hovered_ = target;
-        if (hovered_) hovered_->on_mouse_enter();
+        if (hovered_) {
+            hovered_->set_hovered(true);
+            hovered_->on_mouse_enter();
+        }
     }
 
     if (hovered_) {
+        hovered_->on_hover(event.mouse_pos);
         bubble_to_root(hovered_, [&](Widget* widget) {
             return widget->on_mouse_move(event.mouse_pos);
         });

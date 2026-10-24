@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 
 #include <string>
+#include <utility>
 #include <functional>
 
 namespace xel::backend
@@ -25,7 +26,15 @@ public:
     Window& operator=(Window&&) = delete;
 
     bool should_close() { return glfwWindowShouldClose(window_); }
-    VkExtent2D get_extent() { return { static_cast<uint32_t>(width_), static_cast<uint32_t>(height_)}; }
+    VkExtent2D get_extent()
+    {
+        int width = 0;
+        int height = 0;
+        glfwGetFramebufferSize(window_, &width, &height);
+        return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+    }
+    VkExtent2D get_window_extent();
+    std::pair<float, float> framebuffer_scale();
     bool was_window_resized() { return framebuffer_resized_; }
     void reset_window_resized_flag() { framebuffer_resized_ = false; }
     GLFWwindow* get_glfw_window() { return window_; }

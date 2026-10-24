@@ -1,6 +1,7 @@
 #pragma once
 
 #include "drawable.hpp"
+#include "font_atlas.hpp"
 
 #include <functional>
 
@@ -17,11 +18,13 @@ public:
 
     void append_to(DrawBatch& batch) const override
     {
+        batch.texture_slot = TextureSlot::Texture;
+        const glm::vec2 uv = active_font_atlas() ? active_font_atlas()->white_uv() : glm::vec2{0.0f};
         const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-        batch.vertices.push_back({{x_,      y_     }, color_, {0,0}});
-        batch.vertices.push_back({{x_ + w_, y_     }, color_, {0,0}});
-        batch.vertices.push_back({{x_ + w_, y_ + h_}, color_, {0,0}});
-        batch.vertices.push_back({{x_,      y_ + h_}, color_, {0,0}});
+        batch.vertices.push_back({{x_,      y_     }, color_, uv});
+        batch.vertices.push_back({{x_ + w_, y_     }, color_, uv});
+        batch.vertices.push_back({{x_ + w_, y_ + h_}, color_, uv});
+        batch.vertices.push_back({{x_,      y_ + h_}, color_, uv});
 
         batch.indices.insert(batch.indices.end(), {
             base,
@@ -37,6 +40,8 @@ public:
     {
         return x >= x_ && x <= x_ + w_ && y >= y_ && y <= y_ + h_;
     }
+
+    TextureSlot texture_slot() const override { return TextureSlot::Texture; }
 
     // bool on_mouse
 

@@ -6,6 +6,7 @@ add_library(cosine_backend STATIC
     backend/vulkan/vulkan_context.cpp
     backend/vulkan/swap_chain.cpp
     backend/vulkan/renderer.cpp
+    graphics/font_atlas.cpp
 )
 target_include_directories(cosine_backend PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

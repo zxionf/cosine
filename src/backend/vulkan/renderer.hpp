@@ -3,6 +3,7 @@
 #include "vulkan_context.hpp"
 #include "swap_chain.hpp"
 #include "../../graphics/drawable.hpp"
+#include "../../graphics/font_atlas.hpp"
 
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
@@ -29,7 +30,6 @@ class Renderer
 {
 public:
     constexpr static int MAX_FRAMES_IN_FLIGHT = 2;
-    struct CharMetrics { int min_x; int max_x; };
 
     Renderer(VulkanContext& context, SwapChain& swap_chain);
     ~Renderer();
@@ -110,13 +110,10 @@ private:
         vk::PipelineStageFlags2 dst_stage_mask
     );
 
-    int font_cell_px_ = 8;
-    std::array<CharMetrics, 256> char_metrics_{};
+    graphics::FontAtlas font_atlas_;
 
     void flush_batch();
     void set_texture_slot(graphics::TextureSlot slot);
-
-    void compute_char_width_ratio(int tex_width, unsigned char* pixels);
 
     void save_swapchain_image_to_png(uint32_t image_index, const std::string& path);
 

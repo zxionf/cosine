@@ -22,6 +22,7 @@ public:
     void dispatch(const event::InputEvent& event);
 
     Widget* focused() const { return focused_; }
+    Widget* hovered() const { return hovered_; }
     void set_focus(Widget* widget);
     void focus_next(bool backwards = false);
 

@@ -10,6 +10,8 @@
 - [x] A06 Tab / Shift+Tab 在可聚焦控件间循环
 - [x] A07 `Application` 注册 key / char 回调并分发
 - [x] A08 事件/焦点纯逻辑测试（不依赖 Vulkan）
+- [x] A09 HiDPI：窗口光标坐标按 framebuffer/window 比例换算，布局使用 framebuffer 尺寸
+- [x] A10 组件 debug 绘制（debug_recursive / append_debug_tree）+ on_hover 钩子 + hover 高亮（默认关闭）
 
 ## M2-B 布局
 
@@ -24,21 +26,21 @@
 
 ## M2-C 控件与主题
 
-- [ ] C01 `Theme` 结构与深色主题
-- [ ] C02 Panel / Frame
-- [ ] C03 Label / 基础多行文本
-- [ ] C04 Button（normal/hover/pressed/disabled + 键盘触发）
-- [ ] C05 Checkbox / Toggle
-- [ ] C06 Slider（float/int）
-- [ ] C07 TextInput（单行：光标、选择、删除、输入）
-- [ ] C08 ScrollView / List
-- [ ] C09 Splitter
-- [ ] C10 Tooltip
+- [x] C01 `Theme` 结构与深色主题
+- [x] C02 Panel / Frame
+- [x] C03 Label / 基础多行文本
+- [x] C04 Button（normal/hover/pressed/disabled + 键盘触发）
+- [x] C05 Checkbox / Toggle
+- [x] C06 Slider（float/int）
+- [x] C07 TextInput（单行：光标、选择、删除、输入、Ctrl+A）
+- [x] C08 ScrollView / List
+- [x] C09 Splitter
+- [x] C10 Tooltip（独立浮层，自动 hover 触发待接）
 
 ## M2-D 文本
 
 - [ ] D01 UTF-8 解码
-- [ ] D02 字形 advance / line height / 文本宽度
+- [x] D02 字形 advance / line height / 文本宽度（基础版）
 - [ ] D03 自动换行 / 裁剪 / 省略号
 - [ ] D04 字体图集格式文档化
 - [ ] D05 CJK 字体来源与 FreeType 生成方案（系统字体或仓库字体）
@@ -51,12 +53,12 @@
 - [ ] E03 按 texture/scissor 合批
 - [ ] E04 图层 / z-order，弹窗置顶
 - [ ] E05 render target 抽象占位
-- [ ] E06 渲染层测试或 validation 冒烟
+- [x] E06 渲染层测试或 validation 冒烟（ex4 短时运行）
 
 ## M2 验收
 
 - [ ] V01 GUI demo：面板、按钮、复选框、滑块、文本输入、滚动列表
-- [ ] V02 Tab 焦点 + 回车/空格触发按钮
+- [x] V02 Tab 焦点 + 回车/空格触发按钮
 - [ ] V03 1x / 1.5x / 2x HiDPI 表现一致
 - [ ] V04 60 秒交互 + Vulkan validation 无错误
 - [ ] V05 布局 / 事件 / 文本测量测试全绿
@@ -64,7 +66,9 @@
 
 ## 当前进度
 
-- M2-A 完成：事件命中路径、冒泡/消费、鼠标捕获、click、焦点、Tab、key/char、测试
+- M2-A 完成：事件、焦点、HiDPI 光标换算、组件 debug 绘制、on_hover
 - M2-B 完成：Hbox、Spacer、padding/margin、flex/grow、min/max、主轴分布、measure 缓存、ScrollView 双轴
-- 5/5 ctest 通过；`ex4` 可运行
-- 下一步：M2-C Theme 与基础控件（先把文本能力接入，再做 Button/Checkbox/Slider/TextInput）
+- M2-C 完成：Theme、FontAtlas、Label、Panel、Button、Checkbox、Slider、TextInput、List、Splitter、Tooltip；控件已接入 ex4
+- 已修复面板不响应：光标坐标按 framebuffer 缩放后与布局坐标一致；debug 树保留但 ex4 已关闭，hover 视觉保留
+- 6/6 ctest 通过；`ex4` 可运行
+- 下一步：M2-D 文本增强（UTF-8、换行/省略号、CJK）与 M2-E 裁剪栈/draw list

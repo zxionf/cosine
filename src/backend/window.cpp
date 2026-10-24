@@ -32,3 +32,24 @@ void Window::init_window()
     glfwSetCursor(window_, cursor);
 }
 }
+namespace xel::backend
+{
+VkExtent2D Window::get_window_extent()
+{
+    int width = 0;
+    int height = 0;
+    glfwGetWindowSize(window_, &width, &height);
+    return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+}
+
+std::pair<float, float> Window::framebuffer_scale()
+{
+    const VkExtent2D framebuffer = get_extent();
+    const VkExtent2D window = get_window_extent();
+    if (window.width == 0 || window.height == 0) return {1.0f, 1.0f};
+    return {
+        static_cast<float>(framebuffer.width) / static_cast<float>(window.width),
+        static_cast<float>(framebuffer.height) / static_cast<float>(window.height)
+    };
+}
+} // namespace xel::backend

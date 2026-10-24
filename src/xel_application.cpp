@@ -1,6 +1,15 @@
 #include "xel_application.hpp"
 #include "events/event.hpp"
 
+namespace
+{
+glm::vec2 cursor_to_framebuffer(xel::backend::Window& window, double x, double y)
+{
+    const auto [sx, sy] = window.framebuffer_scale();
+    return {static_cast<float>(x) * sx, static_cast<float>(y) * sy};
+}
+} // namespace
+
 namespace xel
 {
 Application::Application(int window_w, int window_h, const std::string& title)
@@ -38,7 +47,7 @@ void Application::mouse_button_callback(GLFWwindow* window, int button, int acti
 
     double mx, my;
     glfwGetCursorPos(window, &mx, &my);
-    event.mouse_pos = {static_cast<float>(mx), static_cast<float>(my)};
+    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my);
 
     app->uisys.dispatch(event);
 }
@@ -72,7 +81,7 @@ void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     event::InputEvent event;
     event.type = event::InputEvent::Type::MouseMove;
-    event.mouse_pos = {static_cast<float>(mx), static_cast<float>(my)};
+    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my);
     //e.mouse_delta = e.mouse_pos - app->last_mouse_;
     //app->last_mouse_ = e.mouse_pos;
     app->uisys.dispatch(event);
@@ -87,7 +96,7 @@ void Application::scroll_callback(GLFWwindow* window, double xoffset, double yof
     event.scroll_delta = static_cast<float>(yoffset);
     double mx, my;
     glfwGetCursorPos(window, &mx, &my);
-    event.mouse_pos = {static_cast<float>(mx), static_cast<float>(my)};
+    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my);
     app->uisys.dispatch(event);
 }
 

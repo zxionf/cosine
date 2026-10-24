@@ -37,7 +37,7 @@ void Hbox::append_to(graphics::DrawBatch& batch) const
 {
     if (is_debug()) { debug_rect(batch); }
     for (const auto& child : children_) {
-        child->append_to(batch);
+        if (child->visible()) child->append_to(batch);
     }
 }
 
@@ -79,7 +79,7 @@ glm::vec2 Hbox::measure(glm::vec2 constraints)
         max_h = std::max(max_h, mt + cs.y + mb);
     }
 
-    cached_measure_ = {total_w, max_h + pad_t + pad_b};
+    cached_measure_ = clamp_size({total_w, max_h + pad_t + pad_b});
     cached_constraints_ = constraints;
     measure_valid_ = true;
     return cached_measure_;

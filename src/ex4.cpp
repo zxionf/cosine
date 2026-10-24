@@ -6,6 +6,14 @@
 #include "ui/color_rect.hpp"
 #include "ui/ui_system.hpp"
 #include "ui/scroll_view.hpp"
+#include "ui/panel.hpp"
+#include "ui/label.hpp"
+#include "ui/button.hpp"
+#include "ui/checkbox.hpp"
+#include "ui/slider.hpp"
+#include "ui/text_input.hpp"
+
+#include <format>
 
 float srgb_to_linear(float c) {
     return (c <= 0.04045f) ? c / 12.92f : std::pow((c + 0.055f) / 1.055f, 2.4f);
@@ -51,6 +59,41 @@ int main()
     scroll->set_content(std::move(vbox));
     scroll->debug();
 
+    auto panel = std::make_unique<xel::ui::Panel>(700.0f, 460.0f, 360.0f, 280.0f);
+    panel->set_min_size({360.0f, 280.0f});
+    panel->add(std::make_unique<xel::ui::Label>("Controls"));
+
+    auto status = std::make_unique<xel::ui::Label>("clicks: 0");
+    auto* status_ptr = status.get();
+    panel->add(std::move(status));
+
+    panel->add(std::make_unique<xel::ui::Button>("Click me", [status_ptr]() {
+        static int clicks = 0;
+        ++clicks;
+        status_ptr->set_text(std::format("clicks: {}", clicks));
+    }));
+
+    panel->add(std::make_unique<xel::ui::Checkbox>("Enable feature", true));
+
+    auto value_label = std::make_unique<xel::ui::Label>("value: 0.00");
+    auto* value_ptr = value_label.get();
+    auto slider = std::make_unique<xel::ui::Slider>(320.0f);
+    slider->set_on_change([value_ptr](float value) {
+        value_ptr->set_text(std::format("value: {:.2f}", value));
+    });
+    panel->add(std::move(slider));
+    panel->add(std::move(value_label));
+
+    auto input_text = std::make_unique<xel::ui::Label>("input: ");
+    auto* input_text_ptr = input_text.get();
+    auto input = std::make_unique<xel::ui::TextInput>("", 320.0f);
+    input->set_on_change([input_text_ptr](const std::string& value) {
+        input_text_ptr->set_text("input: " + value);
+    });
+    panel->add(std::move(input));
+    panel->add(std::move(input_text));
+
+    app.uisys.root()->add(std::move(panel));
     while (!app.window_.should_close())
     {
         glfwPollEvents();
@@ -81,6 +124,8 @@ int main()
         app.renderer_.set_scissor(0, 0, 400, 600);
         app.renderer_.draw(*scroll);
         app.renderer_.reset_scissor();
+
+        app.renderer_.draw(*app.uisys.root());
 
         // uint32_t vertices_count = app.renderer_.vertices_count();
         // uint32_t indices_count = app.renderer_.indices_count();

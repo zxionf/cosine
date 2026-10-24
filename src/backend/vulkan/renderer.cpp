@@ -238,31 +238,6 @@ void Renderer::create_white_texture()
     white_image_view_ = create_image_view(*white_image_, vk::Format::eR8G8B8A8Unorm);
 }
 
-void Renderer::compute_char_width_ratio(int tex_width, unsigned char* pixels)
-{
-    constexpr int COLS = 16;
-    font_cell_px_ = tex_width / COLS;   // 128 / 16 = 8
-    for (int idx = 0; idx < 256; idx++) {
-        int col = idx % COLS;
-        int row = idx / COLS;
-        int ox = col * font_cell_px_;
-        int oy = row * font_cell_px_;
-        int min_x = font_cell_px_;
-        int max_x = -1;
-        for (int py = 0; py < font_cell_px_; py++) {
-            for (int px = 0; px < font_cell_px_; px++) {
-                int pidx = ((oy + py) * tex_width + (ox + px)) * 4;
-                unsigned char alpha = pixels[pidx + 3];
-                if (alpha > 0) {                  // 非透明像素
-                    if (px < min_x) min_x = px;
-                    if (px > max_x) max_x = px;
-                }
-            }
-        }
-        char_metrics_[idx] = {min_x, max_x};
-    }
-}
-
 void Renderer::create_texture_image()
 {
     int tex_width, tex_height, tex_channels;
@@ -272,7 +247,8 @@ void Renderer::create_texture_image()
         throw std::runtime_error("failed to load texture image!");
     }
 
-    compute_char_width_ratio(tex_width, pixels);
+    font_atlas_.load(tex_width, tex_height, pixels);
+    graphics::set_active_font_atlas(&font_atlas_);
 
     auto [staging_buffer, staging_buffer_memory] = create_buffer(image_size, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
     void* data = staging_buffer_memory.mapMemory(0, image_size);
@@ -778,58 +754,14 @@ void Renderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, f
 void Renderer::draw_char(float x, float y, float size, char ch, glm::vec4 color)
 {
     set_texture_slot(graphics::TextureSlot::Texture);
-    int index = static_cast<unsigned char>(ch);
-    const auto& m = char_metrics_[index];
-    if (m.max_x < m.min_x) return;
-
-    int col = index % 16;
-    int row = index / 16;
-
-    constexpr float cellUV = 1.0f / 16.0f;
-    float u_cell = col * cellUV;
-    float v_cell = row * cellUV;
-
-    // 字符在格子内的 UV 范围
-    float u0 = u_cell + (m.min_x       / 16.0f) / font_cell_px_;
-    float u1 = u_cell + ((m.max_x + 1) / 16.0f) / font_cell_px_;
-    float v0 = v_cell;
-    float v1 = v_cell + cellUV;
-    float ratio = static_cast<float>(m.max_x - m.min_x + 1) / font_cell_px_;
-    float w = size * ratio;
-    // 内缩半个像素
-    // constexpr float halfTexel = 0.5f / 256.0f;
-    // u0 += halfTexel;
-    // v0 += halfTexel;
-    // u1 -= halfTexel;
-    // v1 -= halfTexel;
-    uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
-    batch_.vertices.push_back({{x,            y}, color, {u0, v0}});
-    batch_.vertices.push_back({{x + w,        y}, color, {u1, v0}});
-    batch_.vertices.push_back({{x + w, y + size}, color, {u1, v1}});
-    batch_.vertices.push_back({{x,     y + size}, color, {u0, v1}});
-    batch_.indices.insert(batch_.indices.end(), {
-        base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
-        static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3), base
-    });
+    const char text[2] = {ch, '\0'};
+    font_atlas_.append_text(batch_, x, y, size, std::string_view{text, 1}, color);
 }
 
 void Renderer::draw_text(float x, float y, float size, const std::string& text, glm::vec4 color)
 {
-    float pen_x = x;
-    for (char ch : text) {
-        int index = static_cast<unsigned char>(ch);
-        if (ch == ' ') {
-            pen_x += size * 0.5f;
-            continue;
-        }
-        if (ch == '\n') {
-            pen_x = x;
-            y += size;
-            continue;
-        }
-        draw_char(pen_x, y, size, ch, color);
-        pen_x += size * static_cast<float>(char_metrics_[index].max_x - char_metrics_[index].min_x + 2) / font_cell_px_;
-    }
+    set_texture_slot(graphics::TextureSlot::Texture);
+    font_atlas_.append_text(batch_, x, y, size, text, color);
 }
 
 void Renderer::process_mouse_move(float x, float y)

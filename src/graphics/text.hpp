@@ -1,8 +1,10 @@
 #pragma once
 
 #include "drawable.hpp"
+#include "font_atlas.hpp"
 
 #include <glm/glm.hpp>
+#include <string>
 
 namespace xel::graphics
 {
@@ -15,8 +17,20 @@ public:
 
     void append_to(DrawBatch& batch) const override
     {
+        if (auto* atlas = active_font_atlas()) {
+            atlas->append_text(batch, x_, y_, size_, content_, color_);
+        }
     }
 
+    TextureSlot texture_slot() const override { return TextureSlot::Texture; }
+
+    glm::vec2 measure() const
+    {
+        if (auto* atlas = active_font_atlas()) {
+            return atlas->measure(content_, size_);
+        }
+        return {static_cast<float>(content_.size()) * size_ * 0.5f, size_};
+    }
 
 private:
     float x_, y_, size_;

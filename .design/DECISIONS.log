@@ -75,3 +75,13 @@ Change: 20261024-m2-gui-mvp
 Context: 当前只有 Vbox，ScrollView 只支持纵向，布局缓存缺失
 Decision: M2 增加 Hbox/Spacer、尺寸策略与 dirty 传播；ScrollView 扩展到纵/横/双轴；measure/arrange 缓存随后加入
 Consequences: 布局 API 会扩展，现有 Vbox 行为保持兼容；布局测试覆盖新容器与嵌套
+## [16] 2026-10-24 07:59:35 UTC
+Change: 20261024-m2-gui-mvp
+Context: UI 控件需要同时绘制几何与文字，而 Renderer 当前按 DrawBatch 的纹理槽位切换描述符
+Decision: UI 统一使用字体图集的 TEXTURE 槽位：矩形/线段/三角形采样图集中的白色像素，文字采样字形；Renderer 加载图集后设置全局 active FontAtlas
+Consequences: 控件内部可以混合几何与文字而不触发批次纹理切换；完整 draw list 与裁剪栈仍留到 M2-E
+## [17] 2026-10-24 07:59:35 UTC
+Change: 20261024-m2-gui-mvp
+Context: M2-C 控件需要统一的颜色和尺寸来源
+Decision: 提供全局 Theme，首版深色；控件读取 theme()，后续需要时再引入 per-widget 样式覆盖
+Consequences: 控件实现简单一致；浅色主题/局部样式后续扩展
