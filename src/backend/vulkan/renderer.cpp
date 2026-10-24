@@ -592,11 +592,20 @@ void Renderer::create_command_buffers()
 void Renderer::create_sync_objects()
 {
     assert(present_complete_semaphores_.empty() && render_finished_semaphores_.empty() && in_flight_fences_.empty());
-    for (size_t i = 0; i < swap_chain_.images().size(); i++)
-        render_finished_semaphores_.emplace_back(context_.device(), vk::SemaphoreCreateInfo());
+    recreate_render_finished_semaphores();
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         present_complete_semaphores_.emplace_back(context_.device(), vk::SemaphoreCreateInfo());
         in_flight_fences_.emplace_back(context_.device(), vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+    }
+}
+
+void Renderer::recreate_render_finished_semaphores()
+{
+    // 每个交换链图像对应一个信号量，交换链重建后图像数量可能变化，必须同步重建
+    render_finished_semaphores_.clear();
+    render_finished_semaphores_.reserve(swap_chain_.images().size());
+    for (size_t i = 0; i < swap_chain_.images().size(); i++) {
+        render_finished_semaphores_.emplace_back(context_.device(), vk::SemaphoreCreateInfo());
     }
 }
 
@@ -815,13 +824,10 @@ void Renderer::begin()
     begin_frame();
 
     batch_index_ = 0;
-    // batch_.vertices.clear();
-    // batch_.indices.clear();
-    // batch_.index_offset = 0;
-    // batch_.vertex_offset = 0;
     batches_.clear();
+    batch_.vertices.clear();
+    batch_.indices.clear();
     reset_scissor();
-
 }
 
 void Renderer::draw_frame()
@@ -867,6 +873,11 @@ void Renderer::draw_frame()
 
 void Renderer::end()
 {
+    // 本帧没有成功获取交换链图像（例如交换链已过期），不能提交任何工作
+    if (!frame_acquired_) {
+        return;
+    }
+
     update_uniform_buffer();
 
     command_buffers_[frame_index_].reset();
@@ -904,6 +915,8 @@ void Renderer::end()
 
 void Renderer::begin_frame()
 {
+    frame_acquired_ = false;
+
     auto fence_result = context_.device().waitForFences(*in_flight_fences_[frame_index_], vk::True, UINT64_MAX);
     if (fence_result != vk::Result::eSuccess) {
         throw std::runtime_error("failed to wait for fence!");
@@ -911,16 +924,33 @@ void Renderer::begin_frame()
 
     auto [result, index] = swap_chain_.handle().acquireNextImage(UINT64_MAX, *present_complete_semaphores_[frame_index_], nullptr);
 
-    image_index_ = index;
-
+    // 注意：只有 eSuccess / eSuboptimalKHR 时 index 才是有效的；
+    // 其他结果（尤其是 eErrorOutOfDateKHR）下驱动不会写入 index，其值是未初始化的垃圾值，
+    // 必须在检查 result 之前避免使用它。
     if (result == vk::Result::eErrorOutOfDateKHR) {
         swap_chain_.recreate();
+        if (context_.window().should_close()) {
+            return;
+        }
+        // recreate() 内部已 waitIdle，此时重建每图像信号量是安全的
+        recreate_render_finished_semaphores();
         return;
     }
     if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
         assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
         throw std::runtime_error("failed to acquire swap chain image!");
     }
+
+    image_index_ = index;
+
+    // 防御性检查，确保后续按 image_index_ 访问的数组不会越界
+    if (image_index_ >= swap_chain_.images().size() ||
+        image_index_ >= swap_chain_.image_views().size() ||
+        image_index_ >= render_finished_semaphores_.size()) {
+        throw std::runtime_error("acquired swap chain image index is out of range!");
+    }
+
+    frame_acquired_ = true;
 
     // Only reset the fence if we are submitting work
     context_.device().resetFences(*in_flight_fences_[frame_index_]);
@@ -960,6 +990,9 @@ void Renderer::end_frame()
     if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR || context_.window().was_window_resized())) {
         context_.window().reset_window_resized_flag();
         swap_chain_.recreate();
+        if (!context_.window().should_close()) {
+            recreate_render_finished_semaphores();
+        }
     } else {
         // There are no other success codes than eSuccess; on any error code, presentKHR already threw an exception.
         assert(result == vk::Result::eSuccess);

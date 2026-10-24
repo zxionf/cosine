@@ -71,6 +71,7 @@ private:
     void create_descriptor_sets();
     void create_command_buffers();
     void create_sync_objects();
+    void recreate_render_finished_semaphores();
 
     void update_uniform_buffer();
     void update_push_constants();
@@ -152,6 +153,7 @@ private:
     std::vector<vk::raii::Fence>     in_flight_fences_;
     uint32_t frame_index_ = 0;
     uint32_t image_index_ = 0;
+    bool     frame_acquired_ = false;
 
     // 顶点和索引
     std::vector<vk::raii::Buffer>       staging_vertex_buffers_;
