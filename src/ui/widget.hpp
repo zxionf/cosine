@@ -76,13 +76,19 @@ public:
     virtual float margin_bottom()  const { return 0; }
 
     virtual bool hit_testable() const { return true; }
-    virtual void on_mouse_move(glm::vec2 pos) { (void)pos; }
+    virtual bool focusable() const { return false; }
+    virtual bool on_mouse_move(glm::vec2 pos) { (void)pos; return false; }
     virtual void on_mouse_leave() {}
     virtual void on_mouse_enter() {}
-    virtual void on_mouse_down(glm::vec2 pos, int button) { (void)pos; (void)button; }
-    virtual void on_mouse_up(glm::vec2 pos, int button) { (void)pos; (void)button; }
-    virtual void on_click(glm::vec2 pos, int button) { (void)pos; (void)button; }
+    virtual bool on_mouse_down(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
+    virtual bool on_mouse_up(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
+    virtual bool on_click(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
     virtual bool on_scroll(glm::vec2 pos, float delta) { (void)pos; (void)delta; return false; }
+    virtual bool on_key_down(int key, int mods) { (void)key; (void)mods; return false; }
+    virtual bool on_key_up(int key, int mods) { (void)key; (void)mods; return false; }
+    virtual bool on_char(char32_t codepoint) { (void)codepoint; return false; }
+    virtual void on_focus_gained() {}
+    virtual void on_focus_lost() {}
 
     // 布局脏标记：任何尺寸/子项变化都会沿 parent 链向上传播
     void mark_layout_dirty()

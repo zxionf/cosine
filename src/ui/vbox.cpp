@@ -64,12 +64,45 @@ glm::vec2 Vbox::measure(glm::vec2 constraints)
 void Vbox::arrange(Rect slot)
 {
     global_ = slot;
-    const float inner_w = std::max(0.0f, slot.size.x - padding_ * 2.0f);
-    float y = slot.pos.y + padding_;
+    if (children_.empty()) return;
 
-    for (auto& c : children_) {
-        glm::vec2 cs = c->measure({inner_w, slot.size.y - padding_ * 2.0f});
-        const Align a = resolve_align(*c);
+    const float inner_w = std::max(0.0f, slot.size.x - padding_ * 2.0f);
+    const float inner_h = std::max(0.0f, slot.size.y - padding_ * 2.0f);
+
+    std::vector<glm::vec2> sizes;
+    sizes.reserve(children_.size());
+    float natural_h = 0.0f;
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+        const glm::vec2 cs = children_[i]->measure({inner_w, inner_h});
+        sizes.push_back(cs);
+        natural_h += cs.y;
+        if (i > 0) natural_h += spacing_;
+    }
+
+    float y = slot.pos.y + padding_;
+    float gap = spacing_;
+    const float extra = inner_h - natural_h;
+
+    switch (main_align_) {
+        case MainAlign::Start:
+            break;
+        case MainAlign::Center:
+            y += std::max(0.0f, extra) * 0.5f;
+            break;
+        case MainAlign::End:
+            y += std::max(0.0f, extra);
+            break;
+        case MainAlign::SpaceBetween:
+            if (children_.size() > 1 && extra > 0.0f) {
+                gap += extra / static_cast<float>(children_.size() - 1);
+            }
+            break;
+    }
+
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+        auto& child = children_[i];
+        glm::vec2 cs = sizes[i];
+        const Align a = resolve_align(*child);
         float cx;
         if (a.stretch_x) {
             cs.x = inner_w;
@@ -78,10 +111,8 @@ void Vbox::arrange(Rect slot)
             cx = slot.pos.x + padding_ + (inner_w - cs.x) * a.x;
         }
 
-        Rect child_slot{{cx, y}, {cs.x, cs.y}};
-        c->arrange(child_slot);
-
-        y += cs.y + spacing_;
+        child->arrange({{cx, y}, {cs.x, cs.y}});
+        y += cs.y + gap;
     }
 }
 } // namespace xel::ui

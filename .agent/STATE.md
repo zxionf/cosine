@@ -1,6 +1,6 @@
 # Agent State
 
-Active Change: 无
-Phase: M1 已验收（2026-10-24），M2 待启动
+Active Change: 20261024-m2-gui-mvp
+Phase: M2 GUI 框架 MVP（M2-A 事件完成，M2-B 布局进行中）
 Blocked: 无
-Next: 用户指示后创建 M2 变更（事件闭环、布局能力、基础控件）
+Next: 完成 B03–B08（padding/margin、尺寸策略、缓存、ScrollView 双轴），再做 Theme 与基础控件

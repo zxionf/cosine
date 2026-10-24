@@ -2,6 +2,13 @@
 
 namespace xel::ui
 {
+enum class MainAlign {
+    Start,
+    Center,
+    End,
+    SpaceBetween,
+};
+
 struct Align {
     float x = 0.f;   // 0=左, 0.5=中, 1=右
     float y = 0.f;   // 0=上, 0.5=中, 1=下

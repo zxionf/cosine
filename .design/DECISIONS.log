@@ -60,3 +60,18 @@ Change: 20261024-m1-stability
 Context: ScrollView 的完整渲染裁剪需要渲染层裁剪栈，超出 M1 范围
 Decision: M1 完成 ScrollView 命中裁剪、offset clamp 与方向修正；渲染裁剪栈、文本测量与 HiDPI 延后到 M2
 Consequences: M1 交付不包含滚动内容的像素级裁剪；M2 统一 draw list 与裁剪栈时补齐
+## [13] 2026-10-24 07:28:40 UTC
+Change: 20261024-m2-gui-mvp
+Context: M2 开始前有三个范围问题未单独确认，需要采用默认方案
+Decision: TextInput 首版单行；首版只做深色主题但 Theme 结构允许扩展；CJK 字体使用可配置字体路径经 FreeType 生成，具体字体来源在文本子阶段再定
+Consequences: M2 能先推进事件/布局/控件；多行输入、浅色主题和 CJK 字体资产不阻塞前期工作
+## [14] 2026-10-24 07:28:40 UTC
+Change: 20261024-m2-gui-mvp
+Context: M1 的事件处理是 void，无法表达消费与冒泡
+Decision: 事件处理改为返回 bool；UISystem 记录命中路径并从深到浅冒泡；鼠标按下捕获 pressed_，焦点由 focused_ 管理；坐标统一使用窗口/framebuffer 坐标
+Consequences: 控件可以消费事件并阻止父容器响应；键盘需要 Application 注册 key/char 回调
+## [15] 2026-10-24 07:28:40 UTC
+Change: 20261024-m2-gui-mvp
+Context: 当前只有 Vbox，ScrollView 只支持纵向，布局缓存缺失
+Decision: M2 增加 Hbox/Spacer、尺寸策略与 dirty 传播；ScrollView 扩展到纵/横/双轴；measure/arrange 缓存随后加入
+Consequences: 布局 API 会扩展，现有 Vbox 行为保持兼容；布局测试覆盖新容器与嵌套

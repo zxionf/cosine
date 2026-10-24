@@ -1,7 +1,9 @@
 #include "ui/align.hpp"
 #include "ui/color_rect.hpp"
+#include "ui/hbox.hpp"
 #include "ui/root.hpp"
 #include "ui/scroll_view.hpp"
+#include "ui/spacer.hpp"
 #include "ui/vbox.hpp"
 
 #include <cassert>
@@ -118,6 +120,57 @@ void test_rect_intersect()
     assert(nearly(i.size.x, 50.0f));
     assert(nearly(i.size.y, 50.0f));
 }
+void test_hbox_measure_and_spacing()
+{
+    xel::ui::Hbox box{0.0f, 0.0f, 400.0f, 100.0f};
+    box.add(std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f}));
+    box.add(std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f}));
+    box.add(std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f}));
+
+    const glm::vec2 size = box.measure({400.0f, 100.0f});
+    // 3 * 50 + 2 * spacing(4) + 2 * padding(4)
+    assert(nearly(size.x, 166.0f));
+    assert(nearly(size.y, 58.0f));
+
+    box.set_cross_align(xel::ui::Align::top_left());
+    box.arrange({{0.0f, 0.0f}, {400.0f, 100.0f}});
+    const auto& children = box.children();
+    assert(children.size() == 3);
+    assert(nearly(children[0]->x(), 4.0f));
+    assert(nearly(children[0]->y(), 4.0f));
+    assert(nearly(children[1]->x(), 58.0f));
+    assert(nearly(children[2]->x(), 112.0f));
+}
+
+void test_hbox_space_between_and_stretch()
+{
+    xel::ui::Hbox box{0.0f, 0.0f, 400.0f, 100.0f};
+    box.set_main_align(xel::ui::MainAlign::SpaceBetween);
+
+    auto a = std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f});
+    auto b = std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f});
+    b->set_align(xel::ui::Align::v_stretch());
+    box.add(std::move(a));
+    box.add(std::move(b));
+
+    box.arrange({{0.0f, 0.0f}, {400.0f, 100.0f}});
+    const auto& children = box.children();
+    assert(nearly(children[0]->x(), 4.0f));
+    assert(nearly(children[1]->x(), 346.0f));
+    assert(nearly(children[1]->y(), 4.0f));
+    assert(nearly(children[1]->height(), 92.0f));
+}
+
+void test_spacer()
+{
+    xel::ui::Hbox box{0.0f, 0.0f, 400.0f, 100.0f};
+    box.add(std::make_unique<xel::ui::Spacer>(20.0f, 10.0f));
+    box.add(std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f}));
+
+    const glm::vec2 size = box.measure({400.0f, 100.0f});
+    assert(nearly(size.x, 20.0f + 50.0f + 4.0f + 8.0f));
+    assert(nearly(size.y, 50.0f + 8.0f));
+}
 } // namespace
 
 int main()
@@ -128,6 +181,9 @@ int main()
     test_scroll_view();
     test_root_parent_and_dirty();
     test_rect_intersect();
+    test_hbox_measure_and_spacing();
+    test_hbox_space_between_and_stretch();
+    test_spacer();
 
     std::cout << "ui layout tests passed\n";
     return 0;

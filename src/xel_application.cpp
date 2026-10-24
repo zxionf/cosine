@@ -10,6 +10,8 @@ Application::Application(int window_w, int window_h, const std::string& title)
 
     glfwSetFramebufferSizeCallback(window_.get_glfw_window(), framebuffer_resize_callback);
     glfwSetMouseButtonCallback(window_.get_glfw_window(), mouse_button_callback);
+    glfwSetKeyCallback(window_.get_glfw_window(), key_callback);
+    glfwSetCharCallback(window_.get_glfw_window(), char_callback);
     glfwSetCursorPosCallback(window_.get_glfw_window(), cursor_pos_callback);
     glfwSetScrollCallback(window_.get_glfw_window(), scroll_callback);
 }
@@ -38,6 +40,30 @@ void Application::mouse_button_callback(GLFWwindow* window, int button, int acti
     glfwGetCursorPos(window, &mx, &my);
     event.mouse_pos = {static_cast<float>(mx), static_cast<float>(my)};
 
+    app->uisys.dispatch(event);
+}
+
+void Application::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    (void)scancode;
+    if (action != GLFW_PRESS && action != GLFW_RELEASE) return;
+
+    auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+    event::InputEvent event;
+    event.type = action == GLFW_PRESS
+        ? event::InputEvent::Type::KeyDown
+        : event::InputEvent::Type::KeyUp;
+    event.key = key;
+    event.mods = mods;
+    app->uisys.dispatch(event);
+}
+
+void Application::char_callback(GLFWwindow* window, unsigned int codepoint)
+{
+    auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+    event::InputEvent event;
+    event.type = event::InputEvent::Type::CharInput;
+    event.codepoint = static_cast<char32_t>(codepoint);
     app->uisys.dispatch(event);
 }
 

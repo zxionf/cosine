@@ -34,6 +34,7 @@ add_executable(ex4
     ex4.cpp
     xel_application.cpp
     ui/vbox.cpp
+    ui/hbox.cpp
     ui/root.cpp
     ui/ui_system.cpp
     ui/scroll_view.cpp

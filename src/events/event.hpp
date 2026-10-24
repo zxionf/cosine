@@ -15,39 +15,19 @@ struct InputEvent
         KeyUp,
         CharInput,
     };
-    Type type;
+    Type type = Type::MouseMove;
 
     // mouse
-    // float mouse_pos_x  = 0.0f;
-    // float mouse_pos_y  = 0.0f;
     glm::vec2 mouse_pos{};
     int   mouse_button = 0;
     float scroll_delta = 0.0f;
 
     // keyboard
-    int  key        = 0;
-    char char_input = 0;
+    int      key = 0;
+    int      mods = 0;
+    char32_t codepoint = 0;
 
     bool handled = false;
     void consume() { handled = true; }
 };
-
-// struct Event
-// {
-//     enum class Type {
-//         MouseEnter,
-//         MouseLeave,
-//         MouseDown,
-//         MouseUp,
-//         Click,
-//         Scroll,
-//         KeyDown,
-//         TextInput,
-//     };
-//     Type type;
-//     // Drawable* target = nullptr;   // 事件目标
-//     // glm::vec2 local_pos{0.0f};    // 相对控件左上角的坐标
-//     // float scroll_delta = 0.0f;
-//     // char char_input = 0;
-// };
 } // namespace xel::event
