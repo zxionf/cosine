@@ -1,2 +1,62 @@
 # Decisions
 
+## [1] 2026-10-24 06:27:39 UTC
+Change: 20261024-roadmap
+Context: cosine 当前有 Vulkan 2D 渲染/自研 UI 骨架与独立 XEL 解释器，但未确定先做 GUI 还是动画引擎
+Decision: 先交付通用 2D GUI 框架 MVP，再交付 XEL 驱动的程序化动画引擎与时间轴关键帧编辑器
+Consequences: M1 先修 P0/P1 与工程化；GUI 能力先稳定，动画与编辑器复用同一套 UI/场景/时间轴内核
+## [2] 2026-10-24 06:27:39 UTC
+Change: 20261024-roadmap
+Context: UI 路线在自研与第三方库之间选择；imgui 已从仓库移除
+Decision: 继续自研 retained-mode Widget 树，不引入第三方 UI 库
+Consequences: 控件与布局需要自己实现和测试；换取对渲染/事件/主题的完全控制，避免立即模式与动画编辑器状态管理的冲突
+## [3] 2026-10-24 06:27:39 UTC
+Change: 20261024-roadmap
+Context: XEL 与引擎的关系存在独立解释器/内嵌脚本/主创作语言三种可能
+Decision: XEL 首版内嵌到引擎，最终成为主要创作语言；解释器先保持独立可测试
+Consequences: M6 需要把解释器抽成可嵌入库并提供宿主 API；语言扩展以动画创作需求为准
+## [4] 2026-10-24 06:27:39 UTC
+Change: 20261024-roadmap
+Context: 平台支持范围需要从早期确定，避免构建与资源路径返工
+Decision: Linux Wayland 与 Windows 同时作为一级平台，GLFW 作为窗口/输入层，Vulkan-only
+Consequences: CMake、资源定位、CI 必须双平台可验证；X11 作为可选后端，不承诺一等支持
+## [5] 2026-10-24 06:27:44 UTC
+Change: 20261024-roadmap
+Context: 用户要求未来支持 2.5D/3D 变换、离屏渲染与视频导出，但当前只实现 2D
+Decision: 当前只实现 2D；变换、资源与渲染接口避免写死 2D，2.5D/3D/离屏/视频导出在 M4 之后落地
+Consequences: M1/M2 不引入完整 3D 系统，但顶点/矩阵/渲染目标抽象要为后续扩展留口
+## [6] 2026-10-24 06:27:44 UTC
+Change: 20261024-roadmap
+Context: 依赖管理与可复现构建
+Decision: 保持最小依赖集；GLM 由 CMake 显式声明，STB 固定版本，暂不引入 VMA；视频导出优先外部编码器管道
+Consequences: 构建在干净机器可复现；新增依赖需先追加决策；视频编解码不直接耦合进核心
+## [7] 2026-10-24 06:27:44 UTC
+Change: 20261024-roadmap
+Context: 项目需要可持续的验证方式，但当前没有 CI 和 UI 测试
+Decision: 分阶段验收；M1 先修 P0/P1 与工程化；建立纯逻辑布局测试、解释器测试、lavapipe 渲染冒烟与本地 CI 脚本
+Consequences: 功能推进受质量门约束；短期内测试与构建脚本会增加维护成本，但避免在 UB 上继续堆功能
+## [8] 2026-10-24 06:27:44 UTC
+Change: 20261024-roadmap
+Context: 工作区从 selenium 模板导入，需要确定文档职责
+Decision: 采用 .agent/.design + sele 流程；阶段计划是路线真相源，code_review 保留为历史审计；SPEC 只写稳定事实
+Consequences: 路线调整走 change；审计与代码同步标记；agent 不修改 AGENTS.md/README.md，不创建 git 提交
+## [9] 2026-10-24 06:41:33 UTC
+Change: 20261024-roadmap
+Context: 用户审阅 M1 路线后确认，并要求 2.5D/3D 靠后，先把 2D 链路做完
+Decision: M1 通过；阶段顺序调整为 M4 2D 动画内核、M5 XEL 绑定、M6 2D 时间轴编辑器与导出、M7 2.5D/3D 渲染扩展、M8 发布；本决策更新 #5 中的阶段顺序
+Consequences: 2D GUI/动画/编辑器/导出优先，2.5D/3D 在 2D 链路稳定后再做；M1/M2 仍避免写死 2D 接口
+## [10] 2026-10-24 06:51:42 UTC
+Change: 20261024-m1-stability
+Context: M1 需要收敛构建与资源路径，并清理历史示例
+Decision: backend 收敛为 cosine_backend 静态库；资源统一到 assets/，解析顺序为 COSINE_ASSET_DIR -> 可执行文件旁 assets -> 构建期注入目录；删除 ex0/ex1/ex3/compile 脚本/font_renderer
+Consequences: 示例只链接后端库，新增 backend 文件不再改多个 target；资源不依赖当前工作目录
+## [11] 2026-10-24 06:51:42 UTC
+Change: 20261024-m1-stability
+Context: M1 需要最小可执行的质量门
+Decision: 测试使用 CTest + 简单 assert，不引入测试框架；布局测试不依赖 Vulkan；解释器测试工作目录设为 test/
+Consequences: 测试启动快、依赖少；后续复杂测试再评估框架
+## [12] 2026-10-24 06:51:42 UTC
+Change: 20261024-m1-stability
+Context: ScrollView 的完整渲染裁剪需要渲染层裁剪栈，超出 M1 范围
+Decision: M1 完成 ScrollView 命中裁剪、offset clamp 与方向修正；渲染裁剪栈、文本测量与 HiDPI 延后到 M2
+Consequences: M1 交付不包含滚动内容的像素级裁剪；M2 统一 draw list 与裁剪栈时补齐

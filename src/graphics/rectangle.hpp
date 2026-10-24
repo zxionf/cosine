@@ -17,7 +17,7 @@ public:
 
     void append_to(DrawBatch& batch) const override
     {
-        uint16_t base = static_cast<uint16_t>(batch.vertices.size());
+        const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
         batch.vertices.push_back({{x_,      y_     }, color_, {0,0}});
         batch.vertices.push_back({{x_ + w_, y_     }, color_, {0,0}});
         batch.vertices.push_back({{x_ + w_, y_ + h_}, color_, {0,0}});
@@ -25,10 +25,10 @@ public:
 
         batch.indices.insert(batch.indices.end(), {
             base,
-            static_cast<uint16_t>(base + 1),
-            static_cast<uint16_t>(base + 2),
-            static_cast<uint16_t>(base + 2),
-            static_cast<uint16_t>(base + 3),
+            base + 1,
+            base + 2,
+            base + 2,
+            base + 3,
             base
         });
     }

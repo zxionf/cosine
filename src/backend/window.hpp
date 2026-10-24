@@ -30,7 +30,13 @@ public:
     void reset_window_resized_flag() { framebuffer_resized_ = false; }
     GLFWwindow* get_glfw_window() { return window_; }
 
-    static void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
+    void set_framebuffer_size(int width, int height)
+    {
+        width_ = width;
+        height_ = height;
+        framebuffer_resized_ = true;
+    }
+
 private:
     void init_window();
 

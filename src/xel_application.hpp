@@ -20,6 +20,7 @@ public:
     Application(int window_w, int window_h, const std::string& title);
     ~Application();
 private:
+    static void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
     static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
     static void cursor_pos_callback(GLFWwindow* window, double mx, double my);
     static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);

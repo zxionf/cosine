@@ -5,17 +5,22 @@ file(GLOB SHADER_SOURCES CONFIGURE_DEPENDS
 )
 
 if(NOT SLANGC_EXECUTABLE)
-    find_program(SLANGC_EXECUTABLE slangc)
+    find_program(SLANGC_EXECUTABLE
+        NAMES slangc
+        HINTS
+            "$ENV{HOME}/tools/slang/bin"
+            "$ENV{ProgramFiles}/slang/bin"
+    )
 endif()
 if(NOT SLANGC_EXECUTABLE)
-    set(SLANGC_EXECUTABLE "/home/zxionf/tools/slang/bin/slangc")
-    if(WIN32)
-        set(SLANGC_EXECUTABLE "D:/Program Files/slang-2026.17.1-windows-x86_64/bin/slangc.exe")
-    endif()
+    message(FATAL_ERROR "slangc not found. Install Slang or pass -DSLANGC_EXECUTABLE=<path>")
 endif()
 
-# 输出目录：构建目录下的 src/shaders
-set(SHADER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/src/shaders")
+if(NOT Vulkan_GLSLC_EXECUTABLE)
+    message(FATAL_ERROR "glslc not found. Install the Vulkan SDK or pass -DVulkan_GLSLC_EXECUTABLE=<path>")
+endif()
+
+set(SHADER_OUTPUT_DIR "${COSINE_ASSET_BUILD_DIR}/shaders")
 file(MAKE_DIRECTORY "${SHADER_OUTPUT_DIR}")
 
 set(SPV_FILES "")
@@ -27,24 +32,21 @@ foreach(SHADER ${SHADER_SOURCES})
     set(SPV "${SHADER_OUTPUT_DIR}/${SHADER_NAME}.spv")
 
     if(SHADER_EXT STREQUAL ".slang")
-        if(SLANGC_EXECUTABLE)
-            add_custom_command(
-                OUTPUT "${SPV}"
-                COMMAND "${SLANGC_EXECUTABLE}"
-                        -target spirv
-                        -profile spirv_1_4
-                        -emit-spirv-directly
-                        -fvk-use-entrypoint-name
-                        -entry vertMain
-                        -entry fragMain
-                        -o "${SPV}"
-                        "${SHADER}"
-                DEPENDS "${SHADER}"
-                COMMENT "Compiling Slang ${SHADER_NAME}"
-                VERBATIM
-            )
-            list(APPEND SPV_FILES "${SPV}")
-        endif()
+        add_custom_command(
+            OUTPUT "${SPV}"
+            COMMAND "${SLANGC_EXECUTABLE}"
+                    -target spirv
+                    -profile spirv_1_4
+                    -emit-spirv-directly
+                    -fvk-use-entrypoint-name
+                    -entry vertMain
+                    -entry fragMain
+                    -o "${SPV}"
+                    "${SHADER}"
+            DEPENDS "${SHADER}"
+            COMMENT "Compiling Slang ${SHADER_NAME}"
+            VERBATIM
+        )
     else()
         add_custom_command(
             OUTPUT "${SPV}"
@@ -53,8 +55,8 @@ foreach(SHADER ${SHADER_SOURCES})
             COMMENT "Compiling ${SHADER_NAME}"
             VERBATIM
         )
-        list(APPEND SPV_FILES "${SPV}")
     endif()
+    list(APPEND SPV_FILES "${SPV}")
 endforeach()
 
 add_custom_target(shaders ALL DEPENDS ${SPV_FILES})

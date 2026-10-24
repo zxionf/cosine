@@ -6,10 +6,11 @@ struct Align {
     float x = 0.f;   // 0=左, 0.5=中, 1=右
     float y = 0.f;   // 0=上, 0.5=中, 1=下
 
-    bool stch_x = false;
-    bool stch_y = false;
-    static constexpr Align stretch_x() { return {0.0f, 0.0f, true, false}; }
-    static constexpr Align stretch_y() { return {0.0f, 0.0f, false, true}; }
+    bool stretch_x = false;
+    bool stretch_y = false;
+
+    static constexpr Align h_stretch() { return {0.0f, 0.0f, true, false}; }
+    static constexpr Align v_stretch() { return {0.0f, 0.0f, false, true}; }
 
     static constexpr Align top_left()     { return {0.0f, 0.0f}; }
     static constexpr Align top_center()   { return {0.5f, 0.0f}; }

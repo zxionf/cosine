@@ -1,11 +1,12 @@
 # cosine / XEL 代码评估与改进清单
 
 > 基线：当前 `main` 分支（`87fc4e1`）的 `src/` 代码。
+> 增量状态（2026-10-24）：当前 HEAD 为 `02f0302`；1.4 与 1.5 已由 `5122c15` 修复，其余条目仍按本审计执行。已修复条目标注为历史记录，不再作为待办。
 > 说明：以下结论主要来自静态阅读；`Align` 的恒真问题用最小程序编译验证过。
 >
 > **环境差异已排除**：服务器上没有 Vulkan SDK、GLM，也没有你本地的字体图集，因此没有在这里做完整构建。
 > 下面不会把“服务器缺 Vulkan / 缺 glm / 缺图片”当成项目 bug，只会把它们转成**构建声明和资源管理建议**。
-> `first_app.hpp` 和 imgui 是你在本地删除的；imgui 相关的代码/CMake 引用已同步清理（见 4.5），`first_app.hpp` 仍作为待收尾项。
+> `first_app.hpp` 和 imgui 是你在本地删除的；imgui 相关的代码/CMake 引用已同步清理（见 4.5），`ex0` 与 `main.cpp` 也已在 M1 删除。
 
 ---
 
@@ -26,6 +27,14 @@
 4. SwapChain 失配时 `begin_frame` 提前返回，但 `end()` 仍会 present 旧图像；
 5. 所有批次都绑定字体纹理，`WHITE` 描述符从未使用，矩形/线段会采样字体图集；
 6. `Rectangle`/`Triangle` 用 `uint16_t` 存索引基址，顶点超过 65535 后会静默画错。
+
+### M1 修复状态（2026-10-24）
+
+- P0：1.1、1.2、1.4、1.5、1.6、1.7、1.8、1.9 已修复；1.3 的命中裁剪已生效，渲染裁剪栈延后到 M2。
+- P1：2.1、2.2、2.3、2.4、2.5、2.6、2.7 已修复；文本测量/UTF-8/HiDPI 延后到 M2。
+- P2：3.1 资源路径、3.5 validation 条件已修复；3.7 帧状态部分校验，其余留待后续。
+- 工程化：4.1–4.9 已处理（GLM 声明、ex0/ex1/ex3 清理、Vulkan/GLSLC 顺序、slangc 发现、stb 固定、Wayland option、backend 静态库）；4.10 README 仍由用户维护。
+- 验证：`ctest` 4/4 通过；`ex4` 可从任意 cwd 启动；构建无自身警告。
 
 ---
 
@@ -158,7 +167,9 @@ const std::vector<std::unique_ptr<Widget>>& children() const override
 
 ---
 
-### 1.4 SwapChain 失配时仍继续渲染和 present
+### 1.4 SwapChain 失配时仍继续渲染和 present（已修复）
+
+> **状态：已修复（`5122c15`）。** `Renderer` 现在用 `frame_acquired_` 标记本帧是否成功获取图像，`end()` 在无效帧直接返回；同时对 `image_index_` 做了数组范围检查。以下保留原始问题描述作为历史记录。
 
 **位置**：`src/backend/vulkan/renderer.cpp:912-918`、`Renderer::end()`
 
@@ -206,7 +217,9 @@ if (app.renderer_.begin()) {
 
 ---
 
-### 1.5 SwapChain 重建后，每图信号量数量不匹配
+### 1.5 SwapChain 重建后，每图信号量数量不匹配（已修复）
+
+> **状态：已修复（`5122c15`）。** 新增 `recreate_render_finished_semaphores()`，在 `begin_frame` 的 out-of-date 分支和 `end_frame` 的重建分支按新图像数量重建。以下保留原始问题描述作为历史记录。
 
 **位置**
 
@@ -652,7 +665,9 @@ target_link_libraries(ex4 PRIVATE glm::glm)
 
 并在 README 写明最低版本（建议 0.9.9.8 以上）。
 
-### 4.2 `main.cpp` 仍引用已删除的 `first_app.hpp`
+### 4.2 `main.cpp` 仍引用已删除的 `first_app.hpp`（已处理）
+
+> **状态：已处理（M1）。** `ex0` 目标与 `src/main.cpp` 已删除，不再有 `first_app.hpp` 引用。以下保留原始问题描述作为历史记录。
 
 `src/main.cpp:1`：
 
@@ -883,23 +898,23 @@ cosine/
 
 ### 第一阶段：先让它稳定（建议 1–2 天）
 
-- [ ] 修 `Align::stch_x` / `stretch_x` 命名冲突，补布局测试
-- [ ] 修 `ScrollView::set_content` 二次析构
-- [ ] `ScrollView` 重写 `children()`，补空指针保护和裁剪
-- [ ] `begin_frame` 返回 `bool`，`end()` 跳过无效帧
-- [ ] SwapChain 重建时重建每图信号量
-- [ ] 批次按 `WHITE/TEXTURE` 绑定描述符
-- [ ] `uint16_t` 索引基址改 `uint32_t`
-- [ ] 初始化 `DrawBatch::scissor`
-- [ ] 统一 user pointer 类型，补鼠标按下/抬起分发
+- [x] 修 `Align::stch_x` / `stretch_x` 命名冲突，补布局测试
+- [x] 修 `ScrollView::set_content` 二次析构
+- [x] `ScrollView` 重写 `children()`，补空指针保护（渲染裁剪栈延后 M2）
+- [x] `begin_frame` 返回 `bool`，`end()` 跳过无效帧（`5122c15` 以 `frame_acquired_` 实现）
+- [x] SwapChain 重建时重建每图信号量（`5122c15`）
+- [x] 批次按 `WHITE/TEXTURE` 绑定描述符
+- [x] `uint16_t` 索引基址改 `uint32_t`
+- [x] 初始化 `DrawBatch::scissor`
+- [x] 统一 user pointer 类型，补鼠标按下/抬起分发
 
 ### 第二阶段：把 UI 交互做对（建议 2–4 天）
 
-- [ ] `Widget` 增加 parent、`on_mouse_down/up`、焦点
+- [x] `Widget` 增加 parent、`on_mouse_down/up`（焦点管理延后 M2）
 - [ ] 事件从最深命中向上冒泡，返回是否消费
-- [ ] `Vbox` 修正 spacing/padding，`UIRoot` 移除演示内容
-- [ ] `ScrollView` 支持轴向、方向、resize 后 clamp
-- [ ] `Rect`/`Widget` 拆分循环 include
+- [x] `Vbox` 修正 spacing/padding，`UIRoot` 移除演示内容
+- [x] `ScrollView` 支持轴向、方向、resize 后 clamp
+- [x] `Rect`/`Widget` 拆分循环 include
 - [ ] HiDPI 坐标统一
 
 ### 第三阶段：工程化与可移植（建议 1 周）

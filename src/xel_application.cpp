@@ -8,7 +8,7 @@ Application::Application(int window_w, int window_h, const std::string& title)
 {
     glfwSetWindowUserPointer(window_.get_glfw_window(), this);
 
-    glfwSetFramebufferSizeCallback(window_.get_glfw_window(), backend::Window::framebuffer_resize_callback);
+    glfwSetFramebufferSizeCallback(window_.get_glfw_window(), framebuffer_resize_callback);
     glfwSetMouseButtonCallback(window_.get_glfw_window(), mouse_button_callback);
     glfwSetCursorPosCallback(window_.get_glfw_window(), cursor_pos_callback);
     glfwSetScrollCallback(window_.get_glfw_window(), scroll_callback);
@@ -17,10 +17,28 @@ Application::Application(int window_w, int window_h, const std::string& title)
 Application::~Application()
 {}
 
+void Application::framebuffer_resize_callback(GLFWwindow* window, int width, int height)
+{
+    auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+    app->window_.set_framebuffer_size(width, height);
+}
+
 void Application::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-    // app->event_tester_.process_event(event::InputEvent{event::InputEvent::Type::MouseScroll, button, action, mods});
+    (void)mods;
+    auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    event::InputEvent event;
+    event.type = action == GLFW_PRESS
+        ? event::InputEvent::Type::MouseButtonDown
+        : event::InputEvent::Type::MouseButtonUp;
+    event.mouse_button = button;
+
+    double mx, my;
+    glfwGetCursorPos(window, &mx, &my);
+    event.mouse_pos = {static_cast<float>(mx), static_cast<float>(my)};
+
+    app->uisys.dispatch(event);
 }
 
 void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)

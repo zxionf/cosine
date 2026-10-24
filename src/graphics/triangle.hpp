@@ -15,7 +15,7 @@ public:
 
     void append_to(DrawBatch& batch) const override
     {
-        uint16_t base = static_cast<uint16_t>(batch.vertices.size());
+        const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
         batch.vertices.push_back({p0_, color_, {0,0}});
         batch.vertices.push_back({p1_, color_, {0,0}});
         batch.vertices.push_back({p2_, color_, {0,0}});

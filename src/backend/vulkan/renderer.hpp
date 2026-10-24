@@ -29,7 +29,6 @@ class Renderer
 {
 public:
     constexpr static int MAX_FRAMES_IN_FLIGHT = 2;
-    enum TextureSlot {WHITE = 0, TEXTURE = 1};
     struct CharMetrics { int min_x; int max_x; };
 
     Renderer(VulkanContext& context, SwapChain& swap_chain);
@@ -83,7 +82,7 @@ private:
     void begin_rendering(vk::raii::CommandBuffer& command_buffer);
     void end_rendering(vk::raii::CommandBuffer& command_buffer);
 
-    vk::raii::DescriptorSet& descriptor_set(uint32_t index, TextureSlot slot) { return descriptor_sets_[index * 2 + static_cast<uint32_t>(slot)]; }
+    vk::raii::DescriptorSet& descriptor_set(uint32_t index, graphics::TextureSlot slot) { return descriptor_sets_[index * 2 + static_cast<uint32_t>(slot)]; }
 
     std::pair<vk::raii::Image, vk::raii::DeviceMemory> create_image(uint32_t width, uint32_t height,  vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
     vk::raii::ImageView create_image_view(const vk::Image& image, vk::Format format);
@@ -115,6 +114,7 @@ private:
     std::array<CharMetrics, 256> char_metrics_{};
 
     void flush_batch();
+    void set_texture_slot(graphics::TextureSlot slot);
 
     void compute_char_width_ratio(int tex_width, unsigned char* pixels);
 

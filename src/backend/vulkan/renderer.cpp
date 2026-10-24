@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include "../asset_path.hpp"
 #include "../../graphics/triangle.hpp"
 #include "../../graphics/rectangle.hpp"
 
@@ -67,7 +68,7 @@ void Renderer::create_descriptor_set_layout()
 void Renderer::create_pipeline()
 {
     // 作色器
-    vk::raii::ShaderModule shader_module = create_shader_module(read_file("shaders/ui.slang.spv"));
+    vk::raii::ShaderModule shader_module = create_shader_module(read_file(asset_path("shaders/ui.slang.spv").string()));
 
     vk::PipelineShaderStageCreateInfo vertex_shader_info{
         .stage = vk::ShaderStageFlagBits::eVertex,
@@ -240,7 +241,6 @@ void Renderer::create_white_texture()
 void Renderer::compute_char_width_ratio(int tex_width, unsigned char* pixels)
 {
     constexpr int COLS = 16;
-    constexpr int ROWS = 16;
     font_cell_px_ = tex_width / COLS;   // 128 / 16 = 8
     for (int idx = 0; idx < 256; idx++) {
         int col = idx % COLS;
@@ -266,7 +266,7 @@ void Renderer::compute_char_width_ratio(int tex_width, unsigned char* pixels)
 void Renderer::create_texture_image()
 {
     int tex_width, tex_height, tex_channels;
-    stbi_uc* pixels = stbi_load("default8.png", &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
+    stbi_uc* pixels = stbi_load(asset_path("fonts/default8.png").string().c_str(), &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
     vk::DeviceSize image_size = tex_width * tex_height * 4;
     if (!pixels) {
         throw std::runtime_error("failed to load texture image!");
@@ -408,7 +408,7 @@ vk::raii::CommandBuffer Renderer::begin_single_time_commands()
     };
     command_buffer.begin(begin_info);
 
-    return std::move(command_buffer);
+    return command_buffer;
 }
 
 void Renderer::end_single_time_commands(vk::raii::CommandBuffer&& command_buffer)
@@ -542,8 +542,8 @@ void Renderer::create_descriptor_sets()
             .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
         };
 
-        auto& white_set = descriptor_sets_[i * 2 + WHITE];
-        auto& texture_set = descriptor_sets_[i * 2 + TEXTURE];
+        auto& white_set = descriptor_sets_[i * 2 + static_cast<uint32_t>(graphics::TextureSlot::White)];
+        auto& texture_set = descriptor_sets_[i * 2 + static_cast<uint32_t>(graphics::TextureSlot::Texture)];
         std::array<vk::WriteDescriptorSet, 4> descriptor_write{{
             {
                 .dstSet          = texture_set,
@@ -638,7 +638,16 @@ void Renderer::update_uniform_buffer()
 
 void Renderer::draw(const graphics::Drawable& d)
 {
+    set_texture_slot(d.texture_slot());
     d.append_to(batch_);
+}
+
+void Renderer::set_texture_slot(graphics::TextureSlot slot)
+{
+    if (batch_.texture_slot != slot) {
+        flush_batch();
+        batch_.texture_slot = slot;
+    }
 }
 
 graphics::DrawBatch& Renderer::acquire_batch()
@@ -647,6 +656,7 @@ graphics::DrawBatch& Renderer::acquire_batch()
         auto& b = batches_[batch_index_];
         b.vertices.clear();
         b.indices.clear();
+        b.texture_slot = graphics::TextureSlot::White;
         b.scissor = {0, 0, swap_chain_.extent().width, swap_chain_.extent().height};
         b.vertex_offset = 0;
         b.index_offset = 0;
@@ -664,6 +674,7 @@ void Renderer::flush_batch()
     auto& b = acquire_batch();
     b.vertices.insert(b.vertices.end(), batch_.vertices.begin(), batch_.vertices.end());
     b.indices.insert(b.indices.end(), batch_.indices.begin(), batch_.indices.end());
+    b.texture_slot = batch_.texture_slot;
     b.scissor = batch_.scissor;
 
     batch_.vertices.clear();
@@ -685,6 +696,7 @@ void Renderer::reset_scissor()
 
 void Renderer::draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color)
 {
+    set_texture_slot(graphics::TextureSlot::White);
     // 方向
     float dx = x2 - x1;
     float dy = y2 - y1;
@@ -721,6 +733,7 @@ void Renderer::draw_line(float x1, float y1, float x2, float y2, float width, gl
 
 void Renderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
 {
+    set_texture_slot(graphics::TextureSlot::White);
     uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
     // 0  3
     // 1  2
@@ -736,6 +749,7 @@ void Renderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
 
 void Renderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color, float u0, float v0, float u1, float v1)
 {
+    set_texture_slot(graphics::TextureSlot::Texture);
     uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
     // 0  3
     // 1  2
@@ -751,6 +765,7 @@ void Renderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color,
 
 void Renderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color)
 {
+    set_texture_slot(graphics::TextureSlot::White);
     uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
     batch_.vertices.push_back({{x1, y1}, color, {0.0f, 0.0f}});
     batch_.vertices.push_back({{x2, y2}, color, {0.0f, 0.0f}});
@@ -762,6 +777,7 @@ void Renderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, f
 
 void Renderer::draw_char(float x, float y, float size, char ch, glm::vec4 color)
 {
+    set_texture_slot(graphics::TextureSlot::Texture);
     int index = static_cast<unsigned char>(ch);
     const auto& m = char_metrics_[index];
     if (m.max_x < m.min_x) return;
@@ -817,7 +833,10 @@ void Renderer::draw_text(float x, float y, float size, const std::string& text, 
 }
 
 void Renderer::process_mouse_move(float x, float y)
-{}
+{
+    (void)x;
+    (void)y;
+}
 
 void Renderer::begin()
 {
@@ -891,13 +910,14 @@ void Renderer::end()
     // command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
     // command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
     // command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-    command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0, *descriptor_sets_[frame_index_ * 2 + TEXTURE], nullptr);
     // if (current_vertex_buffer_size_ > 0) {
     //     command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
     //     command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexTypeValue<decltype(batch_.indices)::value_type>::value);
     //     command_buffer.drawIndexed(static_cast<uint32_t>(batch_.indices.size()), 1, 0, 0, 0);
     // }
     for (const auto& batch : batches_) {
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
+            *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
         vk::Rect2D scissor{
             .offset = {std::max(0, (int)batch.scissor.x), std::max(0, (int)batch.scissor.y)},
             .extent = {std::min((uint32_t)batch.scissor.z, swap_chain_.extent().width), std::min((uint32_t)batch.scissor.w, swap_chain_.extent().height)}

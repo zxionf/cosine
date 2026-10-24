@@ -31,12 +31,4 @@ void Window::init_window()
     GLFWcursor* cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
     glfwSetCursor(window_, cursor);
 }
-
-void Window::framebuffer_resize_callback(GLFWwindow *glfwWindow, int width, int height)
-{
-    auto xelWindow = reinterpret_cast<Window *>(glfwGetWindowUserPointer(glfwWindow));
-    xelWindow->framebuffer_resized_ = true;
-    xelWindow->width_ = width;
-    xelWindow->height_ = height;
-}
 }

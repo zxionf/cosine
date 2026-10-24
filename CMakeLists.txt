@@ -3,14 +3,24 @@ project(cosvideo)
 
 set(CMAKE_CXX_STANDARD 20)
 include(FetchContent)
-# include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# file(GLOB_RECURSE SOURES "")
+find_package(glm CONFIG REQUIRED)
+find_package(Vulkan REQUIRED)
+
+enable_testing()
+
+set(COSINE_ASSET_BUILD_DIR "${CMAKE_BINARY_DIR}/src/assets" CACHE INTERNAL "Runtime asset directory")
+
+option(COSINE_GLFW_WAYLAND "Build GLFW with Wayland support" ON)
+option(COSINE_GLFW_X11 "Build GLFW with X11 support" OFF)
+if(NOT COSINE_GLFW_WAYLAND AND NOT COSINE_GLFW_X11)
+    message(FATAL_ERROR "At least one of COSINE_GLFW_WAYLAND / COSINE_GLFW_X11 must be ON")
+endif()
 
 # 配置 GLFW 编译选项（避免编译示例和测试）
-set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
-set(GLFW_BUILD_X11 OFF CACHE BOOL "" FORCE)
-set(GLFW_USE_EGL ON CACHE BOOL "" FORCE)  # 重要：Wayland 需要 EGL
+set(GLFW_BUILD_WAYLAND ${COSINE_GLFW_WAYLAND} CACHE BOOL "" FORCE)
+set(GLFW_BUILD_X11 ${COSINE_GLFW_X11} CACHE BOOL "" FORCE)
+set(GLFW_USE_EGL ${COSINE_GLFW_WAYLAND} CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -43,7 +53,8 @@ FetchContent_MakeAvailable(freetype)
 FetchContent_Declare(
     stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
-    GIT_TAG master
+    GIT_TAG 003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5
+    GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(stb)
 set(STB_INCLUDE_DIR ${stb_SOURCE_DIR} CACHE INTERNAL "stb include dir")

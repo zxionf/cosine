@@ -17,7 +17,9 @@ static VKAPI_ATTR vk::Bool32 VKAPI_CALL debug_callback(
     const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData,
     void* pUserData)
 {
-    if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning || severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eError)
+    (void)pUserData;
+    if (severity & (vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+                   vk::DebugUtilsMessageSeverityFlagBitsEXT::eError))
     std::cerr << "validation layer: type " << to_string(type) << " msg: " << pCallbackData->pMessage << std::endl;
     return vk::False;
 }
@@ -126,13 +128,13 @@ void VulkanContext::create_logical_device()
     std::vector<vk::QueueFamilyProperties> queue_family_properties = physical_device_.getQueueFamilyProperties();
 
     uint32_t queue_index = ~0;
-    for (uint32_t i = 0; i < queue_family_properties.size(); i++) {
+    for (uint32_t i = 0; i < static_cast<uint32_t>(queue_family_properties.size()); i++) {
         if ((queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics) && physical_device_.getSurfaceSupportKHR(i, *surface_)) {
             queue_index = i;
             break;
         }
     }
-    if (queue_index == ~0) {
+    if (queue_index == ~0u) {
         throw std::runtime_error("Could not find a queue for graphics and present -> terminating");
     }
 
@@ -176,9 +178,9 @@ bool VulkanContext::is_device_suitable(vk::raii::PhysicalDevice const& device) {
     });
 
     auto available_device_extensions = device.enumerateDeviceExtensionProperties();
-    bool supports_all_required_extensions = std::ranges::all_of( required_device_extension, [&available_device_extensions]( auto const & required_device_extension ) {
-            return std::ranges::any_of( available_device_extensions, [required_device_extension]( auto const & available_device_extension )
-                { return strcmp( available_device_extension.extensionName, required_device_extension ) == 0; } );
+    bool supports_all_required_extensions = std::ranges::all_of( required_device_extension, [&available_device_extensions]( auto const & required_extension ) {
+            return std::ranges::any_of( available_device_extensions, [required_extension]( auto const & available_device_extension )
+                { return strcmp( available_device_extension.extensionName, required_extension ) == 0; } );
     });
 
     auto features = device.template getFeatures2<vk::PhysicalDeviceFeatures2,

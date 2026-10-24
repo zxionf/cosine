@@ -1,7 +1,9 @@
 #pragma once
 
-#include "widget.hpp"
-#include "../graphics/rectangle.hpp"
+#include <glm/glm.hpp>
+
+#include <cstddef>
+#include <type_traits>
 
 namespace xel::ui
 {
@@ -15,7 +17,14 @@ struct Rect
     float top()    const { return pos.y; }
     float bottom() const { return pos.y + size.y; }
 
-    bool contains(glm::vec2 pos) const { return pos.x >= left() && pos.x <= right() && pos.y >= top() && pos.y <= bottom(); }
+    bool contains(glm::vec2 p) const { return p.x >= left() && p.x <= right() && p.y >= top() && p.y <= bottom(); }
+
+    Rect intersect(const Rect& other) const
+    {
+        const glm::vec2 lo{glm::max(pos, other.pos)};
+        const glm::vec2 hi{glm::min(pos + size, other.pos + other.size)};
+        return {lo, glm::max(hi - lo, glm::vec2{0.0f})};
+    }
 };
 
 template <std::size_t I>
