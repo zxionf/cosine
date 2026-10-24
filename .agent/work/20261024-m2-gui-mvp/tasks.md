@@ -50,9 +50,9 @@
 - [x] D09 TTF 缺失回退 `default8.png`，sampler 按字体类型选择 linear/nearest
 - [x] D10 Renderer 上传运行时生成的图集
 - [x] D11 D3 增量字形更新（按需追加 + 纹理更新）
-- [ ] D12 图集格式、字体来源、许可证、字号策略文档
-- [ ] D13 CJK/回退/生成性能测试（CJK + 动态字形测试已加，回退/性能待补）
-- [ ] D14 SDF/MSDF 与多字号后续评估
+- [x] D12 图集格式、字体来源、许可证、字号策略文档（docs/font_atlas.md）
+- [x] D13 CJK/回退/生成性能测试（CJK、动态字形、无字体回退、生成耗时）
+- [x] D14 SDF/MSDF 与多字号后续评估（结论：暂不引入，见 docs/font_atlas.md）
 
 ## M2-E 渲染与裁剪
 
@@ -90,8 +90,8 @@
 - M2-A 完成：事件、焦点、HiDPI 光标换算、组件 debug 绘制、on_hover
 - M2-B 完成：Hbox、Spacer、padding/margin、flex/grow、min/max、主轴分布、measure 缓存、ScrollView 双轴
 - M2-C 完成：Theme、FontAtlas、Label、Panel、Button、Checkbox、Slider、TextInput、List、Splitter、Tooltip；控件已接入 ex4
-- M2-D 基本完成：UTF-8、codepoint FontAtlas、换行/省略号、TextInput codepoint 光标/点击索引、FreeType C2 CJK 图集、D3 动态字形与纹理更新、fallback、文本测试
+- M2-D 完成：UTF-8、codepoint FontAtlas、换行/省略号、TextInput codepoint、FreeType C2 CJK 图集、D3 动态字形、fallback、字体文档与性能测试
 - 已修复面板不响应：光标坐标按 framebuffer 缩放后与布局坐标一致；debug 树保留但 ex4 已关闭，hover 视觉保留
 - 评估与问题已归档到 `docs/project_assessment.md`；R01–R18 已纳入阶段计划
 - 7/7 ctest 通过；`ex4` 可运行，CJK 与动态字形（囧）均正常显示
-- 剩余：D12 字体文档、D13 回退/性能测试、D14 SDF 评估；随后 M2-E 裁剪栈/draw list
+- 下一步：M2-E 渲染裁剪（DrawList、scissor 栈、自动裁剪、合批、z-order）

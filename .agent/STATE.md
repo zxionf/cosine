@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 20261024-m2-gui-mvp
-Phase: M2 GUI 框架 MVP（A/B/C 完成；D 文本：CJK + D3 动态字形已落地）
+Phase: M2 GUI 框架 MVP（A/B/C/D 完成；进入 M2-E）
 Blocked: 无
-Next: M2-D D12 字体文档、D13 回退/性能测试；随后 M2-E 裁剪栈 / draw list
+Next: M2-E DrawList / scissor 栈 / 自动裁剪 / 合批 / z-order

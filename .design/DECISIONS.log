@@ -105,3 +105,8 @@ Change: 20261024-m2-gui-mvp
 Context: CJK 字形曾显示为白色方块，且 D3 动态字形更新尚未落地
 Decision: FreeType 图集改为预乘 alpha（RGB=A），修复混合导致的方块；FontAtlas 增加动态 add_glyph/ensure_glyph/revision，Renderer 在字形追加后重传图集纹理；Renderer 保留 FontFace 供按需加载
 Consequences: C2 未覆盖的字形可在运行时追加并显示；当前采用整张 2048x2048 纹理重传，后续可优化为 dirty-rect 局部更新
+## [22] 2026-10-24 10:28:00 UTC
+Change: 20261024-m2-gui-mvp
+Context: M2-D 字体文档、回退/性能测试与 SDF 评估收尾
+Decision: 字体图集文档归档到 docs/font_atlas.md；C2 图集生成约 76ms；SDF/MSDF 暂不引入；M2-D 完成，进入 M2-E
+Consequences: M2-E 需要解决当前 TextClip 只能裁文字四边形、容器仍无 scissor 栈的问题

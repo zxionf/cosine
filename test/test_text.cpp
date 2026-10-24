@@ -6,6 +6,7 @@
 #include "ui/text_input.hpp"
 
 #include <cassert>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -67,6 +68,7 @@ void test_font_atlas_and_wrap()
     stbi_image_free(pixels);
 
     assert(atlas.valid());
+    assert(!atlas.smooth());
     assert(atlas.measure("A", 16.0f).x > 0.0f);
     assert(atlas.measure("中文", 16.0f).x > 0.0f);
     assert(atlas.white_uv().x >= 0.0f && atlas.white_uv().x <= 1.0f);
@@ -158,13 +160,27 @@ void test_font_builder_full_c2()
 
     xel::graphics::FontAtlas atlas;
     std::string error;
+    const auto start = std::chrono::steady_clock::now();
     assert(xel::graphics::build_font_atlas(options, atlas, &error));
+    const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start).count();
+    std::cout << "C2 atlas build: " << elapsed << " ms\n";
+    assert(elapsed < 5000);
     assert(atlas.has_glyph(U'中'));
     const auto* glyph = atlas.glyph(U'中');
     assert(glyph != nullptr);
     assert(glyph->width_ratio > 0.0f);
     assert(glyph->height_ratio > 0.0f);
 
+}
+
+void test_font_builder_missing()
+{
+    xel::graphics::FontAtlas atlas;
+    xel::graphics::FontAtlasBuildOptions options;
+    std::string error;
+    assert(!xel::graphics::build_font_atlas(options, atlas, &error));
+    assert(!error.empty());
 }
 
 void test_dynamic_glyph_loading()
@@ -205,6 +221,7 @@ int main()
     test_font_atlas_and_wrap();
     test_font_builder();
     test_font_builder_full_c2();
+    test_font_builder_missing();
     test_dynamic_glyph_loading();
 
     std::cout << "text tests passed\n";
