@@ -3,6 +3,7 @@
 #include "theme.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
+#include "../graphics/utf8.hpp"
 #include "../graphics/rectangle.hpp"
 
 #include <algorithm>
@@ -100,9 +101,12 @@ public:
             selection.append_to(batch);
         }
 
+        scroll_offset_ = scroll;
         if (atlas) {
             atlas->append_text(batch, global_.pos.x + pad - scroll, text_y, font_size,
-                               text_, enabled_ ? t.text : t.text_disabled);
+                               text_, enabled_ ? t.text : t.text_disabled,
+                               {global_.pos.x + pad, global_.pos.y,
+                                global_.pos.x + global_.size.x - pad, global_.pos.y + global_.size.y});
         }
 
         if (focused_) {
@@ -144,8 +148,8 @@ public:
     bool on_char(char32_t codepoint) override
     {
         if (!enabled_) return false;
-        if (codepoint < 32 || codepoint >= 127) return false;
-        replace_selection(std::string(1, static_cast<char>(codepoint)));
+        if (codepoint < 32 || codepoint == 0x7F) return false;
+        replace_selection(graphics::utf8_encode(codepoint));
         return true;
     }
 
@@ -167,8 +171,9 @@ public:
                 if (cursor_ != anchor_) {
                     erase_selection();
                 } else if (cursor_ > 0) {
-                    text_.erase(cursor_ - 1, 1);
-                    --cursor_;
+                    const std::size_t prev = graphics::utf8_prev(text_, cursor_);
+                    text_.erase(prev, cursor_ - prev);
+                    cursor_ = prev;
                     anchor_ = cursor_;
                     notify();
                 }
@@ -177,16 +182,17 @@ public:
                 if (cursor_ != anchor_) {
                     erase_selection();
                 } else if (cursor_ < text_.size()) {
-                    text_.erase(cursor_, 1);
+                    const std::size_t next = graphics::utf8_next(text_, cursor_);
+                    text_.erase(cursor_, next - cursor_);
                     notify();
                 }
                 return true;
             case GLFW_KEY_LEFT:
-                if (cursor_ > 0) --cursor_;
+                cursor_ = graphics::utf8_prev(text_, cursor_);
                 if (!shift) anchor_ = cursor_;
                 return true;
             case GLFW_KEY_RIGHT:
-                if (cursor_ < text_.size()) ++cursor_;
+                cursor_ = graphics::utf8_next(text_, cursor_);
                 if (!shift) anchor_ = cursor_;
                 return true;
             case GLFW_KEY_HOME:
@@ -212,22 +218,26 @@ private:
         if (auto* atlas = graphics::active_font_atlas()) {
             return atlas->measure(prefix, font_size).x;
         }
-        return static_cast<float>(prefix.size()) * font_size * 0.5f;
+        return static_cast<float>(graphics::utf8_codepoint_count(prefix)) * font_size * 0.5f;
     }
 
     size_t index_from_x(float x) const
     {
         const auto& t = theme();
-        const float local_x = x - (global_.pos.x + t.padding);
+        const float local_x = x - (global_.pos.x + t.padding) + scroll_offset_;
         size_t best = 0;
         float best_dist = std::numeric_limits<float>::max();
-        for (size_t i = 0; i <= text_.size(); ++i) {
+
+        std::size_t i = 0;
+        while (true) {
             const float w = prefix_width(i, t.text_size);
             const float dist = std::fabs(w - local_x);
             if (dist < best_dist) {
                 best_dist = dist;
                 best = i;
             }
+            if (i >= text_.size()) break;
+            i = graphics::utf8_next(text_, i);
         }
         return best;
     }
@@ -266,6 +276,7 @@ private:
     bool enabled_ = true;
     bool focused_ = false;
     bool dragging_ = false;
+    mutable float scroll_offset_ = 0.0f;
     bool hovered_ = false;
     std::function<void(const std::string&)> handler_;
 };

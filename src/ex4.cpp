@@ -93,6 +93,12 @@ int main()
     panel->add(std::move(input));
     panel->add(std::move(input_text));
 
+    auto wrapped = std::make_unique<xel::ui::Label>(
+        "This is a long wrapped label used to verify automatic line wrapping and ellipsis in the UI.");
+    wrapped->set_wrap(true);
+    wrapped->set_max_lines(2);
+    wrapped->set_ellipsis(true);
+    panel->add(std::move(wrapped));
     app.uisys.root()->add(std::move(panel));
     while (!app.window_.should_close())
     {

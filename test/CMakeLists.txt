@@ -56,3 +56,14 @@ add_executable(test_ui_controls
 )
 target_link_libraries(test_ui_controls PRIVATE glm::glm glfw)
 add_test(NAME ui_controls COMMAND test_ui_controls)
+
+add_executable(test_text
+    test_text.cpp
+    ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas.cpp
+)
+target_include_directories(test_text PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
+    ${STB_INCLUDE_DIR}
+)
+target_link_libraries(test_text PRIVATE glm::glm glfw)
+add_test(NAME text_utf8 COMMAND test_text)

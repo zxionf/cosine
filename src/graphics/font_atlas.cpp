@@ -1,4 +1,5 @@
 #include "font_atlas.hpp"
+#include "utf8.hpp"
 
 #include <algorithm>
 #include <string>
@@ -14,7 +15,10 @@ void FontAtlas::load(int tex_width, int tex_height, const unsigned char* rgba)
 {
     tex_width_ = tex_width;
     tex_height_ = tex_height;
-    cell_px_ = tex_width / 16;
+    cell_px_ = std::max(1, tex_width / 16);
+    glyphs_.clear();
+
+    constexpr float cell_uv = 1.0f / 16.0f;
 
     for (int idx = 0; idx < 256; ++idx) {
         const int col = idx % 16;
@@ -33,7 +37,25 @@ void FontAtlas::load(int tex_width, int tex_height, const unsigned char* rgba)
                 }
             }
         }
-        glyphs_[idx] = {min_x, max_x};
+
+        Glyph g;
+        g.u0 = static_cast<float>(col) * cell_uv;
+        g.v0 = static_cast<float>(row) * cell_uv;
+        g.u1 = g.u0 + cell_uv;
+        g.v1 = g.v0 + cell_uv;
+
+        if (max_x >= min_x) {
+            g.u0 += (static_cast<float>(min_x) / 16.0f) / static_cast<float>(cell_px_);
+            g.u1 = static_cast<float>(col) * cell_uv
+                 + ((static_cast<float>(max_x) + 1.0f) / 16.0f) / static_cast<float>(cell_px_);
+            g.width_ratio = static_cast<float>(max_x - min_x + 1) / static_cast<float>(cell_px_);
+            g.advance_ratio = static_cast<float>(max_x - min_x + 2) / static_cast<float>(cell_px_);
+        } else {
+            g.width_ratio = 0.0f;
+            g.advance_ratio = (idx == ' ') ? 0.5f : 0.0f;
+        }
+
+        glyphs_.emplace(static_cast<char32_t>(idx), g);
     }
 
     white_uv_ = {0.5f / static_cast<float>(tex_width), 0.5f / static_cast<float>(tex_height)};
@@ -51,12 +73,22 @@ void FontAtlas::load(int tex_width, int tex_height, const unsigned char* rgba)
     }
 }
 
-float FontAtlas::advance_for(unsigned char ch, float size) const
+bool FontAtlas::has_glyph(char32_t codepoint) const
 {
-    if (ch == ' ') return size * 0.5f;
-    const Glyph& g = glyphs_[ch];
-    if (g.max_x < g.min_x) return 0.0f;
-    return size * static_cast<float>(g.max_x - g.min_x + 2) / static_cast<float>(cell_px_);
+    return glyphs_.find(codepoint) != glyphs_.end();
+}
+
+const FontAtlas::Glyph* FontAtlas::glyph(char32_t codepoint) const
+{
+    const auto it = glyphs_.find(codepoint);
+    return it == glyphs_.end() ? nullptr : &it->second;
+}
+
+const FontAtlas::Glyph* FontAtlas::glyph_or_fallback(char32_t codepoint) const
+{
+    if (const Glyph* g = glyph(codepoint)) return g;
+    if (const Glyph* g = glyph(U'?')) return g;
+    return nullptr;
 }
 
 glm::vec2 FontAtlas::measure(std::string_view text, float size) const
@@ -65,15 +97,20 @@ glm::vec2 FontAtlas::measure(std::string_view text, float size) const
     float line_w = 0.0f;
     int lines = 1;
 
-    for (char c : text) {
-        if (c == '\n') {
+    std::size_t index = 0;
+    while (index < text.size()) {
+        const char32_t codepoint = utf8_decode(text, index);
+        if (codepoint == U'\n') {
             max_w = std::max(max_w, line_w);
             line_w = 0.0f;
             ++lines;
             continue;
         }
-        line_w += advance_for(static_cast<unsigned char>(c), size);
+        if (codepoint == U'\r') continue;
+        const Glyph* g = glyph_or_fallback(codepoint);
+        line_w += (g ? g->advance_ratio : 0.5f) * size;
     }
+
     max_w = std::max(max_w, line_w);
     return {max_w, static_cast<float>(lines) * size};
 }
@@ -83,56 +120,169 @@ float FontAtlas::measure_width(std::string_view text, float size) const
     return measure(text, size).x;
 }
 
+glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float max_width) const
+{
+    if (max_width <= 0.0f) return measure(text, size);
+
+    float max_w = 0.0f;
+    float line_w = 0.0f;
+    int lines = 1;
+
+    std::size_t index = 0;
+    while (index < text.size()) {
+        const char32_t codepoint = utf8_decode(text, index);
+        if (codepoint == U'\n') {
+            max_w = std::max(max_w, line_w);
+            line_w = 0.0f;
+            ++lines;
+            continue;
+        }
+        if (codepoint == U'\r') continue;
+
+        const Glyph* g = glyph_or_fallback(codepoint);
+        const float advance = (g ? g->advance_ratio : 0.5f) * size;
+        if (line_w > 0.0f && line_w + advance > max_width) {
+            max_w = std::max(max_w, line_w);
+            line_w = 0.0f;
+            ++lines;
+        }
+        line_w += advance;
+    }
+
+    max_w = std::max(max_w, line_w);
+    return {std::min(max_w, max_width), static_cast<float>(lines) * size};
+}
+
+void FontAtlas::append_glyph(DrawBatch& batch, float& pen_x, float& pen_y, float size,
+                             char32_t codepoint, glm::vec4 color, const TextClip& clip) const
+{
+    const Glyph* g = glyph_or_fallback(codepoint);
+    if (!g) {
+        pen_x += size * 0.5f;
+        return;
+    }
+
+    const float advance = g->advance_ratio * size;
+    if (g->width_ratio <= 0.0f) {
+        pen_x += advance;
+        return;
+    }
+
+    const float x0 = pen_x;
+    const float y0 = pen_y;
+    const float x1 = pen_x + g->width_ratio * size;
+    const float y1 = pen_y + size;
+
+    const float cx0 = std::max(x0, clip.left);
+    const float cy0 = std::max(y0, clip.top);
+    const float cx1 = std::min(x1, clip.right);
+    const float cy1 = std::min(y1, clip.bottom);
+
+    if (cx1 > cx0 && cy1 > cy0) {
+        const float inv_w = 1.0f / (x1 - x0);
+        const float inv_h = 1.0f / (y1 - y0);
+        const float u0 = g->u0 + (cx0 - x0) * inv_w * (g->u1 - g->u0);
+        const float u1 = g->u0 + (cx1 - x0) * inv_w * (g->u1 - g->u0);
+        const float v0 = g->v0 + (cy0 - y0) * inv_h * (g->v1 - g->v0);
+        const float v1 = g->v0 + (cy1 - y0) * inv_h * (g->v1 - g->v0);
+
+        const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
+        batch.vertices.push_back({{cx0, cy0}, color, {u0, v0}});
+        batch.vertices.push_back({{cx1, cy0}, color, {u1, v0}});
+        batch.vertices.push_back({{cx1, cy1}, color, {u1, v1}});
+        batch.vertices.push_back({{cx0, cy1}, color, {u0, v1}});
+        batch.indices.insert(batch.indices.end(), {
+            base, base + 1, base + 2,
+            base + 2, base + 3, base
+        });
+    }
+
+    pen_x += advance;
+}
+
 void FontAtlas::append_text(DrawBatch& batch, float x, float y, float size,
-                            std::string_view text, glm::vec4 color) const
+                            std::string_view text, glm::vec4 color,
+                            const TextClip& clip) const
 {
     if (!valid()) return;
 
     batch.texture_slot = TextureSlot::Texture;
 
-    constexpr float cell_uv = 1.0f / 16.0f;
     float pen_x = x;
     float pen_y = y;
 
-    for (char c : text) {
-        if (c == '\n') {
+    std::size_t index = 0;
+    while (index < text.size()) {
+        const char32_t codepoint = utf8_decode(text, index);
+        if (codepoint == U'\n') {
             pen_x = x;
             pen_y += size;
             continue;
         }
-        if (c == ' ') {
-            pen_x += size * 0.5f;
+        if (codepoint == U'\r') continue;
+        append_glyph(batch, pen_x, pen_y, size, codepoint, color, clip);
+    }
+}
+
+void FontAtlas::append_text_wrapped(DrawBatch& batch, float x, float y, float size,
+                                    std::string_view text, glm::vec4 color,
+                                    float max_width, int max_lines, bool ellipsis,
+                                    const TextClip& clip) const
+{
+    if (!valid() || max_width <= 0.0f) return;
+
+    batch.texture_slot = TextureSlot::Texture;
+
+    float pen_x = x;
+    float pen_y = y;
+    float line_w = 0.0f;
+    int lines_used = 1;
+
+    auto draw_ellipsis = [&]() {
+        if (!ellipsis) return;
+        for (int i = 0; i < 3; ++i) {
+            const Glyph* dot = glyph_or_fallback(U'.');
+            if (!dot) break;
+            const float advance = dot->advance_ratio * size;
+            if (line_w + advance > max_width) break;
+            append_glyph(batch, pen_x, pen_y, size, U'.', color, clip);
+            line_w += advance;
+        }
+    };
+
+    std::size_t index = 0;
+    while (index < text.size()) {
+        const char32_t codepoint = utf8_decode(text, index);
+
+        if (codepoint == U'\r') continue;
+        if (codepoint == U'\n') {
+            if (max_lines > 0 && lines_used >= max_lines) {
+                draw_ellipsis();
+                return;
+            }
+            pen_x = x;
+            pen_y += size;
+            line_w = 0.0f;
+            ++lines_used;
             continue;
         }
 
-        const unsigned char index = static_cast<unsigned char>(c);
-        const Glyph& g = glyphs_[index];
-        if (g.max_x < g.min_x) continue;
+        const Glyph* g = glyph_or_fallback(codepoint);
+        const float advance = (g ? g->advance_ratio : 0.5f) * size;
 
-        const int col = index % 16;
-        const int row = index / 16;
-        const float u_cell = static_cast<float>(col) * cell_uv;
-        const float v_cell = static_cast<float>(row) * cell_uv;
+        if (line_w > 0.0f && line_w + advance > max_width) {
+            if (max_lines > 0 && lines_used >= max_lines) {
+                draw_ellipsis();
+                return;
+            }
+            pen_x = x;
+            pen_y += size;
+            line_w = 0.0f;
+            ++lines_used;
+        }
 
-        const float u0 = u_cell + (static_cast<float>(g.min_x) / 16.0f) / static_cast<float>(cell_px_);
-        const float u1 = u_cell + ((static_cast<float>(g.max_x) + 1.0f) / 16.0f) / static_cast<float>(cell_px_);
-        const float v0 = v_cell;
-        const float v1 = v_cell + cell_uv;
-
-        const float glyph_w = size * static_cast<float>(g.max_x - g.min_x + 1) / static_cast<float>(cell_px_);
-        const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-
-        batch.vertices.push_back({{pen_x,          pen_y},          color, {u0, v0}});
-        batch.vertices.push_back({{pen_x + glyph_w, pen_y},          color, {u1, v0}});
-        batch.vertices.push_back({{pen_x + glyph_w, pen_y + size},   color, {u1, v1}});
-        batch.vertices.push_back({{pen_x,          pen_y + size},   color, {u0, v1}});
-
-        batch.indices.insert(batch.indices.end(), {
-            base, base + 1, base + 2,
-            base + 2, base + 3, base
-        });
-
-        pen_x += advance_for(index, size);
+        append_glyph(batch, pen_x, pen_y, size, codepoint, color, clip);
+        line_w += advance;
     }
 }
 

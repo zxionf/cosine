@@ -85,3 +85,13 @@ Change: 20261024-m2-gui-mvp
 Context: M2-C 控件需要统一的颜色和尺寸来源
 Decision: 提供全局 Theme，首版深色；控件读取 theme()，后续需要时再引入 per-widget 样式覆盖
 Consequences: 控件实现简单一致；浅色主题/局部样式后续扩展
+## [18] 2026-10-24 08:49:03 UTC
+Change: 20261024-m2-gui-mvp
+Context: M2-C 完成后评估发现文本、渲染裁剪与 demo/应用层债务是进入动画内核前的主要阻塞
+Decision: 评估归档到 docs/project_assessment.md；M2 剩余拆为 M2-D 文本、M2-E 渲染裁剪与 draw list、M2-F demo/应用层收口；M3 增加 UIContext、Windows CI、ASAN、打包；M4 在 M2 验收后再开始
+Consequences: M2 预计延长 2–3 周；M4 之前必须完成文本、裁剪与 demo 收口，避免动画编辑器返工
+## [19] 2026-10-24 09:01:42 UTC
+Change: 20261024-m2-gui-mvp
+Context: M2-D 需要 UTF-8/换行/省略号，而 FontAtlas 之前按 byte 索引、只支持 ASCII
+Decision: FontAtlas 改为 codepoint + unordered_map，新增 UTF-8 编解码、measure_wrapped、append_text_wrapped 与 TextClip；缺失字形回退到 '?'；TextInput 光标/选择按 codepoint 边界移动
+Consequences: UTF-8 文本可输入/测量/换行/裁剪；CJK 在字体图集生成前显示为 '?'，FreeType/CJK 图集仍待完成
