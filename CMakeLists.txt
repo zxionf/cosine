@@ -50,7 +50,6 @@ set(STB_INCLUDE_DIR ${stb_SOURCE_DIR} CACHE INTERNAL "stb include dir")
 
 add_subdirectory(test)
 
-add_subdirectory(movy)
 add_subdirectory(interpreter)
 
 add_subdirectory(src)

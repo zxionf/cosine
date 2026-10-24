@@ -5,7 +5,7 @@
 >
 > **环境差异已排除**：服务器上没有 Vulkan SDK、GLM，也没有你本地的字体图集，因此没有在这里做完整构建。
 > 下面不会把“服务器缺 Vulkan / 缺 glm / 缺图片”当成项目 bug，只会把它们转成**构建声明和资源管理建议**。
-> `first_app.hpp` 和 imgui 是你在本地删除的，文中把它们标记为“已删除但代码/CMake 未同步”的收尾项。
+> `first_app.hpp` 和 imgui 是你在本地删除的；imgui 相关的代码/CMake 引用已同步清理（见 4.5），`first_app.hpp` 仍作为待收尾项。
 
 ---
 
@@ -709,19 +709,14 @@ endif()
 - 找不到时 `message(FATAL_ERROR "slangc not found; install Slang or pass -DSLANGC_EXECUTABLE=...")`；
 - 若某些示例不再需要 slang，可把 shader 编译设为可选。
 
-### 4.5 `test` / `movy` 对已删除 imgui 的引用
+### 4.5 `test` / `movy` 对已删除 imgui 的引用（已处理）
 
-你删除了 imgui 文件，但：
+imgui、`ImGuiColorTextEdit`、`movy/` 以及 `test/testimgui.cpp`、`test/testdocking.cpp` 已删除，相关构建引用也已同步清理：
 
-- 根 `CMakeLists.txt:51` 仍然 `add_subdirectory(test)`；
-- `test/CMakeLists.txt` 引用 `imgui/...` 并链接不存在的 `imguifull`；
-- `movy/main.cpp` 包含 `imgui.h`、`ImTextEditor.h`。
-
-如果删除 imgui 是有意的，需要同步：
-
-- 移除/条件化 `add_subdirectory(test)`、`add_subdirectory(movy)`；
-- 或加 `option(BUILD_LEGACY_IMGUI_TOOLS OFF)`，默认关闭；
-- 保留解释器测试（`test_interpreter_*`），它们不依赖 imgui，可以拆成独立目录。
+- 根 `CMakeLists.txt` 移除了 `add_subdirectory(movy)`；
+- `test/CMakeLists.txt` 移除了 `imgui/...` 源文件以及 `testimgui`/`testdll`/`testdocking` 目标；
+- `.gitignore` 移除了失效的 `/imgui/examples`；
+- 保留了 `testglfwinit` 和解释器测试（`test_interpreter_*`），它们不依赖 imgui。
 
 ### 4.6 `ex1.cpp` 已失效，`ex3.cpp` 未纳入构建
 
@@ -912,7 +907,7 @@ cosine/
 - [ ] CMake 声明 glm，固定 stb 版本
 - [ ] `find_package(Vulkan)` 提前，slangc/glslc 缺失时 fail fast
 - [ ] 删除/归档 `ex1`、`compile.sh/.bat`、`font_renderer`
-- [ ] 修复/条件化 `test`、`movy`
+- [x] 清理 `test`、`movy` 中的 imgui 残留
 - [ ] 字体图集纳入仓库或构建生成
 - [ ] backend 抽成库，示例统一到 `examples/`
 - [ ] README 写清依赖、构建、运行、资源路径

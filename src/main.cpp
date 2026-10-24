@@ -1,5 +1,3 @@
-#include "first_app.hpp"
-
 // std
 #include <cstdlib>
 #include <iostream>
@@ -7,10 +5,10 @@
 
 int main()
 {
-    xel::FirstApp app{};
+    // xel::FirstApp app{};
     try
     {
-        app.run();
+        // app.run();
     }
     catch(const std::exception& e)
     {
