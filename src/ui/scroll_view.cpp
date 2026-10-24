@@ -100,9 +100,11 @@ bool ScrollView::on_scroll(glm::vec2 pos, glm::vec2 delta)
     return true;
 }
 
-void ScrollView::append_to(graphics::DrawBatch& batch) const
+void ScrollView::append_to(graphics::DrawList& list) const
 {
     if (!content_) return;
-    content_->append_to(batch);
+    list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+    content_->append_to(list);
+    list.pop_clip();
 }
 } // namespace xel::ui

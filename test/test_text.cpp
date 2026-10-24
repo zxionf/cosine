@@ -76,14 +76,14 @@ void test_font_atlas_and_wrap()
     const auto wrapped = atlas.measure_wrapped("Hello World Hello World", 16.0f, 48.0f);
     assert(wrapped.y >= 32.0f);
 
-    xel::graphics::DrawBatch batch;
-    atlas.append_text(batch, 0.0f, 0.0f, 16.0f, "Hello", glm::vec4{1.0f});
-    assert(!batch.vertices.empty());
+    xel::graphics::DrawList list;
+    atlas.append_text(list, 0.0f, 0.0f, 16.0f, "Hello", glm::vec4{1.0f});
+    assert(!list.batches().empty());
 
-    xel::graphics::DrawBatch wrapped_batch;
-    atlas.append_text_wrapped(wrapped_batch, 0.0f, 0.0f, 16.0f, "Hello World Hello World",
+    xel::graphics::DrawList wrapped_list;
+    atlas.append_text_wrapped(wrapped_list, 0.0f, 0.0f, 16.0f, "Hello World Hello World",
                               glm::vec4{1.0f}, 48.0f, 2, true);
-    assert(!wrapped_batch.vertices.empty());
+    assert(!wrapped_list.batches().empty());
 
     xel::graphics::set_active_font_atlas(&atlas);
 
@@ -95,9 +95,9 @@ void test_font_atlas_and_wrap()
     assert(label_size.y == 32.0f);
     label.arrange({{0.0f, 0.0f}, label_size});
 
-    xel::graphics::DrawBatch label_batch;
-    label.append_to(label_batch);
-    assert(!label_batch.vertices.empty());
+    xel::graphics::DrawList label_list;
+    label.append_to(label_list);
+    assert(!label_list.batches().empty());
 
     xel::ui::TextInput input("中文", 200.0f);
     input.set_global_bounds({{0.0f, 0.0f}, {200.0f, 40.0f}});
@@ -137,9 +137,9 @@ void test_font_builder()
     assert(atlas.has_glyph(U'中'));
     assert(atlas.measure("中文", 16.0f).x > 0.0f);
 
-    xel::graphics::DrawBatch batch;
-    atlas.append_text(batch, 0.0f, 0.0f, 16.0f, "中文你好", glm::vec4{1.0f});
-    assert(!batch.vertices.empty());
+    xel::graphics::DrawList list;
+    atlas.append_text(list, 0.0f, 0.0f, 16.0f, "中文你好", glm::vec4{1.0f});
+    assert(!list.batches().empty());
 }
 
 void test_font_builder_full_c2()
@@ -208,9 +208,9 @@ void test_dynamic_glyph_loading()
     assert(atlas.has_glyph(U'中'));
     assert(atlas.revision() > before);
 
-    xel::graphics::DrawBatch batch;
-    atlas.append_text(batch, 0.0f, 0.0f, 16.0f, "中文", glm::vec4{1.0f});
-    assert(!batch.vertices.empty());
+    xel::graphics::DrawList list;
+    atlas.append_text(list, 0.0f, 0.0f, 16.0f, "中文", glm::vec4{1.0f});
+    assert(!list.batches().empty());
 }
 } // namespace
 

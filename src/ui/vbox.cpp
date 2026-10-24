@@ -33,11 +33,11 @@ void Vbox::layout()
     arrange(local_bounds());
 }
 
-void Vbox::append_to(graphics::DrawBatch& batch) const
+void Vbox::append_to(graphics::DrawList& list) const
 {
-    if (is_debug()) { debug_rect(batch); }
+    if (is_debug()) { debug_rect(list); }
     for (const auto& child : children_) {
-        if (child->visible()) child->append_to(batch);
+        if (child->visible()) child->append_to(list);
     }
 }
 

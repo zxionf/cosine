@@ -47,14 +47,14 @@ public:
         set_size(slot.size);
     }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         const auto& t = theme();
         graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, t.tooltip_bg};
-        background.append_to(batch);
+        background.append_to(list);
 
         if (auto* atlas = graphics::active_font_atlas()) {
-            atlas->append_text(batch, global_.pos.x + t.padding, global_.pos.y + t.padding * 0.5f,
+            atlas->append_text(list, global_.pos.x + t.padding, global_.pos.y + t.padding * 0.5f,
                                t.small_text_size, text_, t.text);
         }
     }

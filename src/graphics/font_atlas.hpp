@@ -75,11 +75,11 @@ public:
     float measure_width(std::string_view text, float size);
     glm::vec2 measure_wrapped(std::string_view text, float size, float max_width);
 
-    void append_text(DrawBatch& batch, float x, float y, float size,
+    void append_text(DrawList& list, float x, float y, float size,
                      std::string_view text, glm::vec4 color,
                      const TextClip& clip = {});
 
-    void append_text_wrapped(DrawBatch& batch, float x, float y, float size,
+    void append_text_wrapped(DrawList& list, float x, float y, float size,
                              std::string_view text, glm::vec4 color,
                              float max_width, int max_lines = 0, bool ellipsis = false,
                              const TextClip& clip = {});

@@ -261,6 +261,55 @@ void test_scroll_view_both_axes()
     assert(nearly(scroll->scroll_offset_x(), 40.0f));
     assert(nearly(scroll->scroll_offset(), 40.0f));
 }
+
+void test_draw_list_clip()
+{
+    xel::graphics::DrawList list;
+    list.set_full_clip({0.0f, 0.0f, 200.0f, 200.0f});
+
+    list.set_texture(xel::graphics::TextureSlot::Texture);
+    auto& b0 = list.batch();
+    b0.vertices.push_back({{0.0f, 0.0f}, glm::vec4{1.0f}, {0.0f, 0.0f}});
+    assert(nearly(b0.scissor.z, 200.0f));
+
+    list.push_clip({10.0f, 10.0f, 50.0f, 50.0f});
+    auto& b1 = list.batch();
+    b1.vertices.push_back({{0.0f, 0.0f}, glm::vec4{1.0f}, {0.0f, 0.0f}});
+    assert(nearly(b1.scissor.x, 10.0f));
+    assert(nearly(b1.scissor.y, 10.0f));
+    assert(nearly(b1.scissor.z, 50.0f));
+    assert(nearly(b1.scissor.w, 50.0f));
+
+    list.push_clip({30.0f, 30.0f, 50.0f, 50.0f});
+    auto& b2 = list.batch();
+    b2.vertices.push_back({{0.0f, 0.0f}, glm::vec4{1.0f}, {0.0f, 0.0f}});
+    assert(nearly(b2.scissor.x, 30.0f));
+    assert(nearly(b2.scissor.y, 30.0f));
+    assert(nearly(b2.scissor.z, 30.0f));
+    assert(nearly(b2.scissor.w, 30.0f));
+
+    list.pop_clip();
+    list.pop_clip();
+    assert(nearly(list.current_clip().z, 200.0f));
+}
+
+void test_scroll_view_clip()
+{
+    auto scroll = std::make_unique<xel::ui::ScrollView>();
+    auto content = std::make_unique<xel::ui::ColorRect>(0, 0, 400, 400, glm::vec4{1.0f});
+    scroll->set_content(std::move(content));
+    scroll->measure({100.0f, 100.0f});
+    scroll->arrange({{0.0f, 0.0f}, {100.0f, 100.0f}});
+
+    xel::graphics::DrawList list;
+    list.set_full_clip({0.0f, 0.0f, 200.0f, 200.0f});
+    scroll->append_to(list);
+    assert(!list.batches().empty());
+    for (const auto& batch : list.batches()) {
+        assert(batch.scissor.z <= 100.0f + 1e-3f);
+        assert(batch.scissor.w <= 100.0f + 1e-3f);
+    }
+}
 } // namespace
 
 int main()
@@ -279,6 +328,8 @@ int main()
     test_min_max_size();
     test_measure_cache_invalidation();
     test_scroll_view_both_axes();
+    test_draw_list_clip();
+    test_scroll_view_clip();
 
     std::cout << "ui layout tests passed\n";
     return 0;

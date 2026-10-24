@@ -47,7 +47,7 @@ public:
         set_size(slot.size);
     }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         const auto& t = theme();
         const float box = t.checkbox_size;
@@ -55,37 +55,37 @@ public:
         const float by = global_.pos.y + (global_.size.y - box) * 0.5f;
 
         graphics::Rectangle box_bg{bx, by, box, box, t.checkbox_bg};
-        box_bg.append_to(batch);
+        box_bg.append_to(list);
 
         const glm::vec4 border_color = hovered_ ? t.focus_ring : t.checkbox_border;
         graphics::Rectangle border_top   {bx, by, box, t.border, border_color};
         graphics::Rectangle border_bottom{bx, by + box - t.border, box, t.border, border_color};
         graphics::Rectangle border_left  {bx, by, t.border, box, border_color};
         graphics::Rectangle border_right {bx + box - t.border, by, t.border, box, border_color};
-        border_top.append_to(batch);
-        border_bottom.append_to(batch);
-        border_left.append_to(batch);
-        border_right.append_to(batch);
+        border_top.append_to(list);
+        border_bottom.append_to(list);
+        border_left.append_to(list);
+        border_right.append_to(list);
 
         if (checked_) {
             const float inset = box * 0.25f;
             graphics::Rectangle fill{bx + inset, by + inset, box - inset * 2.0f, box - inset * 2.0f, t.checkbox_fill};
-            fill.append_to(batch);
+            fill.append_to(list);
         }
 
         if (focused_) {
             const float b = 2.0f;
             graphics::Rectangle top   {bx - b, by - b, box + b * 2.0f, b, t.focus_ring};
             graphics::Rectangle bottom{bx - b, by + box, box + b * 2.0f, b, t.focus_ring};
-            top.append_to(batch);
-            bottom.append_to(batch);
+            top.append_to(list);
+            bottom.append_to(list);
         }
 
         if (auto* atlas = graphics::active_font_atlas()) {
             const glm::vec2 text_size = atlas->measure(label_, t.text_size);
             const float tx = bx + box + t.spacing;
             const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
-            atlas->append_text(batch, tx, ty, t.text_size, label_, enabled_ ? t.text : t.text_disabled);
+            atlas->append_text(list, tx, ty, t.text_size, label_, enabled_ ? t.text : t.text_disabled);
         }
     }
 

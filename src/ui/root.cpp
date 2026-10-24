@@ -15,12 +15,12 @@ void UIRoot::add(std::unique_ptr<Widget> child)
     mark_layout_dirty();
 }
 
-void UIRoot::append_to(graphics::DrawBatch& batch) const
+void UIRoot::append_to(graphics::DrawList& list) const
 {
     for (auto& child : children_) {
-        if (child->visible()) child->append_to(batch);
+        if (child->visible()) child->append_to(list);
     }
-    if (is_debug()) append_debug_tree(batch);
+    if (is_debug()) append_debug_tree(list);
 }
 
 void UIRoot::layout()

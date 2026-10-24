@@ -310,14 +310,14 @@ void FontAtlas::append_glyph(DrawBatch& batch, float& pen_x, float& pen_y, float
     pen_x += advance;
 }
 
-void FontAtlas::append_text(DrawBatch& batch, float x, float y, float size,
+void FontAtlas::append_text(DrawList& list, float x, float y, float size,
                             std::string_view text, glm::vec4 color,
                             const TextClip& clip)
 {
     if (!valid()) return;
 
-    batch.texture_slot = TextureSlot::Texture;
-
+    list.set_texture(TextureSlot::Texture);
+    auto& batch = list.batch();
     float pen_x = x;
     float pen_y = y;
 
@@ -335,15 +335,15 @@ void FontAtlas::append_text(DrawBatch& batch, float x, float y, float size,
     }
 }
 
-void FontAtlas::append_text_wrapped(DrawBatch& batch, float x, float y, float size,
+void FontAtlas::append_text_wrapped(DrawList& list, float x, float y, float size,
                                     std::string_view text, glm::vec4 color,
                                     float max_width, int max_lines, bool ellipsis,
                                     const TextClip& clip)
 {
     if (!valid() || max_width <= 0.0f) return;
 
-    batch.texture_slot = TextureSlot::Texture;
-
+    list.set_texture(TextureSlot::Texture);
+    auto& batch = list.batch();
     float pen_x = x;
     float pen_y = y;
     float line_w = 0.0f;

@@ -15,10 +15,10 @@ public:
     : x_{x}, y_{y}, size_{size}, content_{std::move(content)}, color_{color}
     {}
 
-    void append_to(DrawBatch& batch) const override
+    void append_to(DrawList& list) const override
     {
         if (auto* atlas = active_font_atlas()) {
-            atlas->append_text(batch, x_, y_, size_, content_, color_);
+            atlas->append_text(list, x_, y_, size_, content_, color_);
         }
     }
 

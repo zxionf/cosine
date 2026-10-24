@@ -64,24 +64,23 @@ public:
         debug();
         for (const auto& child : children()) child->debug_recursive();
     }
-    void append_debug_tree(graphics::DrawBatch& batch) const
+    void append_debug_tree(graphics::DrawList& list) const
     {
-        if (is_debug()) debug_rect(batch);
-        for (const auto& child : children()) child->append_debug_tree(batch);
+        if (is_debug()) debug_rect(list);
+        for (const auto& child : children()) child->append_debug_tree(list);
     }
-    void debug_rect(graphics::DrawBatch& batch) const {
+    void debug_rect(graphics::DrawList& list) const {
         auto [x, y, w, h] = global_;
         const glm::vec4 color = hovered_ ? glm::vec4{1, 0, 1, 1} : glm::vec4{0, 1, 0, 1};
         graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, color};
         graphics::Line right_l  {x + w, y,      x + w,  y + h,  1.0f, color};
         graphics::Line bottom_l {x,     y + h,  x + w,  y + h,  1.0f, color};
         graphics::Line left_l   {x,     y,      x,      y + h,  1.0f, color};
-        top_l.append_to(batch);
-        right_l.append_to(batch);
-        bottom_l.append_to(batch);
-        left_l.append_to(batch);
+        top_l.append_to(list);
+        right_l.append_to(list);
+        bottom_l.append_to(list);
+        left_l.append_to(list);
     }
-
     virtual void layout() {}
     virtual glm::vec2 measure(glm::vec2 constraints) = 0;
     virtual void arrange(Rect slot) = 0;

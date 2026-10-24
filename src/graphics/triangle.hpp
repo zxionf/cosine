@@ -14,9 +14,10 @@ public:
     : p0_{x0, y0}, p1_{x1, y1}, p2_{x2, y2}, color_{color}
     {}
 
-    void append_to(DrawBatch& batch) const override
+    void append_to(DrawList& list) const override
     {
-        batch.texture_slot = TextureSlot::Texture;
+        list.set_texture(TextureSlot::Texture);
+        auto& batch = list.batch();
         const glm::vec2 uv = active_font_atlas() ? active_font_atlas()->white_uv() : glm::vec2{0.0f};
         const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
         batch.vertices.push_back({p0_, color_, uv});

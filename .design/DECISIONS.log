@@ -110,3 +110,8 @@ Change: 20261024-m2-gui-mvp
 Context: M2-D 字体文档、回退/性能测试与 SDF 评估收尾
 Decision: 字体图集文档归档到 docs/font_atlas.md；C2 图集生成约 76ms；SDF/MSDF 暂不引入；M2-D 完成，进入 M2-E
 Consequences: M2-E 需要解决当前 TextClip 只能裁文字四边形、容器仍无 scissor 栈的问题
+## [23] 2026-10-24 10:54:03 UTC
+Change: 20261024-m2-gui-mvp
+Context: M2-E 需要真正的裁剪栈和按 scissor/texture 切批，而原来所有绘制写进单个 DrawBatch
+Decision: 引入 graphics::DrawList：维护 clip 栈、当前 texture 与多个 DrawBatch；Drawable::append_to 改为接收 DrawList；ScrollView/TextInput/Panel/Label/Splitter 自动 push/pop clip；Renderer 从 DrawList 上传并按批次设置 scissor/descriptor
+Consequences: 裁剪与切批由绘制期自动处理；ex4 的手动 scissor 仍保留兼容，M2-F 再移除；显式 overlay/z-order 与 render target 仍待做

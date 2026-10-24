@@ -16,7 +16,7 @@ public:
     void add(std::unique_ptr<Widget> child) override;
     const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
     bool hit_testable() const override { return false; }
-    void append_to(graphics::DrawBatch& batch) const override;
+    void append_to(graphics::DrawList& list) const override;
     void layout() override;
     glm::vec2 measure(glm::vec2 constraints) override;
     void arrange(Rect slot) override;

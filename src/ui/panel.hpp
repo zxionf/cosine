@@ -25,12 +25,12 @@ public:
     void on_mouse_enter() override { hovered_ = true; }
     void on_mouse_leave() override { hovered_ = false; }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         const auto& t = theme();
 
         graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, t.panel_bg};
-        background.append_to(batch);
+        background.append_to(list);
 
         if (t.border > 0.0f) {
             const glm::vec4 border_color = hovered_ ? t.focus_ring : t.panel_border;
@@ -39,13 +39,15 @@ public:
             graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b, global_.size.x, b, border_color};
             graphics::Rectangle left  {global_.pos.x, global_.pos.y, b, global_.size.y, border_color};
             graphics::Rectangle right {global_.pos.x + global_.size.x - b, global_.pos.y, b, global_.size.y, border_color};
-            top.append_to(batch);
-            bottom.append_to(batch);
-            left.append_to(batch);
-            right.append_to(batch);
+            top.append_to(list);
+            bottom.append_to(list);
+            left.append_to(list);
+            right.append_to(list);
         }
 
-        Vbox::append_to(batch);
+        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        Vbox::append_to(list);
+        list.pop_clip();
     }
 
 private:

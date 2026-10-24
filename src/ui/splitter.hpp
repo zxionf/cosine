@@ -71,7 +71,7 @@ public:
         }
     }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         const auto& t = theme();
         const float handle = handle_size();
@@ -85,10 +85,15 @@ public:
         const float h = orientation_ == Orientation::Horizontal ? global_.size.y : handle;
 
         graphics::Rectangle bar{x, y, w, h, t.panel_border};
-        bar.append_to(batch);
+        bar.append_to(list);
 
         for (const auto& child : children_) {
-            if (child->visible()) child->append_to(batch);
+            if (child->visible()) {
+                const auto b = child->global_bounds();
+                list.push_clip({b.pos.x, b.pos.y, b.size.x, b.size.y});
+                child->append_to(list);
+                list.pop_clip();
+            }
         }
     }
 

@@ -46,7 +46,7 @@ public:
         set_size(slot.size);
     }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         const auto& t = theme();
 
@@ -56,7 +56,7 @@ public:
         else if (hovered_) bg = t.button_hover;
 
         graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, bg};
-        background.append_to(batch);
+        background.append_to(list);
 
         if (focused_) {
             const float b = 2.0f;
@@ -64,17 +64,17 @@ public:
             graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b, global_.size.x, b, t.focus_ring};
             graphics::Rectangle left  {global_.pos.x, global_.pos.y, b, global_.size.y, t.focus_ring};
             graphics::Rectangle right {global_.pos.x + global_.size.x - b, global_.pos.y, b, global_.size.y, t.focus_ring};
-            top.append_to(batch);
-            bottom.append_to(batch);
-            left.append_to(batch);
-            right.append_to(batch);
+            top.append_to(list);
+            bottom.append_to(list);
+            left.append_to(list);
+            right.append_to(list);
         }
 
         if (auto* atlas = graphics::active_font_atlas()) {
             const glm::vec2 text_size = atlas->measure(label_, t.text_size);
             const float tx = global_.pos.x + (global_.size.x - text_size.x) * 0.5f;
             const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
-            atlas->append_text(batch, tx, ty, t.text_size, label_, enabled_ ? t.text : t.text_disabled);
+            atlas->append_text(list, tx, ty, t.text_size, label_, enabled_ ? t.text : t.text_disabled);
         }
     }
 

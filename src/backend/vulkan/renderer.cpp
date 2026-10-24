@@ -685,65 +685,24 @@ void Renderer::update_uniform_buffer()
 
 void Renderer::draw(const graphics::Drawable& d)
 {
-    set_texture_slot(d.texture_slot());
-    d.append_to(batch_);
-}
-
-void Renderer::set_texture_slot(graphics::TextureSlot slot)
-{
-    if (batch_.texture_slot != slot) {
-        flush_batch();
-        batch_.texture_slot = slot;
-    }
-}
-
-graphics::DrawBatch& Renderer::acquire_batch()
-{
-    if (batch_index_ < batches_.size()) {
-        auto& b = batches_[batch_index_];
-        b.vertices.clear();
-        b.indices.clear();
-        b.texture_slot = graphics::TextureSlot::White;
-        b.scissor = {0, 0, swap_chain_.extent().width, swap_chain_.extent().height};
-        b.vertex_offset = 0;
-        b.index_offset = 0;
-        batch_index_ ++;
-        return b;
-    }
-    batches_.emplace_back();
-    batch_index_ ++;
-    return batches_.back();
-}
-
-void Renderer::flush_batch()
-{
-    if (batch_.vertices.empty()) return;
-    auto& b = acquire_batch();
-    b.vertices.insert(b.vertices.end(), batch_.vertices.begin(), batch_.vertices.end());
-    b.indices.insert(b.indices.end(), batch_.indices.begin(), batch_.indices.end());
-    b.texture_slot = batch_.texture_slot;
-    b.scissor = batch_.scissor;
-
-    batch_.vertices.clear();
-    batch_.indices.clear();
+    draw_list_.set_texture(d.texture_slot());
+    d.append_to(draw_list_);
 }
 
 void Renderer::set_scissor(float x, float y, float w, float h)
 {
-    if (batch_.scissor != glm::vec4(x, y, w, h)) {
-        flush_batch();
-        batch_.scissor = {x, y, w, h};
-    }
+    draw_list_.set_clip({x, y, w, h});
 }
 
 void Renderer::reset_scissor()
 {
-    set_scissor(0.0f, 0.0f, static_cast<float>(swap_chain_.extent().width), static_cast<float>(swap_chain_.extent().height));
+    draw_list_.set_full_clip({0.0f, 0.0f,
+                              static_cast<float>(swap_chain_.extent().width),
+                              static_cast<float>(swap_chain_.extent().height)});
 }
-
 void Renderer::draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color)
 {
-    set_texture_slot(graphics::TextureSlot::White);
+    draw_list_.set_texture(graphics::TextureSlot::White);
     // 方向
     float dx = x2 - x1;
     float dy = y2 - y1;
@@ -763,16 +722,16 @@ void Renderer::draw_line(float x1, float y1, float x2, float y2, float width, gl
     glm::vec2 c{x2 - px, y2 - py};
     glm::vec2 d{x2 + px, y2 + py};
 
-    uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
+    uint32_t base = static_cast<uint32_t>(draw_list_.batch().vertices.size());
 
     // 4 个顶点，UV 随便填（用白纹理采样恒为 1）
-    batch_.vertices.push_back({{a.x, a.y}, color, {0.0f, 0.0f}});
-    batch_.vertices.push_back({{b.x, b.y}, color, {0.0f, 0.0f}});
-    batch_.vertices.push_back({{c.x, c.y}, color, {0.0f, 0.0f}});
-    batch_.vertices.push_back({{d.x, d.y}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{a.x, a.y}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{b.x, b.y}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{c.x, c.y}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{d.x, d.y}, color, {0.0f, 0.0f}});
 
     // 两个三角形
-    batch_.indices.insert(batch_.indices.end(), {
+    draw_list_.batch().indices.insert(draw_list_.batch().indices.end(), {
         base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
         base, static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3)
     });
@@ -780,15 +739,15 @@ void Renderer::draw_line(float x1, float y1, float x2, float y2, float width, gl
 
 void Renderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
 {
-    set_texture_slot(graphics::TextureSlot::White);
-    uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
+    draw_list_.set_texture(graphics::TextureSlot::White);
+    uint32_t base = static_cast<uint32_t>(draw_list_.batch().vertices.size());
     // 0  3
     // 1  2
-    batch_.vertices.push_back({{x,         y}, color, {0.0f, 0.0f}});
-    batch_.vertices.push_back({{x + w,     y}, color, {0.0f, 0.0f}});
-    batch_.vertices.push_back({{x + w, y + h}, color, {0.0f, 0.0f}});
-    batch_.vertices.push_back({{x,     y + h}, color, {0.0f, 0.0f}});
-    batch_.indices.insert(batch_.indices.end(), {
+    draw_list_.batch().vertices.push_back({{x,         y}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{x + w,     y}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{x + w, y + h}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{x,     y + h}, color, {0.0f, 0.0f}});
+    draw_list_.batch().indices.insert(draw_list_.batch().indices.end(), {
         base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
         static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3), base
     });
@@ -796,15 +755,15 @@ void Renderer::draw_rect(float x, float y, float w, float h, glm::vec4 color)
 
 void Renderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color, float u0, float v0, float u1, float v1)
 {
-    set_texture_slot(graphics::TextureSlot::Texture);
-    uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
+    draw_list_.set_texture(graphics::TextureSlot::Texture);
+    uint32_t base = static_cast<uint32_t>(draw_list_.batch().vertices.size());
     // 0  3
     // 1  2
-    batch_.vertices.push_back({{x,         y}, color, {u0, v0}});
-    batch_.vertices.push_back({{x + w,     y}, color, {u1, v0}});
-    batch_.vertices.push_back({{x + w, y + h}, color, {u1, v1}});
-    batch_.vertices.push_back({{x,     y + h}, color, {u0, v1}});
-    batch_.indices.insert(batch_.indices.end(), {
+    draw_list_.batch().vertices.push_back({{x,         y}, color, {u0, v0}});
+    draw_list_.batch().vertices.push_back({{x + w,     y}, color, {u1, v0}});
+    draw_list_.batch().vertices.push_back({{x + w, y + h}, color, {u1, v1}});
+    draw_list_.batch().vertices.push_back({{x,     y + h}, color, {u0, v1}});
+    draw_list_.batch().indices.insert(draw_list_.batch().indices.end(), {
         base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
         static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3), base
     });
@@ -812,27 +771,27 @@ void Renderer::draw_rect_uv(float x, float y, float w, float h, glm::vec4 color,
 
 void Renderer::draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color)
 {
-    set_texture_slot(graphics::TextureSlot::White);
-    uint32_t base = static_cast<uint32_t>(batch_.vertices.size());
-    batch_.vertices.push_back({{x1, y1}, color, {0.0f, 0.0f}});
-    batch_.vertices.push_back({{x2, y2}, color, {0.0f, 0.0f}});
-    batch_.vertices.push_back({{x3, y3}, color, {0.0f, 0.0f}});
-    batch_.indices.insert(batch_.indices.end(), {
+    draw_list_.set_texture(graphics::TextureSlot::White);
+    uint32_t base = static_cast<uint32_t>(draw_list_.batch().vertices.size());
+    draw_list_.batch().vertices.push_back({{x1, y1}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{x2, y2}, color, {0.0f, 0.0f}});
+    draw_list_.batch().vertices.push_back({{x3, y3}, color, {0.0f, 0.0f}});
+    draw_list_.batch().indices.insert(draw_list_.batch().indices.end(), {
         base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2)
     });
 }
 
 void Renderer::draw_char(float x, float y, float size, char ch, glm::vec4 color)
 {
-    set_texture_slot(graphics::TextureSlot::Texture);
+    draw_list_.set_texture(graphics::TextureSlot::Texture);
     const char text[2] = {ch, '\0'};
-    font_atlas_.append_text(batch_, x, y, size, std::string_view{text, 1}, color);
+    font_atlas_.append_text(draw_list_, x, y, size, std::string_view{text, 1}, color);
 }
 
 void Renderer::draw_text(float x, float y, float size, const std::string& text, glm::vec4 color)
 {
-    set_texture_slot(graphics::TextureSlot::Texture);
-    font_atlas_.append_text(batch_, x, y, size, text, color);
+    draw_list_.set_texture(graphics::TextureSlot::Texture);
+    font_atlas_.append_text(draw_list_, x, y, size, text, color);
 }
 
 void Renderer::process_mouse_move(float x, float y)
@@ -845,10 +804,7 @@ void Renderer::begin()
 {
     begin_frame();
 
-    batch_index_ = 0;
-    batches_.clear();
-    batch_.vertices.clear();
-    batch_.indices.clear();
+    draw_list_.clear();
     reset_scissor();
 }
 
@@ -908,7 +864,6 @@ void Renderer::end()
     auto& command_buffer = command_buffers_[frame_index_];
     command_buffer.begin({});
     update_push_constants();
-    flush_batch();
     upload_vertex_data();
     begin_rendering(command_buffer);
     // command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
@@ -916,10 +871,11 @@ void Renderer::end()
     // command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
     // if (current_vertex_buffer_size_ > 0) {
     //     command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {0});
-    //     command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexTypeValue<decltype(batch_.indices)::value_type>::value);
-    //     command_buffer.drawIndexed(static_cast<uint32_t>(batch_.indices.size()), 1, 0, 0, 0);
+    //     command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexTypeValue<decltype(draw_list_.batch().indices)::value_type>::value);
+    //     command_buffer.drawIndexed(static_cast<uint32_t>(draw_list_.batch().indices.size()), 1, 0, 0, 0);
     // }
-    for (const auto& batch : batches_) {
+    for (const auto& batch : draw_list_.batches()) {
+        if (batch.indices.empty()) continue;
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
             *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
         vk::Rect2D scissor{
@@ -1138,19 +1094,20 @@ void Renderer::create_dynamic_buffers()
 
 void Renderer::upload_vertex_data()
 {
-    if (batches_.empty()) return;
+    if (draw_list_.batches().empty()) return;
     vk::DeviceSize total_vertex_bytes = 0;
     vk::DeviceSize total_index_bytes  = 0;
-    for (auto& batch : batches_) {
+    for (auto& batch : draw_list_.batches()) {
         batch.vertex_offset = static_cast<uint32_t>(total_vertex_bytes);
         batch.index_offset  = static_cast<uint32_t>(total_index_bytes);
         total_vertex_bytes += batch.vertices.size() * sizeof(Vertex);
         total_index_bytes  += batch.indices.size()  * sizeof(uint32_t);
     }
+    if (total_vertex_bytes == 0 || total_index_bytes == 0) return;
     uint8_t* vtx_dst = static_cast<uint8_t*>(staging_vertex_mapped_[frame_index_]);
     uint8_t* idx_dst = static_cast<uint8_t*>(staging_index_mapped_[frame_index_]);
 
-    for (const auto& batch : batches_) {
+    for (const auto& batch : draw_list_.batches()) {
         size_t vtx_size = batch.vertices.size() * sizeof(Vertex);
         size_t idx_size = batch.indices.size()  * sizeof(uint32_t);
         memcpy(vtx_dst + batch.vertex_offset, batch.vertices.data(), vtx_size);

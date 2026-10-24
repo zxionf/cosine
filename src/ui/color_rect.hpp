@@ -22,10 +22,10 @@ public:
         color_ = color;
     }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         graphics::Rectangle rectangle(x(), y(), width(), height(), color_);
-        rectangle.append_to(batch);
+        rectangle.append_to(list);
     }
 
     glm::vec2 measure(glm::vec2 constraints) override

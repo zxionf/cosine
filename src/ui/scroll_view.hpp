@@ -33,7 +33,7 @@ public:
 
     const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
 
-    void append_to(graphics::DrawBatch& batch) const override;
+    void append_to(graphics::DrawList& list) const override;
 
 private:
     glm::vec2 content_constraints(glm::vec2 constraints) const;

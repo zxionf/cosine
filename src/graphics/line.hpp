@@ -12,9 +12,10 @@ public:
     : x1_{x1}, y1_{y1}, x2_{x2}, y2_{y2}, width_{width}, color_{color}
     {}
 
-    void append_to(DrawBatch& batch) const override
+    void append_to(DrawList& list) const override
     {
-        batch.texture_slot = TextureSlot::Texture;
+        list.set_texture(TextureSlot::Texture);
+        auto& batch = list.batch();
         // 方向
         float dx = x2_ - x1_;
         float dy = y2_ - y1_;

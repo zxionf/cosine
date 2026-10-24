@@ -27,7 +27,7 @@ public:
         set_pos(slot.pos);
         set_size(slot.size);
     }
-    void append_to(xel::graphics::DrawBatch&) const override {}
+    void append_to(xel::graphics::DrawList&) const override {}
 
     bool focusable() const override { return focusable_; }
     void set_focusable(bool value) { focusable_ = value; }
@@ -85,7 +85,7 @@ public:
             child->arrange({{slot.pos.x + child->x(), slot.pos.y + child->y()}, child->measure(slot.size)});
         }
     }
-    void append_to(xel::graphics::DrawBatch&) const override {}
+    void append_to(xel::graphics::DrawList&) const override {}
 
     bool on_mouse_down(glm::vec2, int) override { ++down; return consume_down; }
     bool on_mouse_up(glm::vec2, int) override { ++up; return false; }

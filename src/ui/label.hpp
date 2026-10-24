@@ -58,18 +58,19 @@ public:
         set_size(slot.size);
     }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         if (auto* atlas = graphics::active_font_atlas()) {
+            list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
             if (wrap_) {
-                atlas->append_text_wrapped(batch, x(), y(), size_, text_, color_,
+                atlas->append_text_wrapped(list, x(), y(), size_, text_, color_,
                                            global_.size.x, max_lines_, ellipsis_);
             } else {
-                atlas->append_text(batch, x(), y(), size_, text_, color_);
+                atlas->append_text(list, x(), y(), size_, text_, color_);
             }
+            list.pop_clip();
         }
     }
-
     bool hit_testable() const override { return false; }
 
 private:

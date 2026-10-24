@@ -17,7 +17,7 @@ public:
     void add(std::unique_ptr<Widget> child) override;
     void clear_children() { children_.clear(); mark_layout_dirty(); }
     const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
-    void append_to(graphics::DrawBatch& batch) const override;
+    void append_to(graphics::DrawList& list) const override;
 
     void layout() override;
     bool hit_testable() const override { return false; }

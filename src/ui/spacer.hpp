@@ -24,7 +24,7 @@ public:
         set_pos(slot.pos);
         set_size(slot.size);
     }
-    void append_to(graphics::DrawBatch&) const override {}
+    void append_to(graphics::DrawList&) const override {}
     bool hit_testable() const override { return false; }
 };
 } // namespace xel::ui

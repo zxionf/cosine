@@ -52,7 +52,7 @@ public:
         set_size(slot.size);
     }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         const auto& t = theme();
         const float font_size = t.text_size;
@@ -60,7 +60,7 @@ public:
         const float text_y = global_.pos.y + (global_.size.y - font_size) * 0.5f;
 
         graphics::Rectangle bg{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, t.text_input_bg};
-        bg.append_to(batch);
+        bg.append_to(list);
 
         const float border = t.border;
         const glm::vec4 border_color = focused_ ? t.focus_ring
@@ -69,10 +69,10 @@ public:
         graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - border, global_.size.x, border, border_color};
         graphics::Rectangle left  {global_.pos.x, global_.pos.y, border, global_.size.y, border_color};
         graphics::Rectangle right {global_.pos.x + global_.size.x - border, global_.pos.y, border, global_.size.y, border_color};
-        top.append_to(batch);
-        bottom.append_to(batch);
-        left.append_to(batch);
-        right.append_to(batch);
+        top.append_to(list);
+        bottom.append_to(list);
+        left.append_to(list);
+        right.append_to(list);
 
         auto* atlas = graphics::active_font_atlas();
         const float viewport_w = std::max(0.0f, global_.size.x - pad * 2.0f);
@@ -88,6 +88,8 @@ public:
         }
         scroll = std::clamp(scroll, 0.0f, std::max(0.0f, total_px - viewport_w));
 
+        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+
         if (cursor_ != anchor_) {
             const size_t lo = std::min(cursor_, anchor_);
             const size_t hi = std::max(cursor_, anchor_);
@@ -98,12 +100,12 @@ public:
                 std::max(1.0f, x1 - x0), font_size,
                 t.text_input_selection
             };
-            selection.append_to(batch);
+            selection.append_to(list);
         }
 
         scroll_offset_ = scroll;
         if (atlas) {
-            atlas->append_text(batch, global_.pos.x + pad - scroll, text_y, font_size,
+            atlas->append_text(list, global_.pos.x + pad - scroll, text_y, font_size,
                                text_, enabled_ ? t.text : t.text_disabled,
                                {global_.pos.x + pad, global_.pos.y,
                                 global_.pos.x + global_.size.x - pad, global_.pos.y + global_.size.y});
@@ -114,8 +116,10 @@ public:
                 global_.pos.x + pad + cursor_px - scroll, text_y,
                 1.0f, font_size, t.text_input_cursor
             };
-            cursor_bar.append_to(batch);
+            cursor_bar.append_to(list);
         }
+
+        list.pop_clip();
     }
 
     bool focusable() const override { return true; }
@@ -168,7 +172,8 @@ public:
 
         switch (key) {
             case GLFW_KEY_BACKSPACE:
-                if (cursor_ != anchor_) {
+
+        if (cursor_ != anchor_) {
                     erase_selection();
                 } else if (cursor_ > 0) {
                     const std::size_t prev = graphics::utf8_prev(text_, cursor_);
@@ -179,7 +184,8 @@ public:
                 }
                 return true;
             case GLFW_KEY_DELETE:
-                if (cursor_ != anchor_) {
+
+        if (cursor_ != anchor_) {
                     erase_selection();
                 } else if (cursor_ < text_.size()) {
                     const std::size_t next = graphics::utf8_next(text_, cursor_);

@@ -57,7 +57,7 @@ public:
         set_size(slot.size);
     }
 
-    void append_to(graphics::DrawBatch& batch) const override
+    void append_to(graphics::DrawList& list) const override
     {
         const auto& t = theme();
         const float radius = t.slider_handle_radius;
@@ -68,21 +68,21 @@ public:
         const float track_y = center_y - t.slider_height * 0.5f;
         const glm::vec4 track_color = hovered_ ? glm::vec4{0.30f, 0.33f, 0.37f, 1.0f} : t.slider_track;
         graphics::Rectangle track{track_x, track_y, track_w, t.slider_height, track_color};
-        track.append_to(batch);
+        track.append_to(list);
 
         const float range = std::max(1e-6f, max_value_ - min_value_);
         const float norm = std::clamp((value_ - min_value_) / range, 0.0f, 1.0f);
         const float fill_w = track_w * norm;
         if (fill_w > 0.0f) {
             graphics::Rectangle fill{track_x, track_y, fill_w, t.slider_height, t.slider_fill};
-            fill.append_to(batch);
+            fill.append_to(list);
         }
 
         const float handle_x = track_x + fill_w - radius;
         const float handle_y = center_y - radius;
         graphics::Rectangle handle{handle_x, handle_y, radius * 2.0f, radius * 2.0f,
                                    enabled_ ? t.slider_handle : t.text_disabled};
-        handle.append_to(batch);
+        handle.append_to(list);
 
         if (focused_) {
             const float b = 2.0f;
@@ -90,10 +90,10 @@ public:
             graphics::Rectangle bottom{handle_x, handle_y + radius * 2.0f - b, radius * 2.0f, b, t.focus_ring};
             graphics::Rectangle left  {handle_x, handle_y, b, radius * 2.0f, t.focus_ring};
             graphics::Rectangle right {handle_x + radius * 2.0f - b, handle_y, b, radius * 2.0f, t.focus_ring};
-            top.append_to(batch);
-            bottom.append_to(batch);
-            left.append_to(batch);
-            right.append_to(batch);
+            top.append_to(list);
+            bottom.append_to(list);
+            left.append_to(list);
+            right.append_to(list);
         }
     }
 

@@ -52,8 +52,8 @@ public:
     void process_mouse_move(float x, float y);
 
     // 大概统计
-    uint32_t vertices_count() const { uint32_t ret=0; for(const auto& batch : batches_){ret += batch.vertices.size();} return ret; }
-    uint32_t indices_count() const { uint32_t ret=0; for(const auto& batch : batches_){ret += batch.indices.size();} return ret; }
+    uint32_t vertices_count() const { uint32_t ret=0; for(const auto& batch : draw_list_.batches()){ret += batch.vertices.size();} return ret; }
+    uint32_t indices_count() const { uint32_t ret=0; for(const auto& batch : draw_list_.batches()){ret += batch.indices.size();} return ret; }
 
 private:
     void create_descriptor_set_layout();
@@ -111,13 +111,12 @@ private:
         vk::PipelineStageFlags2 dst_stage_mask
     );
 
+    graphics::DrawList   draw_list_;
     graphics::FontAtlas font_atlas_;
     graphics::FontFace   font_face_;
     uint64_t             font_atlas_revision_ = 0;
     void update_font_atlas_texture();
 
-    void flush_batch();
-    void set_texture_slot(graphics::TextureSlot slot);
 
     void save_swapchain_image_to_png(uint32_t image_index, const std::string& path);
 
@@ -170,10 +169,6 @@ private:
     std::vector<vk::raii::Buffer>       device_index_buffers_;
     std::vector<vk::raii::DeviceMemory> device_index_memories_;
 
-    graphics::DrawBatch batch_;
-    std::vector<graphics::DrawBatch> batches_;
-    size_t batch_index_ = 0;
-    graphics::DrawBatch& acquire_batch();
     static constexpr size_t MAX_VERTICES_ = 65536 * 4;
     static constexpr size_t MAX_INDICES_ = 65536 * 4 * 3 / 2;
 
