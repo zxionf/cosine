@@ -75,7 +75,7 @@ int main()
         // app.renderer_.reset_scissor();
 
         // app.renderer_.draw(*app.uisys.root());
-        scroll->on_scroll({mouse_x, mouse_y}, 0.001f);
+        scroll->on_scroll({mouse_x, mouse_y}, {0.0f, 0.001f});
         scroll->measure({400, 600});
         scroll->arrange({{0,0}, {400,600}});
         app.renderer_.set_scissor(0, 0, 400, 600);

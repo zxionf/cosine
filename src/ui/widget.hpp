@@ -5,12 +5,21 @@
 #include "rect.hpp"
 #include "align.hpp"
 
+#include <limits>
 #include <memory>
 #include <optional>
 #include <stdexcept>
 
 namespace xel::ui
 {
+struct Edges
+{
+    float left = 0.0f;
+    float top = 0.0f;
+    float right = 0.0f;
+    float bottom = 0.0f;
+};
+
 class Widget : public graphics::Drawable
 {
 public:
@@ -63,17 +72,32 @@ public:
     void set_align(Align a) { align_self_ = a; has_align_ = true; mark_layout_dirty(); }
     std::optional<Align> align_self() const { return has_align_ ? std::optional<Align>(align_self_) : std::nullopt; }
 
+    void set_padding(Edges edges) { padding_ = edges; mark_layout_dirty(); }
+    void set_padding(float all) { padding_ = {all, all, all, all}; mark_layout_dirty(); }
+    Edges padding() const { return padding_; }
+    void set_margin(Edges edges) { margin_ = edges; mark_layout_dirty(); }
+    void set_margin(float all) { margin_ = {all, all, all, all}; mark_layout_dirty(); }
+    Edges margin() const { return margin_; }
+
+    void set_flex_grow(float grow) { flex_grow_ = grow < 0.0f ? 0.0f : grow; mark_layout_dirty(); }
+    float flex_grow() const { return flex_grow_; }
+    void set_min_size(glm::vec2 size) { min_size_ = size; mark_layout_dirty(); }
+    void set_max_size(glm::vec2 size) { max_size_ = size; mark_layout_dirty(); }
+    glm::vec2 min_size() const { return min_size_; }
+    glm::vec2 max_size() const { return max_size_; }
+    glm::vec2 clamp_size(glm::vec2 size) const { return glm::clamp(size, min_size_, max_size_); }
+
     // 内边距
-    virtual float padding_left()   const { return 0; }
-    virtual float padding_right()  const { return 0; }
-    virtual float padding_top()    const { return 0; }
-    virtual float padding_bottom() const { return 0; }
+    virtual float padding_left()   const { return padding_.left; }
+    virtual float padding_right()  const { return padding_.right; }
+    virtual float padding_top()    const { return padding_.top; }
+    virtual float padding_bottom() const { return padding_.bottom; }
 
     // 外边距
-    virtual float margin_left()    const { return 0; }
-    virtual float margin_right()   const { return 0; }
-    virtual float margin_top()     const { return 0; }
-    virtual float margin_bottom()  const { return 0; }
+    virtual float margin_left()    const { return margin_.left; }
+    virtual float margin_right()   const { return margin_.right; }
+    virtual float margin_top()     const { return margin_.top; }
+    virtual float margin_bottom()  const { return margin_.bottom; }
 
     virtual bool hit_testable() const { return true; }
     virtual bool focusable() const { return false; }
@@ -83,21 +107,23 @@ public:
     virtual bool on_mouse_down(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
     virtual bool on_mouse_up(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
     virtual bool on_click(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
-    virtual bool on_scroll(glm::vec2 pos, float delta) { (void)pos; (void)delta; return false; }
+    virtual bool on_scroll(glm::vec2 pos, glm::vec2 delta) { (void)pos; (void)delta; return false; }
     virtual bool on_key_down(int key, int mods) { (void)key; (void)mods; return false; }
     virtual bool on_key_up(int key, int mods) { (void)key; (void)mods; return false; }
     virtual bool on_char(char32_t codepoint) { (void)codepoint; return false; }
     virtual void on_focus_gained() {}
     virtual void on_focus_lost() {}
 
-    // 布局脏标记：任何尺寸/子项变化都会沿 parent 链向上传播
+    // 布局脏标记：任何尺寸/子项变化都会沿 parent 链向上传播，并使测量缓存失效
     void mark_layout_dirty()
     {
         layout_dirty_ = true;
+        invalidate_measure();
         if (parent_) parent_->mark_layout_dirty();
     }
     bool layout_dirty() const { return layout_dirty_; }
     void clear_layout_dirty() { layout_dirty_ = false; }
+    virtual void invalidate_measure() {}
 
 protected:
     Rect global_;
@@ -105,6 +131,11 @@ protected:
     Align align_self_ = Align::top_left();
     bool has_align_ = false;
     Widget* parent_ = nullptr;
+    Edges padding_{};
+    Edges margin_{};
+    float flex_grow_ = 0.0f;
+    glm::vec2 min_size_{0.0f, 0.0f};
+    glm::vec2 max_size_{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
 
 private:
     bool visible_ = true;

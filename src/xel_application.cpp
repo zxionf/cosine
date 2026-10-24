@@ -83,6 +83,7 @@ void Application::scroll_callback(GLFWwindow* window, double xoffset, double yof
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     event::InputEvent event;
     event.type = event::InputEvent::Type::MouseScroll;
+    event.scroll_delta_x = static_cast<float>(xoffset);
     event.scroll_delta = static_cast<float>(yoffset);
     double mx, my;
     glfwGetCursorPos(window, &mx, &my);

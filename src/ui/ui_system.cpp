@@ -206,7 +206,7 @@ void UISystem::dispatch_mouse_scroll(const event::InputEvent& event)
     if (!target) return;
 
     bubble_to_root(target, [&](Widget* widget) {
-        return widget->on_scroll(event.mouse_pos, event.scroll_delta);
+        return widget->on_scroll(event.mouse_pos, {event.scroll_delta_x, event.scroll_delta});
     });
 }
 

@@ -20,6 +20,7 @@ struct InputEvent
     // mouse
     glm::vec2 mouse_pos{};
     int   mouse_button = 0;
+    float scroll_delta_x = 0.0f;
     float scroll_delta = 0.0f;
 
     // keyboard

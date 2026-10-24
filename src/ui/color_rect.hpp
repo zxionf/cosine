@@ -50,8 +50,10 @@ public:
         color_ = glm::vec4(184.f/255.f, 225.f/255.f, 1, 1.0f);
     }
 
-    bool on_scroll(glm::vec2 pos, float delta) override
+    bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
     {
+        (void)pos;
+        (void)delta;
         color_ = glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
         return false;
     }

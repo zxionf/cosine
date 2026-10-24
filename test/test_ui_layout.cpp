@@ -85,14 +85,14 @@ void test_scroll_view()
     scroll->arrange({{0.0f, 0.0f}, {400.0f, 600.0f}});
     assert(nearly(scroll->scroll_offset(), 0.0f));
 
-    assert(scroll->on_scroll({10.0f, 10.0f}, -1.0f));
+    assert(scroll->on_scroll({10.0f, 10.0f}, {0.0f, -1.0f}));
     assert(nearly(scroll->scroll_offset(), 40.0f));
 
-    assert(scroll->on_scroll({10.0f, 10.0f}, 1.0f));
+    assert(scroll->on_scroll({10.0f, 10.0f}, {0.0f, 1.0f}));
     assert(nearly(scroll->scroll_offset(), 0.0f));
 
     // 超出 viewport 不消费
-    assert(!scroll->on_scroll({1000.0f, 1000.0f}, -1.0f));
+    assert(!scroll->on_scroll({1000.0f, 1000.0f}, {0.0f, -1.0f}));
 }
 
 void test_root_parent_and_dirty()
@@ -171,6 +171,96 @@ void test_spacer()
     assert(nearly(size.x, 20.0f + 50.0f + 4.0f + 8.0f));
     assert(nearly(size.y, 50.0f + 8.0f));
 }
+void test_padding_and_margin()
+{
+    xel::ui::Vbox box{0.0f, 0.0f, 200.0f, 300.0f};
+    box.set_padding({10.0f, 20.0f, 30.0f, 40.0f});
+
+    auto child = std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f});
+    child->set_margin({5.0f, 6.0f, 7.0f, 8.0f});
+    box.add(std::move(child));
+
+    const glm::vec2 size = box.measure({200.0f, 300.0f});
+    assert(nearly(size.x, 50.0f + 5.0f + 7.0f + 10.0f + 30.0f));
+    assert(nearly(size.y, 50.0f + 6.0f + 8.0f + 20.0f + 40.0f));
+
+    box.arrange({{0.0f, 0.0f}, {200.0f, 300.0f}});
+    const auto& c = box.children()[0];
+    assert(nearly(c->x(), 10.0f + 5.0f + ((200.0f - 40.0f - 5.0f - 7.0f) - 50.0f) * 0.5f));
+    assert(nearly(c->y(), 20.0f + 6.0f));
+    assert(nearly(c->width(), 50.0f));
+    assert(nearly(c->height(), 50.0f));
+}
+
+void test_flex_grow()
+{
+    xel::ui::Hbox box{0.0f, 0.0f, 400.0f, 100.0f};
+    auto a = std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f});
+    auto b = std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f});
+    b->set_flex_grow(1.0f);
+    box.add(std::move(a));
+    box.add(std::move(b));
+
+    box.arrange({{0.0f, 0.0f}, {400.0f, 100.0f}});
+    const auto& children = box.children();
+    // inner 392, natural 104, extra 288 全给 flex 子项
+    assert(nearly(children[0]->width(), 50.0f));
+    assert(nearly(children[1]->width(), 338.0f));
+    assert(nearly(children[1]->x() + children[1]->width(), 396.0f));
+}
+
+void test_min_max_size()
+{
+    xel::ui::Vbox box{0.0f, 0.0f, 400.0f, 600.0f};
+    auto child = std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f});
+    child->set_min_size({80.0f, 40.0f});
+    child->set_max_size({120.0f, 60.0f});
+    box.add(std::move(child));
+
+    const glm::vec2 size = box.measure({400.0f, 600.0f});
+    assert(nearly(size.x, 80.0f + 8.0f));
+    assert(nearly(size.y, 50.0f + 8.0f));
+
+    box.arrange({{0.0f, 0.0f}, {400.0f, 600.0f}});
+    assert(nearly(box.children()[0]->width(), 80.0f));
+    assert(nearly(box.children()[0]->height(), 50.0f));
+}
+
+void test_measure_cache_invalidation()
+{
+    xel::ui::Vbox box{0.0f, 0.0f, 400.0f, 600.0f};
+    auto child = std::make_unique<xel::ui::ColorRect>(0, 0, 50, 50, glm::vec4{1.0f});
+    auto* child_ptr = child.get();
+    box.add(std::move(child));
+
+    const glm::vec2 first = box.measure({400.0f, 600.0f});
+    const glm::vec2 second = box.measure({400.0f, 600.0f});
+    assert(nearly(first.x, second.x) && nearly(first.y, second.y));
+
+    child_ptr->set_size(100.0f, 100.0f);
+    const glm::vec2 third = box.measure({400.0f, 600.0f});
+    assert(nearly(third.y, first.y + 50.0f));
+}
+
+void test_scroll_view_both_axes()
+{
+    auto scroll = std::make_unique<xel::ui::ScrollView>();
+    scroll->set_axis(xel::ui::ScrollView::Axis::Both);
+
+    auto content = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 800.0f, 800.0f);
+    content->add(std::make_unique<xel::ui::ColorRect>(0, 0, 800, 800, glm::vec4{1.0f}));
+    scroll->set_content(std::move(content));
+
+    scroll->measure({400.0f, 300.0f});
+    scroll->arrange({{0.0f, 0.0f}, {400.0f, 300.0f}});
+
+    assert(scroll->content_size().x > 400.0f);
+    assert(scroll->content_size().y > 300.0f);
+
+    assert(scroll->on_scroll({10.0f, 10.0f}, {-1.0f, -1.0f}));
+    assert(nearly(scroll->scroll_offset_x(), 40.0f));
+    assert(nearly(scroll->scroll_offset(), 40.0f));
+}
 } // namespace
 
 int main()
@@ -184,6 +274,11 @@ int main()
     test_hbox_measure_and_spacing();
     test_hbox_space_between_and_stretch();
     test_spacer();
+    test_padding_and_margin();
+    test_flex_grow();
+    test_min_max_size();
+    test_measure_cache_invalidation();
+    test_scroll_view_both_axes();
 
     std::cout << "ui layout tests passed\n";
     return 0;

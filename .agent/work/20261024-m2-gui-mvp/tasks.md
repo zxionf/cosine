@@ -15,12 +15,12 @@
 
 - [x] B01 `Hbox`（与 Vbox 对称）
 - [x] B02 `Spacer`
-- [ ] B03 padding/margin 统一到 Widget/容器
-- [ ] B04 尺寸策略：固定、stretch、grow/flex、min/max
+- [x] B03 padding/margin 统一到 Widget/容器（Edges + 容器应用子项 margin）
+- [x] B04 尺寸策略：固定、stretch、grow/flex、min/max
 - [x] B05 主轴分布 start/center/end/space-between（Vbox/Hbox）
-- [ ] B06 measure/arrange 缓存与 dirty 传播
-- [ ] B07 ScrollView 纵向/横向/双轴 + 滚动条
-- [ ] B08 布局测试覆盖 Vbox/Hbox/Spacer/ScrollView/嵌套（已有 Vbox/Hbox/Spacer/ScrollView）
+- [x] B06 measure 缓存与 dirty 传播（Vbox/Hbox）
+- [x] B07 ScrollView 纵向/横向/双轴（滚动条暂未绘制）
+- [x] B08 布局测试覆盖 Vbox/Hbox/Spacer/ScrollView/嵌套、margin、flex、min/max、缓存
 
 ## M2-C 控件与主题
 
@@ -65,5 +65,6 @@
 ## 当前进度
 
 - M2-A 完成：事件命中路径、冒泡/消费、鼠标捕获、click、焦点、Tab、key/char、测试
-- M2-B 部分完成：Hbox、Spacer、Vbox/Hbox 主轴分布
+- M2-B 完成：Hbox、Spacer、padding/margin、flex/grow、min/max、主轴分布、measure 缓存、ScrollView 双轴
 - 5/5 ctest 通过；`ex4` 可运行
+- 下一步：M2-C Theme 与基础控件（先把文本能力接入，再做 Button/Checkbox/Slider/TextInput）
