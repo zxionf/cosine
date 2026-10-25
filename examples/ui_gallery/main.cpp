@@ -32,6 +32,7 @@ int run()
         if (f1_pressed && !f1_prev) gallery.debug->toggle();
         f1_prev = f1_pressed;
 
+        app.renderer_.set_clear_color(app.uisys.context()->theme.window_bg);
         app.renderer_.begin();
 
         const glm::vec2 cursor = cursor_to_framebuffer(app.window_);

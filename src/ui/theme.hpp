@@ -43,7 +43,44 @@ struct Theme
     float slider_height = 6.0f;
     float slider_handle_radius = 7.0f;
 
+    // 主题标识，用于 UI 显示与切换判断。
+    const char* name = "dark";
+
     static Theme dark() { return Theme{}; }
+
+    static Theme light()
+    {
+        Theme t;
+        t.name = "light";
+
+        t.window_bg       = {0.93f, 0.94f, 0.95f, 1.0f};
+        t.panel_bg        = {0.87f, 0.88f, 0.90f, 1.0f};
+        t.panel_border    = {0.70f, 0.72f, 0.75f, 1.0f};
+        t.text            = {0.03f, 0.035f, 0.04f, 1.0f};
+        t.text_disabled   = {0.42f, 0.44f, 0.47f, 1.0f};
+
+        t.button_bg       = {0.82f, 0.84f, 0.87f, 1.0f};
+        t.button_hover    = {0.89f, 0.91f, 0.94f, 1.0f};
+        t.button_pressed  = {0.74f, 0.76f, 0.79f, 1.0f};
+        t.button_disabled = {0.90f, 0.91f, 0.92f, 1.0f};
+        t.focus_ring      = {0.12f, 0.45f, 0.95f, 1.0f};
+
+        t.checkbox_bg     = {0.97f, 0.98f, 0.99f, 1.0f};
+        t.checkbox_border = {0.62f, 0.65f, 0.68f, 1.0f};
+        t.checkbox_fill   = {0.12f, 0.45f, 0.95f, 1.0f};
+
+        t.slider_track    = {0.78f, 0.80f, 0.83f, 1.0f};
+        t.slider_fill     = {0.12f, 0.45f, 0.95f, 1.0f};
+        t.slider_handle   = {0.16f, 0.17f, 0.19f, 1.0f};
+
+        t.text_input_bg        = {0.98f, 0.98f, 0.99f, 1.0f};
+        t.text_input_border    = {0.68f, 0.70f, 0.73f, 1.0f};
+        t.text_input_selection = {0.12f, 0.45f, 0.95f, 0.30f};
+        t.text_input_cursor    = {0.05f, 0.055f, 0.06f, 1.0f};
+
+        t.tooltip_bg = {0.97f, 0.97f, 0.98f, 0.98f};
+        return t;
+    }
 };
 
 inline Theme& mutable_theme()

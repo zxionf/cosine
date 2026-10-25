@@ -43,6 +43,10 @@ public:
     const graphics::FontAtlas& font_atlas() const { return font_atlas_; }
     const graphics::FrameStats& frame_stats() const { return frame_stats_; }
 
+    // 窗口背景色（主题 window_bg），下一帧生效。
+    void set_clear_color(glm::vec4 color) { clear_color_ = color; }
+    glm::vec4 clear_color() const { return clear_color_; }
+
     void begin();
     void end();
 
@@ -124,6 +128,7 @@ private:
     uint64_t             font_atlas_revision_ = 0;
     RenderTarget         active_target_{};
     graphics::FrameStats frame_stats_{};
+    glm::vec4             clear_color_{0.0f, 0.0f, 0.0f, 0.0f};
     std::chrono::steady_clock::time_point last_frame_time_{};
     bool                 has_last_frame_ = false;
     void update_font_atlas_texture();

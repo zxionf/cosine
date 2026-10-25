@@ -16,10 +16,11 @@
 - [x] P03 `test_ui_gallery`：分区切换、tooltip、滚动、调试面板状态
 - [x] P04 打包/冒烟脚本覆盖 `ui_gallery`；`docs/packaging.md`、`docs/ci.md` 同步
 - [x] P05 `docs/index.md`、`docs/project_assessment.md` 更新 M3.5 与 gallery 入口
+- [x] P06 主题切换：`Theme::light()`、`UIRoot::set_theme`、`UISystem::set_theme`、Renderer 清屏色、gallery 按钮与 `COSINE_GALLERY_THEME`、`test_ui_theme`
+- [x] P07 新控件：`TabBar`、`Radio`/`RadioGroup`、`Progress` + `test_ui_widgets` + gallery Inputs 分区
 
 ## 当前进度
 
-- 新增 docs/index.md、dependencies.md、readme_draft.md、release_notes_template.md
-- project_assessment 基线更新到 0.3.0，M3 状态与评分同步
-- 未修改根 README.md / AGENTS.md / CONTRACT.md
-- M3.5 计划已插入；ui_gallery + test_ui_gallery 落地；15/15 ctest 通过
+- docs：index / dependencies / readme_draft / release_notes_template 已落地
+- M3.5 计划已插入；ui_gallery、主题切换、TabBar/Radio/Progress 完成
+- 17/17 ctest 通过

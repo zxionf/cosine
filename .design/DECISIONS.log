@@ -175,3 +175,13 @@ Change: 20261025-m3-g-docs-release
 Context: 用户要求在 M4 之前插入 UI 打磨阶段，并先用新 demo 展示全部现有 UI 特性
 Decision: 在阶段计划插入 M3.5 UI 打磨与组件扩充（组件、样式、交互、布局、轻量动画、gallery 验收）；新增 examples/ui_gallery 以左侧导航 + 分区内容展示全部现有控件（Overview/Text/Inputs/Containers/Overlays/Layout）；导航按钮切换分区可见性，tooltip 使用 overlay 并跟随光标，COSINE_GALLERY_SECTION 可指定初始分区便于验证；打包与 lavapipe 冒烟脚本覆盖 ui_gallery；新增 test_ui_gallery 与 Button::label() 访问器
 Consequences: UI 打磨有了固定验收对象 ui_gallery；M4-M8 编号不变；打包体积增至 1.8MB tar.gz；主题切换等样式能力仍待后续 M3.5 子项
+## [36] 2026-10-25 07:05:09 UTC
+Change: 20261025-m3-g-docs-release
+Context: M3.5 需要可切换主题，且 UI 控件当前从 UIContext 读取样式，切换时必须刷新已缓存的 padding/spacing
+Decision: Theme 增加 name 与 Theme::light()；UIRoot 持有 context 并提供 set_theme（更新主题后递归 set_context 刷新 Panel 等缓存）；UISystem::set_theme 透传；Renderer 新增 set_clear_color 让窗口清屏色跟随 window_bg；gallery 增加 Theme 按钮与 COSINE_GALLERY_THEME=light；新增 test_ui_theme
+Consequences: 主题切换即时生效且不需要重建控件；清屏色与主题一致；亮色主题文字/手柄对比度经过调校；圆角/密度等样式项仍属后续 M3.5 子项
+## [37] 2026-10-25 07:20:17 UTC
+Change: 20261025-m3-g-docs-release
+Context: M3.5 需要把常用表单控件补齐，gallery 要能展示并验证它们
+Decision: 新增 TabBar（点击/方向键/Home/End，选中项下划线）、Radio 与 RadioGroup（菱形标记，组内单选，点击或空格选中）、Progress（0..1 确定进度，主题着色）；三者均为 header-only 并按 ui_theme() 取样式；gallery Inputs 分区展示并用 Slider 驱动 Progress；新增 test_ui_widgets
+Consequences: 控件从 9 个增至 12 个；TabView 内容容器、不确定进度、Dropdown 仍未实现；组件均随主题切换

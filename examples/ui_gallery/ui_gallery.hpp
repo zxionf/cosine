@@ -8,9 +8,12 @@
 #include "ui/label.hpp"
 #include "ui/list.hpp"
 #include "ui/panel.hpp"
+#include "ui/progress.hpp"
+#include "ui/radio_group.hpp"
 #include "ui/root.hpp"
 #include "ui/scroll_view.hpp"
 #include "ui/slider.hpp"
+#include "ui/tab_bar.hpp"
 #include "ui/spacer.hpp"
 #include "ui/splitter.hpp"
 #include "ui/text_input.hpp"
@@ -19,6 +22,7 @@
 #include "xel/version.hpp"
 
 #include <cstdlib>
+#include <cstring>
 #include <format>
 #include <memory>
 #include <string>
@@ -49,11 +53,26 @@ struct UiGallery
     ui::ScrollView* scroll_vertical = nullptr;
     ui::ScrollView* scroll_both = nullptr;
     ui::Splitter* splitter = nullptr;
+    ui::RadioGroup* radio_group = nullptr;
+    ui::Progress* progress = nullptr;
+    ui::TabBar* tab_bar = nullptr;
+    ui::Label* radio_state = nullptr;
+    ui::Label* tab_state = nullptr;
 
     ui::Widget* tip_button = nullptr;
     ui::Widget* tip_watermark = nullptr;
     ui::Tooltip* tooltip = nullptr;
+    ui::Button* theme_button = nullptr;
+    bool light_theme = false;
 
+    void toggle_theme()
+    {
+        light_theme = !light_theme;
+        root->set_theme(light_theme ? ui::Theme::light() : ui::Theme::dark());
+        if (theme_button) {
+            theme_button->set_label(light_theme ? "Theme: Light" : "Theme: Dark");
+        }
+    }
     std::vector<ui::Button*> nav_buttons;
     std::vector<ui::Panel*> sections;
     std::vector<std::string> section_names;
@@ -127,7 +146,7 @@ inline UiGallery build(ui::UIRoot& root)
     nav->set_max_size({UiGallery::kNavWidth, UiGallery::kContentHeight});
     nav->set_cross_align(ui::Align::top_left());
     nav->add(std::make_unique<ui::Label>("UI Gallery", 20.0f));
-    nav->add(std::make_unique<ui::Label>("Tab to navigate", 12.0f, glm::vec4{0.6f, 0.63f, 0.68f, 1.0f}));
+    nav->add(std::make_unique<ui::Label>("Tab to navigate", 12.0f));
 
     for (std::size_t i = 0; i < gallery.section_names.size(); ++i) {
         auto button = std::make_unique<ui::Button>(gallery.section_names[i], [&gallery, i]() {
@@ -138,11 +157,15 @@ inline UiGallery build(ui::UIRoot& root)
     }
 
     nav->add(std::make_unique<ui::Spacer>(1.0f, 12.0f));
+    auto theme_button = std::make_unique<ui::Button>("Theme: Dark", [&gallery]() {
+        gallery.toggle_theme();
+    });
+    gallery.theme_button = theme_button.get();
+    nav->add(std::move(theme_button));
     nav->add(std::make_unique<ui::Button>("Toggle debug (F1)", [&gallery]() {
         gallery.debug->toggle();
     }));
-    nav->add(std::make_unique<ui::Label>("v" + std::string(xel::version_string()), 12.0f,
-                                        glm::vec4{0.55f, 0.58f, 0.62f, 1.0f}));
+    nav->add(std::make_unique<ui::Label>("v" + std::string(xel::version_string()), 12.0f));
     root.add(std::move(nav));
 
     // ---------- Overview ----------
@@ -225,6 +248,7 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.slider = slider.get();
         slider->set_on_change([&gallery](float value) {
             gallery.slider_value->set_text(std::format("slider: {:.0f}", value));
+            if (gallery.progress) gallery.progress->set_value(value / 100.0f);
         });
         section->add(std::move(slider));
         auto slider_value = std::make_unique<ui::Label>("slider: 40", 14.0f);
@@ -242,6 +266,35 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.input_echo = echo.get();
         section->add(std::move(echo));
 
+        section->add(std::make_unique<ui::Label>("Radio group (single selection)", 18.0f));
+        auto radios = std::make_unique<ui::RadioGroup>(300.0f);
+        gallery.radio_group = radios.get();
+        radios->set_options({"Small", "Medium", "Large"}, 1);
+        radios->set_on_change([&gallery](int index) {
+            gallery.radio_state->set_text("radio: " + gallery.radio_group->option(index)->label());
+        });
+        section->add(std::move(radios));
+        auto radio_state = std::make_unique<ui::Label>("radio: Medium", 14.0f);
+        gallery.radio_state = radio_state.get();
+        section->add(std::move(radio_state));
+
+        section->add(std::make_unique<ui::Label>("Progress (follows slider)", 18.0f));
+        auto progress = std::make_unique<ui::Progress>(480.0f);
+        gallery.progress = progress.get();
+        progress->set_value(0.4f);
+        section->add(std::move(progress));
+
+        section->add(std::make_unique<ui::Label>("TabBar (click or Left/Right when focused)", 18.0f));
+        auto tabs = std::make_unique<ui::TabBar>();
+        gallery.tab_bar = tabs.get();
+        tabs->set_tabs({"Overview", "Stats", "Preview"});
+        tabs->set_on_change([&gallery](int index) {
+            gallery.tab_state->set_text("tab: " + gallery.tab_bar->tabs()[static_cast<std::size_t>(index)]);
+        });
+        section->add(std::move(tabs));
+        auto tab_state = std::make_unique<ui::Label>("tab: Overview", 14.0f);
+        gallery.tab_state = tab_state.get();
+        section->add(std::move(tab_state));
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
     }
@@ -380,6 +433,9 @@ inline UiGallery build(ui::UIRoot& root)
     root.add_overlay(std::move(debug));
 
     gallery.show_section(0);
+    if (const char* theme = std::getenv("COSINE_GALLERY_THEME"); theme && std::strcmp(theme, "light") == 0) {
+        gallery.toggle_theme();
+    }
     if (const char* section = std::getenv("COSINE_GALLERY_SECTION")) {
         const int index = std::atoi(section);
         if (index >= 0 && index < static_cast<int>(gallery.sections.size())) {

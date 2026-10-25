@@ -25,6 +25,13 @@ void UIRoot::add_overlay(std::unique_ptr<Widget> child)
     mark_layout_dirty();
 }
 
+void UIRoot::set_theme(const Theme& value)
+{
+    context_storage_.theme = value;
+    set_context(&context_storage_);
+    mark_layout_dirty();
+}
+
 void UIRoot::append_to(graphics::DrawList& list) const
 {
     for (const auto& child : children_) {

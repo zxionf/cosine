@@ -19,6 +19,7 @@ public:
 
     UIRoot* root() { return root_.get(); }
     UIContext* context() { return root_ ? root_->context() : nullptr; }
+    void set_theme(const Theme& theme) { if (root_) root_->set_theme(theme); }
     void tick();
 
     void dispatch(const event::InputEvent& event);

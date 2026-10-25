@@ -1003,7 +1003,7 @@ void Renderer::begin_rendering(vk::raii::CommandBuffer& command_buffer, const Re
         vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
         vk::PipelineStageFlagBits2::eColorAttachmentOutput         // dstStage
     );
-    vk::ClearValue              clear_color     = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
+    vk::ClearValue clear_color = vk::ClearColorValue(clear_color_.r, clear_color_.g, clear_color_.b, clear_color_.a);
     vk::RenderingAttachmentInfo attachment_info = {
         .imageView   = target.view,
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,

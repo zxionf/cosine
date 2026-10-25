@@ -18,6 +18,11 @@ public:
     // overlay 按加入顺序叠放，后加入的在上层；尺寸由 measure 决定。
     void add_overlay(std::unique_ptr<Widget> child);
     void clear_overlays() { overlays_.clear(); mark_layout_dirty(); }
+
+    // 切换主题：更新 context 并递归刷新控件缓存的样式值（如 Panel 的 padding/spacing）。
+    void set_theme(const Theme& value);
+    const Theme& ui_theme() const { return context_storage_.theme; }
+
     const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
     const std::vector<std::unique_ptr<Widget>>& overlays() const override { return overlays_; }
     bool hit_testable() const override { return false; }
