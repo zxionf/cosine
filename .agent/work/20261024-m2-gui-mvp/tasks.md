@@ -68,33 +68,34 @@
 ## M2-F 应用层与 demo 收口
 
 - [x] F00 CMake 构建去重：`cosine_text` / `cosine_ui`，CI 默认 `-j2`，测试关闭 module scan
-- [ ] F01 删除 ex4 手动 scroll->on_scroll/measure/arrange，统一走 UISystem
-- [ ] F02 Renderer 的 draw_frame / F11 截图 / 空 process_mouse_move 移出应用层
-- [ ] F03 形成 examples/ui_demo 作为 M2 验收对象
-- [ ] F04 归档/删除 ex2 与未使用资源/代码
-- [ ] F05 清理后的 demo 连续 60 秒 validation 无错误
-- [ ] F06 demo / UI 集成测试
+- [x] F01 删除 ex4 手动 scroll->on_scroll/measure/arrange，统一走 UISystem（ex4 已删除）
+- [x] F02 Renderer 的 draw_frame / F11 截图 / 空 process_mouse_move 移出应用层
+- [x] F03 形成 examples/ui_demo 作为 M2 验收对象
+- [x] F04 归档/删除 ex2、ex4、未使用 shader/texture/graphics 头
+- [x] F05 清理后的 demo 连续 60 秒 validation 无错误
+- [x] F06 demo / UI 集成测试（test_ui_demo）
 
 ## M2 验收
 
-- [ ] V01 GUI demo：面板、按钮、复选框、滑块、文本输入、滚动列表
+- [x] V01 GUI demo：面板、按钮、复选框、滑块、文本输入、滚动列表
 - [x] V02 Tab 焦点 + 回车/空格触发按钮
 - [ ] V03 1x / 1.5x / 2x HiDPI 表现一致
-- [ ] V04 60 秒交互 + Vulkan validation 无错误
-- [ ] V05 布局 / 事件 / 文本测量 / 裁剪测试全绿
-- [ ] V07 文本支持 UTF-8 + 常用 CJK，换行/省略号正常
-- [ ] V08 ScrollView / TextInput / Panel 内容不溢出 viewport
+- [x] V04 60 秒交互 + Vulkan validation 无错误
+- [x] V05 布局 / 事件 / 文本测量 / 裁剪测试全绿
+- [x] V07 文本支持 UTF-8 + 常用 CJK，换行/省略号正常
+- [x] V08 ScrollView / TextInput / Panel 内容不溢出 viewport
 - [ ] V06 用户验收后 `sele close 20261024-m2-gui-mvp`
 
 ## 当前进度
 
 - M2-A 完成：事件、焦点、HiDPI 光标换算、组件 debug 绘制、on_hover
 - M2-B 完成：Hbox、Spacer、padding/margin、flex/grow、min/max、主轴分布、measure 缓存、ScrollView 双轴
-- M2-C 完成：Theme、FontAtlas、Label、Panel、Button、Checkbox、Slider、TextInput、List、Splitter、Tooltip；控件已接入 ex4
+- M2-C 完成：Theme、FontAtlas、Label、Panel、Button、Checkbox、Slider、TextInput、List、Splitter、Tooltip；控件已接入 examples/ui_demo
 - M2-D 完成：UTF-8、codepoint FontAtlas、换行/省略号、TextInput codepoint、FreeType C2 CJK 图集、D3 动态字形、fallback、字体文档与性能测试
 - M2-E 完成：DrawList、scissor 栈、自动裁剪、按 texture/scissor 切批、UIRoot overlay 层（Tooltip/弹窗置顶）、裁剪/图层测试
-- 已修复面板不响应：光标坐标按 framebuffer 缩放后与布局坐标一致；debug 树保留但 ex4 已关闭，hover 视觉保留
+- 已修复面板不响应：光标坐标按 framebuffer 缩放后与布局坐标一致；debug 树保留但 demo 已关闭，hover 视觉保留
 - 评估与问题已归档到 `docs/project_assessment.md`；R01–R18 已纳入阶段计划
 - 构建去重：新增 `cosine_text` / `cosine_ui`，共享源只编译一次；CI 默认 `-j2`；测试目标关闭 module scan
-- 8/8 ctest 通过（新增 render_target）；ex4 运行无 validation error，CJK 与动态字形（囧）均正常显示
-- M2-E 全部完成；下一步 M2-F demo/应用层收口
+- M2-F 完成：examples/ui_demo、demo/UI 集成测试；删除 ex4/ex2、未使用 shader/texture/graphics 头；Renderer 去掉 draw_frame/F11/空 process_mouse_move
+- 9/9 ctest 通过（新增 render_target、ui_demo）；ui_demo 运行正常，CJK 与动态字形（囧）均正常显示
+- 仅剩 V03（1x/2x HiDPI 实测）与 V06 用户验收

@@ -67,6 +67,19 @@ endif()
 # 只有 Vulkan 头使用 C++ modules（import vulkan_hpp;），这些 target 显式开启扫描。
 set_target_properties(cosine_backend PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
+# 应用层：窗口/Vulkan/UI 的装配与事件桥接，供 examples 复用。
+add_library(cosine_app STATIC
+    xel_application.cpp
+)
+target_include_directories(cosine_app PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(cosine_app PUBLIC
+    cosine_ui
+    cosine_backend
+)
+set_target_properties(cosine_app PROPERTIES CXX_SCAN_FOR_MODULES ON)
+
 add_custom_target(copy_assets ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_SOURCE_DIR}/assets"
@@ -74,21 +87,6 @@ add_custom_target(copy_assets ALL
     COMMENT "Copying assets directory"
     VERBATIM
 )
-
-add_executable(ex4
-    ex4.cpp
-    xel_application.cpp
-)
-target_link_libraries(ex4 PRIVATE cosine_ui cosine_backend)
-set_target_properties(ex4 PROPERTIES CXX_SCAN_FOR_MODULES ON)
-add_dependencies(ex4 shaders copy_assets)
-
-add_executable(ex2
-    ex2.cpp
-)
-target_link_libraries(ex2 PRIVATE cosine_backend)
-set_target_properties(ex2 PROPERTIES CXX_SCAN_FOR_MODULES ON)
-add_dependencies(ex2 shaders copy_assets)
 
 # find_package(OpenGl REQUIRED)
 # add_executable(ex3 ex3.cpp)

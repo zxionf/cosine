@@ -36,7 +36,6 @@ public:
     Renderer(VulkanContext& context, SwapChain& swap_chain);
     ~Renderer();
 
-    void draw_frame();
     void begin();
     void end();
 
@@ -50,7 +49,6 @@ public:
     void draw_rect_uv(float x, float y, float width, float height, glm::vec4 color, float u0, float v0, float u1, float v1);
     void draw_char(float x, float y, float width, char ch, glm::vec4 color);
     void draw_text(float x, float y, float width, const std::string& text, glm::vec4 color);
-    void process_mouse_move(float x, float y);
 
     // 大概统计
     uint32_t vertices_count() const { uint32_t ret=0; for(const auto& batch : draw_list_.batches()){ret += batch.vertices.size();} return ret; }
@@ -121,7 +119,6 @@ private:
     void update_font_atlas_texture();
 
 
-    void save_swapchain_image_to_png(uint32_t image_index, const std::string& path);
 
     vk::raii::DescriptorSetLayout descriptor_set_layout_ = nullptr;
 

@@ -8,14 +8,11 @@
 #include <chrono>
 #include <iostream>
 #include <cmath>
-#include <format>
 
 #include <glm/gtc/matrix_transform.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <stb_image_write.h>
 
 namespace xel::backend::vulkan
 {
@@ -28,13 +25,6 @@ Renderer::Renderer(VulkanContext& context, SwapChain& swap_chain) : context_{con
     create_texture_image();
     create_texture_image_view();
     create_texture_sampler();
-    // vertices = ShapeMaker::makeRingVertices(0.5f, 0.25f, 16);
-    // indices = ShapeMaker::makeRingIndices(vertices.size());
-    // graphics::Triangle triangle;
-    // vertices = triangle.get_vertices();
-    // indices = triangle.get_indices();
-    // create_vertex_buffer();
-    // create_index_buffer();
     create_dynamic_buffers();
     create_uniform_buffers();
     create_descriptor_pool();
@@ -796,12 +786,6 @@ void Renderer::draw_text(float x, float y, float size, const std::string& text, 
     font_atlas_.append_text(draw_list_, x, y, size, text, color);
 }
 
-void Renderer::process_mouse_move(float x, float y)
-{
-    (void)x;
-    (void)y;
-}
-
 RenderTarget Renderer::make_swapchain_target()
 {
     RenderTarget target;
@@ -824,47 +808,6 @@ void Renderer::begin()
     active_target_ = frame_acquired_ ? make_swapchain_target() : RenderTarget{};
     draw_list_.clear();
     reset_scissor();
-}
-
-void Renderer::draw_frame()
-{
-    // auto W = static_cast<float>(swap_chain_.extent().width);
-    // auto H = static_cast<float>(swap_chain_.extent().height);
-    // for (auto vertex : triangle_.get_vertices()) {
-    //     // ndc2pixel
-    //     // vertex.pos.x = (vertex.pos.x * 0.5f + 0.5f) * W;
-    //     // vertex.pos.y = (vertex.pos.y * 0.5f + 0.5f) * H;
-    //     vertex.pos = (vertex.pos * 0.5f + 0.5f) * glm::vec2(W, H);
-    //     vertices_.push_back(vertex);
-    // }
-    // for (auto index : triangle_.get_indices()) {
-    //     indices_.push_back(index);
-    // }
-
-    draw_line(100.0f, 100.0f, 200.0f, 100.0f, 2.0f, {1, 0, 0, 1});
-    draw_line(150.0f,  50.0f, 150.0f, 150.0f, 2.0f, {0, 1, 0, 1});
-
-    // draw_rect(600.0f, 800.0f, 600.0f, 600.0f, {1, 1, 1, 1});
-    draw_rect_uv(620.0f, 800.0f, 600.0f, 600.0f, {0, 1, 0, 0.4}, 0.0f, 0.0f, 1.0f, 1.0f);
-
-    draw_line(100.0f, 100.0f, 300.0f, 300.0f, 6.0f, {0, 1, 0, 1});
-    float time = static_cast<float>(glfwGetTime());
-    constexpr float PI = 3.14159265358979f;
-    float step = 2.0f * PI / 3.0f;
-    float x0 = 300 + 150 * std::cos(time);
-    float y0 = 300 + 150 * std::sin(time);
-    float x1 = 300 + 150 * std::cos(time + step);
-    float y1 = 300 + 150 * std::sin(time + step);
-    float x2 = 300 + 150 * std::cos(time + 2.0f * step);
-    float y2 = 300 + 150 * std::sin(time + 2.0f * step);
-    draw_triangle(x0, y0, x1, y1, x2, y2, {1, 0, 0, 1});
-
-    draw(graphics::Rectangle{0.0f, 0.0f, 40.0f, 40.0f, {0, 1, 0, 0.4}});
-
-    draw_char(300.0f+30*cos(time*4), 300.0f+40*sin(time*4), 20.0f, 'H', {0, 1, 0, 1});
-
-    draw_text(100.0f, 300.0f, 80.0f, "Hello,World!", {0, 1, 0, 1});
-    draw_text(100.0f, 380.0f, 80.0f, std::format("{:.1f}", time), {0, 1, 0, 1});
 }
 
 void Renderer::end()
@@ -971,13 +914,6 @@ void Renderer::end_frame()
 
     context_.graphics_queue().submit(submitInfo, *in_flight_fences_[frame_index_]);
 
-    static bool prev_f11_pressed = false;
-    bool f11_pressed = glfwGetKey(context_.window().get_glfw_window(), GLFW_KEY_F11) == GLFW_PRESS;
-    if (f11_pressed && !prev_f11_pressed) {
-        save_swapchain_image_to_png(image_index_, "output.png");
-        std::cout << "saved image to output.png" << std::endl;
-    }
-    prev_f11_pressed = f11_pressed;
 
     const vk::PresentInfoKHR present_info_khr{
         .waitSemaphoreCount = 1,
@@ -1174,92 +1110,6 @@ void Renderer::transition_image_layout(
             .imageMemoryBarrierCount = 1,
             .pImageMemoryBarriers    = &barrier};
     command_buffers_[frame_index_].pipelineBarrier2(dependency_info);
-}
-
-void Renderer::save_swapchain_image_to_png(uint32_t image_index, const std::string& path)
-{
-    vk::Extent2D extent = swap_chain_.extent();
-    vk::DeviceSize image_size = extent.width * extent.height * 4; // RGBA8
-
-    // 1. 创建 host-visible 缓冲区
-    auto [staging_buffer, staging_memory] = create_buffer(
-        image_size,
-        vk::BufferUsageFlagBits::eTransferDst,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
-
-    // 2. 录制拷贝命令
-    vk::raii::CommandBuffer cmd = begin_single_time_commands();
-
-    // 交换链图像当前处于 ePresentSrcKHR 或 eColorAttachmentOptimal
-    // 先转到 eTransferSrcOptimal
-    vk::ImageMemoryBarrier barrier{
-        .srcAccessMask = vk::AccessFlagBits::eMemoryRead,
-        .dstAccessMask = vk::AccessFlagBits::eTransferRead,
-        .oldLayout = vk::ImageLayout::ePresentSrcKHR,          // 或 eColorAttachmentOptimal
-        .newLayout = vk::ImageLayout::eTransferSrcOptimal,
-        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .image = swap_chain_.images()[image_index],
-        .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
-    };
-    cmd.pipelineBarrier(
-        vk::PipelineStageFlagBits::eAllCommands,
-        vk::PipelineStageFlagBits::eTransfer,
-        {}, {}, nullptr, barrier);
-
-    // 拷贝图像到缓冲区
-    vk::BufferImageCopy region{
-        .bufferOffset = 0,
-        .bufferRowLength = 0,
-        .bufferImageHeight = 0,
-        .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
-        .imageOffset = vk::Offset3D{0, 0, 0},
-        .imageExtent = vk::Extent3D{extent.width, extent.height, 1}
-    };
-    cmd.copyImageToBuffer(
-        swap_chain_.images()[image_index],
-        vk::ImageLayout::eTransferSrcOptimal,
-        staging_buffer,
-        region);
-
-    // 转回 ePresentSrcKHR（如果后面还要 present）
-    vk::ImageMemoryBarrier barrier2{
-        .srcAccessMask = vk::AccessFlagBits::eTransferRead,
-        .dstAccessMask = {},
-        .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
-        .newLayout = vk::ImageLayout::ePresentSrcKHR,
-        .srcQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .dstQueueFamilyIndex = vk::QueueFamilyIgnored,
-        .image = swap_chain_.images()[image_index],
-        .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
-    };
-    cmd.pipelineBarrier(
-        vk::PipelineStageFlagBits::eTransfer,
-        vk::PipelineStageFlagBits::eAllCommands,
-        {}, {}, nullptr, barrier2);
-
-    end_single_time_commands(std::move(cmd));
-
-    // 3. map 并写 PNG
-    void* data = staging_memory.mapMemory(0, image_size);
-
-    // 注意：交换链格式可能是 BGRA，stb 写 PNG 需要 RGBA
-    // 如果格式是 B8G8R8A8，需要交换 R 和 B
-    std::vector<uint8_t> pixels(static_cast<uint8_t*>(data),
-                                static_cast<uint8_t*>(data) + image_size);
-
-    // 如果格式是 BGRA，交换通道
-    vk::Format fmt = swap_chain_.surface_format().format;
-    if (fmt == vk::Format::eB8G8R8A8Srgb || fmt == vk::Format::eB8G8R8A8Unorm) {
-        for (size_t i = 0; i < pixels.size(); i += 4) {
-            std::swap(pixels[i], pixels[i + 2]); // B <-> R
-        }
-    }
-
-    stbi_write_png(path.c_str(), extent.width, extent.height, 4,
-                pixels.data(), extent.width * 4);
-
-    staging_memory.unmapMemory();
 }
 
 vk::raii::ShaderModule Renderer::create_shader_module(const std::vector<char>& code) const {

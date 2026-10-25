@@ -71,5 +71,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(glm)
 
 add_subdirectory(src)
+add_subdirectory(examples)
 add_subdirectory(test)
 add_subdirectory(interpreter)

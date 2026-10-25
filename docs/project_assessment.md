@@ -4,7 +4,7 @@
 > 代码基线：`e527b44`（M2-C 完成）
 > 对照文档：`.design/阶段计划.md`、`.agent/work/20261024-m2-gui-mvp/tasks.md`
 > 结论：Vulkan/UI 骨架与交互链路已成型；当前瓶颈是文本、裁剪和 demo/工程化，不是 Vulkan。
-> 更新（2026-10-24）：R03 的 UTF-8/codepoint、C2 CJK 图集与 D3 动态字形更新已落地；R01/R02/R04/R16 的 DrawList、scissor 栈与 overlay 图层已落地；R05/R06 仍待 M2-F；E06 RenderTarget 抽象已完成。
+> 更新（2026-10-24）：R03 的 UTF-8/codepoint、C2 CJK 图集与 D3 动态字形更新已落地；R01/R02/R04/R16 的 DrawList、scissor 栈与 overlay 图层已落地；R05/R06 已随 examples/ui_demo 清理完成；E06 RenderTarget 抽象已完成。
 > 构建（2026-10-24）：`cosine_text` / `cosine_ui` 去重，共享源只编译一次；CI 默认 `-j2`，测试目标关闭 module scan。
 
 ## 1. 现状
@@ -13,9 +13,9 @@
 - M2-A 事件完成
 - M2-B 布局完成
 - M2-C 控件集完成
-- `ctest` 6/6 通过
+- `ctest` 9/9 通过
 - `build-ci` 全新构建通过
-- `ex4` 控件可交互
+- `examples/ui_demo` 控件可交互
 - backend 已抽成 `cosine_backend` 静态库
 - 资源统一到 `assets/`，输入坐标已按 HiDPI 换算
 
@@ -32,21 +32,21 @@
 
 ### P0：M2 收口前必须解决
 
-- **R01 渲染裁剪缺失**：ScrollView、TextInput、Panel 的内容会画出 viewport；当前只有命中裁剪。
-- **R02 无统一 draw list**：无法在控件内部按 scissor/texture 自动切批。
-- **R03 文本仅 ASCII**：FontAtlas 按 byte 索引，TextInput 只接受 ASCII；无 UTF-8/CJK/IME。
-- **R04 无换行/省略号**：Label 只支持显式 `\n`；TextInput 水平滚动不完整。
-- **R05 ex4 仍手动 UI**：`scroll->on_scroll/measure/arrange` 每帧硬编码，绕过 UISystem。
-- **R06 Renderer 混入应用逻辑**：`draw_frame()`、F11 截图、空 `process_mouse_move()` 仍在 Renderer。
+- **R01（已解决）渲染裁剪缺失**：ScrollView、TextInput、Panel 的内容会画出 viewport；当前只有命中裁剪。
+- **R02（已解决）无统一 draw list**：无法在控件内部按 scissor/texture 自动切批。
+- **R03（已解决）文本仅 ASCII**：FontAtlas 按 byte 索引，TextInput 只接受 ASCII；无 UTF-8/CJK/IME。
+- **R04（已解决）无换行/省略号**：Label 只支持显式 `\n`；TextInput 水平滚动不完整。
+- **R05（已解决）ex4 手动 UI**：已删除 ex4，统一走 UISystem 与 examples/ui_demo。
+- **R06（已解决）Renderer 混入应用逻辑**：`draw_frame()`、F11 截图、空 `process_mouse_move()` 已移除。
 
 ### P1：可维护性与可交付性
 
 - **R07 全局可变状态**：`active_font_atlas()`、全局 `theme()` 影响多窗口/headless/测试。
-- **R08 测试偏薄**：6 个测试；缺 FontAtlas、裁剪、draw list、渲染 validation、ASAN。
+- **R08 测试偏薄**：9 个测试；缺 ASAN、lavapipe 渲染冒烟和 Windows 实测。
 - **R09 Windows 未实测**：只有 `ci-windows.ps1`，无实际构建结果。
 - **R10 性能无度量**：每帧分配、逐批绑定、无 draw call/顶点/帧时间面板。
 - **R11 UI 耦合 GLFW**：控件直接使用 GLFW 键码。
-- **R12 冗余代码**：`text.hpp`、`shape_maker.hpp`、`tester.hpp`、`assets/textures/texture.jpg`、`ex2`、部分 shader。
+- **R12（已解决）冗余代码**：已删除 `text.hpp`、`shape_maker.hpp`、`texture.jpg`、`ex2`、`ex4` 与未使用 shader。
 - **R13 文档滞后**：README 过短；`docs/code_review.md` 基线较早；SPEC/M2 任务未折叠。
 
 ### P2：架构与长期
@@ -79,10 +79,10 @@
 
 ### 第 3 步：M2-F demo 与应用层清理
 
-1. 删除 ex4 手动 `scroll->on_scroll/measure/arrange`。
+1. 删除 ex4 手动 `scroll->on_scroll/measure/arrange`（已完成，ex4 已移除）。
 2. ScrollView 放进 UISystem 根节点，统一走事件链。
 3. 把 Renderer 的 `draw_frame`、F11 截图、空 `process_mouse_move` 移出。
-4. 形成 `examples/ui_demo`；归档 `ex2` 与未使用资源/代码。
+4. 形成 `examples/ui_demo`；归档 `ex2`、`ex4` 与未使用资源/代码（已完成）。
 5. 清理后的 demo 作为 M2 验收对象。
 
 ### 第 4 步：M3 工程化
@@ -97,7 +97,7 @@
 ## 5. 质量门
 
 - `ctest` 全绿，且新增文本/裁剪/draw list 测试。
-- `ex4` 或 `ui_demo` 连续交互 60 秒，Vulkan validation 无错误。
+- `ui_demo` 连续交互 60 秒，Vulkan validation 无错误。
 - 项目自身代码无警告。
 - `build-ci` 全新构建通过。
 - M2 收口前不进入 M4 动画内核。

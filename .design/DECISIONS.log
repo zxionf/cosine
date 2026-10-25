@@ -130,3 +130,8 @@ Change: 20261024-m2-gui-mvp
 Context: Renderer 的 begin/end_rendering 直接依赖 SwapChain 的 image/view/extent，离屏渲染和编辑器预览无法复用
 Decision: 新增 backend::vulkan::RenderTarget 描述 image/view/extent/format/initial_layout/final_layout/is_swapchain；Renderer 每帧构造 SwapChain 目标，begin/end_rendering、布局转换、viewport、scissor、push constant、UBO 均使用目标信息；离屏目标仅预留接口，不实现分配
 Consequences: 渲染路径不再硬编码 SwapChain；当前行为不变；后续离屏渲染只需构造 RenderTarget 并复用 begin/end 流程，pipeline 仍需匹配目标 format
+## [27] 2026-10-25 03:21:01 UTC
+Change: 20261024-m2-gui-mvp
+Context: M2-F 需要把 demo 从 ex4 的硬编码渲染循环收口为可验收示例，并移除 Renderer 中的 demo/F11 逻辑和未使用资源
+Decision: 新增 examples/ui_demo（main + 可复用 ui_demo.hpp）与 cosine_app 库；示例完全通过 UISystem 布局/事件和 root DrawList 绘制；删除 ex4/ex2、未使用 shader/texture/graphics 头；Renderer 移除 draw_frame、F11 截图、process_mouse_move；新增 test_ui_demo 覆盖滚动/按钮/文本输入/overlay
+Consequences: M2 验收对象变为 ui_demo；renderer 只负责渲染，不再含 demo 逻辑；构建和资源更小；60s validation 通过

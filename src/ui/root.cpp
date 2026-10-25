@@ -35,7 +35,7 @@ void UIRoot::append_to(graphics::DrawList& list) const
 
 void UIRoot::layout_child(Widget& child)
 {
-    const glm::vec2 child_size = child.measure(local_.size);
+    const glm::vec2 child_size = child.clamp_size(child.measure(local_.size));
     child.arrange({
         {local_.pos.x + child.x(), local_.pos.y + child.y()},
         child_size
