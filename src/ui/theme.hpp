@@ -32,6 +32,8 @@ struct Theme
     glm::vec4 text_input_cursor{0.90f, 0.92f, 0.95f, 1.0f};
 
     glm::vec4 tooltip_bg{0.10f, 0.11f, 0.13f, 0.95f};
+    glm::vec4 scrollbar_track{0.18f, 0.19f, 0.22f, 1.0f};
+    glm::vec4 scrollbar_thumb{0.42f, 0.45f, 0.50f, 1.0f};
 
     float text_size = 16.0f;
     float small_text_size = 12.0f;
@@ -42,6 +44,8 @@ struct Theme
     float checkbox_size = 18.0f;
     float slider_height = 6.0f;
     float slider_handle_radius = 7.0f;
+    float scrollbar_width = 8.0f;
+    float scrollbar_min_thumb = 20.0f;
 
     // 主题标识，用于 UI 显示与切换判断。
     const char* name = "dark";
@@ -78,7 +82,9 @@ struct Theme
         t.text_input_selection = {0.12f, 0.45f, 0.95f, 0.30f};
         t.text_input_cursor    = {0.05f, 0.055f, 0.06f, 1.0f};
 
-        t.tooltip_bg = {0.97f, 0.97f, 0.98f, 0.98f};
+        t.tooltip_bg      = {0.97f, 0.97f, 0.98f, 0.98f};
+        t.scrollbar_track = {0.80f, 0.82f, 0.85f, 1.0f};
+        t.scrollbar_thumb = {0.55f, 0.58f, 0.62f, 1.0f};
         return t;
     }
 };

@@ -18,9 +18,10 @@
 - [x] P05 `docs/index.md`、`docs/project_assessment.md` 更新 M3.5 与 gallery 入口
 - [x] P06 主题切换：`Theme::light()`、`UIRoot::set_theme`、`UISystem::set_theme`、Renderer 清屏色、gallery 按钮与 `COSINE_GALLERY_THEME`、`test_ui_theme`
 - [x] P07 新控件：`TabBar`、`Radio`/`RadioGroup`、`Progress` + `test_ui_widgets` + gallery Inputs 分区
+- [x] P08 ScrollView 可见滚动条（拖拽/翻页/预留空间）+ `test_ui_scrollbar`
 
 ## 当前进度
 
 - docs：index / dependencies / readme_draft / release_notes_template 已落地
-- M3.5 计划已插入；ui_gallery、主题切换、TabBar/Radio/Progress 完成
-- 17/17 ctest 通过
+- M3.5 计划已插入；ui_gallery、主题切换、TabBar/Radio/Progress、ScrollView 滚动条完成
+- 18/18 ctest 通过（新增 test_ui_scrollbar）

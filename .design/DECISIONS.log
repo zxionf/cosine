@@ -185,3 +185,8 @@ Change: 20261025-m3-g-docs-release
 Context: M3.5 需要把常用表单控件补齐，gallery 要能展示并验证它们
 Decision: 新增 TabBar（点击/方向键/Home/End，选中项下划线）、Radio 与 RadioGroup（菱形标记，组内单选，点击或空格选中）、Progress（0..1 确定进度，主题着色）；三者均为 header-only 并按 ui_theme() 取样式；gallery Inputs 分区展示并用 Slider 驱动 Progress；新增 test_ui_widgets
 Consequences: 控件从 9 个增至 12 个；TabView 内容容器、不确定进度、Dropdown 仍未实现；组件均随主题切换
+## [38] 2026-10-25 07:39:55 UTC
+Change: 20261025-m3-g-docs-release
+Context: ScrollView 只有滚轮、没有视觉反馈，也无法拖拽，gallery 中溢出内容不可见
+Decision: ScrollView 增加按需可见的纵向/横向滚动条：滚动条占用 viewport 空间（内容不再画在条下）；滑块长度按 content/viewport 比例、最小 20px；支持滑块拖拽与轨道翻页；Theme 增加 scrollbar_track/scrollbar_thumb 与 scrollbar_width/min_thumb；hit_testable 改为 true 以便命中滚动条；新增 test_ui_scrollbar
+Consequences: 滚动条与主题一致；拖拽按比例映射并 clamp；由于预留空间，双轴时 viewport 宽高各减 scrollbar_width+2；ScrollView 现在可作为命中目标（内容仍优先）
