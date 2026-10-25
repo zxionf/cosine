@@ -341,8 +341,10 @@ private:
     {
         const auto& t = ui_theme();
         auto* atlas = font_atlas();
-        // 用字体行高而不是字号来垂直居中，否则文字会整体偏下。
-        const float text_y = global_.pos.y + std::max(pad, (global_.size.y - line_height()) * 0.5f);
+        // 用字体行高而不是字号来垂直居中；不要再 max(pad, ...)，
+        // 否则行高小于可用高度时会被推到偏下的位置。
+        const float line_h = line_height();
+        const float text_y = global_.pos.y + std::max(0.0f, (global_.size.y - line_h) * 0.5f);
         const float viewport_w = std::max(0.0f, global_.size.x - pad * 2.0f);
         const float cursor_px = prefix_width(cursor_, font_size);
         const float total_px = text_width(0, text_.size(), font_size);
@@ -360,7 +362,7 @@ private:
             const float x1 = text_width(0, hi, font_size);
             graphics::Rectangle selection{
                 global_.pos.x + pad + x0 - scroll, text_y,
-                std::max(1.0f, x1 - x0), font_size, t.text_input_selection};
+                std::max(1.0f, x1 - x0), line_h, t.text_input_selection};
             selection.append_to(list);
         }
 
@@ -372,8 +374,10 @@ private:
         }
 
         if (focused_) {
+            // 光标与选区都以行盒为基准，视觉上与文字居中对齐。
+            const float cursor_y = text_y + (line_h - font_size) * 0.5f;
             graphics::Rectangle cursor_bar{
-                global_.pos.x + pad + cursor_px - scroll, text_y, 1.0f, font_size, t.text_input_cursor};
+                global_.pos.x + pad + cursor_px - scroll, cursor_y, 1.0f, font_size, t.text_input_cursor};
             cursor_bar.append_to(list);
         }
         (void)line;

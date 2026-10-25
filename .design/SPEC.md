@@ -108,7 +108,7 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不引入动画过渡（尺寸变化是瞬时的）。
+- 不改多行输入布局；不引入基线对齐的自定义策略。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
@@ -128,10 +128,12 @@
 - `toggle()` 控制显示；ui_demo 用 F1 切换，`COSINE_DEBUG_OVERLAY=1` 可直接启动显示。
 
 ## 测试与边界
-`test_ui_menu_bar` 新增：
+`test_ui_text_input` 新增 `test_single_line_vertical_centering`：
 
-- File（3 行 + 分隔线 = 115px）→ 悬停切到 4 项菜单，弹层高度必须变化
-- 更宽的菜单（长标签 + 长快捷键）弹层宽度 > 160px，证明没有被首次创建时的宽度锁死
+- 用合成图集（行高 1.5em）构造「行高 < 控件高度」的场景
+- 断言文字四边形中心与控件中心相差 ≤ 2px
+- 断言上/下留白相差 ≤ 4px
+- 反向验证：恢复旧实现（`max(pad, ...)`）该用例立即失败
 
 ## Asset 解析错误
 - `find_asset()` 返回 `AssetLocation { path, found, searched }`，保留 `asset_path()` 兼容旧调用。
@@ -311,3 +313,24 @@
 - 构造时不再设置 min/max，只写入 `local_ = {0, size}` 作为初始测量值；
 - 尺寸完全由 `arrange()` 写入（`local_ = global_ = slot`），
   `measure()` 返回当前 `local_.size`，因此每帧测量与几何一致。
+
+## 单行 TextInput 文字偏下
+**根因**：上一轮把垂直居中基准从「字号」改成「行高」，但同时写了
+
+```cpp
+text_y = y + std::max(pad, (height - line_height) * 0.5f);
+```
+
+当行高（≈23）小于控件高度（30）时，`(30-23)/2 = 3.5 < padding(8)`，
+`max()` 取了 padding，文字被推到 `y + 8`，整体偏下 4~5px。
+
+多行输入不受影响，因为多行本来就从 `padding` 开始排版。
+
+**修法**：
+
+```cpp
+const float line_h = line_height();
+const float text_y = y + std::max(0.0f, (height - line_h) * 0.5f);
+```
+
+同时把单行的选区高度改为 `line_h`、光标在行盒内居中（高度仍为字号）。

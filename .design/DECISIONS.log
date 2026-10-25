@@ -245,3 +245,8 @@ Change: 20261025-m3-5-menu-popup-size
 Context: 切换菜单后内容更新但弹层尺寸仍沿用首个菜单；根因是构造时固定的 min/max_size 被 UIRoot::layout_child 的 clamp_size 夹住
 Decision: MenuPopup 构造不再设置 min/max_size，只初始化 local_；尺寸由 arrange 直接写入 local_/global_，measure 返回 local_.size，保证切换菜单后宽度/高度随内容重算
 Consequences: overlay 弹层尺寸可动态变化；对『尺寸由外部计算并 arrange』的控件，不应再用 min/max_size 固化尺寸，否则会被 layout_child 的 clamp 回退
+## [50] 2026-10-25 12:21:43 UTC
+Change: 20261025-m3-5-text-input-centering
+Context: 单行 TextInput 文字仍偏下；上一轮的居中公式里 max(pad, ...) 在行高小于控件高度时把文字压到下边
+Decision: 单行文字垂直居中改为 max(0, (height - line_height)/2)，不再用 padding 兜底；选区高度改用行高，光标在行盒内居中、高度保持字号；新增合成图集的回归测试并验证旧实现会失败
+Consequences: 单行输入框文字与光标视觉居中；含单行文字的控件应使用 (height - line_height)/2 而不是 padding 兜底

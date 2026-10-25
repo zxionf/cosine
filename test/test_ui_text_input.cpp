@@ -1,5 +1,11 @@
 #include "ui/text_input.hpp"
 
+#include "graphics/font_atlas.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <vector>
+
 #include <cassert>
 #include <iostream>
 
@@ -156,6 +162,44 @@ void test_multiline_newline_via_enter()
     assert(input.cursor() == 5);
 }
 
+void test_single_line_vertical_centering()
+{
+    // 合成图集：行高 1.5em（> 字号），用于暴露「文字偏下」的回归。
+    xel::graphics::FontAtlas atlas;
+    atlas.begin_generated(128, {1.15f, 0.35f, 1.5f}, true, 16);
+    std::vector<unsigned char> bitmap(6 * 10, 220);
+    atlas.add_glyph(U'h', bitmap.data(), 6, 10, 6, 0.6f, 0.0f, 0.8f, 16.0f);
+    xel::graphics::set_active_font_atlas(&atlas);
+
+    xel::ui::TextInput input("h", 200.0f);
+    input.arrange({{10.0f, 20.0f}, {200.0f, 30.0f}});
+
+    xel::graphics::DrawList list;
+    input.append_to(list);
+
+    const glm::vec4 text_color = input.ui_theme().text;
+    float ink_min_y = 1.0e9f;
+    float ink_max_y = -1.0e9f;
+    for (const auto& batch : list.batches()) {
+        for (const auto& vertex : batch.vertices) {
+            if (vertex.color != text_color) continue;
+            ink_min_y = std::min(ink_min_y, vertex.pos.y);
+            ink_max_y = std::max(ink_max_y, vertex.pos.y);
+        }
+    }
+    assert(ink_min_y < ink_max_y);
+
+    const float box_center = 20.0f + 30.0f * 0.5f;
+    const float ink_center = (ink_min_y + ink_max_y) * 0.5f;
+    assert(std::fabs(ink_center - box_center) <= 2.0f);
+
+    // 行高小于控件高度时，文字上方与下方留白应大致相等。
+    const float margin_top = ink_min_y - 20.0f;
+    const float margin_bottom = 50.0f - ink_max_y;
+    assert(std::fabs(margin_top - margin_bottom) <= 4.0f);
+
+    xel::graphics::set_active_font_atlas(nullptr);
+}
 void test_height_cap()
 {
     xel::ui::TextInput input("1\n2\n3\n4\n5", 200.0f);
@@ -179,6 +223,7 @@ int main()
     test_multiline_selection();
     test_multiline_newline_via_enter();
     test_height_cap();
+    test_single_line_vertical_centering();
 
     std::cout << "ui text input tests passed\n";
     return 0;
