@@ -100,3 +100,20 @@
 - 保留全局 `theme()` / `set_active_font_atlas()` 作为无 context 时的 fallback，不在本次删除。
 - 新增 `test_ui_context` 覆盖 context 传播、字体绑定、嵌套 Panel 主题刷新。
 - 现有 `test_ui_*` 与 `test_text` 不改行为，作为兼容性回归。
+
+## KeyCode 与 Modifier
+- UI 层不直接依赖 GLFW 键码；`events/key_code.hpp` 定义稳定的 `KeyCode` 与 `Modifier` 位标志。
+- `InputEvent` 的 `key/mods` 改为 `KeyCode/Modifier`；GLFW 键码到 `KeyCode` 的映射只存在于应用层 `xel_application.cpp`。
+- 首版只覆盖 UI 需要的键：Tab、Enter/KeypadEnter、Space、Backspace、Delete、方向键、Home/End、A。
+- `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
+
+## 头文件边界
+- `ui/` 公共头不再包含 `<GLFW/glfw3.h>` 或 `backend/window.hpp`。
+- `UISystem` 对 `backend::Window` 使用前向声明，窗口实现细节留在 `ui_system.cpp`。
+- Button/Checkbox/Slider/TextInput/Widget 只依赖 `events/key_code.hpp`。
+- 删除残留未使用的 `ui/tester.hpp`。
+
+## 兼容与迁移
+- 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
+- 保留 GLFW 映射集中在应用层，后续 Windows/其他后端可替换。
+- 本次不改图形 primitives 的 active atlas 依赖，也不引入 IME；这些留到后续。

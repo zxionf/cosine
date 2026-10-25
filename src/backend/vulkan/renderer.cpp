@@ -802,6 +802,15 @@ RenderTarget Renderer::make_swapchain_target()
 
 void Renderer::begin()
 {
+    const auto now = std::chrono::steady_clock::now();
+    if (has_last_frame_) {
+        const double frame_ms = std::chrono::duration<double, std::milli>(now - last_frame_time_).count();
+        frame_stats_.frame_time_ms = frame_ms;
+        frame_stats_.fps = frame_ms > 0.0 ? 1000.0 / frame_ms : 0.0;
+    }
+    last_frame_time_ = now;
+    has_last_frame_ = true;
+
     begin_frame();
 
     // 当前只有 SwapChain 目标；离屏目标后续通过同一 RenderTarget 接口接入。
@@ -818,6 +827,11 @@ void Renderer::end()
     }
 
     const RenderTarget& target = active_target_;
+
+    frame_stats_.draw = graphics::collect_draw_stats(
+        draw_list_,
+        static_cast<float>(target.extent.width),
+        static_cast<float>(target.extent.height));
 
     update_font_atlas_texture();
     update_uniform_buffer();

@@ -30,7 +30,9 @@ int main()
     xel::ui::UISystem ui{std::move(root)};
     ui.tick();
 
-    assert(ui.root()->overlays().size() == 1);
+    assert(ui.root()->overlays().size() == 2);
+    assert(demo.debug != nullptr);
+    assert(!demo.debug->visible());
     assert(demo.tooltip->visible());
     assert(demo.tooltip->global_bounds().size.x > 0.0f);
     assert(demo.scroll->content_size().y > demo.scroll->viewport_size().y);

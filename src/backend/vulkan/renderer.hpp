@@ -6,9 +6,12 @@
 #include "../../graphics/drawable.hpp"
 #include "../../graphics/font_atlas.hpp"
 #include "../../graphics/font_face.hpp"
+#include "../../graphics/frame_stats.hpp"
 
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
+
+#include <chrono>
 
 namespace xel::backend::vulkan
 {
@@ -38,6 +41,7 @@ public:
 
     graphics::FontAtlas& font_atlas() { return font_atlas_; }
     const graphics::FontAtlas& font_atlas() const { return font_atlas_; }
+    const graphics::FrameStats& frame_stats() const { return frame_stats_; }
 
     void begin();
     void end();
@@ -119,6 +123,9 @@ private:
     graphics::FontFace   font_face_;
     uint64_t             font_atlas_revision_ = 0;
     RenderTarget         active_target_{};
+    graphics::FrameStats frame_stats_{};
+    std::chrono::steady_clock::time_point last_frame_time_{};
+    bool                 has_last_frame_ = false;
     void update_font_atlas_texture();
 
 

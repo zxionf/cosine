@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/button.hpp"
+#include "ui/debug_overlay.hpp"
 #include "ui/checkbox.hpp"
 #include "ui/color_rect.hpp"
 #include "ui/label.hpp"
@@ -12,6 +13,7 @@
 #include "ui/tooltip.hpp"
 #include "ui/vbox.hpp"
 
+#include <cstdlib>
 #include <format>
 #include <memory>
 #include <string>
@@ -30,6 +32,7 @@ struct UiDemo
     ui::Slider*     slider = nullptr;
     ui::TextInput*  input = nullptr;
     ui::Tooltip*    tooltip = nullptr;
+    ui::DebugOverlay* debug = nullptr;
 };
 
 inline UiDemo build(ui::UIRoot& root)
@@ -116,6 +119,10 @@ inline UiDemo build(ui::UIRoot& root)
     root.add_overlay(std::move(tooltip));
     demo.tooltip->show_at({720.0f, 200.0f});
 
+    auto debug = std::make_unique<ui::DebugOverlay>();
+    demo.debug = debug.get();
+    if (std::getenv("COSINE_DEBUG_OVERLAY")) demo.debug->set_visible(true);
+    root.add_overlay(std::move(debug));
     return demo;
 }
 } // namespace xel::demo
