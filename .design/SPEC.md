@@ -108,8 +108,8 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不引入 GPU 硬性依赖的 CI 用例；lavapipe 仅做启动与 validation 冒烟。
-- 不做缓存优化、不做多编译器矩阵（clang 留待后续）。
+- 不做安装器（deb/msi）、不做签名、不做自动更新。
+- 不修改 README（由用户维护）；打包会原样复制。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
@@ -162,3 +162,22 @@
 - 新增 `.github/workflows/ci.yml`：Linux（apt 安装 Vulkan/lavapipe/xvfb，构建、ctest、ASAN 构建、lavapipe 冒烟）与 Windows（MSVC + Vulkan SDK，构建、ctest）。
 - 复用 `scripts/ci-linux.sh` / `scripts/ci-windows.ps1`，避免 CI 与本地命令分叉。
 - Windows 首次在真实 CI 上验证；本地只保证脚本与 CMake 可配置。
+
+## 版本号
+- `project(cosvideo VERSION 0.3.0)` 作为唯一版本源；CMake 生成 `version.hpp`（`xel::version_string()`）。
+- `ui_demo --version` 输出 `cosine <version>`，用于打包校验。
+- 版本号不在多个脚本里重复硬编码，打包脚本从 CMake 缓存 `PROJECT_VERSION` 读取。
+
+## Linux 打包
+- `scripts/package-linux.sh`：Release 配置 → 构建 `ui_demo` → 组装 `dist/cosine-<ver>-linux-x86_64/`。
+- 目录布局：`ui_demo`、`assets/`、`README.md`、`VERSION`、`run.sh`；二进制 `strip`。
+- assets 从 `COSINE_ASSET_BUILD_DIR`（`build-release/src/assets`）复制，包含 `shaders/`、`fonts/`。
+- 产出 `dist/cosine-<ver>-linux-x86_64.tar.gz`。
+
+## Windows 打包
+- `scripts/package-windows.ps1`：Release 构建 → 组装同一布局 → `Compress-Archive` 出 zip。
+- 不额外打包 Visual C++ 运行库；README/文档说明依赖。
+
+## 字体与资源策略
+- 打包内置 `default8.png` 与 GB2312 一级覆盖表；CJK 仍优先系统字体，可用 `COSINE_CJK_FONT` 覆盖。
+- 不内置 CJK TTF（体积与许可证）；文档说明如何随包放置并指定。

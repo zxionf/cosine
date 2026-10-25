@@ -1,23 +1,24 @@
 # 项目评估与改进清单
 
-> 归档日期：2026-10-24
-> 代码基线：`e527b44`（M2-C 完成）
-> 对照文档：`.design/阶段计划.md`、`.agent/work/20261024-m2-gui-mvp/tasks.md`
-> 结论：Vulkan/UI 骨架与交互链路已成型；当前瓶颈是文本、裁剪和 demo/工程化，不是 Vulkan。
+> 归档日期：2026-10-24（M3-G 更新：2026-10-25）
+> 代码基线：`0.3.0`（M3 完成）
+> 对照文档：`.design/阶段计划.md`、`docs/index.md`
+> 结论：GUI MVP 已成型并可打包；瓶颈转为 Windows 实测、动画内核与编辑器。
 > 更新（2026-10-24）：R03 的 UTF-8/codepoint、C2 CJK 图集与 D3 动态字形更新已落地；R01/R02/R04/R16 的 DrawList、scissor 栈与 overlay 图层已落地；R05/R06 已随 examples/ui_demo 清理完成；E06 RenderTarget 抽象已完成。
 > 构建（2026-10-24）：`cosine_text` / `cosine_ui` 去重，共享源只编译一次；CI 默认 `-j2`，测试目标关闭 module scan。
+> M3（2026-10-25）：UIContext、KeyCode/Modifier、FrameStats/DebugOverlay、资源与 Vulkan 错误上下文、sanitizer + lavapipe 冒烟、0.3.0 打包与文档全部落地；14 个测试通过，ASAN 全绿。
 
 ## 1. 现状
 
 - M1 基座稳定完成
-- M2-A 事件完成
-- M2-B 布局完成
-- M2-C 控件集完成
-- `ctest` 9/9 通过
+- M2 事件 / 布局 / 控件 / 文本 / 裁剪完成
+- M3 工程化完成：UIContext、输入抽象、调试指标、错误处理、CI 质量门、打包、文档
+- `ctest` 14/14 通过；ASAN 14/14 通过；lavapipe 冒烟通过
 - `build-ci` 全新构建通过
-- `examples/ui_demo` 控件可交互
-- backend 已抽成 `cosine_backend` 静态库
+- `examples/ui_demo` 控件可交互，`--version` 输出 `cosine 0.3.0`
+- 分层为 `cosine_text` / `cosine_ui` / `cosine_backend` / `cosine_app`
 - 资源统一到 `assets/`，输入坐标已按 HiDPI 换算
+- Linux 打包为 `dist/cosine-0.3.0-linux-x86_64.tar.gz`（约 873 KB）
 
 ## 2. 优势
 
@@ -85,31 +86,40 @@
 4. 形成 `examples/ui_demo`；归档 `ex2`、`ex4` 与未使用资源/代码（已完成）。
 5. 清理后的 demo 作为 M2 验收对象。
 
-### 第 4 步：M3 工程化
+### 第 4 步：M3 工程化（已完成）
 
-1. `UIContext` 替代全局 FontAtlas/Theme。
-2. Linux + Windows CI 真正跑起来。
-3. lavapipe 渲染冒烟 + ASAN。
-4. 帧时间/draw call/顶点数调试面板。
-5. README、依赖版本、资源格式文档。
-6. Linux/Windows 可执行目录打包。
+1. `UIContext` 替代全局 FontAtlas/Theme（M3-A）。
+2. 输入抽象：KeyCode/Modifier，UI 头文件去掉 GLFW 依赖（M3-B）。
+3. 帧时间/draw call/顶点数调试面板（M3-C）。
+4. 资源与 Vulkan/SwapChain 错误上下文（M3-D）。
+5. ASAN + lavapipe 冒烟 + Linux/Windows CI 矩阵（M3-E；Windows job 待首次远端运行）。
+6. Linux/Windows 可执行目录打包（M3-F；Windows zip 待实测）。
+7. 文档入口、依赖版本、README 草稿与发布说明模板（M3-G）。
+
+### 第 5 步：M4 动画内核
+
+1. 场景图与属性系统。
+2. 时间轴、轨道、关键帧与缓动。
+3. 确定性 seek 与播放器。
+4. 序列化前置的稳定 ID。
 
 ## 5. 质量门
 
-- `ctest` 全绿，且新增文本/裁剪/draw list 测试。
+- `ctest` 全绿（当前 14 个）。
+- ASAN 构建与测试通过；lavapipe 冒烟无 validation 错误。
 - `ui_demo` 连续交互 60 秒，Vulkan validation 无错误。
 - 项目自身代码无警告。
 - `build-ci` 全新构建通过。
-- M2 收口前不进入 M4 动画内核。
+- `scripts/package-linux.sh` 产物可从任意 cwd 启动。
 
 ## 6. 评分（主观）
 
 | 维度 | 分数 | 说明 |
 |---|---|---|
-| Vulkan 基础 | 7.5/10 | 能跑、能批绘制，仍有应用逻辑混入 |
-| UI 架构 | 7/10 | 事件/布局/焦点闭环，缺 draw list 与裁剪 |
-| 文本 | 4/10 | ASCII 可用，UTF-8/CJK/换行/省略号缺失 |
-| 测试 | 5/10 | 6 个测试，缺渲染与 ASAN |
-| 跨平台 | 4/10 | Linux 验证，Windows 未实测 |
-| 文档/流程 | 6/10 | sele 流程好，README 与审计文档滞后 |
-| MVP 完成度 | 约 55% | 交互骨架完成，距离可交付 GUI 框架还差文本、裁剪、工程化 |
+| Vulkan 基础 | 8/10 | RenderTarget 抽象、批绘制、swapchain 重建；仍单窗口单 Renderer |
+| UI 架构 | 8/10 | DrawList/裁剪/overlay/UIContext 完成；缺多窗口与 IME |
+| 文本 | 7.5/10 | UTF-8 + CJK + 换行/省略；无 shaping 与 SDF |
+| 测试 | 7.5/10 | 14 个测试 + ASAN + lavapipe；缺渲染像素比对 |
+| 跨平台 | 5.5/10 | Linux 已验证并可打包；Windows 脚本就绪未实测 |
+| 文档/流程 | 8/10 | docs/index、ci、packaging、dependencies 齐全；README 待作者定稿 |
+| MVP 完成度 | 约 85% | GUI 框架可交付；安装器与 Windows 验证待补 |

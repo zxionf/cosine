@@ -165,3 +165,8 @@ Change: 20261025-m3-f-packaging
 Context: M3-F 需要可交付的发布包，且版本号、资源布局与字体策略必须在文档里说清楚
 Decision: project(cosvideo VERSION 0.3.0) 作为唯一版本源并生成 xel/version.hpp；ui_demo 支持 --version；scripts/package-linux.sh 用 Release+Ninja 构建、strip、组装 ui_demo+assets+run.sh+VERSION+README 并出 tar.gz；scripts/package-windows.ps1 出同布局 zip；assets 与可执行文件同级以便 asset_path 解析；不内置 CJK TTF
 Consequences: Linux 包 2.0MB、tar.gz 876KB，从任意 cwd 可运行；版本升级只需改 CMake；Windows 打包脚本待真实环境验证；README 原样复制不改内容
+## [34] 2026-10-25 05:58:31 UTC
+Change: 20261025-m3-g-docs-release
+Context: M3 收口需要文档入口与发布流程，但根 README 由作者维护、不能由 agent 修改
+Decision: 新增 docs/index.md（文档地图）、docs/dependencies.md（版本锁定与升级流程）、docs/release_notes_template.md（含发布检查清单）；README 以 docs/readme_draft.md 形式提供建议稿，不直接改动根 README；project_assessment 基线更新到 0.3.0 并同步 M3 状态与评分
+Consequences: 文档有唯一入口且与实际命令一致；README 采用与否由作者决定；发布说明模板固定了 ctest/ASAN/冒烟/打包的填写项
