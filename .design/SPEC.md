@@ -108,7 +108,8 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不改多行输入布局；不引入基线对齐的自定义策略。
+- 不支持列宽拖拽、列排序、多选、单元格编辑、横向滚动。
+- TreeView 不在表格控件范围内。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
@@ -274,16 +275,16 @@
 - 菜单宽度取「标题宽度」与「内容最大宽度（含快捷键）」的较大者，最小 160px。
 - 分隔线高度 9px，普通行高 = `theme.control_height`。
 
-## 菜单可见性修复
-1. **菜单项文字垂直居中**：行内文字原来用 `text_size`（16）当高度参与居中，
-   实际行盒是 `line_height`（≈23），导致文字整体偏下。改为按 `FontAtlas::line_height(size)` 居中。
-   同一问题也存在于单行 `TextInput`（`y + (h - font_size)/2`），一并改为按行高居中。
-2. **弹层上下留白对称**：`popup_height` 原来只加了一次 `padding`（顶部留白、底部贴边），
-   改为 `padding * 2`，最后一行与底边之间有空隙。
-3. **悬停切换菜单后内容不更新**：`MenuPopup` 在创建时固定了 `menu_index_`，
-   切换菜单只更新了几何尺寸。新增 `MenuPopup::set_menu_index()`，
-   在 `update_popup_geometry()` 里同步，内容随标题切换。
+## 菜单可见性约束
+1. **菜单项文字垂直居中**：行内文字按 `FontAtlas::line_height(size)` 居中（而非 `text_size`）；
+   单行 `TextInput` 同样按行高居中。
+2. **弹层上下留白对称**：`popup_height = 行高之和 + padding * 2`。
+3. **悬停切换菜单后内容同步**：`MenuPopup::set_menu_index()` 由 `update_popup_geometry()` 调用，
+   内容与几何一起随当前标题切换。
 
+## 半透明矩形颜色
+- `graphics::Rectangle` 在构造顶点时对 rgb 预乘 alpha，匹配管线 `One / OneMinusSrcAlpha`。
+- 选中高亮、斑马纹、文字选区、遮罩等半透明矩形均按预乘 alpha 计算颜色。
 ## 菜单项 hover 高亮丢失
 **现象**：菜单打开后，鼠标移到菜单项上没有任何高亮，但点击能正常触发。
 
@@ -334,3 +335,18 @@ const float text_y = y + std::max(0.0f, (height - line_h) * 0.5f);
 ```
 
 同时把单行的选区高度改为 `line_h`、光标在行盒内居中（高度仍为字号）。
+
+## Table
+- `TableColumn`：`title` / `width` / `align`（Left/Center/Right）；`width <= 0` 表示弹性列，
+  剩余宽度在弹性列间均分。
+- `Table`：固定表头 + 可滚动正文。
+  - `set_columns` / `set_rows` / `add_row` / `clear_rows` / `row_count` / `rows`
+  - `set_selected(i)` / `selected()` / `set_on_select`
+  - `set_row_height` / `set_header_height` / `set_striped`
+  - `scroll_offset()`；滚轮按 1.5 行滚动
+- 绘制：表头背景 + 底部分隔线；正文行支持选中高亮（focus_ring 半透明）、
+  hover 高亮、斑马纹；列文本按对齐方式绘制并按列宽裁剪。
+- 交互：点击行选中；`Up/Down/Home/End` 移动选中并自动滚动保持可见；
+  表头点击不改变选中；`focusable()` 参与 Tab 遍历。
+- 列宽按「去掉滚动条后的正文宽度」分配，避免右对齐的最后一列被滚动条裁掉。
+

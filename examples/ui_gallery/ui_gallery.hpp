@@ -18,6 +18,7 @@
 #include "ui/scroll_view.hpp"
 #include "ui/slider.hpp"
 #include "ui/tab_bar.hpp"
+#include "ui/table.hpp"
 #include "ui/tab_view.hpp"
 #include "ui/spacer.hpp"
 #include "ui/splitter.hpp"
@@ -34,6 +35,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <cstdio>
 
 namespace xel::demo
 {
@@ -73,6 +75,8 @@ struct UiGallery
     ui::DialogHost* dialog_host = nullptr;
     ui::Label* dialog_state = nullptr;
     ui::MenuBar* menu_bar = nullptr;
+    ui::Table* table = nullptr;
+    ui::Label* table_state = nullptr;
     ui::Label* menu_state = nullptr;
     ui::UISystem* ui_system = nullptr;
     ui::Label* dropdown_state = nullptr;
@@ -410,6 +414,36 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.tab_view = tab_view.get();
         section->add(std::move(tab_view));
         section->add(std::move(tab_view_state));
+
+        section->add(std::make_unique<ui::Label>("Table (header, selection, wheel scroll)", 18.0f));
+        auto table = std::make_unique<ui::Table>(620.0f, 210.0f);
+        table->set_columns({
+            {"Asset", 240.0f, ui::TableColumn::Align::Left},
+            {"Type", 130.0f, ui::TableColumn::Align::Left},
+            {"Size", 0.0f, ui::TableColumn::Align::Right},
+        });
+        std::vector<std::vector<std::string>> table_rows;
+        const char* kinds[] = {"image", "audio", "script", "model"};
+        for (int i = 0; i < 14; ++i) {
+            table_rows.push_back({
+                std::format("asset_{:02d}.png", i),
+                kinds[i % 4],
+                std::format("{} KB", 12 + i * 7),
+            });
+        }
+        table->set_rows(table_rows);
+        table->set_selected(0);
+        auto table_state = std::make_unique<ui::Label>("table: asset_00.png", 12.0f);
+        gallery.table_state = table_state.get();
+        table->set_on_select([&gallery](int index) {
+            if (!gallery.table_state || !gallery.table) return;
+            const auto& rows = gallery.table->rows();
+            if (index < 0 || index >= static_cast<int>(rows.size())) return;
+            gallery.table_state->set_text("table: " + rows[static_cast<std::size_t>(index)][0]);
+        });
+        gallery.table = table.get();
+        section->add(std::move(table));
+        section->add(std::move(table_state));
 
         section->add(std::make_unique<ui::Label>("ScrollView (vertical, clips content)", 18.0f));
         auto scroll = detail::make_scroll(620.0f, 160.0f);

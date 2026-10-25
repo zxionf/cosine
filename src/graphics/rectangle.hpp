@@ -21,11 +21,15 @@ public:
         list.set_texture(TextureSlot::Texture);
         auto& batch = list.batch();
         const glm::vec2 uv = active_font_atlas() ? active_font_atlas()->white_uv() : glm::vec2{0.0f};
+        // 管线使用预乘 alpha 混合（One / OneMinusSrcAlpha）；
+        // 半透明矩形必须先把 rgb 乘以 alpha，否则会显得过亮。
+        const glm::vec4 color{color_.r * color_.a, color_.g * color_.a,
+                              color_.b * color_.a, color_.a};
         const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-        batch.vertices.push_back({{x_,      y_     }, color_, uv});
-        batch.vertices.push_back({{x_ + w_, y_     }, color_, uv});
-        batch.vertices.push_back({{x_ + w_, y_ + h_}, color_, uv});
-        batch.vertices.push_back({{x_,      y_ + h_}, color_, uv});
+        batch.vertices.push_back({{x_,      y_     }, color, uv});
+        batch.vertices.push_back({{x_ + w_, y_     }, color, uv});
+        batch.vertices.push_back({{x_ + w_, y_ + h_}, color, uv});
+        batch.vertices.push_back({{x_,      y_ + h_}, color, uv});
 
         batch.indices.insert(batch.indices.end(), {
             base,

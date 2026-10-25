@@ -1,0 +1,385 @@
+#pragma once
+
+#include "theme.hpp"
+#include "widget.hpp"
+#include "../graphics/font_atlas.hpp"
+#include "../graphics/rectangle.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace xel::ui
+{
+struct TableColumn
+{
+    std::string title;
+    // width <= 0 表示弹性列：剩余宽度在弹性列之间均分。
+    float width = 120.0f;
+    enum class Align { Left, Center, Right };
+    Align align = Align::Left;
+};
+
+// 表格：固定表头 + 可滚动的内容区，行可选中。
+class Table : public Widget
+{
+public:
+    Table(float width = 480.0f, float height = 240.0f)
+    {
+        set_min_size({width, height});
+        set_max_size({width, height});
+    }
+
+    void set_columns(std::vector<TableColumn> columns)
+    {
+        columns_ = std::move(columns);
+        mark_layout_dirty();
+    }
+    const std::vector<TableColumn>& columns() const { return columns_; }
+
+    void set_rows(std::vector<std::vector<std::string>> rows)
+    {
+        rows_ = std::move(rows);
+        if (selected_ >= static_cast<int>(rows_.size())) selected_ = rows_.empty() ? -1 : 0;
+        scroll_ = 0.0f;
+        mark_layout_dirty();
+    }
+    void add_row(std::vector<std::string> row)
+    {
+        rows_.push_back(std::move(row));
+        mark_layout_dirty();
+    }
+    void clear_rows()
+    {
+        rows_.clear();
+        selected_ = -1;
+        scroll_ = 0.0f;
+        mark_layout_dirty();
+    }
+
+    std::size_t row_count() const { return rows_.size(); }
+    const std::vector<std::vector<std::string>>& rows() const { return rows_; }
+
+    int selected() const { return selected_; }
+    void set_selected(int index, bool notify = true)
+    {
+        if (rows_.empty()) return;
+        const int clamped = std::clamp(index, 0, static_cast<int>(rows_.size()) - 1);
+        if (clamped == selected_) return;
+        selected_ = clamped;
+        ensure_selected_visible();
+        if (notify && on_select_) on_select_(selected_);
+    }
+    void set_on_select(std::function<void(int)> handler) { on_select_ = std::move(handler); }
+
+    void set_row_height(float height)
+    {
+        row_height_ = std::max(12.0f, height);
+        mark_layout_dirty();
+    }
+    float row_height() const { return row_height_; }
+    void set_header_height(float height)
+    {
+        header_height_ = std::max(0.0f, height);
+        mark_layout_dirty();
+    }
+    float header_height() const { return header_height_; }
+    void set_striped(bool striped) { striped_ = striped; }
+    bool striped() const { return striped_; }
+
+    float scroll_offset() const { return scroll_; }
+
+    glm::vec2 measure(glm::vec2 constraints) override
+    {
+        (void)constraints;
+        return clamp_size(global_.size.x > 0.0f ? global_.size : local_.size);
+    }
+
+    void arrange(Rect slot) override
+    {
+        global_ = slot;
+        set_pos(slot.pos);
+        set_size(slot.size);
+        scroll_ = clamp_scroll(scroll_);
+    }
+
+    void append_to(graphics::DrawList& list) const override
+    {
+        const auto& t = ui_theme();
+
+        graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y,
+                                       t.panel_bg};
+        background.append_to(list);
+
+        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+
+        const float header_h = header_height_;
+        const float body_top_probe = global_.pos.y + header_h;
+        const float body_h_probe = std::max(0.0f, global_.size.y - header_h);
+        const float bar_w_probe = content_height() > body_h_probe ? t.scrollbar_width + 2.0f : 0.0f;
+        const float body_w_probe = std::max(0.0f, global_.size.x - bar_w_probe);
+        // 列宽按「去掉滚动条后的正文宽度」分配，否则右对齐的最后一列会被滚动条裁掉。
+        const auto widths = column_widths(body_w_probe);
+
+        // 表头
+        if (header_h > 0.0f) {
+            graphics::Rectangle header{global_.pos.x, global_.pos.y, global_.size.x, header_h,
+                                       t.button_pressed};
+            header.append_to(list);
+
+            float x = global_.pos.x;
+            for (std::size_t i = 0; i < columns_.size() && i < widths.size(); ++i) {
+                draw_cell(list, columns_[i].title, x, global_.pos.y, widths[i], header_h,
+                          columns_[i].align, t.text, x, global_.pos.x + body_w_probe);
+                x += widths[i];
+            }
+            graphics::Rectangle line{global_.pos.x, global_.pos.y + header_h - 1.0f,
+                                     global_.size.x, 1.0f, t.panel_border};
+            line.append_to(list);
+        }
+
+        const float body_top = global_.pos.y + header_h;
+        const float body_h = std::max(0.0f, global_.size.y - header_h);
+        const float bar_w = content_height() > body_h ? t.scrollbar_width + 2.0f : 0.0f;
+        const float body_w = std::max(0.0f, global_.size.x - bar_w);
+
+        list.push_clip({global_.pos.x, body_top, body_w, body_h});
+
+        std::size_t first_visible = row_height_ > 0.0f
+            ? static_cast<std::size_t>(std::max(0.0f, scroll_) / row_height_)
+            : 0;
+        for (std::size_t row = first_visible; row < rows_.size(); ++row) {
+            const float y = body_top + static_cast<float>(row) * row_height_ - scroll_;
+            if (y + row_height_ < body_top) continue;
+            if (y > body_top + body_h) break;
+
+            const bool is_selected = static_cast<int>(row) == selected_;
+            const bool is_hovered = static_cast<int>(row) == hovered_;
+
+            if (is_selected) {
+                const glm::vec4 color{t.focus_ring.r, t.focus_ring.g, t.focus_ring.b, 0.28f};
+                graphics::Rectangle highlight{global_.pos.x, y, body_w, row_height_, color};
+                highlight.append_to(list);
+            } else if (is_hovered) {
+                graphics::Rectangle highlight{global_.pos.x, y, body_w, row_height_, t.button_hover};
+                highlight.append_to(list);
+            } else if (striped_ && (row % 2) == 1) {
+                graphics::Rectangle stripe{global_.pos.x, y, body_w, row_height_,
+                                           glm::vec4{1.0f, 1.0f, 1.0f, 0.03f}};
+                stripe.append_to(list);
+            }
+
+            float x = global_.pos.x;
+            const auto& cells = rows_[row];
+            for (std::size_t col = 0; col < widths.size(); ++col) {
+                const std::string& text = col < cells.size() ? cells[col] : empty_;
+                draw_cell(list, text, x, y, widths[col], row_height_,
+                          col < columns_.size() ? columns_[col].align : TableColumn::Align::Left,
+                          t.text, x, global_.pos.x + body_w);
+                x += widths[col];
+            }
+        }
+        list.pop_clip();
+
+        draw_scrollbar(list, body_top, body_h, bar_w);
+
+        if (focused_) {
+            const float b = t.border;
+            graphics::Rectangle top{global_.pos.x, global_.pos.y, global_.size.x, b, t.focus_ring};
+            graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b,
+                                       global_.size.x, b, t.focus_ring};
+            top.append_to(list);
+            bottom.append_to(list);
+        }
+
+        list.pop_clip();
+    }
+
+    bool hit_testable() const override { return true; }
+    bool focusable() const override { return true; }
+    bool clips_children() const override { return true; }
+
+    void on_mouse_enter() override { hovered_ = hovered_row(last_mouse_); }
+    void on_mouse_leave() override { hovered_ = -1; }
+    void on_hover(glm::vec2 pos) override
+    {
+        last_mouse_ = pos;
+        hovered_ = hovered_row(pos);
+    }
+
+    bool on_click(glm::vec2 pos, int) override
+    {
+        const int row = row_at(pos);
+        if (row < 0) return false;
+        set_selected(row);
+        return true;
+    }
+
+    bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
+    {
+        if (!global_.contains(pos)) return false;
+        if (content_height() <= body_height()) return false;
+        scroll_ = clamp_scroll(scroll_ - delta.y * row_height_ * 1.5f);
+        return true;
+    }
+
+    bool on_key_down(event::KeyCode key, event::Modifier) override
+    {
+        if (rows_.empty()) return false;
+        switch (key) {
+            case event::KeyCode::Down:
+                set_selected(selected_ + 1);
+                return true;
+            case event::KeyCode::Up:
+                set_selected(selected_ - 1);
+                return true;
+            case event::KeyCode::Home:
+                set_selected(0);
+                return true;
+            case event::KeyCode::End:
+                set_selected(static_cast<int>(rows_.size()) - 1);
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    void on_focus_gained() override { focused_ = true; }
+    void on_focus_lost() override { focused_ = false; }
+
+private:
+    float body_height() const { return std::max(0.0f, global_.size.y - header_height_); }
+    float content_height() const { return static_cast<float>(rows_.size()) * row_height_; }
+
+    float clamp_scroll(float value) const
+    {
+        const float max_scroll = std::max(0.0f, content_height() - body_height());
+        return std::clamp(value, 0.0f, max_scroll);
+    }
+
+    void ensure_selected_visible()
+    {
+        if (selected_ < 0) return;
+        // 还没布局（视口高度为 0）时不滚动，避免把初始 offset 推离 0。
+        if (body_height() <= 0.0f) {
+            scroll_ = 0.0f;
+            return;
+        }
+        const float top = static_cast<float>(selected_) * row_height_;
+        const float bottom = top + row_height_;
+        if (top < scroll_) scroll_ = top;
+        else if (bottom > scroll_ + body_height()) scroll_ = bottom - body_height();
+        scroll_ = clamp_scroll(scroll_);
+    }
+
+    std::vector<float> column_widths(float available_width) const
+    {
+        std::vector<float> widths;
+        widths.reserve(columns_.size());
+        float fixed = 0.0f;
+        int flex_count = 0;
+        for (const auto& column : columns_) {
+            if (column.width > 0.0f) {
+                widths.push_back(column.width);
+                fixed += column.width;
+            } else {
+                widths.push_back(0.0f);
+                ++flex_count;
+            }
+        }
+        if (flex_count > 0) {
+            const float remaining = std::max(0.0f, available_width - fixed);
+            const float share = remaining / static_cast<float>(flex_count);
+            for (auto& width : widths) {
+                if (width <= 0.0f) width = share;
+            }
+        }
+        return widths;
+    }
+
+    float text_advance(const std::string& text) const
+    {
+        const auto& t = ui_theme();
+        if (auto* atlas = font_atlas()) return atlas->measure(text, t.text_size).x;
+        return static_cast<float>(text.size()) * t.text_size * 0.5f;
+    }
+
+    void draw_cell(graphics::DrawList& list, const std::string& text,
+                   float x, float y, float width, float height,
+                   TableColumn::Align align, glm::vec4 color,
+                   float clip_left, float clip_right) const
+    {
+        auto* atlas = font_atlas();
+        if (!atlas || text.empty()) return;
+
+        const auto& t = ui_theme();
+        const float pad = t.padding;
+        const float text_w = text_advance(text);
+        const float available = std::max(0.0f, width - pad * 2.0f);
+        float text_x = x + pad;
+        switch (align) {
+            case TableColumn::Align::Center: text_x = x + (width - text_w) * 0.5f; break;
+            case TableColumn::Align::Right: text_x = x + width - pad - text_w; break;
+            case TableColumn::Align::Left: break;
+        }
+        if (text_x < x + pad) text_x = x + pad;
+        // 行高居中：用行高而不是字号。
+        const float text_y = y + std::max(0.0f, (height - atlas->line_height(t.text_size)) * 0.5f);
+
+        list.push_clip({std::max(x + pad * 0.5f, clip_left), y,
+                        std::min(available + pad, std::max(0.0f, clip_right - x)), height});
+        atlas->append_text(list, text_x, text_y, t.text_size, text, color);
+        list.pop_clip();
+    }
+
+    void draw_scrollbar(graphics::DrawList& list, float body_top, float body_h, float bar_w) const
+    {
+        if (bar_w <= 0.0f || body_h <= 0.0f) return;
+        const auto& t = ui_theme();
+        const float content = content_height();
+        const float max_scroll = std::max(0.0f, content - body_h);
+        const float track_x = global_.pos.x + global_.size.x - bar_w;
+
+        graphics::Rectangle track{track_x, body_top, bar_w, body_h, t.scrollbar_track};
+        track.append_to(list);
+
+        const float ratio = std::min(1.0f, body_h / std::max(1.0f, content));
+        const float thumb_h = std::max(t.scrollbar_min_thumb, body_h * ratio);
+        const float travel = std::max(0.0f, body_h - thumb_h);
+        const float thumb_y = body_top + (max_scroll > 0.0f ? travel * (scroll_ / max_scroll) : 0.0f);
+
+        graphics::Rectangle thumb{track_x + 1.0f, thumb_y, std::max(1.0f, bar_w - 2.0f), thumb_h,
+                                  t.scrollbar_thumb};
+        thumb.append_to(list);
+    }
+
+    int row_at(glm::vec2 pos) const
+    {
+        const float body_top = global_.pos.y + header_height_;
+        if (pos.y < body_top || pos.y > global_.pos.y + global_.size.y) return -1;
+        if (pos.x < global_.pos.x || pos.x > global_.pos.x + global_.size.x) return -1;
+        const float local_y = pos.y - body_top + scroll_;
+        const int row = static_cast<int>(std::floor(local_y / row_height_));
+        if (row < 0 || row >= static_cast<int>(rows_.size())) return -1;
+        return row;
+    }
+
+    int hovered_row(glm::vec2 pos) const { return row_at(pos); }
+
+    std::vector<TableColumn> columns_;
+    std::vector<std::vector<std::string>> rows_;
+    std::string empty_;
+    int selected_ = -1;
+    int hovered_ = -1;
+    glm::vec2 last_mouse_{-1.0f, -1.0f};
+    float row_height_ = 28.0f;
+    float header_height_ = 30.0f;
+    float scroll_ = 0.0f;
+    bool striped_ = true;
+    bool focused_ = false;
+    std::function<void(int)> on_select_;
+};
+} // namespace xel::ui

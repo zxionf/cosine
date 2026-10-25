@@ -250,3 +250,8 @@ Change: 20261025-m3-5-text-input-centering
 Context: 单行 TextInput 文字仍偏下；上一轮的居中公式里 max(pad, ...) 在行高小于控件高度时把文字压到下边
 Decision: 单行文字垂直居中改为 max(0, (height - line_height)/2)，不再用 padding 兜底；选区高度改用行高，光标在行盒内居中、高度保持字号；新增合成图集的回归测试并验证旧实现会失败
 Consequences: 单行输入框文字与光标视觉居中；含单行文字的控件应使用 (height - line_height)/2 而不是 padding 兜底
+## [51] 2026-10-25 12:41:35 UTC
+Change: 20261025-m3-5-table
+Context: M6 编辑器需要表格（资源浏览器/属性列表），M3.5 先补齐基础表格控件
+Decision: Table 采用『固定表头 + 正文裁剪 + 自绘滚动条』的单控件实现（不套 ScrollView），列宽支持固定与弹性（<=0 均分剩余宽度），选中行高亮 + hover + 斑马纹，键盘 Up/Down/Home/End 自动滚动；同时把 Rectangle 的半透明颜色改为预乘 alpha 以匹配管线混合模式
+Consequences: 表格可直接用于资源列表；半透明矩形（选区/遮罩/斑马纹/高亮）颜色恢复正常；不做列宽拖拽/排序/多选/单元格编辑/横向滚动
