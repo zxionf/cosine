@@ -20,6 +20,7 @@ int main()
     auto gallery = xel::demo::build(*root);
 
     xel::ui::UISystem ui{std::move(root)};
+    auto* root_ptr = ui.root();
     ui.tick();
 
     assert(gallery.sections.size() == 6);
@@ -62,6 +63,37 @@ int main()
     for (std::size_t i = 0; i < gallery.sections.size(); ++i) {
         assert(gallery.sections[i]->visible() == (i == 5));
     }
+
+    // 每个分区都带滚动容器：内容超出可视区时可滚动。
+    assert(gallery.sections[3]->scroll_view() != nullptr);
+    for (auto* section : gallery.sections) {
+        assert(section->scroll_view() != nullptr);
+        assert(section->scroll_view()->global_bounds().size.y > 0.0f);
+    }
+
+    gallery.show_section(3);
+    auto* containers_scroll = gallery.sections[3]->scroll_view();
+    assert(containers_scroll->content_size().y > containers_scroll->viewport_size().y);
+    const float before_scroll = containers_scroll->scroll_offset();
+    xel::event::InputEvent wheel;
+    wheel.type = xel::event::InputEvent::Type::MouseScroll;
+    wheel.mouse_pos = {containers_scroll->global_bounds().pos.x + 20.0f,
+                       containers_scroll->global_bounds().pos.y + 20.0f};
+    wheel.scroll_delta = -1.0f;
+    ui.dispatch(wheel);
+    assert(containers_scroll->scroll_offset() > before_scroll);
+
+    // Dialog：打开后作为 overlay 存在，关闭回调恢复状态。
+    gallery.show_section(4);
+    assert(gallery.dialog_host == nullptr);
+    gallery.open_dialog();
+    ui.tick();
+    assert(gallery.dialog_host != nullptr);
+    assert(root_ptr->overlays().size() >= 1);
+    assert(gallery.dialog_state->text() == "dialog: closed");
+    gallery.dialog_host->close();
+    ui.tick();
+    assert(gallery.dialog_host == nullptr);
 
     std::cout << "ui gallery tests passed\n";
     return 0;

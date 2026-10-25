@@ -1,6 +1,6 @@
 # Agent State
 
-Active Change: 20261025-m3-5-tab-view
-Phase: TabView 完成（等待验收）
+Active Change: 无
+Phase: M3.5 UI 打磨（Dialog 完成，等待下一项）
 Blocked: 无
-Next: 验收后关闭；M3.5 继续 Dialog/Modal、Menu/MenuBar、Table/TreeView
+Next: Menu/MenuBar、Table/TreeView、Tooltip 延迟与翻转、Grid/Wrap 布局

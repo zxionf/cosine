@@ -5,6 +5,7 @@
 #include "ui/color_rect.hpp"
 #include "ui/dropdown.hpp"
 #include "ui/debug_overlay.hpp"
+#include "ui/dialog.hpp"
 #include "ui/hbox.hpp"
 #include "ui/label.hpp"
 #include "ui/list.hpp"
@@ -12,6 +13,7 @@
 #include "ui/progress.hpp"
 #include "ui/radio_group.hpp"
 #include "ui/root.hpp"
+#include "ui/scroll_panel.hpp"
 #include "ui/scroll_view.hpp"
 #include "ui/slider.hpp"
 #include "ui/tab_bar.hpp"
@@ -20,6 +22,7 @@
 #include "ui/splitter.hpp"
 #include "ui/text_input.hpp"
 #include "ui/tooltip.hpp"
+#include "ui/ui_system.hpp"
 #include "ui/vbox.hpp"
 #include "xel/version.hpp"
 
@@ -66,6 +69,9 @@ struct UiGallery
     ui::Label* radio_state = nullptr;
     ui::Label* tab_state = nullptr;
     ui::Dropdown* dropdown = nullptr;
+    ui::DialogHost* dialog_host = nullptr;
+    ui::Label* dialog_state = nullptr;
+    ui::UISystem* ui_system = nullptr;
     ui::Label* dropdown_state = nullptr;
 
     ui::Widget* tip_button = nullptr;
@@ -74,6 +80,26 @@ struct UiGallery
     ui::Button* theme_button = nullptr;
     bool light_theme = false;
 
+    void open_dialog()
+    {
+        if (dialog_host) return;
+        auto dialog = std::make_unique<ui::Dialog>("Delete keyframes?", 440.0f);
+        dialog->set_message(
+            "This removes 3 keyframes from the selected track. Esc, the backdrop, or Cancel dismisses.");
+        dialog->add_action("Cancel", [this]() {
+            if (dialog_host) dialog_host->close();
+        });
+        dialog->add_action("Delete", [this]() {
+            if (dialog_state) dialog_state->set_text("dialog: deleted");
+            if (dialog_host) dialog_host->close();
+        }, true);
+
+        dialog_host = ui::show_dialog(*root, std::move(dialog), [this]() {
+            dialog_host = nullptr;
+            if (dialog_state) dialog_state->set_text("dialog: closed");
+        });
+        if (ui_system) ui_system->set_focus(dialog_host->preferred_focus());
+    }
     void toggle_theme()
     {
         light_theme = !light_theme;
@@ -83,7 +109,7 @@ struct UiGallery
         }
     }
     std::vector<ui::Button*> nav_buttons;
-    std::vector<ui::Panel*> sections;
+    std::vector<ui::ScrollPanel*> sections;
     std::vector<std::string> section_names;
 
     void show_section(std::size_t index)
@@ -123,15 +149,15 @@ struct UiGallery
 
 namespace detail
 {
-inline ui::Panel* make_section(const std::string& title)
+inline std::unique_ptr<ui::ScrollPanel> make_section(const std::string& title)
 {
-    auto panel = std::make_unique<ui::Panel>(UiGallery::kContentX, 16.0f,
-                                            UiGallery::kContentWidth, UiGallery::kContentHeight);
+    auto panel = std::make_unique<ui::ScrollPanel>(UiGallery::kContentX, 16.0f,
+                                                  UiGallery::kContentWidth, UiGallery::kContentHeight);
     panel->set_min_size({UiGallery::kContentWidth, UiGallery::kContentHeight});
     panel->set_max_size({UiGallery::kContentWidth, UiGallery::kContentHeight});
-    panel->set_cross_align(ui::Align::top_left());
+    panel->content()->set_cross_align(ui::Align::top_left());
     panel->add(std::make_unique<ui::Label>(title, 22.0f));
-    return panel.release();
+    return panel;
 }
 
 inline std::unique_ptr<ui::ScrollView> make_scroll(float width, float height)
@@ -179,7 +205,7 @@ inline UiGallery build(ui::UIRoot& root)
 
     // ---------- Overview ----------
     {
-        std::unique_ptr<ui::Panel> section{detail::make_section("Overview")};
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Overview")};
         section->add(std::make_unique<ui::Label>(
             "All controls below are retained-mode widgets: layout, events, text and clipping live in the UI layer.",
             14.0f));
@@ -200,7 +226,7 @@ inline UiGallery build(ui::UIRoot& root)
 
     // ---------- Text ----------
     {
-        std::unique_ptr<ui::Panel> section{detail::make_section("Text")};
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Text")};
         section->add(std::make_unique<ui::Label>("Text sizes and colors", 18.0f));
         section->add(std::make_unique<ui::Label>("12 px label", 12.0f));
         section->add(std::make_unique<ui::Label>("16 px label (theme default)", 16.0f));
@@ -228,7 +254,7 @@ inline UiGallery build(ui::UIRoot& root)
 
     // ---------- Inputs ----------
     {
-        std::unique_ptr<ui::Panel> section{detail::make_section("Inputs")};
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Inputs")};
         section->add(std::make_unique<ui::Label>("Buttons", 18.0f));
         auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 700.0f, 40.0f);
         auto normal = std::make_unique<ui::Button>("Enabled", [] {});
@@ -336,7 +362,7 @@ inline UiGallery build(ui::UIRoot& root)
 
     // ---------- Containers ----------
     {
-        std::unique_ptr<ui::Panel> section{detail::make_section("Containers")};
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Containers")};
         section->add(std::make_unique<ui::Label>("Splitter (drag the middle bar)", 18.0f));
         auto splitter = std::make_unique<ui::Splitter>(620.0f, 140.0f);
         splitter->set_min_size({620.0f, 140.0f});
@@ -421,7 +447,7 @@ inline UiGallery build(ui::UIRoot& root)
 
     // ---------- Overlays ----------
     {
-        std::unique_ptr<ui::Panel> section{detail::make_section("Overlays")};
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Overlays")};
         section->add(std::make_unique<ui::Label>(
             "Overlays are drawn after normal children and receive hit tests first.\n"
             "Hover the button below or the watermark in Overview to see a tooltip.",
@@ -429,6 +455,16 @@ inline UiGallery build(ui::UIRoot& root)
         auto button = std::make_unique<ui::Button>("Hover for tooltip", [] {});
         gallery.tip_button = button.get();
         section->add(std::move(button));
+        section->add(std::make_unique<ui::Label>(
+            "Dialog / Modal: centered card over a scrim, Esc or backdrop click dismisses.",
+            14.0f));
+        auto dialog_state = std::make_unique<ui::Label>("dialog: closed", 12.0f);
+        gallery.dialog_state = dialog_state.get();
+        section->add(std::make_unique<ui::Button>("Open dialog", [&gallery]() {
+            gallery.open_dialog();
+        }));
+        section->add(std::move(dialog_state));
+
         section->add(std::make_unique<ui::Label>(
             "The debug overlay (F1) is also an overlay: it shows frame time, draw calls, vertices and indices.",
             14.0f));
@@ -441,7 +477,7 @@ inline UiGallery build(ui::UIRoot& root)
 
     // ---------- Layout ----------
     {
-        std::unique_ptr<ui::Panel> section{detail::make_section("Layout")};
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Layout")};
 
         section->add(std::make_unique<ui::Label>("Vbox main align: Start / Center / End / SpaceBetween", 18.0f));
         auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 900.0f, 200.0f);
@@ -512,6 +548,7 @@ inline UiGallery build(ui::UIRoot& root)
             gallery.show_section(static_cast<std::size_t>(index));
         }
     }
+    if (std::getenv("COSINE_GALLERY_DIALOG")) gallery.open_dialog();
     return gallery;
 }
 } // namespace xel::demo

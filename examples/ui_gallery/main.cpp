@@ -23,6 +23,7 @@ int run()
 {
     xel::Application app{1200, 800, "XEL UI Gallery"};
     auto gallery = xel::demo::build(*app.uisys.root());
+    gallery.ui_system = &app.uisys;
 
     bool f1_prev = false;
     bool open_dropdown_once = std::getenv("COSINE_GALLERY_DROPDOWN") != nullptr;

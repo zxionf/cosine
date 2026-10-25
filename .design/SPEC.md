@@ -108,9 +108,8 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不修改字体图集格式与生成流程。
-- 不引入新的第三方排版库。
-- `ui_demo` 由控件演示改为「文字实验台」，gallery 仍保留全部控件演示。
+- 不做窗口内拖拽、尺寸调整、嵌套模态栈、动画过渡。
+- 不做系统级对话框（文件选择等），后续由平台层提供。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
@@ -218,3 +217,38 @@
 - 复用 `FontAtlas` 现有 1px 字形内边距（线性采样不吸边）。
 - 多行按行绘制，行高来自字体 metrics，避免叠加误差。
 - 不在本次引入 SDF/MSDF、字距微调（kerning）与 shaping。
+
+## TabView
+- 新控件 `TabView`：上方 `TabBar` + 下方内容区，只显示当前选中页面。
+- 页面以 `children_` 暴露（`children_[0]` 为标签栏，其余为页面），
+  这样命中测试、Tab 焦点遍历、布局脏标记都能复用现有机制。
+- API：
+  - `add_page(label, widget)` → 返回页面下标（0 起）
+  - `set_page(index, widget)`、`page(index)`、`page_count()`
+  - `set_selected(index)` / `selected()`（直接切换并触发 `on_change`）
+  - `set_on_change(std::function<void(int)>)`
+  - `tab_bar()` 访问底层标签栏
+  - `set_page_fill(bool)`：页面是否填满内容区（默认 true）
+- 切换语义：`TabBar::set_selected` → `TabView::apply_selection` →
+  非当前页 `set_visible(false)`，因此不可见页面不参与命中与焦点遍历。
+- 布局：标签栏按自身测量高度占顶部，剩余空间减去 padding 后给页面；
+  所有页面按同一内容矩形 arrange（切换无额外布局抖动）。
+- 绘制：自绘底部/右侧边框，内容区裁剪到自身范围。
+
+## Dialog / Modal
+- `Dialog : Panel`：标题 + 正文区（Vbox）+ 右下角操作按钮行（Hbox）。
+  - `set_message()` 便捷正文（自动换行、宽度跟随卡片）。
+  - `add()` 内容进入正文区；`add_action(label, handler, primary)` 追加按钮。
+  - `preferred_focus()` 优先主按钮，否则第一个按钮。
+  - `set_dismissable(false)` 禁止 Esc / 点击遮罩关闭。
+- `DialogHost : Widget`：全屏 overlay，绘制半透明遮罩并居中对话框。
+  - 点击卡片外 → 可关闭时 dismiss；所有点击都被吞掉，避免穿透。
+  - 滚动事件被吞掉，背景不滚动。
+  - Esc 通过按键冒泡（焦点控件 → 宿主）关闭。
+  - `close()` 从 `UIRoot::remove_overlay` 移除自身（延迟销毁），`on_close` 只回调一次。
+- `show_dialog(root, dialog, on_close)` 便捷入口，返回 `DialogHost*`。
+
+## 布局与焦点
+- 宿主按窗口尺寸铺满，卡片测量后居中，宽高被限制在窗口留 24px 边距内。
+- 卡片 `cross_align = top_left`；按钮行 `h_stretch + main_align End`，标题左对齐、按钮右对齐。
+- 打开时建议 `ui.set_focus(host->preferred_focus())`；无按钮时宿主自身可聚焦，保证 Esc 有效。

@@ -220,3 +220,8 @@ Change: 20261025-m3-5-tab-view
 Context: M3.5 需要页面容器；已有 TabBar 只有标签没有内容区
 Decision: TabView 内部把 TabBar 作为 children_[0]、页面依次排在后面，children() 直接暴露内部向量以复用命中/焦点/布局机制；切换页面用 set_visible(false) 隐藏非当前页；页面默认填满内容区（set_page_fill 可关）；所有页面都在同一内容矩形内 arrange，避免切换时重新布局
 Consequences: 命中测试与 Tab 遍历天然只覆盖当前页；TabView 的 children 里含标签栏，外部按下标访问页面需用 page(i)；不做拖拽重排/关闭按钮/懒加载
+## [45] 2026-10-25 11:01:50 UTC
+Change: 20261025-m3-5-dialog
+Context: M3.5 需要模态确认框，Dropdown 已有 scrim/延迟移除经验，但没有可复用的对话框
+Decision: Dialog 作为 Panel 卡片（标题 + 正文 Vbox + 按钮 Hbox），DialogHost 作为全屏 overlay 负责遮罩、居中、吞点击与 Esc；关闭走 root.remove_overlay 延迟销毁并保证 on_close 只触发一次；宿主可聚焦以便无按钮对话框也能用 Esc 关闭；show_dialog 便捷函数一次完成创建与挂载
+Consequences: 模态交互与 overlay 生命周期复用现有机制；点击遮罩默认关闭（可关）；不做模态栈/动画/系统对话框
