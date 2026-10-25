@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 打包 Linux 可执行目录：
 #   dist/cosine-<version>-linux-<arch>/
-#     ui_demo  assets/  run.sh  VERSION  README.md
+#     ui_demo  ui_gallery  assets/  run.sh  VERSION  README.md
 # 以及同名 .tar.gz。
 #
 # 环境变量：
@@ -28,7 +28,7 @@ done
 
 echo "configuring ${build} (Release)"
 cmake -S "${root}" -B "${build}" -G Ninja -DCMAKE_BUILD_TYPE=Release "${deps[@]}"
-cmake --build "${build}" -j"${jobs}" --target ui_demo
+cmake --build "${build}" -j"${jobs}" --target ui_demo ui_gallery
 
 version="$(sed -n 's/^CMAKE_PROJECT_VERSION:STATIC=//p' "${build}/CMakeCache.txt" | head -n1)"
 if [ -z "${version}" ]; then
@@ -44,6 +44,7 @@ rm -rf "${stage}"
 mkdir -p "${stage}"
 
 install -m 0755 "${build}/examples/ui_demo" "${stage}/ui_demo"
+install -m 0755 "${build}/examples/ui_gallery" "${stage}/ui_gallery"
 cp -a "${build}/src/assets" "${stage}/assets"
 cp "${root}/README.md" "${stage}/README.md"
 printf '%s\n' "${version}" > "${stage}/VERSION"
@@ -57,11 +58,15 @@ RUN
 chmod 0755 "${stage}/run.sh"
 
 if [ "${COSINE_SKIP_STRIP:-0}" != "1" ]; then
-    strip --strip-unneeded "${stage}/ui_demo" 2>/dev/null || strip "${stage}/ui_demo" || true
+    strip --strip-unneeded "${stage}/ui_demo" "${stage}/ui_gallery" 2>/dev/null || true
 fi
 
 "${stage}/ui_demo" --version >&2 || {
-    echo "packaged binary failed to run" >&2
+    echo "packaged ui_demo failed to run" >&2
+    exit 1
+}
+"${stage}/ui_gallery" --version >&2 || {
+    echo "packaged ui_gallery failed to run" >&2
     exit 1
 }
 

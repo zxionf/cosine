@@ -24,6 +24,7 @@ cosine 0.3.0
 ```text
 dist/cosine-<version>-linux-<arch>/
 ├── ui_demo
+├── ui_gallery
 ├── assets/
 │   ├── fonts/default8.png
 │   ├── fonts/gb2312_level1.txt
@@ -44,7 +45,7 @@ dist/cosine-<version>-linux-<arch>.tar.gz
 | `COSINE_JOBS` | 并行度（默认 2） |
 | `COSINE_SKIP_STRIP=1` | 跳过 `strip` |
 
-脚本会用 Release 构建、`strip` 二进制，并在打包后执行 `--version` 做一次冒烟。
+脚本会用 Release 构建、`strip` 二进制，并在打包后对两个可执行文件执行 `--version` 做一次冒烟。
 
 ## Windows
 
@@ -57,6 +58,7 @@ dist/cosine-<version>-linux-<arch>.tar.gz
 ```text
 dist\cosine-<version>-windows-x64\
 ├── ui_demo.exe
+├── ui_gallery.exe
 ├── assets\
 ├── run.cmd
 ├── VERSION
@@ -75,7 +77,8 @@ MSVC 不提供 `strip`；Release 产物已不含调试信息。
 2. 可执行文件旁的 `assets/`
 3. 构建期注入的 `COSINE_ASSET_DIR`
 
-因此打包目录必须保持 `ui_demo` 与 `assets/` 同级；从任意 cwd 启动都能找到资源。
+因此打包目录必须保持可执行文件与 `assets/` 同级；从任意 cwd 启动都能找到资源。
+包内提供两个可执行文件：`ui_demo`（最小面板）与 `ui_gallery`（全部控件展示）。
 
 ## 字体策略
 

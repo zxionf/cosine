@@ -11,7 +11,7 @@ $Build = Join-Path $Root $BuildDir
 $Out = Join-Path $Root $OutDir
 
 cmake -S $Root -B $Build -DCMAKE_BUILD_TYPE=Release
-cmake --build $Build --config Release --parallel $Jobs --target ui_demo
+cmake --build $Build --config Release --parallel $Jobs --target ui_demo ui_gallery
 
 $cache = Join-Path $Build "CMakeCache.txt"
 $version = (Select-String -Path $cache -Pattern '^CMAKE_PROJECT_VERSION:\w+=(.+)$').Matches.Groups[1].Value
@@ -35,6 +35,16 @@ if (-not $exe) {
     throw "ui_demo.exe not found under $Build/examples"
 }
 
+$galleryCandidates = @(
+    (Join-Path $Build "examples/Release/ui_gallery.exe"),
+    (Join-Path $Build "examples/ui_gallery.exe"),
+    (Join-Path $Build "examples/Debug/ui_gallery.exe")
+)
+$gallery = $galleryCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $gallery) {
+    throw "ui_gallery.exe not found under $Build/examples"
+}
+Copy-Item $gallery (Join-Path $stage "ui_gallery.exe")
 Copy-Item $exe (Join-Path $stage "ui_demo.exe")
 Copy-Item -Recurse (Join-Path $Build "src/assets") (Join-Path $stage "assets")
 Copy-Item (Join-Path $Root "README.md") (Join-Path $stage "README.md")
@@ -51,7 +61,8 @@ if (-not $SkipStrip) {
     Write-Host "skip strip: MSVC binaries are not stripped"
 }
 
-& (Join-Path $stage "ui_demo.exe") --version
+& (Join-Path $stage "ui_demo.exe") --version (Join-Path $stage "ui_demo.exe") --version
+& (Join-Path $stage "ui_demo.exe") --version (Join-Path $stage "ui_gallery.exe") --version
 
 $archive = Join-Path $Out "$name.zip"
 if (Test-Path $archive) { Remove-Item -Force $archive }

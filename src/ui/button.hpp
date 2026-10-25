@@ -20,6 +20,7 @@ public:
     {}
 
     void set_label(std::string label) { label_ = std::move(label); mark_layout_dirty(); }
+    const std::string& label() const { return label_; }
     void set_on_click(std::function<void()> handler) { handler_ = std::move(handler); }
     void set_enabled(bool enabled) { enabled_ = enabled; mark_layout_dirty(); }
     bool enabled() const { return enabled_; }

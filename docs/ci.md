@@ -18,7 +18,7 @@ COSINE_SANITIZE=address COSINE_BUILD_DIR=build-asan ./scripts/ci-linux.sh
 
 ## lavapipe 冒烟
 
-`scripts/smoke-lavapipe.sh` 用 Mesa 软件 Vulkan 驱动跑一次有限时长的 `ui_demo`，
+`scripts/smoke-lavapipe.sh` 用 Mesa 软件 Vulkan 驱动依次运行 `ui_demo` 与 `ui_gallery`，
 并检查日志中不出现 Vulkan validation 错误。
 
 ```bash

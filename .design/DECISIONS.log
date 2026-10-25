@@ -170,3 +170,8 @@ Change: 20261025-m3-g-docs-release
 Context: M3 收口需要文档入口与发布流程，但根 README 由作者维护、不能由 agent 修改
 Decision: 新增 docs/index.md（文档地图）、docs/dependencies.md（版本锁定与升级流程）、docs/release_notes_template.md（含发布检查清单）；README 以 docs/readme_draft.md 形式提供建议稿，不直接改动根 README；project_assessment 基线更新到 0.3.0 并同步 M3 状态与评分
 Consequences: 文档有唯一入口且与实际命令一致；README 采用与否由作者决定；发布说明模板固定了 ctest/ASAN/冒烟/打包的填写项
+## [35] 2026-10-25 06:28:19 UTC
+Change: 20261025-m3-g-docs-release
+Context: 用户要求在 M4 之前插入 UI 打磨阶段，并先用新 demo 展示全部现有 UI 特性
+Decision: 在阶段计划插入 M3.5 UI 打磨与组件扩充（组件、样式、交互、布局、轻量动画、gallery 验收）；新增 examples/ui_gallery 以左侧导航 + 分区内容展示全部现有控件（Overview/Text/Inputs/Containers/Overlays/Layout）；导航按钮切换分区可见性，tooltip 使用 overlay 并跟随光标，COSINE_GALLERY_SECTION 可指定初始分区便于验证；打包与 lavapipe 冒烟脚本覆盖 ui_gallery；新增 test_ui_gallery 与 Button::label() 访问器
+Consequences: UI 打磨有了固定验收对象 ui_gallery；M4-M8 编号不变；打包体积增至 1.8MB tar.gz；主题切换等样式能力仍待后续 M3.5 子项

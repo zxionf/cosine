@@ -38,6 +38,7 @@ src/
 └── xel_application.* 窗口 + Vulkan + UI 的装配与事件桥接
 
 examples/ui_demo/     MVP 验收 demo（面板、控件、滚动、CJK、调试面板）
+examples/ui_gallery/  UI 打磨验收 demo（分区展示全部控件与交互）
 test/                 CTest 用例（布局/事件/控件/文本/渲染/打包相关）
 interpreter/          XEL 解释器（与 UI 解耦，后续作为可嵌入库）
 scripts/              CI、打包、冒烟脚本
@@ -49,8 +50,11 @@ scripts/              CI、打包、冒烟脚本
 # 构建 + 测试
 ./scripts/ci-linux.sh
 
-# 运行 demo
+# 运行 demo（最小面板）
 ./build-ci/examples/ui_demo
+
+# 运行 UI gallery（全部控件分区展示，F1 开关调试面板）
+./build-ci/examples/ui_gallery
 
 # 打包
 ./scripts/package-linux.sh
@@ -61,5 +65,6 @@ scripts/              CI、打包、冒烟脚本
 ## 当前状态（0.3.0）
 
 - GUI MVP：控件集、事件与焦点、布局、UTF-8+CJK 文本、DrawList 裁剪与 overlay、调试面板。
+- UI gallery：`examples/ui_gallery` 分区展示全部控件与交互（M3.5 起点）。
 - 工程化：静态库分层、CMake 去重、资源解析错误、sanitizer、lavapipe 冒烟、打包。
 - 未完成：Windows 实测、CI 首次远端运行、安装器；动画内核与编辑器属于 M4–M6。

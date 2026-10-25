@@ -3,17 +3,12 @@ set -euo pipefail
 
 # 用 lavapipe（Mesa 软件 Vulkan）做一次有限时长的渲染冒烟：
 # - 需要可用的 ICD 与显示环境（Wayland/X11）；缺失时 skip。
-# - 运行 ui_demo 固定秒数，检查日志不含 validation error。
+# - 依次运行 examples/ 下的 demo，检查日志不含 validation error。
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build="${COSINE_BUILD_DIR:-${root}/build-ci}"
-demo="${build}/examples/ui_demo"
 seconds="${COSINE_SMOKE_SECONDS:-10}"
-
-if [ ! -x "${demo}" ]; then
-    echo "skip: ${demo} not built"
-    exit 0
-fi
+demos=(ui_demo ui_gallery)
 
 if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ]; then
     echo "skip: no WAYLAND_DISPLAY or DISPLAY"
@@ -52,34 +47,51 @@ if [ -z "${icd}" ]; then
     exit 0
 fi
 
-log="$(mktemp)"
-trap 'rm -f "${log}"' EXIT
-
-echo "running ${demo} for ${seconds}s with lavapipe (${icd})"
-set +e
-(
-    cd "$(dirname "${demo}")"
-    if [ -n "${lib_dir}" ]; then
-        LD_LIBRARY_PATH="${lib_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
-            VK_ICD_FILENAMES="${icd}" timeout "${seconds}" ./ui_demo
-    else
-        VK_ICD_FILENAMES="${icd}" timeout "${seconds}" ./ui_demo
+ran=0
+for demo in "${demos[@]}"; do
+    binary="${build}/examples/${demo}"
+    if [ ! -x "${binary}" ]; then
+        echo "skip: ${binary} not built"
+        continue
     fi
-) > "${log}" 2>&1
-status=$?
-set -e
 
-# timeout 结束进程是预期的正常路径。
-if [ "${status}" -ne 0 ] && [ "${status}" -ne 124 ]; then
-    echo "fail: ui_demo exited with ${status}"
-    cat "${log}"
-    exit 1
+    log="$(mktemp)"
+    echo "running ${binary} for ${seconds}s with lavapipe (${icd})"
+    set +e
+    (
+        cd "$(dirname "${binary}")"
+        if [ -n "${lib_dir}" ]; then
+            LD_LIBRARY_PATH="${lib_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
+                VK_ICD_FILENAMES="${icd}" timeout "${seconds}" "./${demo}"
+        else
+            VK_ICD_FILENAMES="${icd}" timeout "${seconds}" "./${demo}"
+        fi
+    ) > "${log}" 2>&1
+    status=$?
+    set -e
+
+    # timeout 结束进程是预期的正常路径。
+    if [ "${status}" -ne 0 ] && [ "${status}" -ne 124 ]; then
+        echo "fail: ${demo} exited with ${status}"
+        cat "${log}"
+        rm -f "${log}"
+        exit 1
+    fi
+
+    if grep -Eiq 'VUID-|validation (error|warning)|Validation Error' "${log}"; then
+        echo "fail: ${demo} produced validation messages"
+        cat "${log}"
+        rm -f "${log}"
+        exit 1
+    fi
+
+    rm -f "${log}"
+    ran=$((ran + 1))
+done
+
+if [ "${ran}" -eq 0 ]; then
+    echo "skip: no demo binaries built under ${build}/examples"
+    exit 0
 fi
 
-if grep -Eiq 'VUID-|validation (error|warning)|Validation Error' "${log}"; then
-    echo "fail: validation messages found"
-    cat "${log}"
-    exit 1
-fi
-
-echo "lavapipe smoke passed"
+echo "lavapipe smoke passed (${ran} demo(s))"
