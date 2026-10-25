@@ -1,8 +1,10 @@
 #include "ui_demo.hpp"
+#include "xel/version.hpp"
 #include "xel_application.hpp"
 
 #include <exception>
 #include <iostream>
+#include <string_view>
 
 namespace
 {
@@ -37,8 +39,15 @@ int run()
 }
 } // namespace
 
-int main()
+int main(int argc, char** argv)
 {
+    for (int i = 1; i < argc; ++i) {
+        if (std::string_view{argv[i]} == "--version") {
+            std::cout << xel::kProjectName << " " << xel::version_string() << '\n';
+            return 0;
+        }
+    }
+
     try {
         return run();
     } catch (const std::exception& error) {

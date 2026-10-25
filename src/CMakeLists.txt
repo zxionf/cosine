@@ -75,6 +75,7 @@ add_library(cosine_app STATIC
 )
 target_include_directories(cosine_app PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${COSINE_GENERATED_DIR}
 )
 target_link_libraries(cosine_app PUBLIC
     cosine_ui

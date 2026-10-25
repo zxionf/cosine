@@ -1,0 +1,11 @@
+#pragma once
+
+#include <string_view>
+
+namespace xel
+{
+inline constexpr const char* kProjectName = "cosine";
+inline constexpr const char* kVersion = "@PROJECT_VERSION@";
+
+inline std::string_view version_string() { return kVersion; }
+} // namespace xel

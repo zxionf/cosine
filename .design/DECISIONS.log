@@ -160,3 +160,8 @@ Change: 20261025-m3-e-ci-quality
 Context: M3-E 需要可复现的质量门：sanitizer、lavapipe 冒烟与 Linux/Windows CI，而此前只有单脚本 Debug 构建
 Decision: 顶层新增 COSINE_SANITIZE 与 cosine_apply_sanitizers（仅作用于自有 target）；ci-linux.sh 支持 COSINE_BUILD_DIR/COSINE_SANITIZE；新增 smoke-lavapipe.sh（无 ICD/显示时 skip）；新增 GitHub Actions Linux(GCC+ASAN+lavapipe) 与 Windows(MSVC) 矩阵；顺带修复 interpreter Environment 泄漏和 token 测试泄漏
 Consequences: ASAN 13/13 与 lavapipe 冒烟本地通过；Windows job 需首次远端运行验证；sanitizer 不编译第三方依赖
+## [33] 2026-10-25 05:45:48 UTC
+Change: 20261025-m3-f-packaging
+Context: M3-F 需要可交付的发布包，且版本号、资源布局与字体策略必须在文档里说清楚
+Decision: project(cosvideo VERSION 0.3.0) 作为唯一版本源并生成 xel/version.hpp；ui_demo 支持 --version；scripts/package-linux.sh 用 Release+Ninja 构建、strip、组装 ui_demo+assets+run.sh+VERSION+README 并出 tar.gz；scripts/package-windows.ps1 出同布局 zip；assets 与可执行文件同级以便 asset_path 解析；不内置 CJK TTF
+Consequences: Linux 包 2.0MB、tar.gz 876KB，从任意 cwd 可运行；版本升级只需改 CMake；Windows 打包脚本待真实环境验证；README 原样复制不改内容

@@ -42,7 +42,7 @@
 ### P1：可维护性与可交付性
 
 - **R07（部分解决）全局可变状态**：UIContext 已接管 UI 主题/字体；`Line`/`Rectangle`/`Triangle` 的 active atlas 仍待 graphics context。
-- **R08（部分解决）测试偏薄**：13 个测试 + ASAN + lavapipe 冒烟；缺 Windows 实测。
+- **R08（部分解决）测试偏薄**：14 个测试 + ASAN + lavapipe 冒烟；缺 Windows 实测。
 - **R09（部分解决）Windows 未实测**：新增 GitHub Actions Windows job，待首次运行确认。
 - **R10（已解决）性能无度量**：FrameStats + DebugOverlay 已提供 frame time/FPS/draw call/顶点/索引。
 - **R11（已解决）UI 耦合 GLFW**：KeyCode/Modifier 抽象；GLFW 映射只在 Application。
@@ -55,7 +55,7 @@
 - **R15 无 text shaping**：BiDi、复杂字形、字体 fallback、IME。
 - **R16 无 draw list / z-order / 图层**：弹窗、Tooltip、浮层、离屏合成难做。
 - **R17 无序列化/项目模型**：编辑器保存/加载/撤销无法开始。
-- **R18 无安装/打包**：离“可交付 GUI MVP”还有距离。
+- **R18（部分解决）无安装/打包**：Linux tar.gz 打包脚本可用；Windows zip 待实测；无安装器/签名。
 
 ## 4. 改进顺序
 

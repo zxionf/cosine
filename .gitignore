@@ -13,6 +13,8 @@
 /build-ci
 /build-asan
 /build-local
+/dist
+/build-release
 build-ci/
 /out
 examples/*.exe

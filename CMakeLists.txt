@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 4.0.0)
-project(cosvideo)
+project(cosvideo VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(COSINE_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated" CACHE INTERNAL "Generated headers")
+file(MAKE_DIRECTORY "${COSINE_GENERATED_DIR}")
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp.in"
+               "${COSINE_GENERATED_DIR}/xel/version.hpp" @ONLY)
 # 项目只在 Vulkan 头（import vulkan_hpp;）使用 C++ modules。
 # 默认关闭全局 module scan，避免普通测试/图形目标被 -fmodules-ts 和 CXX_SCAN 额外消耗内存；
 # 需要 modules 的 target 在 src/CMakeLists.txt 里单独打开 CXX_SCAN_FOR_MODULES。
