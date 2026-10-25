@@ -5,6 +5,7 @@
 #include "rect.hpp"
 #include "align.hpp"
 #include "uicontext.hpp"
+#include "../events/key_code.hpp"
 
 #include <limits>
 #include <memory>
@@ -151,8 +152,8 @@ public:
     virtual bool on_mouse_up(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
     virtual bool on_click(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
     virtual bool on_scroll(glm::vec2 pos, glm::vec2 delta) { (void)pos; (void)delta; return false; }
-    virtual bool on_key_down(int key, int mods) { (void)key; (void)mods; return false; }
-    virtual bool on_key_up(int key, int mods) { (void)key; (void)mods; return false; }
+    virtual bool on_key_down(event::KeyCode key, event::Modifier mods) { (void)key; (void)mods; return false; }
+    virtual bool on_key_up(event::KeyCode key, event::Modifier mods) { (void)key; (void)mods; return false; }
     virtual bool on_char(char32_t codepoint) { (void)codepoint; return false; }
     virtual void on_focus_gained() {}
     virtual void on_focus_lost() {}

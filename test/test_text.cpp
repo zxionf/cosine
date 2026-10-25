@@ -44,10 +44,10 @@ void test_text_input_codepoints()
     input.on_char(U'文');
     assert(input.text() == "中文");
 
-    input.on_key_down(GLFW_KEY_BACKSPACE, 0);
+    input.on_key_down(xel::event::KeyCode::Backspace, xel::event::Modifier::None);
     assert(input.text() == "中");
 
-    input.on_key_down(GLFW_KEY_LEFT, 0);
+    input.on_key_down(xel::event::KeyCode::Left, xel::event::Modifier::None);
     input.on_char(U'A');
     assert(input.text() == "A中");
 }

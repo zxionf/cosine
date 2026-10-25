@@ -140,3 +140,8 @@ Change: 20261025-m3-a-uicontext
 Context: UI 控件直接读取全局 theme() 与 active_font_atlas()，多窗口/headless/测试无法独立配置字体与主题
 Decision: 新增 UIContext（Theme + FontAtlas*）由 UIRoot 拥有；Widget 通过 parent 链解析 context，set_context 递归传播；UI 控件统一使用 ui_theme()/font_atlas()；Application 把 Renderer 字体绑定到 root context；无 context 时保留全局 fallback
 Consequences: UI 树可按窗口隔离主题/字体；现有 standalone 测试与全局路径继续工作；Line/Rectangle/Triangle 的 active atlas 依赖留到后续 graphics context 处理
+## [29] 2026-10-25 04:23:31 UTC
+Change: 20261025-m3-b-input-boundaries
+Context: UI 控件直接包含 GLFW 头并使用 GLFW 键码/修饰键，UI 库无法脱离窗口后端复用
+Decision: 新增 events::KeyCode/Modifier；InputEvent 与 Widget/控件签名改用类型化键码；GLFW→KeyCode 映射仅保留在 xel_application.cpp；UI 头文件移除 GLFW/backend Window 依赖，UISystem 对 Window 前向声明；删除 tester.hpp
+Consequences: UI 层不再依赖 GLFW 键码；后续可接 Windows/其他输入后端；Application 需维护键码映射表

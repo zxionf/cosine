@@ -41,8 +41,8 @@ public:
     bool on_mouse_up(glm::vec2, int) override { ++up; return consume_up; }
     bool on_click(glm::vec2, int) override { ++click; return false; }
     bool on_mouse_move(glm::vec2) override { ++move; return false; }
-    bool on_key_down(int, int) override { ++key_down; return false; }
-    bool on_key_up(int, int) override { ++key_up; return false; }
+    bool on_key_down(xel::event::KeyCode, xel::event::Modifier) override { ++key_down; return false; }
+    bool on_key_up(xel::event::KeyCode, xel::event::Modifier) override { ++key_up; return false; }
     bool on_char(char32_t) override { ++chars; return false; }
     void on_focus_gained() override { ++focus_gained; }
     void on_focus_lost() override { ++focus_lost; }
@@ -211,13 +211,13 @@ int main()
 
         xel::event::InputEvent key;
         key.type = xel::event::InputEvent::Type::KeyDown;
-        key.key = 65;
+        key.key = xel::event::KeyCode::A;
         f.ui.dispatch(key);
         assert(f.tree.a->key_down == 1);
 
         xel::event::InputEvent tab;
         tab.type = xel::event::InputEvent::Type::KeyDown;
-        tab.key = GLFW_KEY_TAB;
+        tab.key = xel::event::KeyCode::Tab;
         f.ui.dispatch(tab);
         assert(f.ui.focused() == f.tree.b);
 

@@ -25,7 +25,7 @@ xel::event::InputEvent mouse(xel::event::InputEvent::Type type, glm::vec2 pos)
     return event;
 }
 
-xel::event::InputEvent key(int code, int mods = 0)
+xel::event::InputEvent key(xel::event::KeyCode code, xel::event::Modifier mods = xel::event::Modifier::None)
 {
     xel::event::InputEvent event;
     event.type = xel::event::InputEvent::Type::KeyDown;
@@ -89,7 +89,7 @@ int main()
     assert(ui.focused() == button_ptr);
 
     // Button keyboard activation
-    ui.dispatch(key(GLFW_KEY_ENTER));
+    ui.dispatch(key(xel::event::KeyCode::Enter));
     assert(clicks == 2);
 
     // Checkbox click
@@ -107,25 +107,25 @@ int main()
 
     // Slider keyboard
     const float before = slider_ptr->value();
-    ui.dispatch(key(GLFW_KEY_RIGHT));
+    ui.dispatch(key(xel::event::KeyCode::Right));
     assert(slider_ptr->value() > before);
 
     // Tab：slider -> text input
-    ui.dispatch(key(GLFW_KEY_TAB));
+    ui.dispatch(key(xel::event::KeyCode::Tab));
     assert(ui.focused() == text_input_ptr);
 
     ui.dispatch(char_input(U'A'));
     ui.dispatch(char_input(U'B'));
     assert(text_input_ptr->text() == "AB");
-    ui.dispatch(key(GLFW_KEY_BACKSPACE));
+    ui.dispatch(key(xel::event::KeyCode::Backspace));
     assert(text_input_ptr->text() == "A");
 
-    ui.dispatch(key(GLFW_KEY_A, GLFW_MOD_CONTROL));
+    ui.dispatch(key(xel::event::KeyCode::A, xel::event::Modifier::Control));
     ui.dispatch(char_input(U'C'));
     assert(text_input_ptr->text() == "C");
 
     // Tab：text input -> button（循环）
-    ui.dispatch(key(GLFW_KEY_TAB));
+    ui.dispatch(key(xel::event::KeyCode::Tab));
     assert(ui.focused() == button_ptr);
 
     // List

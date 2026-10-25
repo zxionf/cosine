@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include "key_code.hpp"
 
 namespace xel::event
 {
@@ -24,8 +25,8 @@ struct InputEvent
     float scroll_delta = 0.0f;
 
     // keyboard
-    int      key = 0;
-    int      mods = 0;
+    KeyCode  key = KeyCode::Unknown;
+    Modifier mods = Modifier::None;
     char32_t codepoint = 0;
 
     bool handled = false;

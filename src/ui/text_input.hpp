@@ -12,7 +12,6 @@
 #include <limits>
 #include <string>
 
-#include <GLFW/glfw3.h>
 
 namespace xel::ui
 {
@@ -157,21 +156,21 @@ public:
         return true;
     }
 
-    bool on_key_down(int key, int mods) override
+    bool on_key_down(event::KeyCode key, event::Modifier mods) override
     {
         if (!enabled_) return false;
 
-        const bool shift = (mods & GLFW_MOD_SHIFT) != 0;
-        const bool ctrl = (mods & GLFW_MOD_CONTROL) != 0;
+        const bool shift = event::has_modifier(mods, event::Modifier::Shift);
+        const bool ctrl = event::has_modifier(mods, event::Modifier::Control);
 
-        if (ctrl && key == GLFW_KEY_A) {
+        if (ctrl && key == event::KeyCode::A) {
             anchor_ = 0;
             cursor_ = text_.size();
             return true;
         }
 
         switch (key) {
-            case GLFW_KEY_BACKSPACE:
+            case event::KeyCode::Backspace:
 
         if (cursor_ != anchor_) {
                     erase_selection();
@@ -183,7 +182,7 @@ public:
                     notify();
                 }
                 return true;
-            case GLFW_KEY_DELETE:
+            case event::KeyCode::Delete:
 
         if (cursor_ != anchor_) {
                     erase_selection();
@@ -193,19 +192,19 @@ public:
                     notify();
                 }
                 return true;
-            case GLFW_KEY_LEFT:
+            case event::KeyCode::Left:
                 cursor_ = graphics::utf8_prev(text_, cursor_);
                 if (!shift) anchor_ = cursor_;
                 return true;
-            case GLFW_KEY_RIGHT:
+            case event::KeyCode::Right:
                 cursor_ = graphics::utf8_next(text_, cursor_);
                 if (!shift) anchor_ = cursor_;
                 return true;
-            case GLFW_KEY_HOME:
+            case event::KeyCode::Home:
                 cursor_ = 0;
                 if (!shift) anchor_ = cursor_;
                 return true;
-            case GLFW_KEY_END:
+            case event::KeyCode::End:
                 cursor_ = text_.size();
                 if (!shift) anchor_ = cursor_;
                 return true;

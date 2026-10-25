@@ -2,7 +2,8 @@
 
 #include "root.hpp"
 #include "../events/event.hpp"
-#include "../backend/window.hpp"
+
+namespace xel::backend { class Window; }
 
 #include <memory>
 #include <vector>

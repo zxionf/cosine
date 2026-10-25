@@ -22,11 +22,13 @@ add_library(cosine_ui STATIC
 target_include_directories(cosine_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_link_libraries(cosine_ui PUBLIC
-    cosine_text
-    glfw
-    Vulkan::Vulkan
-    glm::glm
+target_link_libraries(cosine_ui
+    PUBLIC
+        cosine_text
+        glm::glm
+    PRIVATE
+        glfw
+        Vulkan::Vulkan
 )
 
 if(MSVC)

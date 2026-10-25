@@ -1,4 +1,5 @@
 #include "ui_system.hpp"
+#include "../backend/window.hpp"
 
 #include <algorithm>
 
@@ -228,8 +229,8 @@ void UISystem::dispatch_mouse_scroll(const event::InputEvent& event)
 
 void UISystem::dispatch_key(const event::InputEvent& event)
 {
-    if (event.type == event::InputEvent::Type::KeyDown && event.key == GLFW_KEY_TAB) {
-        focus_next((event.mods & GLFW_MOD_SHIFT) != 0);
+    if (event.type == event::InputEvent::Type::KeyDown && event.key == event::KeyCode::Tab) {
+        focus_next(event::has_modifier(event.mods, event::Modifier::Shift));
         return;
     }
     if (!focused_) return;

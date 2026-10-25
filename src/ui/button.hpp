@@ -9,7 +9,6 @@
 #include <functional>
 #include <string>
 
-#include <GLFW/glfw3.h>
 
 namespace xel::ui
 {
@@ -99,9 +98,9 @@ public:
         if (handler_) handler_();
         return true;
     }
-    bool on_key_down(int key, int) override
+    bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (enabled_ && (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER || key == GLFW_KEY_SPACE)) {
+        if (enabled_ && (key == event::KeyCode::Enter || key == event::KeyCode::KeypadEnter || key == event::KeyCode::Space)) {
             if (handler_) handler_();
             return true;
         }

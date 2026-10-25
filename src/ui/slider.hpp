@@ -8,7 +8,6 @@
 #include <cmath>
 #include <functional>
 
-#include <GLFW/glfw3.h>
 
 namespace xel::ui
 {
@@ -119,27 +118,27 @@ public:
         dragging_ = false;
         return true;
     }
-    bool on_key_down(int key, int) override
+    bool on_key_down(event::KeyCode key, event::Modifier) override
     {
         if (!enabled_) return false;
         const float range = max_value_ - min_value_;
         const float delta = step_ > 0.0f ? step_ : range * 0.01f;
-        if (key == GLFW_KEY_LEFT || key == GLFW_KEY_DOWN) {
+        if (key == event::KeyCode::Left || key == event::KeyCode::Down) {
             set_value(value_ - delta);
             notify();
             return true;
         }
-        if (key == GLFW_KEY_RIGHT || key == GLFW_KEY_UP) {
+        if (key == event::KeyCode::Right || key == event::KeyCode::Up) {
             set_value(value_ + delta);
             notify();
             return true;
         }
-        if (key == GLFW_KEY_HOME) {
+        if (key == event::KeyCode::Home) {
             set_value(min_value_);
             notify();
             return true;
         }
-        if (key == GLFW_KEY_END) {
+        if (key == event::KeyCode::End) {
             set_value(max_value_);
             notify();
             return true;

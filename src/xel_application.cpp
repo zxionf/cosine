@@ -1,6 +1,40 @@
 #include "xel_application.hpp"
 #include "events/event.hpp"
 
+
+namespace
+{
+xel::event::KeyCode map_key(int key)
+{
+    switch (key) {
+        case GLFW_KEY_TAB:        return xel::event::KeyCode::Tab;
+        case GLFW_KEY_ENTER:      return xel::event::KeyCode::Enter;
+        case GLFW_KEY_KP_ENTER:   return xel::event::KeyCode::KeypadEnter;
+        case GLFW_KEY_SPACE:      return xel::event::KeyCode::Space;
+        case GLFW_KEY_BACKSPACE:  return xel::event::KeyCode::Backspace;
+        case GLFW_KEY_DELETE:     return xel::event::KeyCode::Delete;
+        case GLFW_KEY_LEFT:       return xel::event::KeyCode::Left;
+        case GLFW_KEY_RIGHT:      return xel::event::KeyCode::Right;
+        case GLFW_KEY_UP:         return xel::event::KeyCode::Up;
+        case GLFW_KEY_DOWN:       return xel::event::KeyCode::Down;
+        case GLFW_KEY_HOME:       return xel::event::KeyCode::Home;
+        case GLFW_KEY_END:        return xel::event::KeyCode::End;
+        case GLFW_KEY_A:          return xel::event::KeyCode::A;
+        default:                  return xel::event::KeyCode::Unknown;
+    }
+}
+
+xel::event::Modifier map_mods(int mods)
+{
+    auto result = xel::event::Modifier::None;
+    if ((mods & GLFW_MOD_SHIFT) != 0)   result = result | xel::event::Modifier::Shift;
+    if ((mods & GLFW_MOD_CONTROL) != 0) result = result | xel::event::Modifier::Control;
+    if ((mods & GLFW_MOD_ALT) != 0)     result = result | xel::event::Modifier::Alt;
+    if ((mods & GLFW_MOD_SUPER) != 0)   result = result | xel::event::Modifier::Super;
+    return result;
+}
+} // namespace
+
 namespace
 {
 glm::vec2 cursor_to_framebuffer(xel::backend::Window& window, double x, double y)
@@ -64,8 +98,8 @@ void Application::key_callback(GLFWwindow* window, int key, int scancode, int ac
     event.type = action == GLFW_PRESS
         ? event::InputEvent::Type::KeyDown
         : event::InputEvent::Type::KeyUp;
-    event.key = key;
-    event.mods = mods;
+    event.key = map_key(key);
+    event.mods = map_mods(mods);
     app->uisys.dispatch(event);
 }
 
