@@ -108,8 +108,7 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不改变菜单位置策略（仍在标题下方，不做边界翻转）。
-- 不改菜单项字号/间距，仅修正垂直居中基准。
+- 不引入动画过渡（尺寸变化是瞬时的）。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
@@ -129,9 +128,10 @@
 - `toggle()` 控制显示；ui_demo 用 F1 切换，`COSINE_DEBUG_OVERLAY=1` 可直接启动显示。
 
 ## 测试与边界
-- `test_ui_menu_bar` 新增：
-  - 悬停切换后点击首行触发的是新菜单的项（Edit > Undo，而不是 File > New）
-  - 弹层高度 = 行高之和 + `padding * 2`（上下对称）
+`test_ui_menu_bar` 新增：
+
+- File（3 行 + 分隔线 = 115px）→ 悬停切到 4 项菜单，弹层高度必须变化
+- 更宽的菜单（长标签 + 长快捷键）弹层宽度 > 160px，证明没有被首次创建时的宽度锁死
 
 ## Asset 解析错误
 - `find_asset()` 返回 `AssetLocation { path, found, searched }`，保留 `asset_path()` 兼容旧调用。
@@ -281,3 +281,33 @@
 3. **悬停切换菜单后内容不更新**：`MenuPopup` 在创建时固定了 `menu_index_`，
    切换菜单只更新了几何尺寸。新增 `MenuPopup::set_menu_index()`，
    在 `update_popup_geometry()` 里同步，内容随标题切换。
+
+## 菜单项 hover 高亮丢失
+**现象**：菜单打开后，鼠标移到菜单项上没有任何高亮，但点击能正常触发。
+
+**根因**：
+
+1. `update_popup_geometry()` 每次布局都会调用 `MenuPopup::set_menu_index(open_)`，
+   而该函数无条件把 `hovered_` 清成 `-1`；
+2. `MenuPopup::arrange()` 走 `set_pos/set_size`，每次都会 `mark_layout_dirty()`，
+   于是菜单打开期间**每帧都会重新布局** → 每帧都会清掉 hover。
+
+**修法**：
+
+- `set_menu_index()` 只在菜单真正变化时才清空 hover；
+- `MenuPopup::arrange()` 直接写 `local_/global_`，不再通过 setter 标脏；
+- `update_popup_geometry()` 不再调用 `set_min_size/set_max_size/set_pos/set_size`，
+  只做 `set_menu_index` + `arrange`。
+
+## 切换菜单后弹层尺寸不变
+**现象**：File → Edit 悬停切换后，菜单内容变了，但弹层仍保持 File 的宽度/高度。
+
+**根因**：`MenuPopup` 构造时把 `set_min_size/set_max_size` 固定成创建那一刻的尺寸；
+`UIRoot::layout_child()` 会对每个 overlay 做 `child_size = child.clamp_size(child.measure(...))`，
+`clamp_size` 把新尺寸夹回旧 min/max，于是 `arrange()` 拿到的一直是初始尺寸。
+
+**修法**：
+
+- 构造时不再设置 min/max，只写入 `local_ = {0, size}` 作为初始测量值；
+- 尺寸完全由 `arrange()` 写入（`local_ = global_ = slot`），
+  `measure()` 返回当前 `local_.size`，因此每帧测量与几何一致。

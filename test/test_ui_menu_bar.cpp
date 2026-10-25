@@ -3,6 +3,7 @@
 #include "ui/ui_system.hpp"
 
 #include <cassert>
+#include <cstdio>
 #include <cmath>
 #include <iostream>
 #include <memory>
@@ -69,8 +70,11 @@ int main()
     bar->add_menu("View", {
         xel::ui::MenuItem::make("Zoom in", [] {}, "Ctrl++"),
     });
+    bar->add_menu("Tools", {
+        xel::ui::MenuItem::make("A very long menu item label", [] {}, "Ctrl+Shift+Alt+T"),
+    });
 
-    assert(bar->menu_count() == 3);
+    assert(bar->menu_count() == 4);
     assert(bar->title(0) == "File");
     assert(bar->items(0).size() == 4);
     assert(bar->items(1)[1].enabled == false);
@@ -157,6 +161,95 @@ int main()
                edit_bounds.pos.y + 16.0f + row + row * 0.5f});
     ui.tick();
     assert(disabled_calls == 0);
+
+    // 悬停在菜单项上应产生高亮（通过 UISystem 的 hover 链）。
+    bar_ptr->open(0);
+    ui.tick();
+    auto* hover_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(root_ptr->overlays().back().get());
+    assert(hover_popup != nullptr);
+    const auto hp = hover_popup->global_bounds();
+    xel::event::InputEvent hover_move;
+    hover_move.type = InputEvent::Type::MouseMove;
+    hover_move.mouse_pos = {hp.pos.x + hp.size.x * 0.5f,
+                            hp.pos.y + bar_ptr->ui_theme().padding + bar_ptr->ui_theme().control_height * 1.5f};
+    ui.dispatch(hover_move);
+    // 布局每帧都会重新定位弹层，hover 不能被这一过程清掉。
+    bar_ptr->mark_layout_dirty();
+    ui.tick();
+    assert(hover_popup->hovered() == 1);
+    ui.dispatch(hover_move);
+    bar_ptr->mark_layout_dirty();
+    ui.tick();
+    assert(hover_popup->hovered() == 1);
+    bar_ptr->close();
+    ui.tick();
+
+    // hover 高亮必须真的出现在绘制列表里（不是只有状态）。
+    bar_ptr->open(0);
+    ui.tick();
+    auto* draw_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(root_ptr->overlays().back().get());
+    assert(draw_popup != nullptr);
+    const auto dp = draw_popup->global_bounds();
+    xel::event::InputEvent draw_move;
+    draw_move.type = InputEvent::Type::MouseMove;
+    draw_move.mouse_pos = {dp.pos.x + 10.0f,
+                           dp.pos.y + bar_ptr->ui_theme().padding + bar_ptr->ui_theme().control_height * 0.5f};
+    ui.dispatch(draw_move);
+    bar_ptr->mark_layout_dirty();
+    ui.tick();
+    assert(draw_popup->hovered() == 0);
+
+    xel::graphics::DrawList hover_list;
+    draw_popup->append_to(hover_list);
+    const glm::vec4 hover_color = bar_ptr->ui_theme().button_hover;
+    bool found_highlight = false;
+    for (const auto& batch : hover_list.batches()) {
+        for (std::size_t i = 0; i + 3 < batch.vertices.size(); i += 4) {
+            if (batch.vertices[i].color == hover_color) {
+                found_highlight = true;
+                break;
+            }
+        }
+        if (found_highlight) break;
+    }
+    assert(found_highlight);
+    bar_ptr->close();
+    ui.tick();
+
+    // 切换到另一个菜单后，弹层尺寸必须跟着内容变化（不能沿用上一个菜单的尺寸）。
+    bar_ptr->open(0);
+    ui.tick();
+    auto* size_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(root_ptr->overlays().back().get());
+    assert(size_popup != nullptr);
+    const float file_h = size_popup->global_bounds().size.y;
+    const float file_w = size_popup->global_bounds().size.x;
+    std::printf("file popup %.1fx%.1f\n", file_w, file_h);
+
+    const auto sb = bar_ptr->global_bounds();
+    xel::event::InputEvent size_move;
+    size_move.type = InputEvent::Type::MouseMove;
+    size_move.mouse_pos = {sb.pos.x + sb.size.x - 10.0f, sb.pos.y + sb.size.y * 0.5f};
+    ui.dispatch(size_move);
+    bar_ptr->mark_layout_dirty();
+    ui.tick();
+    assert(bar_ptr->open_menu() == bar_ptr->menu_count() - 1);
+    std::printf("last popup %.1fx%.1f\n",
+                size_popup->global_bounds().size.x, size_popup->global_bounds().size.y);
+    assert(size_popup->global_bounds().size.y != file_h
+           || size_popup->global_bounds().size.x != file_w);
+    bar_ptr->close();
+    ui.tick();
+
+    // 更宽的菜单必须让弹层变宽，而不是被上一次的宽度锁住。
+    bar_ptr->open(3);
+    ui.tick();
+    auto* wide_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(root_ptr->overlays().back().get());
+    assert(wide_popup != nullptr);
+    std::printf("tools popup %.1fx%.1f\n",
+                wide_popup->global_bounds().size.x, wide_popup->global_bounds().size.y);
+    assert(wide_popup->global_bounds().size.x > 160.0f);
+    bar_ptr->close();
+    ui.tick();
 
     // 悬停切换菜单时，popup 内容必须跟着换（不能只改尺寸）。
     bar_ptr->open(0);

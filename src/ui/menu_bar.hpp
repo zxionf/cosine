@@ -98,16 +98,18 @@ public:
     MenuPopup(MenuBar& owner, int menu_index, float width, float height)
         : owner_{&owner}, menu_index_{menu_index}
     {
-        set_min_size({width, height});
-        set_max_size({width, height});
+        // 尺寸由 arrange() 直接写入 local_；不要设置 min/max_size，
+        // 否则 clamp_size 会把后续菜单的尺寸锁死在创建时的值上。
+        local_ = {{0.0f, 0.0f}, {width, height}};
     }
 
     glm::vec2 measure(glm::vec2) override { return local_.size; }
+    // 直接写 local_/global_：宿主布局时每帧都会重新定位弹层，
+    // 走 set_pos/set_size 会持续标脏并触发整树重排。
     void arrange(Rect slot) override
     {
+        local_ = slot;
         global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
     }
     void append_to(graphics::DrawList& list) const override;
     bool on_mouse_move(glm::vec2 pos) override;
@@ -119,7 +121,13 @@ public:
     void set_hovered(int index) { hovered_ = index; }
     int menu_index() const { return menu_index_; }
     // 切换菜单时只更新内容来源，不重建 widget（overlay 生命周期保持不变）。
-    void set_menu_index(int index) { menu_index_ = index; hovered_ = -1; }
+    // 注意：只有真正换菜单才清空悬停，否则每帧 arrange 都会把 hover 抹掉。
+    void set_menu_index(int index)
+    {
+        if (menu_index_ == index) return;
+        menu_index_ = index;
+        hovered_ = -1;
+    }
 
     float row_height() const;
     float separator_height() const;
@@ -438,10 +446,6 @@ private:
         const float x = title_left(open_);
         const float y = global_.pos.y + global_.size.y + 2.0f;
         popup_->set_menu_index(open_);
-        popup_->set_min_size({width, height});
-        popup_->set_max_size({width, height});
-        popup_->set_pos(x, y);
-        popup_->set_size(width, height);
         popup_->arrange({{x, y}, {width, height}});
         (void)t;
     }

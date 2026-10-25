@@ -235,3 +235,13 @@ Change: 20261025-m3-5-menu-fixes
 Context: 用户反馈三个可见问题：菜单项文字不居中、弹层上留白下贴边、悬停切换菜单后内容不跟着换
 Decision: 行内文字统一按 FontAtlas::line_height(size) 而非 text_size 做垂直居中（菜单项与单行 TextInput 同修）；popup 高度改为 padding*2；MenuPopup 增加 set_menu_index，切换菜单时同步内容来源而不重建 overlay
 Consequences: 菜单与输入框文字垂直位置正确；弹层上下留白对称；切换菜单无需重建 overlay，保持生命周期简单；后续新增含单行文字的控件应使用 line_height 居中
+## [48] 2026-10-25 11:56:58 UTC
+Change: 20261025-m3-5-menu-hover
+Context: 菜单项 hover 无高亮但点击正常；排查发现布局每帧运行且 set_menu_index 无条件清 hover
+Decision: set_menu_index 仅在菜单变化时清空 hover；MenuPopup::arrange 直接写 local_/global_ 避免标脏；update_popup_geometry 只用 set_menu_index + arrange，不再调用 setter，从而消除『打开菜单期间每帧重排』
+Consequences: 菜单项 hover 高亮稳定；菜单打开期间不再产生无意义的 per-frame layout；其他『overlay 每帧重定位』的控件应避免在 arrange 中调用 set_pos/set_size
+## [49] 2026-10-25 12:11:37 UTC
+Change: 20261025-m3-5-menu-popup-size
+Context: 切换菜单后内容更新但弹层尺寸仍沿用首个菜单；根因是构造时固定的 min/max_size 被 UIRoot::layout_child 的 clamp_size 夹住
+Decision: MenuPopup 构造不再设置 min/max_size，只初始化 local_；尺寸由 arrange 直接写入 local_/global_，measure 返回 local_.size，保证切换菜单后宽度/高度随内容重算
+Consequences: overlay 弹层尺寸可动态变化；对『尺寸由外部计算并 arrange』的控件，不应再用 min/max_size 固化尺寸，否则会被 layout_child 的 clamp 回退
