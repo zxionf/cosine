@@ -67,6 +67,7 @@ scripts/              CI、打包、冒烟脚本
 - GUI MVP：控件集、事件与焦点、布局、UTF-8+CJK 文本、DrawList 裁剪与 overlay、调试面板。
 - UI gallery：`examples/ui_gallery` 分区展示全部控件与交互，支持暗色/亮色主题即时切换（M3.5 起点）。
 - 文字实验台：`examples/ui_demo` 用 F1–F5 切换文字调试层（字形盒/行框/基线/advance）与像素对齐，验证 `Label` 对齐、换行与行距。
+- 文字质量：字形按绘制字号逐档栅格化（不再放大 16px 基准图集），降部与细描边保持清晰。
 - 新增控件：`TabBar`、`Radio`/`RadioGroup`、`Progress`、`Dropdown`；`ScrollView` 可见滚动条；`TextInput` 支持多行。
 - 工程化：静态库分层、CMake 去重、资源解析错误、sanitizer、lavapipe 冒烟、打包。
 - 未完成：Windows 实测、CI 首次远端运行、安装器；动画内核与编辑器属于 M4–M6。

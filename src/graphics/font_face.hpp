@@ -23,11 +23,14 @@ public:
     int pixel_size() const { return pixel_size_; }
     FontAtlas::Metrics metrics() const;
 
-    bool add_glyph(FontAtlas& atlas, char32_t codepoint) const;
+    // pixel_size = 0 表示沿用 load() 时的基准字号；否则按目标像素尺寸栅格化。
+    bool add_glyph(FontAtlas& atlas, char32_t codepoint, int pixel_size = 0) const;
+    int set_pixel_size(int pixel_size) const;
 
 private:
     FT_Library library_ = nullptr;
     FT_Face face_ = nullptr;
     int pixel_size_ = 16;
+    FontAtlas::Metrics base_metrics_{};
 };
 } // namespace xel::graphics

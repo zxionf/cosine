@@ -6,6 +6,7 @@
 #include "ui/text_input.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <chrono>
 #include <filesystem>
 #include <iostream>
@@ -198,8 +199,8 @@ void test_dynamic_glyph_loading()
     atlas.begin_generated(512, face.metrics(), true);
     assert(face.add_glyph(atlas, U'A'));
 
-    atlas.set_glyph_loader([&face](xel::graphics::FontAtlas& target, char32_t codepoint) {
-        return face.add_glyph(target, codepoint);
+    atlas.set_glyph_loader([&face](xel::graphics::FontAtlas& target, char32_t codepoint, int pixel_size) {
+        return face.add_glyph(target, codepoint, pixel_size);
     });
 
     assert(!atlas.has_glyph(U'中'));
@@ -210,6 +211,43 @@ void test_dynamic_glyph_loading()
 
     xel::graphics::DrawList list;
     atlas.append_text(list, 0.0f, 0.0f, 16.0f, "中文", glm::vec4{1.0f});
+    assert(!list.batches().empty());
+}
+
+void test_per_size_glyph_rasterization()
+{
+    const auto font = xel::graphics::find_cjk_font();
+    if (font.path.empty()) return;
+
+    xel::graphics::FontFace face;
+    assert(face.load(font.path, font.face_index, 16));
+
+    xel::graphics::FontAtlas atlas;
+    atlas.begin_generated(2048, face.metrics(), true, 16);
+    atlas.set_glyph_loader([&face](xel::graphics::FontAtlas& target, char32_t codepoint, int pixel_size) {
+        return face.add_glyph(target, codepoint, pixel_size);
+    });
+
+    assert(atlas.base_pixel_size() == 16);
+    assert(atlas.measure("A", 16.0f).x > 0.0f);
+    assert(atlas.has_glyph(U'A', 16));
+    assert(!atlas.has_glyph(U'A', 32));
+
+    // 32px 请求会按目标尺寸单独栅格化，而不是放大 16px 字形。
+    const uint64_t before = atlas.revision();
+    const float wide = atlas.measure("A", 32.0f).x;
+    assert(wide > 0.0f);
+    assert(atlas.has_glyph(U'A', 32));
+    assert(atlas.revision() > before);
+    assert(atlas.glyph(U'A', 32) != atlas.glyph(U'A', 16));
+
+    // 版面宽度随字号近似线性缩放（Hinting 允许小幅偏差）。
+    const float narrow = atlas.measure("A", 16.0f).x;
+    assert(std::fabs(wide - narrow * 2.0f) < narrow * 0.15f);
+
+    // 未生成的字号退回基准字形，仍能绘制。
+    xel::graphics::DrawList list;
+    atlas.append_text(list, 0.0f, 0.0f, 17.0f, "A", glm::vec4{1.0f});
     assert(!list.batches().empty());
 }
 } // namespace
@@ -223,6 +261,7 @@ int main()
     test_font_builder_full_c2();
     test_font_builder_missing();
     test_dynamic_glyph_loading();
+    test_per_size_glyph_rasterization();
 
     std::cout << "text tests passed\n";
     return 0;

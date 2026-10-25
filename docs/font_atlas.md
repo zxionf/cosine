@@ -9,7 +9,7 @@
 - 字体风格：统一 TTF（A2）；`default8.png` 仅作 TTF 缺失 fallback。
 - 来源：系统字体优先，`COSINE_CJK_FONT` 覆盖；打包阶段可选内置 OFL 字体。
 - 覆盖：ASCII + GB2312 一级汉字 3,755 + 常用标点（C2）。
-- 图集：固定 2048×2048 RGBA8，16px 基准；其他字号先按比例缩放。
+- 图集：固定 2048×2048 RGBA8，按绘制字号逐档栅格化（字形 key = 字号 + codepoint），图集不足时回退 16px 基准缩放。
 - 生成：FreeType 运行时生成并上传。
 - 动态：D3 按需追加字形 + 更新纹理。
 - 度量：ascent / descent / line height / bearing / advance，按基线排版。
@@ -99,13 +99,20 @@
 
 ## 7. 字号策略
 
-- M2 使用 16px 单图集
-- 其他字号按比例缩放
-- 24/32px 如果视觉效果不足，再增加 24px 第二图集
+- 图集按**绘制尺寸**栅格化：`glyphs_` 的 key 是 `(量化后的整数像素字号, codepoint)`。
+- `FontAtlas::quantize_size()` 把字号四舍五入到整数像素并限制在 `4..160`，
+  避免相同的视觉字号因浮点差异反复生成。
+- `FontFace::add_glyph(atlas, cp, pixel_size)` 会先 `FT_Set_Pixel_Sizes` 到目标尺寸再渲染，
+  因此每个字号都经过 FreeType 的像素网格拟合，不依赖放大基准字形。
+- 图集空间不足时 `add_glyph` 返回 false，`ensure_glyph` 记入 `missing_`；
+  查找会自动回退到基准字号（`base_pixel_size`，默认 16）缩放绘制，保证文字仍可见。
+- 首次出现某个字号时会追加字形并重传整张图集（与动态 CJK 追加同一路径）。
+- 已知取舍：多字号共存会占用图集，超大字号（≥96px）大量 CJK 可能撑满；
+  后续可加字形淘汰或按字号分图集。
 - SDF/MSDF 评估结论：暂不引入
-  - 当前 UI 以 16px 为主，缩放可接受
+  - 逐字号栅格化已能保证清晰度
   - SDF 需要额外生成管线、边缘/字重调优
-  - 在需要大字号/缩放或高 DPI 时再评估
+  - 在需要任意缩放动画或高 DPI 混合时再评估
 
 ## 8. 已知限制
 
@@ -114,4 +121,8 @@
 - 没有 IME preedit / 候选框：只处理提交后的 UTF-8 codepoint
 - 没有 SDF/MSDF
 - 动态字形更新当前整图重传
+- 多字号共存会占用图集空间，暂无字形淘汰；不足时回退基准字号缩放
 - Windows 字体查找与运行尚未实测
+
+后续优化清单（图集淘汰、dirty-rect 上传、kerning、shaping、IME、SDF 等）见
+`.design/阶段计划.md` 的「文本显示 → 后续优化（backlog，按优先级）」T1–T12。

@@ -276,8 +276,8 @@ void Renderer::create_texture_image()
 
     if (font_atlas_.smooth() && !font.path.empty()) {
         if (font_face_.load(font.path, font.face_index, 16)) {
-            font_atlas_.set_glyph_loader([this](graphics::FontAtlas& atlas, char32_t codepoint) {
-                return font_face_.add_glyph(atlas, codepoint);
+            font_atlas_.set_glyph_loader([this](graphics::FontAtlas& atlas, char32_t codepoint, int pixel_size) {
+                return font_face_.add_glyph(atlas, codepoint, pixel_size);
             });
         } else {
             std::cerr << "[Font] dynamic glyph loading disabled: "
@@ -870,9 +870,20 @@ void Renderer::end()
         if (batch.indices.empty()) continue;
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
             *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
+        // 裁剪矩形向外取整：向下取整左上、向上取整右下，避免把亚像素边缘（
+        // 例如字母降部）截掉一整行。
+        const float sx0 = batch.scissor.x;
+        const float sy0 = batch.scissor.y;
+        const float sx1 = sx0 + std::max(0.0f, batch.scissor.z);
+        const float sy1 = sy0 + std::max(0.0f, batch.scissor.w);
+        const int x0 = std::max(0, static_cast<int>(std::floor(sx0)));
+        const int y0 = std::max(0, static_cast<int>(std::floor(sy0)));
+        const int x1 = std::min(static_cast<int>(target.extent.width), static_cast<int>(std::ceil(sx1)));
+        const int y1 = std::min(static_cast<int>(target.extent.height), static_cast<int>(std::ceil(sy1)));
         vk::Rect2D scissor{
-            .offset = {std::max(0, (int)batch.scissor.x), std::max(0, (int)batch.scissor.y)},
-            .extent = {std::min((uint32_t)batch.scissor.z, target.extent.width), std::min((uint32_t)batch.scissor.w, target.extent.height)}
+            .offset = {x0, y0},
+            .extent = {static_cast<uint32_t>(std::max(0, x1 - x0)),
+                       static_cast<uint32_t>(std::max(0, y1 - y0))}
         };
         command_buffer.setScissor(0, scissor);
         command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {batch.vertex_offset});

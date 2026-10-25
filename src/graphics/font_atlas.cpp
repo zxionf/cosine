@@ -18,6 +18,7 @@ void FontAtlas::load(int tex_width, int tex_height, const unsigned char* rgba)
     tex_height_ = tex_height;
     cell_px_ = std::max(1, tex_width / 16);
     smooth_ = false;
+    base_pixel_size_ = std::max(1, cell_px_);
     metrics_ = {};
     glyphs_.clear();
     missing_.clear();
@@ -65,7 +66,7 @@ void FontAtlas::load(int tex_width, int tex_height, const unsigned char* rgba)
             g.advance_ratio = (idx == ' ') ? 0.5f : 0.0f;
         }
 
-        glyphs_.emplace(static_cast<char32_t>(idx), g);
+        glyphs_.emplace(glyph_key(static_cast<char32_t>(idx), base_pixel_size_), g);
     }
 
     white_uv_ = {0.5f / static_cast<float>(tex_width), 0.5f / static_cast<float>(tex_height)};
@@ -85,12 +86,13 @@ void FontAtlas::load(int tex_width, int tex_height, const unsigned char* rgba)
     mark_revision();
 }
 
-void FontAtlas::begin_generated(int tex_size, Metrics metrics, bool smooth)
+void FontAtlas::begin_generated(int tex_size, Metrics metrics, bool smooth, int base_pixel_size)
 {
     tex_width_ = tex_size;
     tex_height_ = tex_size;
     cell_px_ = 0;
     smooth_ = smooth;
+    base_pixel_size_ = base_pixel_size > 0 ? base_pixel_size : 16;
     metrics_ = metrics;
     glyphs_.clear();
     missing_.clear();
@@ -116,7 +118,7 @@ bool FontAtlas::add_glyph(char32_t codepoint,
                           float pixel_size)
 {
     if (width <= 0 || height <= 0) {
-        add_empty_glyph(codepoint, advance_ratio);
+        add_empty_glyph(codepoint, advance_ratio, pixel_size);
         return true;
     }
 
@@ -153,7 +155,7 @@ bool FontAtlas::add_glyph(char32_t codepoint,
     g.height_ratio = static_cast<float>(height) / pixel_size;
     g.bearing_x_ratio = bearing_x_ratio;
     g.bearing_y_ratio = bearing_y_ratio;
-    glyphs_[codepoint] = g;
+    glyphs_[glyph_key(codepoint, quantize_size(pixel_size))] = g;
 
     pack_x_ += width + 2;
     pack_row_height_ = std::max(pack_row_height_, height);
@@ -161,45 +163,67 @@ bool FontAtlas::add_glyph(char32_t codepoint,
     return true;
 }
 
-void FontAtlas::add_empty_glyph(char32_t codepoint, float advance_ratio)
+uint64_t FontAtlas::glyph_key(char32_t codepoint, int pixel_size)
+{
+    return (static_cast<uint64_t>(static_cast<uint32_t>(pixel_size)) << 32)
+         | static_cast<uint32_t>(codepoint);
+}
+
+int FontAtlas::quantize_size(float size)
+{
+    if (!(size > 0.0f)) return 1;
+    return std::clamp(static_cast<int>(std::lround(size)), 4, 160);
+}
+
+void FontAtlas::add_empty_glyph(char32_t codepoint, float advance_ratio, float pixel_size)
 {
     Glyph g;
     g.advance_ratio = advance_ratio;
-    glyphs_[codepoint] = g;
+    glyphs_[glyph_key(codepoint, quantize_size(pixel_size))] = g;
     mark_revision();
 }
 
-bool FontAtlas::ensure_glyph(char32_t codepoint)
+bool FontAtlas::ensure_glyph(char32_t codepoint, int pixel_size)
 {
-    if (has_glyph(codepoint)) return true;
-    if (missing_.find(codepoint) != missing_.end()) return false;
+    const uint64_t key = glyph_key(codepoint, pixel_size);
+    if (glyphs_.find(key) != glyphs_.end()) return true;
+    if (missing_.find(key) != missing_.end()) return false;
     if (!glyph_loader_) return false;
 
-    if (glyph_loader_(*this, codepoint)) return true;
-    missing_.insert(codepoint);
+    if (glyph_loader_(*this, codepoint, pixel_size)) return true;
+    missing_.insert(key);
     return false;
 }
 
-bool FontAtlas::has_glyph(char32_t codepoint) const
+bool FontAtlas::has_glyph(char32_t codepoint, int pixel_size) const
 {
-    return glyphs_.find(codepoint) != glyphs_.end();
+    return glyphs_.find(glyph_key(codepoint, pixel_size)) != glyphs_.end();
 }
 
-const FontAtlas::Glyph* FontAtlas::glyph(char32_t codepoint) const
+const FontAtlas::Glyph* FontAtlas::glyph(char32_t codepoint, int pixel_size) const
 {
-    const auto it = glyphs_.find(codepoint);
-    return it == glyphs_.end() ? nullptr : &it->second;
+    const auto it = glyphs_.find(glyph_key(codepoint, pixel_size));
+    if (it != glyphs_.end()) return &it->second;
+
+    // 图集空间不足或尚未生成该字号时，退回基准字号缩放绘制。
+    if (pixel_size != base_pixel_size_) {
+        const auto base = glyphs_.find(glyph_key(codepoint, base_pixel_size_));
+        if (base != glyphs_.end()) return &base->second;
+    }
+    return nullptr;
 }
 
-const FontAtlas::Glyph* FontAtlas::glyph_or_fallback(char32_t codepoint) const
+const FontAtlas::Glyph* FontAtlas::glyph_or_fallback(char32_t codepoint, int pixel_size) const
 {
+    if (const Glyph* g = glyph(codepoint, pixel_size)) return g;
+    if (const Glyph* g = glyph(U'?', pixel_size)) return g;
     if (const Glyph* g = glyph(codepoint)) return g;
-    if (const Glyph* g = glyph(U'?')) return g;
     return nullptr;
 }
 
 glm::vec2 FontAtlas::measure(std::string_view text, float size, float line_spacing)
 {
+    const int glyph_px = quantize_size(size);
     float max_w = 0.0f;
     float line_w = 0.0f;
     int lines = 1;
@@ -214,8 +238,8 @@ glm::vec2 FontAtlas::measure(std::string_view text, float size, float line_spaci
             continue;
         }
         if (codepoint == U'\r') continue;
-        ensure_glyph(codepoint);
-        const Glyph* g = glyph_or_fallback(codepoint);
+        ensure_glyph(codepoint, glyph_px);
+        const Glyph* g = glyph_or_fallback(codepoint, glyph_px);
         line_w += (g ? g->advance_ratio : 0.5f) * size;
     }
 
@@ -235,6 +259,7 @@ glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float ma
 {
     if (max_width <= 0.0f) return measure(text, size, line_spacing);
 
+    const int glyph_px = quantize_size(size);
     float max_w = 0.0f;
     float line_w = 0.0f;
     int lines = 1;
@@ -250,8 +275,8 @@ glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float ma
         }
         if (codepoint == U'\r') continue;
 
-        ensure_glyph(codepoint);
-        const Glyph* g = glyph_or_fallback(codepoint);
+        ensure_glyph(codepoint, glyph_px);
+        const Glyph* g = glyph_or_fallback(codepoint, glyph_px);
         const float advance = (g ? g->advance_ratio : 0.5f) * size;
         if (line_w > 0.0f && line_w + advance > max_width) {
             max_w = std::max(max_w, line_w);
@@ -270,7 +295,8 @@ glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float ma
 void FontAtlas::append_glyph(DrawBatch& batch, float& pen_x, float& pen_y, float size,
                              char32_t codepoint, glm::vec4 color, const TextClip& clip) const
 {
-    const Glyph* g = glyph_or_fallback(codepoint);
+    const int glyph_px = quantize_size(size);
+    const Glyph* g = glyph_or_fallback(codepoint, glyph_px);
     if (!g) {
         pen_x += size * 0.5f;
         return;
@@ -325,6 +351,7 @@ void FontAtlas::append_text(DrawList& list, float x, float y, float size,
     auto& batch = list.batch();
     float pen_x = x;
     float pen_y = y;
+    const int glyph_px = quantize_size(size);
 
     std::size_t index = 0;
     while (index < text.size()) {
@@ -335,7 +362,7 @@ void FontAtlas::append_text(DrawList& list, float x, float y, float size,
             continue;
         }
         if (codepoint == U'\r') continue;
-        ensure_glyph(codepoint);
+        ensure_glyph(codepoint, glyph_px);
         append_glyph(batch, pen_x, pen_y, size, codepoint, color, clip);
     }
 }
@@ -354,10 +381,12 @@ void FontAtlas::append_text_wrapped(DrawList& list, float x, float y, float size
     float line_w = 0.0f;
     int lines_used = 1;
 
+    const int glyph_px = quantize_size(size);
+
     auto draw_ellipsis = [&]() {
         if (!ellipsis) return;
         for (int i = 0; i < 3; ++i) {
-            const Glyph* dot = glyph_or_fallback(U'.');
+            const Glyph* dot = glyph_or_fallback(U'.', quantize_size(size));
             if (!dot) break;
             const float advance = dot->advance_ratio * size;
             if (line_w + advance > max_width) break;
@@ -383,8 +412,8 @@ void FontAtlas::append_text_wrapped(DrawList& list, float x, float y, float size
             continue;
         }
 
-        ensure_glyph(codepoint);
-        const Glyph* g = glyph_or_fallback(codepoint);
+        ensure_glyph(codepoint, glyph_px);
+        const Glyph* g = glyph_or_fallback(codepoint, glyph_px);
         const float advance = (g ? g->advance_ratio : 0.5f) * size;
 
         if (line_w > 0.0f && line_w + advance > max_width) {

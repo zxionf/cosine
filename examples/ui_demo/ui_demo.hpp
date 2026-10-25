@@ -88,10 +88,10 @@ inline TextLab build(ui::UIRoot& root)
     content->add(std::make_unique<ui::Heading>("Roles", 2));
     struct RoleSample { ui::TextRole role; const char* text; };
     const RoleSample roles[] = {
-        {ui::TextRole::Display, "Display  128"},
+        {ui::TextRole::Display, "Display jqpy 128"},
         {ui::TextRole::Title, "Title  一段标题"},
         {ui::TextRole::Heading, "Heading  二级标题"},
-        {ui::TextRole::Subheading, "Subheading  三级标题"},
+        {ui::TextRole::Subheading, "Subheading jqpy 三级标题"},
         {ui::TextRole::Body, "Body  正文 Hello, world! 你好，世界。 0123456789"},
         {ui::TextRole::Caption, "Caption  辅助说明文字"},
     };
@@ -137,6 +137,10 @@ inline TextLab build(ui::UIRoot& root)
 
     content->add(std::make_unique<ui::ColorRect>(0.0f, 0.0f, 1104.0f, 1.0f,
                                                  glm::vec4{1.0f, 1.0f, 1.0f, 0.12f}));
+
+    content->add(std::make_unique<ui::Heading>("Descenders at large size", 2));
+    auto big = std::make_unique<ui::Label>("Hqyp gjpqy", 96.0f);
+    add_sample(std::move(big));
 
     content->add(std::make_unique<ui::Heading>("CJK & dynamic glyphs", 2));
     add_sample(std::make_unique<ui::Label>("中文排版：你好，世界！动态字形：囧 鑫 龘"));

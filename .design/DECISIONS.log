@@ -210,3 +210,8 @@ Change: 20261025-text-display-lab
 Context: 文字显示缺少可观测手段，且 Label 无法控制对齐/行距/像素对齐；ui_demo 只演示控件，无法集中评估排版
 Decision: 新增 graphics::TextDebugOptions + append_text_debug（字形盒/行框/基线/advance，绘制数学与 append_glyph 同源，并复用换行规则）；Label 增加 TextAlign、像素对齐（默认开）、line_spacing 与调试层；FontAtlas 的 measure/measure_wrapped/append_text*/append_text_wrapped 增加可选 line_spacing 参数（默认 0，保持兼容）；wrap 测量宽度取 min(constraints.x, max_size.x) 使测量与 arrange 一致；新增 ui/typography.hpp（TextRole/text_style/Heading/Paragraph）；ui_demo 改为文字实验台，F1–F5 切换调试层与像素对齐
 Consequences: 文字问题可被可视化定位；行距在测量与绘制两侧语义一致；换行控件宽度可预测；像素对齐默认开启会改变亚像素布局的绘制位置（不改变测量）；不做 kerning/SDF/IME
+## [43] 2026-10-25 09:55:13 UTC
+Change: 20261025-text-display-lab
+Context: 除基线降部看似缺失外，所有非 16px 文字都是把 16px 图集放大绘制，导致描边模糊、降部变淡；排查确认不是裁剪（扩大裁剪区无变化）
+Decision: FontAtlas 改为按绘制尺寸栅格化：glyph key = (量化后的整数像素字号, codepoint)，GlyphLoader 增加 pixel_size 参数，FontFace::add_glyph 按目标尺寸 FT_Set_Pixel_Sizes 后重新生成；尺寸量化到整数像素并限制在 4..160；图集空间不足或未生成时自动回退基准字号缩放绘制；FontFace 缓存基准 metrics 以免尺寸切换影响行高；RenderTarget 裁剪矩形改为向下取整左上、向上取整右下，避免亚像素边缘被截掉一行
+Consequences: 任意字号都能得到按像素网格拟合的清晰字形，降部/描边不再被放大模糊；代价是每种新字号首次出现时追加字形并重传整张图集，且图集空间按字号累积（不足时优雅回退）；不再有单一 16px 基准的模糊放大

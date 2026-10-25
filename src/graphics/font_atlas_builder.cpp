@@ -111,7 +111,11 @@ bool build_font_atlas(const FontAtlasBuildOptions& options, FontAtlas& out, std:
         return false;
     }
 
-    out.begin_generated(options.atlas_size, face.metrics(), true);
+    out.begin_generated(options.atlas_size, face.metrics(), true, options.pixel_size);
+
+    out.set_glyph_loader([&face](FontAtlas& atlas, char32_t codepoint, int pixel_size) {
+        return face.add_glyph(atlas, codepoint, pixel_size);
+    });
 
     const auto coverage = build_coverage(options);
     for (char32_t codepoint : coverage) {

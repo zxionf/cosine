@@ -42,19 +42,25 @@ public:
         float line_height_ratio = 1.0f;
     };
 
-    using GlyphLoader = std::function<bool(FontAtlas&, char32_t)>;
+    using GlyphLoader = std::function<bool(FontAtlas&, char32_t, int pixel_size)>;
 
     void load(int tex_width, int tex_height, const unsigned char* rgba);
-    void begin_generated(int tex_size, Metrics metrics, bool smooth);
+    void begin_generated(int tex_size, Metrics metrics, bool smooth, int base_pixel_size = 16);
 
     bool add_glyph(char32_t codepoint,
                    const unsigned char* bitmap, int width, int height, int pitch,
                    float advance_ratio, float bearing_x_ratio, float bearing_y_ratio,
                    float pixel_size);
-    void add_empty_glyph(char32_t codepoint, float advance_ratio);
+    void add_empty_glyph(char32_t codepoint, float advance_ratio, float pixel_size = 16.0f);
 
     void set_glyph_loader(GlyphLoader loader) { glyph_loader_ = std::move(loader); }
-    bool ensure_glyph(char32_t codepoint);
+
+    // 按整数像素量化字号：字形按绘制尺寸栅格化，避免放大 16px 基准图集导致模糊。
+    static int quantize_size(float size);
+
+    bool ensure_glyph(char32_t codepoint, int pixel_size);
+    bool ensure_glyph(char32_t codepoint) { return ensure_glyph(codepoint, base_pixel_size_); }
+    int base_pixel_size() const { return base_pixel_size_; }
 
     bool valid() const { return tex_width_ > 0 && tex_height_ > 0; }
     int width() const { return tex_width_; }
@@ -69,8 +75,10 @@ public:
     float line_height(float size) const { return metrics_.line_height_ratio * size; }
     float line_step(float size, float line_spacing) const { return line_height(size) + line_spacing; }
 
-    bool has_glyph(char32_t codepoint) const;
-    const Glyph* glyph(char32_t codepoint) const;
+    bool has_glyph(char32_t codepoint, int pixel_size) const;
+    bool has_glyph(char32_t codepoint) const { return has_glyph(codepoint, base_pixel_size_); }
+    const Glyph* glyph(char32_t codepoint, int pixel_size) const;
+    const Glyph* glyph(char32_t codepoint) const { return glyph(codepoint, base_pixel_size_); }
 
     glm::vec2 measure(std::string_view text, float size, float line_spacing = 0.0f);
     float measure_width(std::string_view text, float size);
@@ -87,7 +95,8 @@ public:
                              const TextClip& clip = {}, float line_spacing = 0.0f);
 
 private:
-    const Glyph* glyph_or_fallback(char32_t codepoint) const;
+    const Glyph* glyph_or_fallback(char32_t codepoint, int pixel_size) const;
+    static uint64_t glyph_key(char32_t codepoint, int pixel_size);
     void append_glyph(DrawBatch& batch, float& pen_x, float& pen_y, float size,
                       char32_t codepoint, glm::vec4 color, const TextClip& clip) const;
     void mark_revision() { ++revision_; }
@@ -99,8 +108,9 @@ private:
     glm::vec2 white_uv_{0.0f, 0.0f};
     Metrics metrics_{};
     std::vector<unsigned char> pixels_;
-    std::unordered_map<char32_t, Glyph> glyphs_;
-    std::unordered_set<char32_t> missing_;
+    std::unordered_map<uint64_t, Glyph> glyphs_;
+    std::unordered_set<uint64_t> missing_;
+    int base_pixel_size_ = 16;
     GlyphLoader glyph_loader_;
     uint64_t revision_ = 0;
 
