@@ -93,3 +93,8 @@ add_custom_target(copy_assets ALL
 # find_package(OpenGl REQUIRED)
 # add_executable(ex3 ex3.cpp)
 # target_link_libraries(ex3 PRIVATE glfw OpenGL::GL)
+
+cosine_apply_sanitizers(cosine_text)
+cosine_apply_sanitizers(cosine_ui)
+cosine_apply_sanitizers(cosine_backend)
+cosine_apply_sanitizers(cosine_app)

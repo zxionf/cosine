@@ -155,3 +155,8 @@ Change: 20261025-m3-d-error-handling
 Context: 资源缺失、字体回退、shader 读取、Vulkan/SwapChain 失败信息过于笼统，用户无法定位搜索路径或修复方式
 Decision: 新增 AssetLocation/find_asset/require_asset 和 format_asset_error；字体/shader/Vulkan/SwapChain 错误统一带阶段前缀和路径；ui_demo 顶层 catch 输出 fatal 并返回非零；保留 asset_path 兼容接口
 Consequences: 缺失 shader 可直接看到搜索目录和 COSINE_ASSET_DIR 提示；SwapChain 空 format/present mode 不再越界；未引入日志库和异常层级
+## [32] 2026-10-25 05:30:26 UTC
+Change: 20261025-m3-e-ci-quality
+Context: M3-E 需要可复现的质量门：sanitizer、lavapipe 冒烟与 Linux/Windows CI，而此前只有单脚本 Debug 构建
+Decision: 顶层新增 COSINE_SANITIZE 与 cosine_apply_sanitizers（仅作用于自有 target）；ci-linux.sh 支持 COSINE_BUILD_DIR/COSINE_SANITIZE；新增 smoke-lavapipe.sh（无 ICD/显示时 skip）；新增 GitHub Actions Linux(GCC+ASAN+lavapipe) 与 Windows(MSVC) 矩阵；顺带修复 interpreter Environment 泄漏和 token 测试泄漏
+Consequences: ASAN 13/13 与 lavapipe 冒烟本地通过；Windows job 需首次远端运行验证；sanitizer 不编译第三方依赖

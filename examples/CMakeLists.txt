@@ -7,3 +7,5 @@ target_include_directories(ui_demo PRIVATE
 )
 set_target_properties(ui_demo PROPERTIES CXX_SCAN_FOR_MODULES ON)
 add_dependencies(ui_demo shaders copy_assets)
+
+cosine_apply_sanitizers(ui_demo)

@@ -21,7 +21,7 @@ namespace xel
         public:
             function(std::shared_ptr<Function> declaration, Environment* closure) :_declaration(declaration), _closure(closure) {}
             var call(Evaluator* evaluator, std::vector<var> arguments) override{
-                Environment* environment = new Environment(_closure);
+                Environment* environment = evaluator->alloc_environment(_closure);
                 for(int i=0; i<_declaration->_params.size(); i++)
                     environment->define(_declaration->_params[i].get_lexeme(), arguments[i]);
 

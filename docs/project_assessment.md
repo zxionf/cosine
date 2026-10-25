@@ -42,8 +42,8 @@
 ### P1：可维护性与可交付性
 
 - **R07（部分解决）全局可变状态**：UIContext 已接管 UI 主题/字体；`Line`/`Rectangle`/`Triangle` 的 active atlas 仍待 graphics context。
-- **R08 测试偏薄**：13 个测试；缺 ASAN、lavapipe 渲染冒烟和 Windows 实测。
-- **R09 Windows 未实测**：只有 `ci-windows.ps1`，无实际构建结果。
+- **R08（部分解决）测试偏薄**：13 个测试 + ASAN + lavapipe 冒烟；缺 Windows 实测。
+- **R09（部分解决）Windows 未实测**：新增 GitHub Actions Windows job，待首次运行确认。
 - **R10（已解决）性能无度量**：FrameStats + DebugOverlay 已提供 frame time/FPS/draw call/顶点/索引。
 - **R11（已解决）UI 耦合 GLFW**：KeyCode/Modifier 抽象；GLFW 映射只在 Application。
 - **R12（已解决）冗余代码**：已删除 `text.hpp`、`shape_maker.hpp`、`texture.jpg`、`ex2`、`ex4` 与未使用 shader。

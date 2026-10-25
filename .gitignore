@@ -11,6 +11,8 @@
 
 /build
 /build-ci
+/build-asan
+/build-local
 build-ci/
 /out
 examples/*.exe

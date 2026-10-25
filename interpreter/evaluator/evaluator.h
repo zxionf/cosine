@@ -4,6 +4,9 @@
 #include "../xel_error.h"
 #include "../environment/environment.h"
 
+#include <memory>
+#include <vector>
+
 namespace xel
 {
     class Evaluator : public ExprVisitor, public StmtVisitor
@@ -51,5 +54,11 @@ namespace xel
         public:
             Environment* _globals ; // = {new Environment};
             Environment* _environment ; // = _globals;
+
+            // 环境由 Evaluator 统一持有：闭包可能在块结束后仍引用外层环境。
+            Environment* alloc_environment(Environment* enclosing);
+
+        private:
+            std::vector<std::unique_ptr<Environment>> _environment_arena;
     };
 }

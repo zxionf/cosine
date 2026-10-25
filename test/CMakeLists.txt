@@ -89,3 +89,7 @@ add_test(NAME key_code COMMAND test_key_code)
 add_test(NAME debug_metrics COMMAND test_debug_metrics)
 add_test(NAME asset_path COMMAND test_asset_path)
 add_test(NAME text_utf8 COMMAND test_text)
+
+foreach(test_target IN LISTS COSINE_TEST_TARGETS)
+    cosine_apply_sanitizers(${test_target})
+endforeach()

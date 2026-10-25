@@ -21,6 +21,24 @@ if(NOT COSINE_GLFW_WAYLAND AND NOT COSINE_GLFW_X11)
     message(FATAL_ERROR "At least one of COSINE_GLFW_WAYLAND / COSINE_GLFW_X11 must be ON")
 endif()
 
+# 可选 sanitizer（address/undefined/thread），只作用于自有 target，不污染第三方依赖。
+set(COSINE_SANITIZE "" CACHE STRING "Sanitizers for project targets: address;undefined;thread")
+set_property(CACHE COSINE_SANITIZE PROPERTY STRINGS "" address undefined thread)
+
+function(cosine_apply_sanitizers target)
+    if(NOT COSINE_SANITIZE)
+        return()
+    endif()
+    foreach(sanitizer IN LISTS COSINE_SANITIZE)
+        if(NOT sanitizer MATCHES "^(address|undefined|thread|leak)$")
+            message(FATAL_ERROR "Unsupported sanitizer: ${sanitizer}")
+        endif()
+    endforeach()
+    set(flags -fsanitize=${COSINE_SANITIZE} -fno-omit-frame-pointer -g)
+    target_compile_options(${target} PUBLIC ${flags})
+    target_link_options(${target} PUBLIC ${flags})
+endfunction()
+
 # 配置 GLFW 编译选项（避免编译示例和测试）
 set(GLFW_BUILD_WAYLAND ${COSINE_GLFW_WAYLAND} CACHE BOOL "" FORCE)
 set(GLFW_BUILD_X11 ${COSINE_GLFW_X11} CACHE BOOL "" FORCE)

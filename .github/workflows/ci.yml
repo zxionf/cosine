@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  SLANG_VERSION: "2026.17.1"
+
+jobs:
+  linux:
+    name: Linux (GCC, lavapipe)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build g++ \
+            libvulkan-dev vulkan-tools glslc mesa-vulkan-drivers \
+            libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+            xvfb
+
+      - name: Install Slang
+        run: |
+          curl -fsSL -o slang.tar.gz \
+            "https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/slang-${SLANG_VERSION}-linux-x86_64.tar.gz"
+          mkdir -p "${HOME}/tools/slang"
+          tar -xzf slang.tar.gz -C "${HOME}/tools/slang" --strip-components=1
+          "${HOME}/tools/slang/bin/slangc" -v
+          echo "SLANGC_EXECUTABLE=${HOME}/tools/slang/bin/slangc" >> "$GITHUB_ENV"
+
+      - name: Configure and build
+        run: |
+          cmake -S . -B build-ci -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCOSINE_GLFW_WAYLAND=OFF \
+            -DCOSINE_GLFW_X11=ON \
+            -DSLANGC_EXECUTABLE="$SLANGC_EXECUTABLE" \
+            -DVulkan_GLSLC_EXECUTABLE=/usr/bin/glslc
+          cmake --build build-ci -j2
+
+      - name: Unit tests
+        run: ctest --test-dir build-ci --output-on-failure
+
+      - name: AddressSanitizer tests
+        env:
+          COSINE_BUILD_DIR: ${{ github.workspace }}/build-asan
+          COSINE_JOBS: "2"
+        run: |
+          cmake -S . -B build-asan -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCOSINE_GLFW_WAYLAND=OFF \
+            -DCOSINE_GLFW_X11=ON \
+            -DCOSINE_SANITIZE=address \
+            -DSLANGC_EXECUTABLE="$SLANGC_EXECUTABLE" \
+            -DVulkan_GLSLC_EXECUTABLE=/usr/bin/glslc
+          cmake --build build-asan -j2
+          ctest --test-dir build-asan --output-on-failure
+
+      - name: lavapipe smoke
+        env:
+          COSINE_BUILD_DIR: ${{ github.workspace }}/build-ci
+          COSINE_SMOKE_SECONDS: "10"
+        run: xvfb-run -a ./scripts/smoke-lavapipe.sh
+
+  windows:
+    name: Windows (MSVC)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Vulkan SDK
+        run: choco install vulkan-sdk -y --no-progress
+
+      - name: Install Slang
+        shell: pwsh
+        run: |
+          $url = "https://github.com/shader-slang/slang/releases/download/v${env:SLANG_VERSION}/slang-${env:SLANG_VERSION}-windows-x86_64.zip"
+          Invoke-WebRequest -Uri $url -OutFile slang.zip
+          Expand-Archive -Path slang.zip -DestinationPath slang -Force
+          $slangc = Get-ChildItem -Path slang -Filter slangc.exe -Recurse | Select-Object -First 1
+          "SLANGC_EXECUTABLE=$($slangc.FullName)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Configure and build
+        shell: pwsh
+        run: |
+          cmake -S . -B build-ci -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_BUILD_TYPE=Debug `
+            -DSLANGC_EXECUTABLE="$env:SLANGC_EXECUTABLE"
+          cmake --build build-ci --config Debug --parallel 2
+
+      - name: Unit tests
+        run: ctest --test-dir build-ci -C Debug --output-on-failure

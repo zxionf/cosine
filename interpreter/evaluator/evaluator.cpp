@@ -6,10 +6,15 @@ using namespace xel;
 #include <cmath>
 
 Evaluator::Evaluator() {
-    _globals = new Environment();
+    _globals = alloc_environment(nullptr);
     _environment = _globals;
 
     _globals->define("clock", std::make_shared<clock>());
+}
+
+Environment* Evaluator::alloc_environment(Environment* enclosing) {
+    _environment_arena.push_back(std::make_unique<Environment>(enclosing));
+    return _environment_arena.back().get();
 }
 
 var Evaluator::visit_print_stmt(const std::shared_ptr<Print>& stmt) {
@@ -62,7 +67,7 @@ var Evaluator::visit_function_stmt(const std::shared_ptr<Function>& stmt) {
 }
 
 var Evaluator::visit_block_stmt(const std::shared_ptr<Block>& stmt) {
-    execute_block(stmt->_statements, new Environment(_environment));
+    execute_block(stmt->_statements, alloc_environment(_environment));
     return nullptr;
 }
 
