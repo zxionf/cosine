@@ -5,55 +5,56 @@
 #include <iostream>
 #include <memory>
 
-namespace
-{
-xel::event::InputEvent mouse(xel::event::InputEvent::Type type, glm::vec2 pos)
-{
-    xel::event::InputEvent event;
-    event.type = type;
-    event.mouse_pos = pos;
-    return event;
-}
-
-glm::vec2 center(const xel::ui::Widget& widget)
-{
-    const auto bounds = widget.global_bounds();
-    return {bounds.pos.x + bounds.size.x * 0.5f, bounds.pos.y + bounds.size.y * 0.5f};
-}
-} // namespace
-
 int main()
 {
     auto root = std::make_unique<xel::ui::UIRoot>(0.0f, 0.0f, 1200.0f, 800.0f);
-    auto demo = xel::demo::build(*root);
+    auto lab = xel::demo::build(*root);
 
     xel::ui::UISystem ui{std::move(root)};
     ui.tick();
 
-    assert(ui.root()->overlays().size() == 2);
-    assert(demo.debug != nullptr);
-    assert(!demo.debug->visible());
-    assert(demo.tooltip->visible());
-    assert(demo.tooltip->global_bounds().size.x > 0.0f);
-    assert(demo.scroll->content_size().y > demo.scroll->viewport_size().y);
+    assert(!lab.samples.empty());
+    assert(lab.info != nullptr);
+    assert(lab.overlay != nullptr);
+    assert(!lab.overlay->visible());
 
-    auto scroll_event = mouse(xel::event::InputEvent::Type::MouseScroll, {200.0f, 300.0f});
-    scroll_event.scroll_delta = -1.0f;
-    ui.dispatch(scroll_event);
-    assert(demo.scroll->scroll_offset() > 0.0f);
+    // 初始状态：调试层全关、像素对齐开启。
+    for (const auto* label : lab.samples) {
+        assert(!label->text_debug().any());
+        assert(label->pixel_snap());
+    }
+    assert(lab.info->text().find("glyphs: off") != std::string::npos);
+    assert(lab.info->text().find("snap: on") != std::string::npos);
 
-    ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonDown, center(*demo.button)));
-    ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonUp, center(*demo.button)));
-    assert(demo.status->text() == "clicks: 1");
+    lab.toggle_glyph_boxes();
+    assert(lab.options.glyph_boxes);
+    for (const auto* label : lab.samples) assert(label->text_debug().glyph_boxes);
+    assert(lab.info->text().find("glyphs: on") != std::string::npos);
 
-    ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonDown, center(*demo.input)));
-    ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonUp, center(*demo.input)));
+    lab.toggle_line_box();
+    assert(lab.options.line_box);
+    assert(lab.options.baseline);
+    for (const auto* label : lab.samples) {
+        assert(label->text_debug().line_box);
+        assert(label->text_debug().baseline);
+    }
 
-    xel::event::InputEvent chars;
-    chars.type = xel::event::InputEvent::Type::CharInput;
-    chars.codepoint = U'A';
-    ui.dispatch(chars);
-    assert(demo.input->text() == "A");
+    lab.toggle_advance();
+    for (const auto* label : lab.samples) assert(label->text_debug().advance);
+
+    lab.toggle_pixel_snap();
+    assert(!lab.pixel_snap);
+    for (const auto* label : lab.samples) assert(!label->pixel_snap());
+    assert(lab.info->text().find("snap: off") != std::string::npos);
+
+    // 关闭后重新开启，回到干净状态。
+    lab.toggle_glyph_boxes();
+    lab.toggle_line_box();
+    lab.toggle_advance();
+    for (const auto* label : lab.samples) assert(!label->text_debug().any());
+
+    lab.overlay->set_visible(true);
+    assert(lab.overlay->visible());
 
     std::cout << "ui demo tests passed\n";
     return 0;

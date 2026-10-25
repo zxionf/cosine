@@ -1,128 +1,167 @@
 #pragma once
 
-#include "ui/button.hpp"
-#include "ui/debug_overlay.hpp"
-#include "ui/checkbox.hpp"
+#include "graphics/text_debug.hpp"
 #include "ui/color_rect.hpp"
+#include "ui/debug_overlay.hpp"
+#include "ui/hbox.hpp"
 #include "ui/label.hpp"
 #include "ui/panel.hpp"
 #include "ui/root.hpp"
 #include "ui/scroll_view.hpp"
-#include "ui/slider.hpp"
-#include "ui/text_input.hpp"
-#include "ui/tooltip.hpp"
+#include "ui/typography.hpp"
 #include "ui/vbox.hpp"
 
 #include <cstdlib>
 #include <format>
+#include <limits>
+#include <string_view>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace xel::demo
 {
-struct UiDemo
+// 文字实验台：只放文本样例，用快捷键切换调试层与排版选项。
+struct TextLab
 {
-    ui::ScrollView* scroll = nullptr;
-    ui::Panel*      panel = nullptr;
-    ui::Label*      status = nullptr;
-    ui::Label*      value = nullptr;
-    ui::Label*      input_status = nullptr;
-    ui::Button*     button = nullptr;
-    ui::Checkbox*   checkbox = nullptr;
-    ui::Slider*     slider = nullptr;
-    ui::TextInput*  input = nullptr;
-    ui::Tooltip*    tooltip = nullptr;
-    ui::DebugOverlay* debug = nullptr;
+    graphics::TextDebugOptions options{};
+    bool pixel_snap = true;
+    std::vector<ui::Label*> samples;
+    ui::Label* info = nullptr;
+    ui::DebugOverlay* overlay = nullptr;
+
+    void refresh()
+    {
+        for (auto* label : samples) {
+            label->set_text_debug(options);
+            label->set_pixel_snap(pixel_snap);
+        }
+        if (info) {
+            info->set_text(std::format(
+                "glyphs: {}   line box: {}   baseline: {}   advance: {}   snap: {}",
+                options.glyph_boxes ? "on" : "off",
+                options.line_box ? "on" : "off",
+                options.baseline ? "on" : "off",
+                options.advance ? "on" : "off",
+                pixel_snap ? "on" : "off"));
+        }
+    }
+
+    void toggle_glyph_boxes() { options.glyph_boxes = !options.glyph_boxes; refresh(); }
+    void toggle_line_box()
+    {
+        options.line_box = !options.line_box;
+        options.baseline = options.line_box;
+        refresh();
+    }
+    void toggle_advance() { options.advance = !options.advance; refresh(); }
+    void toggle_pixel_snap() { pixel_snap = !pixel_snap; refresh(); }
 };
 
-inline UiDemo build(ui::UIRoot& root)
+inline TextLab build(ui::UIRoot& root)
 {
-    UiDemo demo;
+    TextLab lab;
 
-    auto scroll = std::make_unique<ui::ScrollView>();
-    scroll->set_pos(0.0f, 0.0f);
-    scroll->set_max_size({400.0f, 600.0f});
+    auto panel = std::make_unique<ui::Panel>(24.0f, 24.0f, 1152.0f, 752.0f);
+    panel->set_min_size({1152.0f, 752.0f});
 
-    auto content = std::make_unique<ui::Vbox>(0.0f, 0.0f, 400.0f, 600.0f);
-    for (int i = 0; i < 20; ++i) {
-        content->add(std::make_unique<ui::ColorRect>(
-            0.0f, 0.0f, 400.0f, 100.0f,
-            glm::vec4{0.0f, 1.0f - static_cast<float>(i) / 19.0f, 0.0f, 1.0f}));
+    auto content = std::make_unique<ui::Vbox>(0.0f, 0.0f, 1104.0f, 720.0f);
+    content->set_spacing(12.0f);
+    content->set_cross_align(ui::Align::top_left());
+
+    auto add_sample = [&](std::unique_ptr<ui::Label> label) {
+        lab.samples.push_back(label.get());
+        content->add(std::move(label));
+    };
+
+    auto title = std::make_unique<ui::Heading>("Text Display Lab", 1);
+    add_sample(std::move(title));
+
+    auto hint = std::make_unique<ui::Label>(
+        "F1 overlay   F2 glyph boxes   F3 line box + baseline   F4 advance   F5 pixel snap",
+        13.0f);
+    add_sample(std::move(hint));
+
+    content->add(std::make_unique<ui::ColorRect>(0.0f, 0.0f, 1104.0f, 1.0f,
+                                                 glm::vec4{1.0f, 1.0f, 1.0f, 0.12f}));
+
+    content->add(std::make_unique<ui::Heading>("Roles", 2));
+    struct RoleSample { ui::TextRole role; const char* text; };
+    const RoleSample roles[] = {
+        {ui::TextRole::Display, "Display  128"},
+        {ui::TextRole::Title, "Title  一段标题"},
+        {ui::TextRole::Heading, "Heading  二级标题"},
+        {ui::TextRole::Subheading, "Subheading  三级标题"},
+        {ui::TextRole::Body, "Body  正文 Hello, world! 你好，世界。 0123456789"},
+        {ui::TextRole::Caption, "Caption  辅助说明文字"},
+    };
+    for (const auto& sample : roles) {
+        auto label = std::make_unique<ui::Label>(sample.text);
+        ui::apply_text_role(*label, sample.role);
+        add_sample(std::move(label));
     }
-    scroll->set_content(std::move(content));
-    demo.scroll = scroll.get();
-    root.add(std::move(scroll));
 
-    auto title = std::make_unique<ui::Label>("XEL", 144.0f, glm::vec4{1.0f, 0.0f, 0.0f, 1.0f});
-    title->set_pos(700.0f, 160.0f);
-    root.add(std::move(title));
+    content->add(std::make_unique<ui::ColorRect>(0.0f, 0.0f, 1104.0f, 1.0f,
+                                                 glm::vec4{1.0f, 1.0f, 1.0f, 0.12f}));
 
-    auto panel = std::make_unique<ui::Panel>(700.0f, 460.0f, 360.0f, 280.0f);
-    panel->set_min_size({360.0f, 280.0f});
-    panel->add(std::make_unique<ui::Label>("Controls"));
+    content->add(std::make_unique<ui::Heading>("Alignment", 2));
+    const std::pair<ui::TextAlign, const char*> aligns[] = {
+        {ui::TextAlign::Left, "Left aligned text"},
+        {ui::TextAlign::Center, "Centered text"},
+        {ui::TextAlign::Right, "Right aligned text"},
+    };
+    for (const auto& [align, text] : aligns) {
+        auto label = std::make_unique<ui::Label>(text);
+        label->set_text_align(align);
+        label->set_min_size({560.0f, 0.0f});
+        add_sample(std::move(label));
+    }
 
-    auto status = std::make_unique<ui::Label>("clicks: 0");
-    demo.status = status.get();
-    panel->add(std::move(status));
+    content->add(std::make_unique<ui::ColorRect>(0.0f, 0.0f, 1104.0f, 1.0f,
+                                                 glm::vec4{1.0f, 1.0f, 1.0f, 0.12f}));
 
-    auto button = std::make_unique<ui::Button>("Click me", [status_ptr = demo.status]() {
-        static int clicks = 0;
-        ++clicks;
-        status_ptr->set_text(std::format("clicks: {}", clicks));
-    });
-    demo.button = button.get();
-    panel->add(std::move(button));
+    content->add(std::make_unique<ui::Heading>("Wrapping & line spacing", 2));
+    auto paragraph = std::make_unique<ui::Paragraph>(
+        "Wrapping keeps long sentences inside the available width. 这一行用于检查中文换行与行距。"
+        "Line spacing is configurable per label, and the measure pass stays consistent with drawing.");
+    paragraph->set_min_size({720.0f, 0.0f});
+    paragraph->set_max_size({720.0f, std::numeric_limits<float>::max()});
+    paragraph->set_line_spacing(6.0f);
+    add_sample(std::move(paragraph));
 
-    auto checkbox = std::make_unique<ui::Checkbox>("Enable feature", true);
-    demo.checkbox = checkbox.get();
-    panel->add(std::move(checkbox));
+    auto paragraph_tight = std::make_unique<ui::Paragraph>(
+        "Same paragraph with 0px extra line spacing for comparison.");
+    paragraph_tight->set_min_size({720.0f, 0.0f});
+    paragraph_tight->set_max_size({720.0f, std::numeric_limits<float>::max()});
+    add_sample(std::move(paragraph_tight));
 
-    auto value = std::make_unique<ui::Label>("value: 0.00");
-    demo.value = value.get();
+    content->add(std::make_unique<ui::ColorRect>(0.0f, 0.0f, 1104.0f, 1.0f,
+                                                 glm::vec4{1.0f, 1.0f, 1.0f, 0.12f}));
 
-    auto slider = std::make_unique<ui::Slider>(320.0f);
-    demo.slider = slider.get();
-    slider->set_on_change([value_ptr = demo.value](float v) {
-        value_ptr->set_text(std::format("value: {:.2f}", v));
-    });
-    panel->add(std::move(slider));
-    panel->add(std::move(value));
+    content->add(std::make_unique<ui::Heading>("CJK & dynamic glyphs", 2));
+    add_sample(std::make_unique<ui::Label>("中文排版：你好，世界！动态字形：囧 鑫 龘"));
+    add_sample(std::make_unique<ui::Label>("Mixed: Latin 中文 0123 — punctuation ，。！"));
 
-    auto input_status = std::make_unique<ui::Label>("input: ");
-    demo.input_status = input_status.get();
+    auto info = std::make_unique<ui::Label>("", 13.0f);
+    lab.info = info.get();
+    content->add(std::move(info));
 
-    auto input = std::make_unique<ui::TextInput>("", 320.0f);
-    demo.input = input.get();
-    input->set_on_change([input_status_ptr = demo.input_status](const std::string& text) {
-        input_status_ptr->set_text("input: " + text);
-    });
-    panel->add(std::move(input));
-    panel->add(std::move(input_status));
-
-    auto wrapped = std::make_unique<ui::Label>(
-        "This is a long wrapped label used to verify automatic line wrapping and ellipsis in the UI.");
-    wrapped->set_wrap(true);
-    wrapped->set_max_lines(2);
-    wrapped->set_ellipsis(true);
-    panel->add(std::move(wrapped));
-
-    panel->add(std::make_unique<ui::Label>("中文：你好，世界"));
-    auto cjk_input = std::make_unique<ui::TextInput>("中文输入", 320.0f);
-    panel->add(std::move(cjk_input));
-    panel->add(std::make_unique<ui::Label>("动态字形：囧"));
-
-    demo.panel = panel.get();
+    panel->add(std::move(content));
     root.add(std::move(panel));
 
-    auto tooltip = std::make_unique<ui::Tooltip>("Overlay tooltip");
-    demo.tooltip = tooltip.get();
-    root.add_overlay(std::move(tooltip));
-    demo.tooltip->show_at({720.0f, 200.0f});
+    auto overlay = std::make_unique<ui::DebugOverlay>();
+    lab.overlay = overlay.get();
+    root.add_overlay(std::move(overlay));
 
-    auto debug = std::make_unique<ui::DebugOverlay>();
-    demo.debug = debug.get();
-    if (std::getenv("COSINE_DEBUG_OVERLAY")) demo.debug->set_visible(true);
-    root.add_overlay(std::move(debug));
-    return demo;
+    if (std::getenv("COSINE_TEXT_DEBUG")) {
+        lab.options.glyph_boxes = true;
+        lab.options.line_box = true;
+        lab.options.baseline = true;
+        lab.options.advance = true;
+    }
+    if (const char* snap = std::getenv("COSINE_TEXT_SNAP")) lab.pixel_snap = std::string_view{snap} != "0";
+
+    lab.refresh();
+    return lab;
 }
 } // namespace xel::demo

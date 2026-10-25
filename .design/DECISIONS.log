@@ -205,3 +205,8 @@ Change: 20261025-m3-5-text-input-multiline
 Context: 编辑器需要多行文本输入，而 TextInput 只有单行、Enter 与 Up/Down 均不可用
 Decision: TextInput 增加 set_multiline/set_preferred_size/set_max_height：多行按行模型（line_of/line_start/line_end）导航，Enter 插入换行，Up/Down 跨行保持列位置，Home/End 行内跳转，跨行选区按行拆段绘制，内容超出高度时纵向滚动并保持光标可见；切回单行时把 \n 折叠为空格；单行路径与原有 API 行为保持不变
 Consequences: 多行输入可用于编辑器与属性面板；不做自动换行、撤销栈、IME；多行长行仅做横向裁剪，无水平滚动条
+## [42] 2026-10-25 09:02:48 UTC
+Change: 20261025-text-display-lab
+Context: 文字显示缺少可观测手段，且 Label 无法控制对齐/行距/像素对齐；ui_demo 只演示控件，无法集中评估排版
+Decision: 新增 graphics::TextDebugOptions + append_text_debug（字形盒/行框/基线/advance，绘制数学与 append_glyph 同源，并复用换行规则）；Label 增加 TextAlign、像素对齐（默认开）、line_spacing 与调试层；FontAtlas 的 measure/measure_wrapped/append_text*/append_text_wrapped 增加可选 line_spacing 参数（默认 0，保持兼容）；wrap 测量宽度取 min(constraints.x, max_size.x) 使测量与 arrange 一致；新增 ui/typography.hpp（TextRole/text_style/Heading/Paragraph）；ui_demo 改为文字实验台，F1–F5 切换调试层与像素对齐
+Consequences: 文字问题可被可视化定位；行距在测量与绘制两侧语义一致；换行控件宽度可预测；像素对齐默认开启会改变亚像素布局的绘制位置（不改变测量）；不做 kerning/SDF/IME

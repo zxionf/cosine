@@ -1,6 +1,9 @@
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/interpreter)
 
+add_executable(test_text_display test_text_display.cpp)
+target_link_libraries(test_text_display PRIVATE cosine_ui)
+
 add_executable(test_ui_text_input test_ui_text_input.cpp)
 target_link_libraries(test_ui_text_input PRIVATE cosine_ui)
 
@@ -94,6 +97,7 @@ set(COSINE_TEST_TARGETS
     test_ui_scrollbar
     test_ui_dropdown
     test_ui_text_input
+    test_text_display
     test_interpreter_token
     test_intepreter_tree_structure
     test_intepreter_tree_evaluator
@@ -127,6 +131,7 @@ add_test(NAME ui_widgets COMMAND test_ui_widgets)
 add_test(NAME ui_scrollbar COMMAND test_ui_scrollbar)
 add_test(NAME ui_dropdown COMMAND test_ui_dropdown)
 add_test(NAME ui_text_input COMMAND test_ui_text_input)
+add_test(NAME text_display COMMAND test_text_display)
 add_test(NAME text_utf8 COMMAND test_text)
 
 foreach(test_target IN LISTS COSINE_TEST_TARGETS)

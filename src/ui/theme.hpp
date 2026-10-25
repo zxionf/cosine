@@ -11,6 +11,7 @@ struct Theme
     glm::vec4 panel_border{0.25f, 0.27f, 0.30f, 1.0f};
     glm::vec4 text{0.90f, 0.92f, 0.95f, 1.0f};
     glm::vec4 text_disabled{0.50f, 0.52f, 0.55f, 1.0f};
+    glm::vec4 text_muted{0.66f, 0.69f, 0.73f, 1.0f};
 
     glm::vec4 button_bg{0.20f, 0.22f, 0.25f, 1.0f};
     glm::vec4 button_hover{0.26f, 0.29f, 0.33f, 1.0f};
@@ -62,6 +63,7 @@ struct Theme
         t.panel_border    = {0.70f, 0.72f, 0.75f, 1.0f};
         t.text            = {0.03f, 0.035f, 0.04f, 1.0f};
         t.text_disabled   = {0.42f, 0.44f, 0.47f, 1.0f};
+        t.text_muted      = {0.36f, 0.38f, 0.41f, 1.0f};
 
         t.button_bg       = {0.82f, 0.84f, 0.87f, 1.0f};
         t.button_hover    = {0.89f, 0.91f, 0.94f, 1.0f};

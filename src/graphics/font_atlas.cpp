@@ -198,7 +198,7 @@ const FontAtlas::Glyph* FontAtlas::glyph_or_fallback(char32_t codepoint) const
     return nullptr;
 }
 
-glm::vec2 FontAtlas::measure(std::string_view text, float size)
+glm::vec2 FontAtlas::measure(std::string_view text, float size, float line_spacing)
 {
     float max_w = 0.0f;
     float line_w = 0.0f;
@@ -220,7 +220,9 @@ glm::vec2 FontAtlas::measure(std::string_view text, float size)
     }
 
     max_w = std::max(max_w, line_w);
-    return {max_w, static_cast<float>(lines) * line_height(size)};
+    const float height = static_cast<float>(lines) * line_height(size)
+        + static_cast<float>(lines - 1) * std::max(0.0f, line_spacing);
+    return {max_w, height};
 }
 
 float FontAtlas::measure_width(std::string_view text, float size)
@@ -228,9 +230,10 @@ float FontAtlas::measure_width(std::string_view text, float size)
     return measure(text, size).x;
 }
 
-glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float max_width)
+glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float max_width,
+                                     float line_spacing)
 {
-    if (max_width <= 0.0f) return measure(text, size);
+    if (max_width <= 0.0f) return measure(text, size, line_spacing);
 
     float max_w = 0.0f;
     float line_w = 0.0f;
@@ -259,7 +262,9 @@ glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float ma
     }
 
     max_w = std::max(max_w, line_w);
-    return {std::min(max_w, max_width), static_cast<float>(lines) * line_height(size)};
+    const float height = static_cast<float>(lines) * line_height(size)
+        + static_cast<float>(lines - 1) * std::max(0.0f, line_spacing);
+    return {std::min(max_w, max_width), height};
 }
 
 void FontAtlas::append_glyph(DrawBatch& batch, float& pen_x, float& pen_y, float size,
@@ -312,7 +317,7 @@ void FontAtlas::append_glyph(DrawBatch& batch, float& pen_x, float& pen_y, float
 
 void FontAtlas::append_text(DrawList& list, float x, float y, float size,
                             std::string_view text, glm::vec4 color,
-                            const TextClip& clip)
+                            const TextClip& clip, float line_spacing)
 {
     if (!valid()) return;
 
@@ -326,7 +331,7 @@ void FontAtlas::append_text(DrawList& list, float x, float y, float size,
         const char32_t codepoint = utf8_decode(text, index);
         if (codepoint == U'\n') {
             pen_x = x;
-            pen_y += line_height(size);
+            pen_y += line_step(size, line_spacing);
             continue;
         }
         if (codepoint == U'\r') continue;
@@ -338,7 +343,7 @@ void FontAtlas::append_text(DrawList& list, float x, float y, float size,
 void FontAtlas::append_text_wrapped(DrawList& list, float x, float y, float size,
                                     std::string_view text, glm::vec4 color,
                                     float max_width, int max_lines, bool ellipsis,
-                                    const TextClip& clip)
+                                    const TextClip& clip, float line_spacing)
 {
     if (!valid() || max_width <= 0.0f) return;
 
@@ -372,7 +377,7 @@ void FontAtlas::append_text_wrapped(DrawList& list, float x, float y, float size
                 return;
             }
             pen_x = x;
-            pen_y += line_height(size);
+            pen_y += line_step(size, line_spacing);
             line_w = 0.0f;
             ++lines_used;
             continue;
@@ -388,7 +393,7 @@ void FontAtlas::append_text_wrapped(DrawList& list, float x, float y, float size
                 return;
             }
             pen_x = x;
-            pen_y += line_height(size);
+            pen_y += line_step(size, line_spacing);
             line_w = 0.0f;
             ++lines_used;
         }
