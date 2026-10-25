@@ -1,7 +1,12 @@
 #include "ui_demo.hpp"
 #include "xel_application.hpp"
 
-int main()
+#include <exception>
+#include <iostream>
+
+namespace
+{
+int run()
 {
     xel::Application app{1200, 800, "XEL UI Demo"};
     auto demo = xel::demo::build(*app.uisys.root());
@@ -29,4 +34,15 @@ int main()
 
     app.vulkan_context_.device().waitIdle();
     return 0;
+}
+} // namespace
+
+int main()
+{
+    try {
+        return run();
+    } catch (const std::exception& error) {
+        std::cerr << "fatal: " << error.what() << '\n';
+        return 1;
+    }
 }

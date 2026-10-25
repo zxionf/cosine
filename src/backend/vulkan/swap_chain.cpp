@@ -1,6 +1,7 @@
 #include "swap_chain.hpp"
 
 #include <iostream>
+#include <stdexcept>
 
 namespace xel::backend::vulkan
 {
@@ -65,11 +66,19 @@ void SwapChain::create_swap_chain()
 
     swap_chain_ = vk::raii::SwapchainKHR{context_.device(), swapChainCreateInfo};
     swap_chain_images_ = swap_chain_.getImages();
+    if (swap_chain_images_.empty()) {
+        throw std::runtime_error("[Swapchain] driver returned zero swapchain images");
+    }
 }
 
 void SwapChain::create_image_views()
 {
-    assert(swap_chain_image_views_.empty());
+    if (!swap_chain_image_views_.empty()) {
+        throw std::runtime_error("[Swapchain] image views already exist before creation");
+    }
+    if (swap_chain_images_.empty()) {
+        throw std::runtime_error("[Swapchain] cannot create image views: no images");
+    }
 
     vk::ImageViewCreateInfo image_view_create_info{
         .viewType = vk::ImageViewType::e2D,
@@ -84,6 +93,9 @@ void SwapChain::create_image_views()
 }
 
 vk::SurfaceFormatKHR SwapChain::choose_swap_surface_format(const std::vector<vk::SurfaceFormatKHR>& available_formats) {
+    if (available_formats.empty()) {
+        throw std::runtime_error("[Swapchain] surface exposes no formats");
+    }
     const auto format_it = std::ranges::find_if(available_formats, [](const auto& format){
         return format.format == vk::Format::eB8G8R8A8Srgb && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear;
     });
@@ -95,6 +107,9 @@ vk::PresentModeKHR SwapChain::choose_swap_chain_present_mode(const std::vector<v
     // return std::ranges::any_of(available_present_modes, [](const vk::PresentModeKHR value) { return vk::PresentModeKHR::eMailbox == value; }) ?
     //         vk::PresentModeKHR::eMailbox :
     //         vk::PresentModeKHR::eFifo;
+    if (available_present_modes.empty()) {
+        throw std::runtime_error("[Swapchain] surface exposes no present modes");
+    }
     auto result = std::ranges::any_of(available_present_modes, [](const vk::PresentModeKHR value) { return vk::PresentModeKHR::eMailbox == value; }) ?
             vk::PresentModeKHR::eMailbox :
             vk::PresentModeKHR::eFifo;

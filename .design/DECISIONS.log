@@ -150,3 +150,8 @@ Change: 20261025-m3-c-debug-metrics
 Context: M3-C 需要可观测性，但 Renderer 与 UI 不应互相依赖；调试面板需要显示帧统计和交互状态
 Decision: 新增 graphics::FrameStats/DrawStats 与 collect_draw_stats；Renderer 在 begin 统计帧间隔、在 end 统计上一帧 DrawList；新增 ui::DebugOverlay (Panel overlay, hit_testable=false)，由 demo 用 F1 或 COSINE_DEBUG_OVERLAY 控制显示
 Consequences: Renderer 暴露只读 frame_stats；overlay 无 GPU timestamp/历史曲线；F1 只在 demo 层，不污染 UI 输入抽象
+## [31] 2026-10-25 04:59:29 UTC
+Change: 20261025-m3-d-error-handling
+Context: 资源缺失、字体回退、shader 读取、Vulkan/SwapChain 失败信息过于笼统，用户无法定位搜索路径或修复方式
+Decision: 新增 AssetLocation/find_asset/require_asset 和 format_asset_error；字体/shader/Vulkan/SwapChain 错误统一带阶段前缀和路径；ui_demo 顶层 catch 输出 fatal 并返回非零；保留 asset_path 兼容接口
+Consequences: 缺失 shader 可直接看到搜索目录和 COSINE_ASSET_DIR 提示；SwapChain 空 format/present mode 不再越界；未引入日志库和异常层级

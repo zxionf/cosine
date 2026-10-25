@@ -2,9 +2,26 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace xel::backend
 {
-// 解析资源路径：依次尝试 COSINE_ASSET_DIR 环境变量、可执行文件旁的 assets/、构建期注入的目录。
+struct AssetLocation
+{
+    std::string relative;
+    std::filesystem::path path;
+    bool found = false;
+    std::vector<std::filesystem::path> searched;
+};
+
+// 按 COSINE_ASSET_DIR、可执行文件旁 assets/、构建期注入目录的顺序查找。
+AssetLocation find_asset(const std::string& relative);
+
+// 兼容旧调用：返回找到的路径；找不到时返回第一个候选路径。
 std::filesystem::path asset_path(const std::string& relative);
+
+// 找不到时抛 runtime_error，包含搜索目录与修复提示。
+std::filesystem::path require_asset(const std::string& relative);
+
+std::string format_asset_error(const AssetLocation& location);
 } // namespace xel::backend

@@ -1,6 +1,9 @@
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/interpreter)
 
+add_executable(test_asset_path test_asset_path.cpp ${PROJECT_SOURCE_DIR}/src/backend/asset_path.cpp)
+target_compile_definitions(test_asset_path PRIVATE COSINE_ASSET_DIR="${PROJECT_SOURCE_DIR}/assets")
+
 add_executable(test_debug_metrics test_debug_metrics.cpp)
 target_link_libraries(test_debug_metrics PRIVATE cosine_ui)
 
@@ -58,6 +61,7 @@ set(COSINE_TEST_TARGETS
     test_ui_context
     test_key_code
     test_debug_metrics
+    test_asset_path
     test_interpreter_token
     test_intepreter_tree_structure
     test_intepreter_tree_evaluator
@@ -83,4 +87,5 @@ add_test(NAME ui_demo COMMAND test_ui_demo)
 add_test(NAME ui_context COMMAND test_ui_context)
 add_test(NAME key_code COMMAND test_key_code)
 add_test(NAME debug_metrics COMMAND test_debug_metrics)
+add_test(NAME asset_path COMMAND test_asset_path)
 add_test(NAME text_utf8 COMMAND test_text)

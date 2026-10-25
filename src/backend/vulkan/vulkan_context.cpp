@@ -56,7 +56,7 @@ void VulkanContext::create_instance()
                                                             [required_extension](auto const &extensionProperty) { return strcmp(extensionProperty.extensionName, required_extension) == 0; });
                                                     });
     if (unsupported_extension_it != required_extensions.end()) {
-        throw std::runtime_error("Required extension not supported: " + std::string(*unsupported_extension_it));
+        throw std::runtime_error("[Vulkan] required instance extension not supported: " + std::string(*unsupported_extension_it));
     }
 
     std::vector<char const*> required_layers;
@@ -70,7 +70,7 @@ void VulkanContext::create_instance()
                                                             [required_layer](auto const &layerProperty) { return strcmp(layerProperty.layerName, required_layer) == 0; });
                                                     });
     if (unsupported_layer_it != required_layers.end()) {
-        throw std::runtime_error("Required layer not supported: " + std::string(*unsupported_layer_it));
+        throw std::runtime_error("[Vulkan] required instance layer not supported: " + std::string(*unsupported_layer_it));
     }
 
     vk::InstanceCreateInfo create_info{
@@ -102,7 +102,7 @@ void VulkanContext::create_surface(GLFWwindow* window)
 {
     VkSurfaceKHR surface;
     if (glfwCreateWindowSurface(*instance_, window, nullptr, &surface) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create window surface!");
+        throw std::runtime_error("[Vulkan] failed to create window surface (GLFW VK_ERROR)");
     }
     surface_ = vk::raii::SurfaceKHR{instance_, surface};
 }
@@ -111,14 +111,14 @@ void VulkanContext::pick_physical_device()
 {
     auto physical_devices = instance_.enumeratePhysicalDevices();
     if (physical_devices.empty()) {
-        throw std::runtime_error("failed to find GPUs with Vulkan support!");
+        throw std::runtime_error("[Vulkan] no physical devices with Vulkan support");
     }
     auto const dev_iter = std::ranges::find_if(physical_devices, [&](auto const& device) {
         std::cout << "physical device: " << device.getProperties().deviceName << std::endl;
         return is_device_suitable(device);
     });
     if (dev_iter == physical_devices.end()) {
-        throw std::runtime_error("failed to find a suitable GPU!");
+        throw std::runtime_error("[Vulkan] no suitable GPU: missing graphics/present queue or required extensions");
     }
     physical_device_ = *dev_iter;
 }
@@ -135,7 +135,7 @@ void VulkanContext::create_logical_device()
         }
     }
     if (queue_index == ~0u) {
-        throw std::runtime_error("Could not find a queue for graphics and present -> terminating");
+        throw std::runtime_error("[Vulkan] no queue family supports graphics + present on " + std::string(physical_device_.getProperties().deviceName));
     }
 
     queue_index_ = queue_index;

@@ -59,7 +59,7 @@ void Renderer::create_descriptor_set_layout()
 void Renderer::create_pipeline()
 {
     // 作色器
-    vk::raii::ShaderModule shader_module = create_shader_module(read_file(asset_path("shaders/ui.slang.spv").string()));
+    vk::raii::ShaderModule shader_module = create_shader_module(read_file(require_asset("shaders/ui.slang.spv").string()));
 
     vk::PipelineShaderStageCreateInfo vertex_shader_info{
         .stage = vk::ShaderStageFlagBits::eVertex,
@@ -233,28 +233,42 @@ void Renderer::create_texture_image()
 {
     std::string font_error;
     const auto font = graphics::find_cjk_font();
+    const auto coverage = find_asset("fonts/gb2312_level1.txt");
+
     if (!font.path.empty()) {
         graphics::FontAtlasBuildOptions options;
         options.font_path = font.path;
         options.face_index = font.face_index;
         options.pixel_size = 16;
         options.atlas_size = 2048;
-        options.coverage_file = asset_path("fonts/gb2312_level1.txt").string();
+        options.coverage_file = coverage.path.string();
+        if (!coverage.found) {
+            std::cerr << format_asset_error(coverage)
+                      << "\nwarning: continuing CJK atlas with ASCII + punctuation only\n";
+        }
 
         if (!graphics::build_font_atlas(options, font_atlas_, &font_error)) {
-            std::cerr << "warning: CJK font atlas build failed: " << font_error
-                      << "; falling back to default8.png\n";
+            std::cerr << "[Font] CJK atlas build failed: " << font_error
+                      << "\n  font: " << font.path
+                      << "\n  face: " << font.face_index
+                      << "\n  coverage: " << coverage.path
+                      << "\nwarning: falling back to default8.png\n";
         }
     }
 
     if (!font_atlas_.valid()) {
+        const auto fallback = find_asset("fonts/default8.png");
+        if (!fallback.found) {
+            throw std::runtime_error(format_asset_error(fallback));
+        }
+
         int tex_width = 0;
         int tex_height = 0;
         int tex_channels = 0;
-        stbi_uc* pixels = stbi_load(asset_path("fonts/default8.png").string().c_str(),
+        stbi_uc* pixels = stbi_load(fallback.path.string().c_str(),
                                     &tex_width, &tex_height, &tex_channels, STBI_rgb_alpha);
         if (!pixels) {
-            throw std::runtime_error("failed to load fallback font atlas: default8.png");
+            throw std::runtime_error("[Font] failed to decode fallback atlas: " + fallback.path.string());
         }
         font_atlas_.load(tex_width, tex_height, pixels);
         stbi_image_free(pixels);
@@ -266,7 +280,8 @@ void Renderer::create_texture_image()
                 return font_face_.add_glyph(atlas, codepoint);
             });
         } else {
-            std::cerr << "warning: dynamic CJK glyph loading disabled (font face load failed)\n";
+            std::cerr << "[Font] dynamic glyph loading disabled: "
+                      << font.path << " (face " << font.face_index << ")\n";
         }
     }
     const uint32_t tex_width = static_cast<uint32_t>(font_atlas_.width());
@@ -426,7 +441,7 @@ void Renderer::transition_image_layout(vk::raii::CommandBuffer& command_buffer, 
         source_stage      = vk::PipelineStageFlagBits::eTransfer;
         destination_stage = vk::PipelineStageFlagBits::eFragmentShader;
     } else {
-        throw std::invalid_argument("unsupported layout transition!");
+        throw std::invalid_argument("[Frame] unsupported image layout transition");
     }
     command_buffer.pipelineBarrier(source_stage, destination_stage, {}, {}, nullptr, barrier);
 }
@@ -499,7 +514,7 @@ uint32_t Renderer::find_memory_type(uint32_t type_filter, vk::MemoryPropertyFlag
             return i;
         }
     }
-    throw std::runtime_error("failed to find suitable memory type!");
+    throw std::runtime_error("[Vulkan] failed to find a suitable memory type");
 }
 
 std::pair<vk::raii::Buffer, vk::raii::DeviceMemory> Renderer::create_buffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
@@ -876,7 +891,7 @@ void Renderer::begin_frame()
 
     auto fence_result = context_.device().waitForFences(*in_flight_fences_[frame_index_], vk::True, UINT64_MAX);
     if (fence_result != vk::Result::eSuccess) {
-        throw std::runtime_error("failed to wait for fence!");
+        throw std::runtime_error("[Frame] failed to wait for in-flight fence");
     }
 
     auto [result, index] = swap_chain_.handle().acquireNextImage(UINT64_MAX, *present_complete_semaphores_[frame_index_], nullptr);
@@ -895,7 +910,7 @@ void Renderer::begin_frame()
     }
     if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
         assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
-        throw std::runtime_error("failed to acquire swap chain image!");
+        throw std::runtime_error("[Frame] failed to acquire swap chain image");
     }
 
     image_index_ = index;
@@ -904,7 +919,7 @@ void Renderer::begin_frame()
     if (image_index_ >= swap_chain_.images().size() ||
         image_index_ >= swap_chain_.image_views().size() ||
         image_index_ >= render_finished_semaphores_.size()) {
-        throw std::runtime_error("acquired swap chain image index is out of range!");
+        throw std::runtime_error("[Frame] acquired swap chain image index is out of range");
     }
 
     frame_acquired_ = true;
@@ -1141,7 +1156,7 @@ std::vector<char> Renderer::read_file(const std::string& filename)
 {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
-        throw std::runtime_error("failed to open file: " + filename);
+        throw std::runtime_error("[File] failed to open: " + filename + "\nhint: ensure the shader was built into assets/shaders.");
     }
     std::vector<char> buffer(file.tellg());
     file.seekg(0, std::ios::beg);
