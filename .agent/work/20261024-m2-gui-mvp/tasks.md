@@ -61,7 +61,7 @@
 - [x] E03 ScrollView / TextInput / Panel / Label / Splitter 自动裁剪
 - [x] E04 按 texture/scissor 切批
 - [x] E05 图层 / z-order：UIRoot overlay 层，Tooltip/弹窗先命中、后绘制
-- [ ] E06 render target 抽象占位
+- [x] E06 render target 抽象占位（RenderTarget 描述 + Renderer 按目标 transition/viewport/scissor）
 - [x] E07 validation 冒烟（ex4 短时运行）
 - [x] E08 裁剪 / draw list 测试
 
@@ -92,9 +92,9 @@
 - M2-B 完成：Hbox、Spacer、padding/margin、flex/grow、min/max、主轴分布、measure 缓存、ScrollView 双轴
 - M2-C 完成：Theme、FontAtlas、Label、Panel、Button、Checkbox、Slider、TextInput、List、Splitter、Tooltip；控件已接入 ex4
 - M2-D 完成：UTF-8、codepoint FontAtlas、换行/省略号、TextInput codepoint、FreeType C2 CJK 图集、D3 动态字形、fallback、字体文档与性能测试
-- M2-E 基本完成：DrawList、scissor 栈、自动裁剪、按 texture/scissor 切批、UIRoot overlay 层（Tooltip/弹窗置顶）、裁剪/图层测试
+- M2-E 完成：DrawList、scissor 栈、自动裁剪、按 texture/scissor 切批、UIRoot overlay 层（Tooltip/弹窗置顶）、裁剪/图层测试
 - 已修复面板不响应：光标坐标按 framebuffer 缩放后与布局坐标一致；debug 树保留但 ex4 已关闭，hover 视觉保留
 - 评估与问题已归档到 `docs/project_assessment.md`；R01–R18 已纳入阶段计划
 - 构建去重：新增 `cosine_text` / `cosine_ui`，共享源只编译一次；CI 默认 `-j2`；测试目标关闭 module scan
-- 7/7 ctest 通过；ex4 运行无 validation error，CJK 与动态字形（囧）均正常显示
-- 剩余：E06 render target 抽象占位；随后 M2-F demo/应用层收口
+- 8/8 ctest 通过（新增 render_target）；ex4 运行无 validation error，CJK 与动态字形（囧）均正常显示
+- M2-E 全部完成；下一步 M2-F demo/应用层收口

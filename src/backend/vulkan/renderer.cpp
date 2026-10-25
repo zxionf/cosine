@@ -658,9 +658,10 @@ void Renderer::recreate_render_finished_semaphores()
 
 void Renderer::update_push_constants()
 {
+    const vk::Extent2D extent = active_target_.valid() ? active_target_.extent : swap_chain_.extent();
     PushConstant push_constant{
-        .scale      = glm::vec2(2.0f / swap_chain_.extent().width, 2.0f / swap_chain_.extent().height),
-        .translate  = glm::vec2(-1.0f,                             -1.0f),
+        .scale      = glm::vec2(2.0f / extent.width, 2.0f / extent.height),
+        .translate  = glm::vec2(-1.0f,                -1.0f),
         .time = static_cast<float>(glfwGetTime())
     };
     command_buffers_[frame_index_].pushConstants<PushConstant>(pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, push_constant);
@@ -678,8 +679,8 @@ void Renderer::update_uniform_buffer()
     UniformBufferObject ubo;
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.view = glm::lookAt(glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swap_chain_.extent().width) / static_cast<float>(swap_chain_.extent().height), 0.1f, 10.0f);
-
+    const vk::Extent2D extent = active_target_.valid() ? active_target_.extent : swap_chain_.extent();
+    ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(extent.width) / static_cast<float>(extent.height), 0.1f, 10.0f);
     memcpy(uniform_buffers_mapped_[frame_index_], &ubo, sizeof(ubo));
 }
 
@@ -696,9 +697,10 @@ void Renderer::set_scissor(float x, float y, float w, float h)
 
 void Renderer::reset_scissor()
 {
+    const vk::Extent2D extent = active_target_.valid() ? active_target_.extent : swap_chain_.extent();
     draw_list_.set_full_clip({0.0f, 0.0f,
-                              static_cast<float>(swap_chain_.extent().width),
-                              static_cast<float>(swap_chain_.extent().height)});
+                              static_cast<float>(extent.width),
+                              static_cast<float>(extent.height)});
 }
 void Renderer::draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color)
 {
@@ -800,10 +802,26 @@ void Renderer::process_mouse_move(float x, float y)
     (void)y;
 }
 
+RenderTarget Renderer::make_swapchain_target()
+{
+    RenderTarget target;
+    target.image = swap_chain_.images()[image_index_];
+    target.view = *swap_chain_.image_views()[image_index_];
+    target.extent = swap_chain_.extent();
+    target.format = swap_chain_.surface_format().format;
+    target.initial_layout = vk::ImageLayout::eUndefined;
+    target.final_layout = vk::ImageLayout::ePresentSrcKHR;
+    target.is_swapchain = true;
+    target.image_index = image_index_;
+    return target;
+}
+
 void Renderer::begin()
 {
     begin_frame();
 
+    // 当前只有 SwapChain 目标；离屏目标后续通过同一 RenderTarget 接口接入。
+    active_target_ = frame_acquired_ ? make_swapchain_target() : RenderTarget{};
     draw_list_.clear();
     reset_scissor();
 }
@@ -856,6 +874,8 @@ void Renderer::end()
         return;
     }
 
+    const RenderTarget& target = active_target_;
+
     update_font_atlas_texture();
     update_uniform_buffer();
 
@@ -865,7 +885,7 @@ void Renderer::end()
     command_buffer.begin({});
     update_push_constants();
     upload_vertex_data();
-    begin_rendering(command_buffer);
+    begin_rendering(command_buffer, target);
     // command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
     // command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
     // command_buffer.drawIndexed(static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
@@ -880,7 +900,7 @@ void Renderer::end()
             *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
         vk::Rect2D scissor{
             .offset = {std::max(0, (int)batch.scissor.x), std::max(0, (int)batch.scissor.y)},
-            .extent = {std::min((uint32_t)batch.scissor.z, swap_chain_.extent().width), std::min((uint32_t)batch.scissor.w, swap_chain_.extent().height)}
+            .extent = {std::min((uint32_t)batch.scissor.z, target.extent.width), std::min((uint32_t)batch.scissor.w, target.extent.height)}
         };
         command_buffer.setScissor(0, scissor);
         command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {batch.vertex_offset});
@@ -888,7 +908,7 @@ void Renderer::end()
         command_buffer.drawIndexed(static_cast<uint32_t>(batch.indices.size()), 1, 0, 0, 0);
     }
 
-    end_rendering(command_buffer);
+    end_rendering(command_buffer, target);
     command_buffer.end();
     end_frame();
 }
@@ -981,28 +1001,37 @@ void Renderer::end_frame()
     frame_index_ = (frame_index_ + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void Renderer::end_rendering(vk::raii::CommandBuffer& command_buffer)
+void Renderer::end_rendering(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target)
 {
     command_buffer.endRendering();
 
-    // After rendering, transition the swapchain image to vk::ImageLayout::ePresentSrcKHR
+    // SwapChain 目标 present；离屏目标转成可采样或可拷贝布局。
+    vk::AccessFlags2        dst_access{};
+    vk::PipelineStageFlags2 dst_stage = vk::PipelineStageFlagBits2::eBottomOfPipe;
+    if (target.final_layout == vk::ImageLayout::eShaderReadOnlyOptimal) {
+        dst_access = vk::AccessFlagBits2::eShaderRead;
+        dst_stage  = vk::PipelineStageFlagBits2::eFragmentShader;
+    } else if (target.final_layout == vk::ImageLayout::eTransferSrcOptimal) {
+        dst_access = vk::AccessFlagBits2::eTransferRead;
+        dst_stage  = vk::PipelineStageFlagBits2::eTransfer;
+    }
+
     transition_image_layout(
-        image_index_,
+        target,
         vk::ImageLayout::eColorAttachmentOptimal,
-        vk::ImageLayout::ePresentSrcKHR,
-        vk::AccessFlagBits2::eColorAttachmentWrite,                // srcAccessMask
-        {},                                                        // dstAccessMask
-        vk::PipelineStageFlagBits2::eColorAttachmentOutput,        // srcStage
-        vk::PipelineStageFlagBits2::eBottomOfPipe                  // dstStage
+        target.final_layout,
+        vk::AccessFlagBits2::eColorAttachmentWrite,
+        dst_access,
+        vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+        dst_stage
     );
 }
 
-void Renderer::begin_rendering(vk::raii::CommandBuffer& command_buffer)
+void Renderer::begin_rendering(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target)
 {
-    // Before starting rendering, transition the swapchain image to vk::ImageLayout::eColorAttachmentOptimal
     transition_image_layout(
-        image_index_,
-        vk::ImageLayout::eUndefined,
+        target,
+        target.initial_layout,
         vk::ImageLayout::eColorAttachmentOptimal,
         {},                                                        // srcAccessMask (no need to wait for previous operations)
         vk::AccessFlagBits2::eColorAttachmentWrite,                // dstAccessMask
@@ -1011,13 +1040,13 @@ void Renderer::begin_rendering(vk::raii::CommandBuffer& command_buffer)
     );
     vk::ClearValue              clear_color     = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 0.0f);
     vk::RenderingAttachmentInfo attachment_info = {
-        .imageView   = swap_chain_.image_views()[image_index_],
+        .imageView   = target.view,
         .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
         .loadOp      = vk::AttachmentLoadOp::eClear,
         .storeOp     = vk::AttachmentStoreOp::eStore,
         .clearValue  = clear_color};
     vk::RenderingInfo rendering_info = {
-        .renderArea           = {.offset = {0, 0}, .extent = swap_chain_.extent()},
+        .renderArea           = {.offset = {0, 0}, .extent = target.extent},
         .layerCount           = 1,
         .colorAttachmentCount = 1,
         .pColorAttachments    = &attachment_info};
@@ -1025,40 +1054,10 @@ void Renderer::begin_rendering(vk::raii::CommandBuffer& command_buffer)
     command_buffer.beginRendering(rendering_info);
     command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *pipeline_);
 
-    float windowW = static_cast<float>(swap_chain_.extent().width);
-    float windowH = static_cast<float>(swap_chain_.extent().height);
-    // float windowAspect = windowW / windowH;
-
-    // float contentAspect = 1.0f;  // 你的内容原始宽高比，按实际改
-
-    // float vpW, vpH, vpX, vpY;
-    // if (windowAspect > contentAspect) {
-    //     // 窗口更宽，按高度适应，左右留黑边
-    //     vpH = windowH;
-    //     vpW = windowH * contentAspect;
-    //     vpX = (windowW - vpW) * 0.5f;
-    //     vpY = 0.0f;
-    // } else {
-    //     // 窗口更高，按宽度适应，上下留黑边
-    //     vpW = windowW;
-    //     vpH = windowW / contentAspect;
-    //     vpX = 0.0f;
-    //     vpY = (windowH - vpH) * 0.5f;
-    // }
-    // if (windowAspect > contentAspect) {
-    //     vpW = windowW;
-    //     vpH = windowW / contentAspect;
-    //     vpX = 0.0f;
-    //     vpY = (windowH - vpH) * 0.5f;  // 负值，上下超出
-    // } else {
-    //     vpH = windowH;
-    //     vpW = windowH * contentAspect;
-    //     vpX = (windowW - vpW) * 0.5f;  // 负值，左右超出
-    //     vpY = 0.0f;
-    // }
-    // command_buffer.setViewport(0, vk::Viewport(vpX, vpY, vpW, vpH, 0.0f, 1.0f));
+    float windowW = static_cast<float>(target.extent.width);
+    float windowH = static_cast<float>(target.extent.height);
     command_buffer.setViewport(0, vk::Viewport(0, 0, windowW, windowH, 0.0f, 1.0f));
-    command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), swap_chain_.extent()));
+    command_buffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), target.extent));
 }
 
 void Renderer::create_dynamic_buffers()
@@ -1146,7 +1145,7 @@ void Renderer::upload_vertex_data()
 }
 
 void Renderer::transition_image_layout(
-        uint32_t                imageIndex,
+        const RenderTarget&     target,
         vk::ImageLayout         old_layout,
         vk::ImageLayout         new_layout,
         vk::AccessFlags2        src_access_mask,
@@ -1163,7 +1162,7 @@ void Renderer::transition_image_layout(
             .newLayout           = new_layout,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image               = swap_chain_.images()[imageIndex],
+            .image               = target.image,
             .subresourceRange    = {
                 .aspectMask     = vk::ImageAspectFlagBits::eColor,
                 .baseMipLevel   = 0,

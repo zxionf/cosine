@@ -125,3 +125,8 @@ Change: 20261024-m2-gui-mvp
 Context: 干净构建时 font_atlas.cpp 被 5 个 target 各编译一次，UI 源被 3-4 个 target 重复编译；CI 裸 -j 在 32 核上同时启动过多 cc1plus，叠加后台 Android Studio/QEMU 导致内存耗尽
 Decision: 抽出 cosine_text（font_atlas/builder/face）和 cosine_ui（root/vbox/hbox/scroll_view/ui_system）静态库；backend、ex4、测试统一链接；CI 默认 -j2 并支持 COSINE_JOBS；全局关闭 module scan，仅 Vulkan backend/ex2/ex4 显式开启
 Consequences: 共享源只编译一次，C++ 编译边从 67 降到 49；测试不再生成 CXX_SCAN/-fmodules-ts；CI 默认低并行度避免 OOM
+## [26] 2026-10-25 02:58:43 UTC
+Change: 20261024-m2-gui-mvp
+Context: Renderer 的 begin/end_rendering 直接依赖 SwapChain 的 image/view/extent，离屏渲染和编辑器预览无法复用
+Decision: 新增 backend::vulkan::RenderTarget 描述 image/view/extent/format/initial_layout/final_layout/is_swapchain；Renderer 每帧构造 SwapChain 目标，begin/end_rendering、布局转换、viewport、scissor、push constant、UBO 均使用目标信息；离屏目标仅预留接口，不实现分配
+Consequences: 渲染路径不再硬编码 SwapChain；当前行为不变；后续离屏渲染只需构造 RenderTarget 并复用 begin/end 流程，pipeline 仍需匹配目标 format

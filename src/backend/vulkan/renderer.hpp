@@ -2,6 +2,7 @@
 
 #include "vulkan_context.hpp"
 #include "swap_chain.hpp"
+#include "render_target.hpp"
 #include "../../graphics/drawable.hpp"
 #include "../../graphics/font_atlas.hpp"
 #include "../../graphics/font_face.hpp"
@@ -80,8 +81,9 @@ private:
 
     void begin_frame();
     void end_frame();
-    void begin_rendering(vk::raii::CommandBuffer& command_buffer);
-    void end_rendering(vk::raii::CommandBuffer& command_buffer);
+    RenderTarget make_swapchain_target();
+    void begin_rendering(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target);
+    void end_rendering(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target);
 
     vk::raii::DescriptorSet& descriptor_set(uint32_t index, graphics::TextureSlot slot) { return descriptor_sets_[index * 2 + static_cast<uint32_t>(slot)]; }
 
@@ -102,7 +104,7 @@ private:
     std::vector<char> read_file(const std::string& filename);
     vk::raii::ShaderModule create_shader_module(const std::vector<char>& code) const;
     void transition_image_layout(
-        uint32_t                imageIndex,
+        const RenderTarget&     target,
         vk::ImageLayout         old_layout,
         vk::ImageLayout         new_layout,
         vk::AccessFlags2        src_access_mask,
@@ -115,6 +117,7 @@ private:
     graphics::FontAtlas font_atlas_;
     graphics::FontFace   font_face_;
     uint64_t             font_atlas_revision_ = 0;
+    RenderTarget         active_target_{};
     void update_font_atlas_texture();
 
 

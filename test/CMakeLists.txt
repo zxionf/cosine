@@ -1,6 +1,9 @@
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/interpreter)
 
+add_executable(test_render_target test_render_target.cpp)
+target_link_libraries(test_render_target PRIVATE Vulkan::Vulkan)
+
 add_executable(testglfwinit testglfwinit.cpp)
 target_link_libraries(testglfwinit PRIVATE glfw)
 
@@ -36,6 +39,7 @@ set(COSINE_TEST_TARGETS
     test_ui_events
     test_ui_controls
     test_text
+    test_render_target
     test_interpreter_token
     test_intepreter_tree_structure
     test_intepreter_tree_evaluator
@@ -56,4 +60,5 @@ set_tests_properties(
 )
 
 add_test(NAME ui_controls COMMAND test_ui_controls)
+add_test(NAME render_target COMMAND test_render_target)
 add_test(NAME text_utf8 COMMAND test_text)

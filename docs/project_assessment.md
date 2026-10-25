@@ -4,7 +4,7 @@
 > 代码基线：`e527b44`（M2-C 完成）
 > 对照文档：`.design/阶段计划.md`、`.agent/work/20261024-m2-gui-mvp/tasks.md`
 > 结论：Vulkan/UI 骨架与交互链路已成型；当前瓶颈是文本、裁剪和 demo/工程化，不是 Vulkan。
-> 更新（2026-10-24）：R03 的 UTF-8/codepoint、C2 CJK 图集与 D3 动态字形更新已落地；R01/R02/R04/R16 的 DrawList、scissor 栈与 overlay 图层已落地；R05/R06 仍待 M2-F，E06 待补。
+> 更新（2026-10-24）：R03 的 UTF-8/codepoint、C2 CJK 图集与 D3 动态字形更新已落地；R01/R02/R04/R16 的 DrawList、scissor 栈与 overlay 图层已落地；R05/R06 仍待 M2-F；E06 RenderTarget 抽象已完成。
 > 构建（2026-10-24）：`cosine_text` / `cosine_ui` 去重，共享源只编译一次；CI 默认 `-j2`，测试目标关闭 module scan。
 
 ## 1. 现状
