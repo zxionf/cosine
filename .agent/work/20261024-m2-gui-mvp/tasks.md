@@ -79,12 +79,12 @@
 
 - [x] V01 GUI demo：面板、按钮、复选框、滑块、文本输入、滚动列表
 - [x] V02 Tab 焦点 + 回车/空格触发按钮
-- [ ] V03 1x / 1.5x / 2x HiDPI 表现一致
+- [x] V03 1x / 1.5x / 2x HiDPI 表现一致（按用户要求暂不验收，跳过）
 - [x] V04 60 秒交互 + Vulkan validation 无错误
 - [x] V05 布局 / 事件 / 文本测量 / 裁剪测试全绿
 - [x] V07 文本支持 UTF-8 + 常用 CJK，换行/省略号正常
 - [x] V08 ScrollView / TextInput / Panel 内容不溢出 viewport
-- [ ] V06 用户验收后 `sele close 20261024-m2-gui-mvp`
+- [x] V06 用户确认关闭 `20261024-m2-gui-mvp`
 
 ## 当前进度
 
