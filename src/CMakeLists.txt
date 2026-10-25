@@ -9,7 +9,8 @@ add_library(cosine_text STATIC
 target_include_directories(cosine_text PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_link_libraries(cosine_text PUBLIC glm::glm freetype)
+# vertex.hpp 公开包含 <vulkan/vulkan.hpp>，因此头文件路径要传递给所有消费者。
+target_link_libraries(cosine_text PUBLIC glm::glm freetype Vulkan::Headers)
 
 # UI 库：布局、控件、事件、DrawList 消费端；测试和 ex4 不再各自重复编译。
 add_library(cosine_ui STATIC

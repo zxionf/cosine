@@ -12,3 +12,12 @@
 ## 当前进度
 
 - 本地校验完成；等待远端重跑确认
+
+## 第二轮（CMake 版本 / Vulkan 头文件）
+
+- [x] T09 定位：Linux runner CMake 3.31.6 < 项目要求的 4.0.0
+- [x] T10 新增 `Ensure CMake >= 4` 步骤：已满足则跳过，否则下载固定版本到 `/opt` 并链接
+- [x] T11 定位：`vertex.hpp` 公开包含 `<vulkan/vulkan.hpp>`，`cosine_text` 缺少头文件路径（Windows C1083）
+- [x] T12 `cosine_text` 以 PUBLIC 链接 `Vulkan::Headers`
+- [x] T13 本地验证：重新配置/编译/ctest 通过，YAML 可解析
+- [ ] T14 远端 CI 重跑确认

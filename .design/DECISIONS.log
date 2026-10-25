@@ -260,3 +260,8 @@ Change: 20261025-ci-fixes
 Context: GitHub Actions 两个 job 失败：Linux 解压后找不到 slangc，Windows 找不到 Visual Studio 实例
 Decision: Linux 不再使用 tar --strip-components，改为解压后 find 定位 slangc（兼容两种发行包布局）；Windows 放弃 VS 生成器，改用 ilammy/msvc-dev-cmd + Ninja，并显式解析 C:\VulkanSDK 写入 VULKAN_SDK；两个 job 增加工具链版本打印
 Consequences: CI 不再依赖发行包目录层级与 VS 实例探测；Windows 构建走 Ninja 单配置，ctest 不再需要 -C Debug；Windows 仍只做构建与单元测试
+## [53] 2026-10-25 13:45:14 UTC
+Change: 20261025-ci-fixes
+Context: 第二轮 CI 失败：Linux runner CMake 3.31.6 低于项目要求 4.0.0；Windows 上 cosine_text 找不到 vulkan/vulkan.hpp
+Decision: CI 增加 Ensure CMake >= 4 步骤（已满足则跳过，否则下载固定 CMAKE_VERSION 的官方二进制并链接到 /usr/local/bin）；cosine_text 以 PUBLIC 链接 Vulkan::Headers，因为 vertex.hpp 是公开头且包含 vulkan.hpp
+Consequences: Linux CI 不再受 runner 自带 CMake 版本限制；Vulkan 头文件路径随 cosine_text 传递给所有消费者（Windows 可编译）；后续新增包含 vulkan 头的公开头文件时需确保对应 target 链接 Vulkan::Headers

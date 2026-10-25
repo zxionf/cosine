@@ -63,6 +63,19 @@ SLANGC="$(find "${HOME}/tools/slang" -maxdepth 4 -type f -name slangc | head -n 
 - `find_package(Vulkan)` 依赖 `VULKAN_SDK`：Chocolatey 安装后当前会话未必有该变量，
   工作流会显式解析 `C:\VulkanSDK\<version>` 并写入 `GITHUB_ENV`。
 
+### 工具链版本
+
+- Linux runner 自带 CMake 可能是 3.x，而项目 `cmake_minimum_required(VERSION 4.0.0)`。
+  工作流在版本不足时下载固定版本的官方二进制（`CMAKE_VERSION`）并链接到 `/usr/local/bin`。
+- Windows runner 的 CMake 已满足要求，无需额外安装。
+
+### Vulkan 头文件
+
+`src/graphics/vertex.hpp` 公开包含 `<vulkan/vulkan.hpp>`，因此 `cosine_text`
+以 `PUBLIC` 链接 `Vulkan::Headers`，把 Vulkan 头文件路径传递给所有消费者。
+Linux 上系统头文件默认可见，Windows 上必须由 `find_package(Vulkan)` 提供，
+否则 `cosine_text`（字体/文本库）会因为找不到 `vulkan/vulkan.hpp` 编译失败。
+
 ## 已知限制
 
 - Windows job 只做构建与单元测试，没有窗口级运行冒烟。
