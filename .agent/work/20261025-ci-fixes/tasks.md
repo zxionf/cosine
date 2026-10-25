@@ -21,3 +21,12 @@
 - [x] T12 `cosine_text` 以 PUBLIC 链接 `Vulkan::Headers`
 - [x] T13 本地验证：重新配置/编译/ctest 通过，YAML 可解析
 - [ ] T14 远端 CI 重跑确认
+
+## 第三轮（GCC 13 模块扫描 / Windows 误跑 bash 步骤）
+
+- [x] T15 定位：`CXX_SCAN_FOR_MODULES ON` 在 GCC 13 上无法生成（无 import graph 扫描）
+- [x] T16 顶层 CMake 增加 `COSINE_CXX_MODULE_SCAN`：GCC>=14 / Clang>=16 / MSVC>=19.34 才开启
+- [x] T17 `src` 与 `examples` 的 target 属性改为条件设置
+- [x] T18 修复 Windows job 误包含 bash 版 `Ensure CMake >= 4`（awk 插入位置命中了两处）
+- [x] T19 本地验证：module scan ON（GCC 16）下编译与 25/25 ctest 通过，YAML 可解析
+- [ ] T20 远端 CI 重跑确认

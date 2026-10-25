@@ -6,7 +6,9 @@ target_link_libraries(ui_demo PRIVATE cosine_app)
 target_include_directories(ui_demo PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ui_demo
 )
-set_target_properties(ui_demo PROPERTIES CXX_SCAN_FOR_MODULES ON)
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(ui_demo PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
 add_dependencies(ui_demo shaders copy_assets)
 
 # UI gallery：分区展示全部控件与交互，M3.5 起作为 UI 打磨的验收对象。
@@ -17,7 +19,9 @@ target_link_libraries(ui_gallery PRIVATE cosine_app)
 target_include_directories(ui_gallery PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ui_gallery
 )
-set_target_properties(ui_gallery PROPERTIES CXX_SCAN_FOR_MODULES ON)
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(ui_gallery PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
 add_dependencies(ui_gallery shaders copy_assets)
 
 cosine_apply_sanitizers(ui_demo)

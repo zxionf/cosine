@@ -10,6 +10,19 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp.in"
 # 默认关闭全局 module scan，避免普通测试/图形目标被 -fmodules-ts 和 CXX_SCAN 额外消耗内存；
 # 需要 modules 的 target 在 src/CMakeLists.txt 里单独打开 CXX_SCAN_FOR_MODULES。
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
+# 只有编译器提供 import graph 依赖扫描时才打开 CXX_SCAN_FOR_MODULES，
+# 否则 CMake 生成阶段会直接报错（例如 Ubuntu 24.04 的 GCC 13）。
+# 已知支持：GCC >= 14、Clang >= 16、MSVC >= 19.34（VS 17.4）。
+set(COSINE_CXX_MODULE_SCAN OFF)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14)
+    set(COSINE_CXX_MODULE_SCAN ON)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
+    set(COSINE_CXX_MODULE_SCAN ON)
+elseif(MSVC AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.34)
+    set(COSINE_CXX_MODULE_SCAN ON)
+endif()
+message(STATUS "cosine: C++ module scan ${COSINE_CXX_MODULE_SCAN}")
 include(FetchContent)
 
 # find_package(glm CONFIG REQUIRED)

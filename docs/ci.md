@@ -69,6 +69,28 @@ SLANGC="$(find "${HOME}/tools/slang" -maxdepth 4 -type f -name slangc | head -n 
   工作流在版本不足时下载固定版本的官方二进制（`CMAKE_VERSION`）并链接到 `/usr/local/bin`。
 - Windows runner 的 CMake 已满足要求，无需额外安装。
 
+### C++ 模块扫描
+
+`src/backend/vulkan/*.hpp` 在定义了 `USE_CPP20_MODULES` 时用 `import vulkan_hpp;`，
+因此相关 target 需要 `CXX_SCAN_FOR_MODULES ON`。但 **只能** 在编译器提供
+import graph 扫描时打开，否则 CMake 生成阶段直接报错：
+
+```text
+The target named "cosine_backend" has C++ sources that may use modules, but
+the compiler does not provide a way to discover the import graph dependencies.
+```
+
+顶层 `CMakeLists.txt` 按编译器版本判断 `COSINE_CXX_MODULE_SCAN`：
+
+| 编译器 | 最低版本 |
+| --- | --- |
+| GCC | 14 |
+| Clang | 16 |
+| MSVC | 19.34（VS 17.4） |
+
+不满足时相关 target 不开启扫描（当前代码也未定义 `USE_CPP20_MODULES`，
+走 `#include <vulkan/vulkan_raii.hpp>` 回退路径）。
+
 ### Vulkan 头文件
 
 `src/graphics/vertex.hpp` 公开包含 `<vulkan/vulkan.hpp>`，因此 `cosine_text`

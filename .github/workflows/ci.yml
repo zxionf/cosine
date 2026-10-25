@@ -62,6 +62,7 @@ jobs:
           done
           hash -r
           cmake --version | head -n 1
+
       - name: Toolchain versions
         run: |
           cmake --version
@@ -114,7 +115,9 @@ jobs:
       - name: Locate Vulkan SDK
         shell: pwsh
         run: |
-          # choco 安装后当前会话不一定有新环境变量，显式从默认安装目录解析。
+          <#
+            choco 安装后当前会话不一定有新环境变量，显式从默认安装目录解析。
+          #>
           $sdk = $env:VULKAN_SDK
           if (-not $sdk -or -not (Test-Path $sdk)) {
             $dir = Get-ChildItem 'C:\VulkanSDK' -Directory -ErrorAction SilentlyContinue |
@@ -124,6 +127,7 @@ jobs:
           if (-not $sdk) { throw "Vulkan SDK not found" }
           Write-Host "VULKAN_SDK=$sdk"
           "VULKAN_SDK=$sdk" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
       - name: Install Slang
         shell: pwsh
         run: |
@@ -140,25 +144,6 @@ jobs:
         with:
           arch: x64
 
-      - name: Ensure CMake >= 4
-        env:
-          CMAKE_VERSION: "4.4.4"
-        run: |
-          # 项目 cmake_minimum_required(VERSION 4.0.0)；runner 自带的 CMake 可能更旧。
-          major="$(cmake --version | head -n 1 | sed -E 's/.*version ([0-9]+).*/\1/')"
-          if [ "${major:-0}" -ge 4 ]; then
-            echo "preinstalled CMake satisfies >= 4"
-            cmake --version | head -n 1
-            exit 0
-          fi
-          curl -fsSL -o cmake.tar.gz \
-            "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz"
-          sudo tar -xzf cmake.tar.gz -C /opt
-          for tool in cmake ctest cpack; do
-            sudo ln -sf "/opt/cmake-${CMAKE_VERSION}-linux-x86_64/bin/${tool}" "/usr/local/bin/${tool}"
-          done
-          hash -r
-          cmake --version | head -n 1
       - name: Toolchain versions
         shell: pwsh
         run: |

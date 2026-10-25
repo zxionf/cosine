@@ -265,3 +265,8 @@ Change: 20261025-ci-fixes
 Context: 第二轮 CI 失败：Linux runner CMake 3.31.6 低于项目要求 4.0.0；Windows 上 cosine_text 找不到 vulkan/vulkan.hpp
 Decision: CI 增加 Ensure CMake >= 4 步骤（已满足则跳过，否则下载固定 CMAKE_VERSION 的官方二进制并链接到 /usr/local/bin）；cosine_text 以 PUBLIC 链接 Vulkan::Headers，因为 vertex.hpp 是公开头且包含 vulkan.hpp
 Consequences: Linux CI 不再受 runner 自带 CMake 版本限制；Vulkan 头文件路径随 cosine_text 传递给所有消费者（Windows 可编译）；后续新增包含 vulkan 头的公开头文件时需确保对应 target 链接 Vulkan::Headers
+## [54] 2026-10-25 14:02:31 UTC
+Change: 20261025-ci-fixes
+Context: 第三轮 CI 失败：Linux runner 为 GCC 13，CXX_SCAN_FOR_MODULES ON 但编译器不支持 import graph 扫描；Windows job 误执行了 bash 写的 CMake 版本步骤
+Decision: 顶层 CMake 增加 COSINE_CXX_MODULE_SCAN 能力探测（GCC>=14 / Clang>=16 / MSVC>=19.34），据此条件设置各 target 的 CXX_SCAN_FOR_MODULES；CI 的 Ensure CMake 步骤只保留在 Linux job
+Consequences: GCC 13 等环境可正常生成构建文件（走 #include 回退路径）；未来启用 import vulkan_hpp 时需要编译器满足版本门槛；CI 两个 job 的步骤恢复对称

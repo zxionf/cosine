@@ -67,8 +67,10 @@ else()
     target_compile_options(cosine_backend PRIVATE -Wall -Wextra -Wshadow)
 endif()
 
-# 只有 Vulkan 头使用 C++ modules（import vulkan_hpp;），这些 target 显式开启扫描。
-set_target_properties(cosine_backend PROPERTIES CXX_SCAN_FOR_MODULES ON)
+# 只有 Vulkan 头使用 C++ modules（import vulkan_hpp;），编译器支持扫描时才开启。
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(cosine_backend PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
 
 # 应用层：窗口/Vulkan/UI 的装配与事件桥接，供 examples 复用。
 add_library(cosine_app STATIC
@@ -82,7 +84,9 @@ target_link_libraries(cosine_app PUBLIC
     cosine_ui
     cosine_backend
 )
-set_target_properties(cosine_app PROPERTIES CXX_SCAN_FOR_MODULES ON)
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(cosine_app PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
 
 add_custom_target(copy_assets ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
