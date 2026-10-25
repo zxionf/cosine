@@ -72,10 +72,10 @@
 - 首版提供一套深色主题；结构允许后续增加浅色主题。
 
 ## 文本
-- UTF-8 解码，至少 ASCII + 常用 CJK。
-- 字形 advance、line height、文本宽度、自动换行、裁剪与省略号。
-- 字体图集格式文档化；CJK 通过可配置字体路径（系统字体或仓库字体）经 FreeType 生成，具体字体来源在文本子阶段决策。
-- 后续可评估 SDF / FreeType 直接排版，但不在 M2 强制。
+- `Label::set_text_align(TextAlign)`：Left / Center / Right，按控件宽度对齐整段文本。
+- `Label::set_pixel_snap(bool)`：开启时把绘制原点对齐到整数像素，避免线性过滤导致的模糊（默认开启）。
+- `Label::set_line_spacing(float)`：行间额外间距，用于多行排版（仅影响换行测量与绘制）。
+- 以上选项不改变 `measure()` 的语义（除行距外），保证布局可预测。
 
 ## 渲染与裁剪
 - 统一 draw list：批次记录 vertex/index offset、count、scissor、texture。
@@ -108,9 +108,9 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不改变控件所有权模型（仍由父容器 `unique_ptr` 拥有）。
-- 不引入全局控件注册表，避免新增全局可变状态。
-- 令牌只用于交互目标校验，不用于控件间通信。
+- 不修改字体图集格式与生成流程。
+- 不引入新的第三方排版库。
+- `ui_demo` 由控件演示改为「文字实验台」，gallery 仍保留全部控件演示。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
@@ -196,3 +196,25 @@
 - `prune_stale_targets()` 在 `tick()` 开头、`layout()` 之前执行：
   - 令牌过期 → 直接清空（不能再调用虚函数）；
   - 令牌有效但已不在树上（overlay 待销毁）→ 先 `on_mouse_leave()` / `on_focus_lost()` 再清空。
+
+## 文字调试可视化
+- 新增 `graphics::TextDebugOptions` 与 `append_text_debug()`：在文字之上叠加
+  - 每个字形的包围盒（按 bearing/advance 计算，与绘制同源）
+  - 整段文本的行框
+  - 基线
+  - advance 竖线（字距刻度）
+- `Label` 增加 `set_text_debug(TextDebugOptions)`，与文本一起裁剪。
+- 调试绘制取主题的强调色，可 `set_text_debug_color()` 覆盖。
+
+## 排版组件
+- `ui/typography.hpp`：
+  - `TextRole`（Display / Title / Heading / Subheading / Body / Caption）
+  - `text_style(role, theme)` 返回字号与颜色
+  - `Heading`（按 level 生成 Title/Heading/Subheading）
+  - `Paragraph`（默认换行 + 省略号可配 + 对齐）
+
+## 优化点
+- 像素对齐：绘制原点取整，减少半像素采样模糊。
+- 复用 `FontAtlas` 现有 1px 字形内边距（线性采样不吸边）。
+- 多行按行绘制，行高来自字体 metrics，避免叠加误差。
+- 不在本次引入 SDF/MSDF、字距微调（kerning）与 shaping。

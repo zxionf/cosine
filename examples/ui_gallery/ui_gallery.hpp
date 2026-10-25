@@ -15,6 +15,7 @@
 #include "ui/scroll_view.hpp"
 #include "ui/slider.hpp"
 #include "ui/tab_bar.hpp"
+#include "ui/tab_view.hpp"
 #include "ui/spacer.hpp"
 #include "ui/splitter.hpp"
 #include "ui/text_input.hpp"
@@ -60,6 +61,8 @@ struct UiGallery
     ui::RadioGroup* radio_group = nullptr;
     ui::Progress* progress = nullptr;
     ui::TabBar* tab_bar = nullptr;
+    ui::TabView* tab_view = nullptr;
+    ui::Label* tab_view_state = nullptr;
     ui::Label* radio_state = nullptr;
     ui::Label* tab_state = nullptr;
     ui::Dropdown* dropdown = nullptr;
@@ -343,6 +346,41 @@ inline UiGallery build(ui::UIRoot& root)
             std::make_unique<ui::ColorRect>(0.0f, 0.0f, 300.0f, 140.0f, glm::vec4{0.24f, 0.58f, 0.38f, 1.0f}));
         gallery.splitter = splitter.get();
         section->add(std::move(splitter));
+
+        section->add(std::make_unique<ui::Label>("TabView (TabBar + page container)", 18.0f));
+        auto tab_view = std::make_unique<ui::TabView>();
+        tab_view->set_min_size({620.0f, 180.0f});
+        tab_view->set_max_size({620.0f, 180.0f});
+        {
+            auto alpha = std::make_unique<ui::Vbox>(0.0f, 0.0f, 600.0f, 120.0f);
+            alpha->set_cross_align(ui::Align::top_left());
+            alpha->add(std::make_unique<ui::Label>("Alpha page: only the selected page is hit-testable."));
+            alpha->add(std::make_unique<ui::Button>("Alpha button", [] {}));
+            tab_view->add_page("Alpha", std::move(alpha));
+
+            auto beta = std::make_unique<ui::Vbox>(0.0f, 0.0f, 600.0f, 120.0f);
+            beta->set_cross_align(ui::Align::top_left());
+            beta->add(std::make_unique<ui::Label>("Beta page: switch with click or Left/Right."));
+            auto beta_progress = std::make_unique<ui::Progress>(320.0f);
+            beta_progress->set_value(0.45f);
+            beta->add(std::move(beta_progress));
+            tab_view->add_page("Beta", std::move(beta));
+
+            auto gamma = std::make_unique<ui::Vbox>(0.0f, 0.0f, 600.0f, 120.0f);
+            gamma->set_cross_align(ui::Align::top_left());
+            gamma->add(std::make_unique<ui::Label>("Gamma page: pages are laid out eagerly."));
+            gamma->add(std::make_unique<ui::ColorRect>(0.0f, 0.0f, 320.0f, 24.0f,
+                                                       glm::vec4{0.24f, 0.58f, 0.38f, 1.0f}));
+            tab_view->add_page("Gamma", std::move(gamma));
+        }
+        auto tab_view_state = std::make_unique<ui::Label>("tab view: Alpha", 12.0f);
+        gallery.tab_view_state = tab_view_state.get();
+        tab_view->set_on_change([&gallery](int index) {
+            gallery.tab_view_state->set_text("tab view: " + gallery.tab_view->tab_bar().tabs()[static_cast<std::size_t>(index)]);
+        });
+        gallery.tab_view = tab_view.get();
+        section->add(std::move(tab_view));
+        section->add(std::move(tab_view_state));
 
         section->add(std::make_unique<ui::Label>("ScrollView (vertical, clips content)", 18.0f));
         auto scroll = detail::make_scroll(620.0f, 160.0f);

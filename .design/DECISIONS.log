@@ -215,3 +215,8 @@ Change: 20261025-text-display-lab
 Context: 除基线降部看似缺失外，所有非 16px 文字都是把 16px 图集放大绘制，导致描边模糊、降部变淡；排查确认不是裁剪（扩大裁剪区无变化）
 Decision: FontAtlas 改为按绘制尺寸栅格化：glyph key = (量化后的整数像素字号, codepoint)，GlyphLoader 增加 pixel_size 参数，FontFace::add_glyph 按目标尺寸 FT_Set_Pixel_Sizes 后重新生成；尺寸量化到整数像素并限制在 4..160；图集空间不足或未生成时自动回退基准字号缩放绘制；FontFace 缓存基准 metrics 以免尺寸切换影响行高；RenderTarget 裁剪矩形改为向下取整左上、向上取整右下，避免亚像素边缘被截掉一行
 Consequences: 任意字号都能得到按像素网格拟合的清晰字形，降部/描边不再被放大模糊；代价是每种新字号首次出现时追加字形并重传整张图集，且图集空间按字号累积（不足时优雅回退）；不再有单一 16px 基准的模糊放大
+## [44] 2026-10-25 10:13:32 UTC
+Change: 20261025-m3-5-tab-view
+Context: M3.5 需要页面容器；已有 TabBar 只有标签没有内容区
+Decision: TabView 内部把 TabBar 作为 children_[0]、页面依次排在后面，children() 直接暴露内部向量以复用命中/焦点/布局机制；切换页面用 set_visible(false) 隐藏非当前页；页面默认填满内容区（set_page_fill 可关）；所有页面都在同一内容矩形内 arrange，避免切换时重新布局
+Consequences: 命中测试与 Tab 遍历天然只覆盖当前页；TabView 的 children 里含标签栏，外部按下标访问页面需用 page(i)；不做拖拽重排/关闭按钮/懒加载
