@@ -3,6 +3,7 @@
 #include "ui/ui_system.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -52,6 +53,7 @@ int main()
     int new_calls = 0;
     int save_calls = 0;
     int quit_calls = 0;
+    int undo_calls = 0;
     int disabled_calls = 0;
 
     bar->add_menu("File", {
@@ -61,7 +63,7 @@ int main()
         xel::ui::MenuItem::make("Quit", [&quit_calls] { ++quit_calls; }, "Ctrl+Q"),
     });
     bar->add_menu("Edit", {
-        xel::ui::MenuItem::make("Undo", [] {}, "Ctrl+Z"),
+        xel::ui::MenuItem::make("Undo", [&undo_calls] { ++undo_calls; }, "Ctrl+Z"),
         xel::ui::MenuItem::make("Disabled", [&disabled_calls] { ++disabled_calls; }, {}, false),
     });
     bar->add_menu("View", {
@@ -155,6 +157,43 @@ int main()
                edit_bounds.pos.y + 16.0f + row + row * 0.5f});
     ui.tick();
     assert(disabled_calls == 0);
+
+    // 悬停切换菜单时，popup 内容必须跟着换（不能只改尺寸）。
+    bar_ptr->open(0);
+    ui.tick();
+    const auto bar_rect = bar_ptr->global_bounds();
+    const float edit_center_x = bar_rect.pos.x
+        + bar_ptr->ui_theme().padding * 2.0f + bar_ptr->ui_theme().text_size * 2.2f + 40.0f;
+    xel::event::InputEvent move;
+    move.type = InputEvent::Type::MouseMove;
+    move.mouse_pos = {edit_center_x, bar_rect.pos.y + bar_rect.size.y * 0.5f};
+    ui.dispatch(move);
+    ui.tick();
+    assert(bar_ptr->open_menu() == 1);
+
+    // 点击第一行：应触发 Edit > Undo，而不是 File > New。
+    auto* switched_popup = root_ptr->overlays().back().get();
+    const auto switched_bounds = switched_popup->global_bounds();
+    const int undo_before = undo_calls;
+    const int new_before = new_calls;
+    click(ui, {switched_bounds.pos.x + switched_bounds.size.x * 0.5f,
+               switched_bounds.pos.y + 16.0f});
+    ui.tick();
+    assert(undo_calls == undo_before + 1);
+    assert(new_calls == new_before);
+    assert(!bar_ptr->is_open());
+
+    // popup 上下 padding 对称：高度 = rows + padding*2。
+    bar_ptr->open(0);
+    ui.tick();
+    auto* file_popup = root_ptr->overlays().back().get();
+    const float popup_row_h = bar_ptr->ui_theme().control_height;
+    const float pad = bar_ptr->ui_theme().padding;
+    float expected_h = pad * 2.0f;
+    for (const auto& item : bar_ptr->items(0)) expected_h += item.separator ? 9.0f : popup_row_h;
+    assert(std::fabs(file_popup->global_bounds().size.y - expected_h) < 0.01f);
+    bar_ptr->close();
+    ui.tick();
 
     // 点击空白（scrim）关闭。
     click(ui, {900.0f, 600.0f});

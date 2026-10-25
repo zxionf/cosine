@@ -108,8 +108,8 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不做嵌套子菜单、勾选态/单选态、图标列、快捷键全局注册、菜单项动态刷新 API。
-- 不做 macOS 全局菜单栏；移动端样式不在范围内。
+- 不改变菜单位置策略（仍在标题下方，不做边界翻转）。
+- 不改菜单项字号/间距，仅修正垂直居中基准。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
@@ -129,8 +129,9 @@
 - `toggle()` 控制显示；ui_demo 用 F1 切换，`COSINE_DEBUG_OVERLAY=1` 可直接启动显示。
 
 ## 测试与边界
-- `test_asset_path` 覆盖找到/缺失/搜索目录和 `require_asset` 文本。
-- 现有测试保持通过；Vulkan 错误通过手动/冒烟验证。
+- `test_ui_menu_bar` 新增：
+  - 悬停切换后点击首行触发的是新菜单的项（Edit > Undo，而不是 File > New）
+  - 弹层高度 = 行高之和 + `padding * 2`（上下对称）
 
 ## Asset 解析错误
 - `find_asset()` 返回 `AssetLocation { path, found, searched }`，保留 `asset_path()` 兼容旧调用。
@@ -270,3 +271,13 @@
 - 关闭走 `UIRoot::remove_overlay` 延迟销毁；`close()` 幂等。
 - 菜单宽度取「标题宽度」与「内容最大宽度（含快捷键）」的较大者，最小 160px。
 - 分隔线高度 9px，普通行高 = `theme.control_height`。
+
+## 菜单可见性修复
+1. **菜单项文字垂直居中**：行内文字原来用 `text_size`（16）当高度参与居中，
+   实际行盒是 `line_height`（≈23），导致文字整体偏下。改为按 `FontAtlas::line_height(size)` 居中。
+   同一问题也存在于单行 `TextInput`（`y + (h - font_size)/2`），一并改为按行高居中。
+2. **弹层上下留白对称**：`popup_height` 原来只加了一次 `padding`（顶部留白、底部贴边），
+   改为 `padding * 2`，最后一行与底边之间有空隙。
+3. **悬停切换菜单后内容不更新**：`MenuPopup` 在创建时固定了 `menu_index_`，
+   切换菜单只更新了几何尺寸。新增 `MenuPopup::set_menu_index()`，
+   在 `update_popup_geometry()` 里同步，内容随标题切换。

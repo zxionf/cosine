@@ -230,3 +230,8 @@ Change: 20261025-m3-5-menu-bar
 Context: M3.5 需要菜单栏支撑后续编辑器外壳（M6 时间轴编辑器会用到）
 Decision: MenuBar 用『标题栏 + 全屏 scrim + popup』两层 overlay 实现；scrim 负责吞点击并把标题区 hover 转发给栏实现菜单间切换；激活项时先关闭再执行回调，保证回调可安全打开 Dialog；键盘导航支持 Down/Enter 打开、Left/Right 切菜单、Up/Down 跳过分隔与禁用项、Esc 关闭；菜单宽度按内容（含快捷键）自适应，最小 160px
 Consequences: 菜单栏可复用于编辑器外壳；不做嵌套子菜单/勾选态/图标列；菜单位置固定为标题下方（不做边界翻转）
+## [47] 2026-10-25 11:40:25 UTC
+Change: 20261025-m3-5-menu-fixes
+Context: 用户反馈三个可见问题：菜单项文字不居中、弹层上留白下贴边、悬停切换菜单后内容不跟着换
+Decision: 行内文字统一按 FontAtlas::line_height(size) 而非 text_size 做垂直居中（菜单项与单行 TextInput 同修）；popup 高度改为 padding*2；MenuPopup 增加 set_menu_index，切换菜单时同步内容来源而不重建 overlay
+Consequences: 菜单与输入框文字垂直位置正确；弹层上下留白对称；切换菜单无需重建 overlay，保持生命周期简单；后续新增含单行文字的控件应使用 line_height 居中

@@ -609,7 +609,9 @@ inline UiGallery build(ui::UIRoot& root)
         }
     }
     if (std::getenv("COSINE_GALLERY_DIALOG")) gallery.open_dialog();
-    if (std::getenv("COSINE_GALLERY_MENU") && gallery.menu_bar) gallery.menu_bar->open(0);
+    if (const char* menu = std::getenv("COSINE_GALLERY_MENU"); menu && gallery.menu_bar) {
+        gallery.menu_bar->open(std::atoi(menu));
+    }
     return gallery;
 }
 } // namespace xel::demo

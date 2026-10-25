@@ -341,7 +341,8 @@ private:
     {
         const auto& t = ui_theme();
         auto* atlas = font_atlas();
-        const float text_y = global_.pos.y + (global_.size.y - font_size) * 0.5f;
+        // 用字体行高而不是字号来垂直居中，否则文字会整体偏下。
+        const float text_y = global_.pos.y + std::max(pad, (global_.size.y - line_height()) * 0.5f);
         const float viewport_w = std::max(0.0f, global_.size.x - pad * 2.0f);
         const float cursor_px = prefix_width(cursor_, font_size);
         const float total_px = text_width(0, text_.size(), font_size);

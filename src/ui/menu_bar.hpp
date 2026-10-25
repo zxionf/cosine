@@ -118,6 +118,8 @@ public:
     int hovered() const { return hovered_; }
     void set_hovered(int index) { hovered_ = index; }
     int menu_index() const { return menu_index_; }
+    // 切换菜单时只更新内容来源，不重建 widget（overlay 生命周期保持不变）。
+    void set_menu_index(int index) { menu_index_ = index; hovered_ = -1; }
 
     float row_height() const;
     float separator_height() const;
@@ -400,7 +402,8 @@ private:
     float popup_height(int index) const
     {
         const auto& t = ui_theme();
-        float height = t.padding;
+        // 上下都要留 padding，否则第一行上方有空隙、最后一行贴底。
+        float height = t.padding * 2.0f;
         for (const auto& item : menus_[static_cast<std::size_t>(index)]) {
             height += item.separator ? 9.0f : t.control_height;
         }
@@ -434,6 +437,7 @@ private:
         const float height = popup_height(open_);
         const float x = title_left(open_);
         const float y = global_.pos.y + global_.size.y + 2.0f;
+        popup_->set_menu_index(open_);
         popup_->set_min_size({width, height});
         popup_->set_max_size({width, height});
         popup_->set_pos(x, y);
@@ -566,6 +570,7 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
     auto* atlas = owner_->font_atlas();
     float y = global_.pos.y + t.padding;
     const auto& items = menu_items(*owner_, menu_index_);
+    const float line_h = atlas ? atlas->line_height(t.text_size) : t.text_size;
 
     for (std::size_t i = 0; i < items.size(); ++i) {
         const auto& item = items[i];
@@ -588,7 +593,7 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
 
         const glm::vec4 color = item.enabled ? t.text : t.text_disabled;
         if (atlas) {
-            const float text_y = y + (row - t.text_size) * 0.5f;
+            const float text_y = y + (row - line_h) * 0.5f;
             atlas->append_text(list, global_.pos.x + t.padding * 2.0f, text_y,
                                t.text_size, item.label, color);
             if (!item.shortcut.empty()) {
