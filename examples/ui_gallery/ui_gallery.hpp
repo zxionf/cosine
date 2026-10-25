@@ -8,6 +8,7 @@
 #include "ui/dialog.hpp"
 #include "ui/hbox.hpp"
 #include "ui/label.hpp"
+#include "ui/menu_bar.hpp"
 #include "ui/list.hpp"
 #include "ui/panel.hpp"
 #include "ui/progress.hpp"
@@ -71,6 +72,8 @@ struct UiGallery
     ui::Dropdown* dropdown = nullptr;
     ui::DialogHost* dialog_host = nullptr;
     ui::Label* dialog_state = nullptr;
+    ui::MenuBar* menu_bar = nullptr;
+    ui::Label* menu_state = nullptr;
     ui::UISystem* ui_system = nullptr;
     ui::Label* dropdown_state = nullptr;
 
@@ -173,7 +176,7 @@ inline UiGallery build(ui::UIRoot& root)
 {
     UiGallery gallery;
     gallery.root = &root;
-    gallery.section_names = {"Overview", "Text", "Inputs", "Containers", "Overlays", "Layout"};
+    gallery.section_names = {"Overview", "Text", "Inputs", "Containers", "Overlays", "Menu", "Layout"};
 
     // ---------- 左侧导航 ----------
     auto nav = std::make_unique<ui::Panel>(16.0f, 16.0f, UiGallery::kNavWidth, UiGallery::kContentHeight);
@@ -475,6 +478,63 @@ inline UiGallery build(ui::UIRoot& root)
         root.add(std::move(section));
     }
 
+    // ---------- Menu ----------
+    {
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Menu")};
+        section->add(std::make_unique<ui::Label>(
+            "MenuBar: click a title to open, hover titles to switch, Esc or the backdrop closes.",
+            14.0f));
+
+        auto menu = std::make_unique<ui::MenuBar>();
+        menu->add_menu("File", {
+            ui::MenuItem::make("New", [&gallery]() {
+                if (gallery.menu_state) gallery.menu_state->set_text("menu: File > New");
+            }, "Ctrl+N"),
+            ui::MenuItem::make("Open", [&gallery]() {
+                if (gallery.menu_state) gallery.menu_state->set_text("menu: File > Open");
+            }, "Ctrl+O"),
+            ui::MenuItem::separator_item(),
+            ui::MenuItem::make("Save", [&gallery]() {
+                if (gallery.menu_state) gallery.menu_state->set_text("menu: File > Save");
+            }, "Ctrl+S"),
+            ui::MenuItem::make("Export (disabled)", [] {}, "Ctrl+E", false),
+        });
+        menu->add_menu("Edit", {
+            ui::MenuItem::make("Undo", [&gallery]() {
+                if (gallery.menu_state) gallery.menu_state->set_text("menu: Edit > Undo");
+            }, "Ctrl+Z"),
+            ui::MenuItem::make("Redo", [&gallery]() {
+                if (gallery.menu_state) gallery.menu_state->set_text("menu: Edit > Redo");
+            }, "Ctrl+Y"),
+            ui::MenuItem::separator_item(),
+            ui::MenuItem::make("Select all", [&gallery]() {
+                if (gallery.menu_state) gallery.menu_state->set_text("menu: Edit > Select all");
+            }, "Ctrl+A"),
+        });
+        menu->add_menu("View", {
+            ui::MenuItem::make("Toggle debug overlay", [&gallery]() {
+                if (gallery.debug) gallery.debug->toggle();
+                if (gallery.menu_state) gallery.menu_state->set_text("menu: View > Debug overlay");
+            }, "F1"),
+            ui::MenuItem::make("Toggle theme", [&gallery]() {
+                gallery.toggle_theme();
+                if (gallery.menu_state) gallery.menu_state->set_text("menu: View > Theme");
+            }),
+        });
+        gallery.menu_bar = menu.get();
+        section->add(std::move(menu));
+
+        auto menu_state = std::make_unique<ui::Label>("menu: none", 12.0f);
+        gallery.menu_state = menu_state.get();
+        section->add(std::move(menu_state));
+
+        section->add(std::make_unique<ui::Label>(
+            "Keyboard: focus the bar, Down/Enter opens, Up/Down moves, Left/Right switches menus, Esc closes.",
+            14.0f));
+        gallery.sections.push_back(section.get());
+        root.add(std::move(section));
+    }
+
     // ---------- Layout ----------
     {
         std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Layout")};
@@ -549,6 +609,7 @@ inline UiGallery build(ui::UIRoot& root)
         }
     }
     if (std::getenv("COSINE_GALLERY_DIALOG")) gallery.open_dialog();
+    if (std::getenv("COSINE_GALLERY_MENU") && gallery.menu_bar) gallery.menu_bar->open(0);
     return gallery;
 }
 } // namespace xel::demo

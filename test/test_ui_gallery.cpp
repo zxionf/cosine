@@ -23,8 +23,8 @@ int main()
     auto* root_ptr = ui.root();
     ui.tick();
 
-    assert(gallery.sections.size() == 6);
-    assert(gallery.nav_buttons.size() == 6);
+    assert(gallery.sections.size() == 7);
+    assert(gallery.nav_buttons.size() == 7);
     assert(gallery.sections[0]->visible());
     assert(!gallery.sections[3]->visible());
 

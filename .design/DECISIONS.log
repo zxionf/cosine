@@ -225,3 +225,8 @@ Change: 20261025-m3-5-dialog
 Context: M3.5 需要模态确认框，Dropdown 已有 scrim/延迟移除经验，但没有可复用的对话框
 Decision: Dialog 作为 Panel 卡片（标题 + 正文 Vbox + 按钮 Hbox），DialogHost 作为全屏 overlay 负责遮罩、居中、吞点击与 Esc；关闭走 root.remove_overlay 延迟销毁并保证 on_close 只触发一次；宿主可聚焦以便无按钮对话框也能用 Esc 关闭；show_dialog 便捷函数一次完成创建与挂载
 Consequences: 模态交互与 overlay 生命周期复用现有机制；点击遮罩默认关闭（可关）；不做模态栈/动画/系统对话框
+## [46] 2026-10-25 11:14:07 UTC
+Change: 20261025-m3-5-menu-bar
+Context: M3.5 需要菜单栏支撑后续编辑器外壳（M6 时间轴编辑器会用到）
+Decision: MenuBar 用『标题栏 + 全屏 scrim + popup』两层 overlay 实现；scrim 负责吞点击并把标题区 hover 转发给栏实现菜单间切换；激活项时先关闭再执行回调，保证回调可安全打开 Dialog；键盘导航支持 Down/Enter 打开、Left/Right 切菜单、Up/Down 跳过分隔与禁用项、Esc 关闭；菜单宽度按内容（含快捷键）自适应，最小 160px
+Consequences: 菜单栏可复用于编辑器外壳；不做嵌套子菜单/勾选态/图标列；菜单位置固定为标题下方（不做边界翻转）
