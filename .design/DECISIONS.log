@@ -190,3 +190,8 @@ Change: 20261025-m3-g-docs-release
 Context: ScrollView 只有滚轮、没有视觉反馈，也无法拖拽，gallery 中溢出内容不可见
 Decision: ScrollView 增加按需可见的纵向/横向滚动条：滚动条占用 viewport 空间（内容不再画在条下）；滑块长度按 content/viewport 比例、最小 20px；支持滑块拖拽与轨道翻页；Theme 增加 scrollbar_track/scrollbar_thumb 与 scrollbar_width/min_thumb；hit_testable 改为 true 以便命中滚动条；新增 test_ui_scrollbar
 Consequences: 滚动条与主题一致；拖拽按比例映射并 clamp；由于预留空间，双轴时 viewport 宽高各减 scrollbar_width+2；ScrollView 现在可作为命中目标（内容仍优先）
+## [39] 2026-10-25 08:01:55 UTC
+Change: 20261025-m3-g-docs-release
+Context: 编辑器需要下拉选择，且必须验证 overlay 命中与键盘导航；同时事件派发过程中不能直接销毁 overlay
+Decision: 新增 Dropdown：点击/空格/回车/下键展开，overlay 由全屏 DropdownScrim + DropdownList 组成（先命中遮罩，列表后加入更高）；方向键/Home/End 移动高亮，Enter 提交，Esc/Tab/点击遮罩/再次点击按钮关闭；UIRoot 新增 remove_overlay 延迟回收（trash_ 在下次 layout 释放）避免派发中悬垂指针；KeyCode 增加 Escape 并映射 GLFW_KEY_ESCAPE；列表最小宽度 160px
+Consequences: Dropdown 成为首个复用 overlay 的可交互控件；remove_overlay 提供了通用浮层关闭机制；后续 Dialog/Menu 可复用同一模式；Tab 关闭时不吞掉焦点切换

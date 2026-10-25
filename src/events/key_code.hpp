@@ -20,6 +20,7 @@ enum class KeyCode : int
     Down,
     Home,
     End,
+    Escape,
     A,
 };
 

@@ -2,6 +2,7 @@
 #include "xel/version.hpp"
 #include "xel_application.hpp"
 
+#include <cstdlib>
 #include <exception>
 #include <format>
 #include <iostream>
@@ -24,6 +25,7 @@ int run()
     auto gallery = xel::demo::build(*app.uisys.root());
 
     bool f1_prev = false;
+    bool open_dropdown_once = std::getenv("COSINE_GALLERY_DROPDOWN") != nullptr;
 
     while (!app.window_.should_close()) {
         glfwPollEvents();
@@ -54,6 +56,12 @@ int run()
         }
 
         app.uisys.tick();
+
+        if (open_dropdown_once) {
+            open_dropdown_once = false;
+            gallery.dropdown->open();
+        }
+
         app.renderer_.draw(*app.uisys.root());
         app.renderer_.end();
     }

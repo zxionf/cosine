@@ -25,6 +25,24 @@ void UIRoot::add_overlay(std::unique_ptr<Widget> child)
     mark_layout_dirty();
 }
 
+void UIRoot::remove_overlay(Widget* overlay)
+{
+    if (!overlay) return;
+    for (auto it = overlays_.begin(); it != overlays_.end(); ++it) {
+        if (it->get() == overlay) {
+            trash_.push_back(std::move(*it));
+            overlays_.erase(it);
+            mark_layout_dirty();
+            return;
+        }
+    }
+}
+
+void UIRoot::purge_trash()
+{
+    trash_.clear();
+}
+
 void UIRoot::set_theme(const Theme& value)
 {
     context_storage_.theme = value;
@@ -54,9 +72,11 @@ void UIRoot::layout_child(Widget& child)
 
 void UIRoot::layout()
 {
+    purge_trash();
     for (auto& child : children_) layout_child(*child);
     for (auto& overlay : overlays_) layout_child(*overlay);
 }
+
 glm::vec2 UIRoot::measure(glm::vec2 constraints)
 {
     (void)constraints;

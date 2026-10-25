@@ -3,6 +3,7 @@
 #include "ui/button.hpp"
 #include "ui/checkbox.hpp"
 #include "ui/color_rect.hpp"
+#include "ui/dropdown.hpp"
 #include "ui/debug_overlay.hpp"
 #include "ui/hbox.hpp"
 #include "ui/label.hpp"
@@ -58,6 +59,8 @@ struct UiGallery
     ui::TabBar* tab_bar = nullptr;
     ui::Label* radio_state = nullptr;
     ui::Label* tab_state = nullptr;
+    ui::Dropdown* dropdown = nullptr;
+    ui::Label* dropdown_state = nullptr;
 
     ui::Widget* tip_button = nullptr;
     ui::Widget* tip_watermark = nullptr;
@@ -284,6 +287,17 @@ inline UiGallery build(ui::UIRoot& root)
         progress->set_value(0.4f);
         section->add(std::move(progress));
 
+        section->add(std::make_unique<ui::Label>("Dropdown (overlay list, arrow keys)", 18.0f));
+        auto dropdown = std::make_unique<ui::Dropdown>(
+            std::vector<std::string>{"Solid", "Dashed", "Dotted"}, 0);
+        gallery.dropdown = dropdown.get();
+        dropdown->set_on_change([&gallery](int index) {
+            gallery.dropdown_state->set_text("dropdown: " + gallery.dropdown->selected_text());
+        });
+        section->add(std::move(dropdown));
+        auto dropdown_state = std::make_unique<ui::Label>("dropdown: Solid", 14.0f);
+        gallery.dropdown_state = dropdown_state.get();
+        section->add(std::move(dropdown_state));
         section->add(std::make_unique<ui::Label>("TabBar (click or Left/Right when focused)", 18.0f));
         auto tabs = std::make_unique<ui::TabBar>();
         gallery.tab_bar = tabs.get();

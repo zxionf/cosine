@@ -17,6 +17,8 @@ public:
     void add(std::unique_ptr<Widget> child) override;
     // overlay 按加入顺序叠放，后加入的在上层；尺寸由 measure 决定。
     void add_overlay(std::unique_ptr<Widget> child);
+    // 延迟移除：事件派发过程中可能仍持有目标指针，实际销毁发生在下一次 layout()。
+    void remove_overlay(Widget* overlay);
     void clear_overlays() { overlays_.clear(); mark_layout_dirty(); }
 
     // 切换主题：更新 context 并递归刷新控件缓存的样式值（如 Panel 的 padding/spacing）。
@@ -33,9 +35,11 @@ public:
 
 private:
     void layout_child(Widget& child);
+    void purge_trash();
 
     UIContext context_storage_;
     std::vector<std::unique_ptr<Widget>> children_;
     std::vector<std::unique_ptr<Widget>> overlays_;
+    std::vector<std::unique_ptr<Widget>> trash_;
 };
 } // namespace xel::ui

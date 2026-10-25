@@ -1,6 +1,9 @@
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/interpreter)
 
+add_executable(test_ui_dropdown test_ui_dropdown.cpp)
+target_link_libraries(test_ui_dropdown PRIVATE cosine_ui)
+
 add_executable(test_ui_scrollbar test_ui_scrollbar.cpp)
 target_link_libraries(test_ui_scrollbar PRIVATE cosine_ui)
 
@@ -86,6 +89,7 @@ set(COSINE_TEST_TARGETS
     test_ui_theme
     test_ui_widgets
     test_ui_scrollbar
+    test_ui_dropdown
     test_interpreter_token
     test_intepreter_tree_structure
     test_intepreter_tree_evaluator
@@ -117,6 +121,7 @@ add_test(NAME ui_gallery COMMAND test_ui_gallery)
 add_test(NAME ui_theme COMMAND test_ui_theme)
 add_test(NAME ui_widgets COMMAND test_ui_widgets)
 add_test(NAME ui_scrollbar COMMAND test_ui_scrollbar)
+add_test(NAME ui_dropdown COMMAND test_ui_dropdown)
 add_test(NAME text_utf8 COMMAND test_text)
 
 foreach(test_target IN LISTS COSINE_TEST_TARGETS)

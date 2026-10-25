@@ -19,6 +19,7 @@ xel::event::KeyCode map_key(int key)
         case GLFW_KEY_DOWN:       return xel::event::KeyCode::Down;
         case GLFW_KEY_HOME:       return xel::event::KeyCode::Home;
         case GLFW_KEY_END:        return xel::event::KeyCode::End;
+        case GLFW_KEY_ESCAPE:     return xel::event::KeyCode::Escape;
         case GLFW_KEY_A:          return xel::event::KeyCode::A;
         default:                  return xel::event::KeyCode::Unknown;
     }
