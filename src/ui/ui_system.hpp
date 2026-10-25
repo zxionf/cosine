@@ -17,6 +17,7 @@ public:
     explicit UISystem(std::unique_ptr<UIRoot> root);
 
     UIRoot* root() { return root_.get(); }
+    UIContext* context() { return root_ ? root_->context() : nullptr; }
     void tick();
 
     void dispatch(const event::InputEvent& event);

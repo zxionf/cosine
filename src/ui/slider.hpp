@@ -45,7 +45,7 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        const auto& t = theme();
+        const auto& t = ui_theme();
         const float height = std::max(t.control_height, t.slider_handle_radius * 2.0f);
         return {preferred_width_, height};
     }
@@ -59,7 +59,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = theme();
+        const auto& t = ui_theme();
         const float radius = t.slider_handle_radius;
         const float track_x = global_.pos.x + radius;
         const float track_w = std::max(0.0f, global_.size.x - radius * 2.0f);
@@ -152,7 +152,7 @@ public:
 private:
     void update_from_pos(glm::vec2 pos)
     {
-        const auto& t = theme();
+        const auto& t = ui_theme();
         const float radius = t.slider_handle_radius;
         const float track_x = global_.pos.x + radius;
         const float track_w = std::max(1.0f, global_.size.x - radius * 2.0f);

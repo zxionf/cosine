@@ -32,9 +32,9 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        const auto& t = theme();
+        const auto& t = ui_theme();
         glm::vec2 text_size{static_cast<float>(text_.size()) * t.small_text_size * 0.5f, t.small_text_size};
-        if (auto* atlas = graphics::active_font_atlas()) {
+        if (auto* atlas = font_atlas()) {
             text_size = atlas->measure(text_, t.small_text_size);
         }
         return {text_size.x + t.padding * 2.0f, text_size.y + t.padding};
@@ -49,11 +49,11 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = theme();
+        const auto& t = ui_theme();
         graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, t.tooltip_bg};
         background.append_to(list);
 
-        if (auto* atlas = graphics::active_font_atlas()) {
+        if (auto* atlas = font_atlas()) {
             atlas->append_text(list, global_.pos.x + t.padding, global_.pos.y + t.padding * 0.5f,
                                t.small_text_size, text_, t.text);
         }

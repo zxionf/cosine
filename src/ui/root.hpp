@@ -29,6 +29,7 @@ public:
 private:
     void layout_child(Widget& child);
 
+    UIContext context_storage_;
     std::vector<std::unique_ptr<Widget>> children_;
     std::vector<std::unique_ptr<Widget>> overlays_;
 };

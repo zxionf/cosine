@@ -15,6 +15,8 @@ namespace xel
 Application::Application(int window_w, int window_h, const std::string& title)
 : window_{window_w, window_h, title}, vulkan_context_{window_}, swap_chain_{vulkan_context_, window_}, renderer_{vulkan_context_, swap_chain_}, uisys{window_}
 {
+    uisys.root()->context()->font_atlas = &renderer_.font_atlas();
+
     glfwSetWindowUserPointer(window_.get_glfw_window(), this);
 
     glfwSetFramebufferSizeCallback(window_.get_glfw_window(), framebuffer_resize_callback);

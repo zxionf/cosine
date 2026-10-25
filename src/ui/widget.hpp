@@ -4,6 +4,7 @@
 #include "../graphics/line.hpp"
 #include "rect.hpp"
 #include "align.hpp"
+#include "uicontext.hpp"
 
 #include <limits>
 #include <memory>
@@ -53,6 +54,28 @@ public:
     virtual Widget* parent() const { return parent_; }
     void set_parent(Widget* parent) { parent_ = parent; }
 
+    // UIContext 沿 parent 链查找；root 持有 context，子控件不重复拥有资源。
+    virtual void set_context(UIContext* context)
+    {
+        context_ = context;
+        for (const auto& child : children()) child->set_context(context);
+        for (const auto& overlay : overlays()) overlay->set_context(context);
+    }
+    UIContext* context() const
+    {
+        if (context_) return context_;
+        return parent_ ? parent_->context() : nullptr;
+    }
+    const Theme& ui_theme() const
+    {
+        if (auto* ctx = context()) return ctx->theme;
+        return theme();
+    }
+    graphics::FontAtlas* font_atlas() const
+    {
+        if (auto* ctx = context()) return ctx->font_atlas;
+        return graphics::active_font_atlas();
+    }
     // 容器是否把子控件裁剪在自身范围内（命中测试与渲染共用同一语义）
     virtual bool clips_children() const { return false; }
 
@@ -151,6 +174,7 @@ protected:
     Align align_self_ = Align::top_left();
     bool has_align_ = false;
     Widget* parent_ = nullptr;
+    UIContext* context_ = nullptr;
     Edges padding_{};
     Edges margin_{};
     float flex_grow_ = 0.0f;

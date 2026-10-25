@@ -36,6 +36,9 @@ public:
     Renderer(VulkanContext& context, SwapChain& swap_chain);
     ~Renderer();
 
+    graphics::FontAtlas& font_atlas() { return font_atlas_; }
+    const graphics::FontAtlas& font_atlas() const { return font_atlas_; }
+
     void begin();
     void end();
 

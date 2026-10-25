@@ -15,10 +15,10 @@ class Label : public Widget
 public:
     explicit Label(std::string text, float size = 0.0f, glm::vec4 color = glm::vec4{0.0f})
         : text_{std::move(text)}, size_{size}, color_{color}
-    {
-        if (size_ <= 0.0f) size_ = theme().text_size;
-        if (color_.a == 0.0f) color_ = theme().text;
-    }
+    {}
+
+    float text_size() const { return size_ > 0.0f ? size_ : ui_theme().text_size; }
+    glm::vec4 text_color() const { return color_.a > 0.0f ? color_ : ui_theme().text; }
 
     void set_text(std::string text)
     {
@@ -35,20 +35,22 @@ public:
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        if (auto* atlas = graphics::active_font_atlas()) {
+        if (auto* atlas = font_atlas()) {
+            const float size = text_size();
             if (wrap_ && constraints.x > 0.0f && constraints.x < 1.0e8f) {
-                glm::vec2 size = atlas->measure_wrapped(text_, size_, constraints.x);
+                glm::vec2 measured = atlas->measure_wrapped(text_, size, constraints.x);
                 if (max_lines_ > 0) {
-                    size.y = std::min(size.y, static_cast<float>(max_lines_) * size_);
+                    measured.y = std::min(measured.y, static_cast<float>(max_lines_) * size);
                 }
-                return size;
+                return measured;
             }
-            return atlas->measure(text_, size_);
+            return atlas->measure(text_, size);
         }
 
-        const float advance = size_ * 0.5f;
+        const float size = text_size();
+        const float advance = size * 0.5f;
         const std::size_t count = graphics::utf8_codepoint_count(text_);
-        return {static_cast<float>(count) * advance, size_};
+        return {static_cast<float>(count) * advance, size};
     }
 
     void arrange(Rect slot) override
@@ -60,13 +62,13 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        if (auto* atlas = graphics::active_font_atlas()) {
+        if (auto* atlas = font_atlas()) {
             list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
             if (wrap_) {
-                atlas->append_text_wrapped(list, x(), y(), size_, text_, color_,
+                atlas->append_text_wrapped(list, x(), y(), text_size(), text_, text_color(),
                                            global_.size.x, max_lines_, ellipsis_);
             } else {
-                atlas->append_text(list, x(), y(), size_, text_, color_);
+                atlas->append_text(list, x(), y(), text_size(), text_, text_color());
             }
             list.pop_clip();
         }

@@ -1,6 +1,9 @@
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/interpreter)
 
+add_executable(test_ui_context test_ui_context.cpp)
+target_link_libraries(test_ui_context PRIVATE cosine_ui)
+
 add_executable(test_ui_demo test_ui_demo.cpp)
 target_include_directories(test_ui_demo PRIVATE
     ${PROJECT_SOURCE_DIR}/examples/ui_demo
@@ -47,6 +50,7 @@ set(COSINE_TEST_TARGETS
     test_text
     test_render_target
     test_ui_demo
+    test_ui_context
     test_interpreter_token
     test_intepreter_tree_structure
     test_intepreter_tree_evaluator
@@ -69,4 +73,5 @@ set_tests_properties(
 add_test(NAME ui_controls COMMAND test_ui_controls)
 add_test(NAME render_target COMMAND test_render_target)
 add_test(NAME ui_demo COMMAND test_ui_demo)
+add_test(NAME ui_context COMMAND test_ui_context)
 add_test(NAME text_utf8 COMMAND test_text)

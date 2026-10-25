@@ -10,6 +10,7 @@ void ScrollView::set_content(std::unique_ptr<Widget> c)
     content_ = nullptr;
     if (c) {
         c->set_parent(this);
+        c->set_context(context());
         content_ = c.get();
         children_.push_back(std::move(c));
     }

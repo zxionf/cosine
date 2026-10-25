@@ -42,7 +42,7 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        return {preferred_width_, theme().control_height};
+        return {preferred_width_, ui_theme().control_height};
     }
 
     void arrange(Rect slot) override
@@ -54,7 +54,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = theme();
+        const auto& t = ui_theme();
         const float font_size = t.text_size;
         const float pad = t.padding;
         const float text_y = global_.pos.y + (global_.size.y - font_size) * 0.5f;
@@ -74,7 +74,7 @@ public:
         left.append_to(list);
         right.append_to(list);
 
-        auto* atlas = graphics::active_font_atlas();
+        auto* atlas = font_atlas();
         const float viewport_w = std::max(0.0f, global_.size.x - pad * 2.0f);
         const float cursor_px = prefix_width(cursor_, font_size);
         const float total_px = prefix_width(text_.size(), font_size);
@@ -221,7 +221,7 @@ private:
     float prefix_width(size_t count, float font_size) const
     {
         const std::string prefix = text_.substr(0, count);
-        if (auto* atlas = graphics::active_font_atlas()) {
+        if (auto* atlas = font_atlas()) {
             return atlas->measure(prefix, font_size).x;
         }
         return static_cast<float>(graphics::utf8_codepoint_count(prefix)) * font_size * 0.5f;
@@ -229,7 +229,7 @@ private:
 
     size_t index_from_x(float x) const
     {
-        const auto& t = theme();
+        const auto& t = ui_theme();
         const float local_x = x - (global_.pos.x + t.padding) + scroll_offset_;
         size_t best = 0;
         float best_dist = std::numeric_limits<float>::max();

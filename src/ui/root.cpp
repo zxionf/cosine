@@ -6,11 +6,13 @@ UIRoot::UIRoot(float x, float y, float width, float height)
 {
     set_pos(x, y);
     set_size(width, height);
+    set_context(&context_storage_);
 }
 
 void UIRoot::add(std::unique_ptr<Widget> child)
 {
     child->set_parent(this);
+    child->set_context(context());
     children_.push_back(std::move(child));
     mark_layout_dirty();
 }
@@ -18,6 +20,7 @@ void UIRoot::add(std::unique_ptr<Widget> child)
 void UIRoot::add_overlay(std::unique_ptr<Widget> child)
 {
     child->set_parent(this);
+    child->set_context(context());
     overlays_.push_back(std::move(child));
     mark_layout_dirty();
 }

@@ -29,9 +29,9 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        const auto& t = theme();
+        const auto& t = ui_theme();
         float text_w = static_cast<float>(label_.size()) * t.text_size * 0.5f;
-        if (auto* atlas = graphics::active_font_atlas()) {
+        if (auto* atlas = font_atlas()) {
             text_w = atlas->measure(label_, t.text_size).x;
         }
         return {
@@ -49,7 +49,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = theme();
+        const auto& t = ui_theme();
         const float box = t.checkbox_size;
         const float bx = global_.pos.x;
         const float by = global_.pos.y + (global_.size.y - box) * 0.5f;
@@ -81,7 +81,7 @@ public:
             bottom.append_to(list);
         }
 
-        if (auto* atlas = graphics::active_font_atlas()) {
+        if (auto* atlas = font_atlas()) {
             const glm::vec2 text_size = atlas->measure(label_, t.text_size);
             const float tx = bx + box + t.spacing;
             const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;

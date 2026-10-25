@@ -24,10 +24,12 @@ public:
         children_.clear();
         if (first) {
             first->set_parent(this);
+            first->set_context(context());
             children_.push_back(std::move(first));
         }
         if (second) {
             second->set_parent(this);
+            second->set_context(context());
             children_.push_back(std::move(second));
         }
         mark_layout_dirty();
@@ -73,7 +75,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = theme();
+        const auto& t = ui_theme();
         const float handle = handle_size();
         const float x = orientation_ == Orientation::Horizontal
             ? global_.pos.x + (global_.size.x - handle) * ratio_

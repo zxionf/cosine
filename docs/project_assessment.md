@@ -41,8 +41,8 @@
 
 ### P1：可维护性与可交付性
 
-- **R07 全局可变状态**：`active_font_atlas()`、全局 `theme()` 影响多窗口/headless/测试。
-- **R08 测试偏薄**：9 个测试；缺 ASAN、lavapipe 渲染冒烟和 Windows 实测。
+- **R07（部分解决）全局可变状态**：UIContext 已接管 UI 主题/字体；`Line`/`Rectangle`/`Triangle` 的 active atlas 仍待 graphics context。
+- **R08 测试偏薄**：10 个测试；缺 ASAN、lavapipe 渲染冒烟和 Windows 实测。
 - **R09 Windows 未实测**：只有 `ci-windows.ps1`，无实际构建结果。
 - **R10 性能无度量**：每帧分配、逐批绑定、无 draw call/顶点/帧时间面板。
 - **R11 UI 耦合 GLFW**：控件直接使用 GLFW 键码。

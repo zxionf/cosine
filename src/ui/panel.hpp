@@ -14,11 +14,20 @@ public:
     Panel(float x, float y, float width, float height)
         : Vbox(x, y, width, height)
     {
-        set_padding(theme().padding);
-        set_spacing(theme().spacing);
+        set_padding(ui_theme().padding);
+        set_spacing(ui_theme().spacing);
     }
 
     explicit Panel(glm::vec2 size) : Panel(0.0f, 0.0f, size.x, size.y) {}
+
+    void set_context(UIContext* context) override
+    {
+        Widget::set_context(context);
+        if (context) {
+            set_padding(context->theme.padding);
+            set_spacing(context->theme.spacing);
+        }
+    }
 
     bool hit_testable() const override { return true; }
 
@@ -27,7 +36,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = theme();
+        const auto& t = ui_theme();
 
         graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, t.panel_bg};
         background.append_to(list);
