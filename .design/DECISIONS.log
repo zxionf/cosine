@@ -200,3 +200,8 @@ Change: 20261025-m3-5-ui-fixes
 Context: 点击 Dropdown 选项后 UISystem::hovered_ 指向已被 layout 销毁的 DropdownList，下一次鼠标移动解引用导致段错误；容器 clear_children/set_content 还会立即销毁子控件
 Decision: Widget 增加 shared_ptr<const bool> 生命周期令牌；UISystem 的 hovered/pressed/focused 改为 Target{widget, weak_ptr}，valid() 判断令牌未过期；tick() 开头在 layout 前调用 prune_stale_targets：令牌过期直接清空，已移出树则先 on_mouse_leave/on_focus_lost 再清空
 Consequences: 交互目标不再悬垂；不需要全局控件注册表；控件所有权模型不变；新增两项回归测试（Dropdown 点击、clear_children）
+## [41] 2026-10-25 08:33:49 UTC
+Change: 20261025-m3-5-text-input-multiline
+Context: 编辑器需要多行文本输入，而 TextInput 只有单行、Enter 与 Up/Down 均不可用
+Decision: TextInput 增加 set_multiline/set_preferred_size/set_max_height：多行按行模型（line_of/line_start/line_end）导航，Enter 插入换行，Up/Down 跨行保持列位置，Home/End 行内跳转，跨行选区按行拆段绘制，内容超出高度时纵向滚动并保持光标可见；切回单行时把 \n 折叠为空格；单行路径与原有 API 行为保持不变
+Consequences: 多行输入可用于编辑器与属性面板；不做自动换行、撤销栈、IME；多行长行仅做横向裁剪，无水平滚动条

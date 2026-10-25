@@ -24,6 +24,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <format>
 #include <memory>
 #include <string>
@@ -50,6 +51,8 @@ struct UiGallery
     ui::Label* scroll_state = nullptr;
     ui::Slider* slider = nullptr;
     ui::TextInput* text_input = nullptr;
+    ui::TextInput* multiline_input = nullptr;
+    ui::Label* multiline_state = nullptr;
     ui::Checkbox* checkbox = nullptr;
     ui::ScrollView* scroll_vertical = nullptr;
     ui::ScrollView* scroll_both = nullptr;
@@ -269,6 +272,21 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.input_echo = echo.get();
         section->add(std::move(echo));
 
+        section->add(std::make_unique<ui::Label>("Multiline input (Enter = newline, Up/Down)", 18.0f));
+        auto multiline = std::make_unique<ui::TextInput>("line one\nline two\nline three", 480.0f);
+        multiline->set_multiline(true);
+        multiline->set_preferred_size({480.0f, 108.0f});
+        gallery.multiline_input = multiline.get();
+        multiline->set_on_change([&gallery](const std::string& value) {
+            const std::size_t lines = 1 + static_cast<std::size_t>(
+                std::count(value.begin(), value.end(), '\n'));
+            gallery.multiline_state->set_text(std::format(
+                "multiline: {} chars, {} lines", value.size(), lines));
+        });
+        section->add(std::move(multiline));
+        auto multiline_state = std::make_unique<ui::Label>("multiline: 28 chars, 3 lines", 14.0f);
+        gallery.multiline_state = multiline_state.get();
+        section->add(std::move(multiline_state));
         section->add(std::make_unique<ui::Label>("Radio group (single selection)", 18.0f));
         auto radios = std::make_unique<ui::RadioGroup>(300.0f);
         gallery.radio_group = radios.get();

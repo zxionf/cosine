@@ -66,6 +66,6 @@ scripts/              CI、打包、冒烟脚本
 
 - GUI MVP：控件集、事件与焦点、布局、UTF-8+CJK 文本、DrawList 裁剪与 overlay、调试面板。
 - UI gallery：`examples/ui_gallery` 分区展示全部控件与交互，支持暗色/亮色主题即时切换（M3.5 起点）。
-- 新增控件：`TabBar`、`Radio`/`RadioGroup`、`Progress`、`Dropdown`；`ScrollView` 增加可见滚动条与拖拽。
+- 新增控件：`TabBar`、`Radio`/`RadioGroup`、`Progress`、`Dropdown`；`ScrollView` 可见滚动条；`TextInput` 支持多行。
 - 工程化：静态库分层、CMake 去重、资源解析错误、sanitizer、lavapipe 冒烟、打包。
 - 未完成：Windows 实测、CI 首次远端运行、安装器；动画内核与编辑器属于 M4–M6。

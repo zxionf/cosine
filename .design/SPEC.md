@@ -108,8 +108,9 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不做安装器（deb/msi）、不做签名、不做自动更新。
-- 不修改 README（由用户维护）；打包会原样复制。
+- 不改变控件所有权模型（仍由父容器 `unique_ptr` 拥有）。
+- 不引入全局控件注册表，避免新增全局可变状态。
+- 令牌只用于交互目标校验，不用于控件间通信。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。
@@ -181,3 +182,17 @@
 ## 字体与资源策略
 - 打包内置 `default8.png` 与 GB2312 一级覆盖表；CJK 仍优先系统字体，可用 `COSINE_CJK_FONT` 覆盖。
 - 不内置 CJK TTF（体积与许可证）；文档说明如何随包放置并指定。
+
+## 悬垂交互目标
+- 症状：`ui_gallery` 中点击 Dropdown 选项后下一次鼠标移动在 `ui_system.cpp` 的 `hovered_->on_mouse_leave()` 段错误。
+- 原因：点击选项触发 `Dropdown::close()` → `UIRoot::remove_overlay()` 把浮层移入 `trash_`；下一次 `tick()` 的 `layout()` 销毁它们，但 `UISystem::hovered_` 仍指向已释放的 `DropdownList`。
+- 同类路径：`Vbox::clear_children()`、`ScrollView::set_content()`、`RadioGroup::set_options()`、`List::clear_items()` 会**立即**销毁子控件，悬垂窗口更短，仅靠树校验无法覆盖。
+
+## 生命周期令牌
+- `Widget` 持有 `std::shared_ptr<const bool> alive_token_`，析构后 `weak_ptr` 过期。
+- `UISystem` 的三个交互目标改为 `Target{ Widget*, weak_ptr }`：
+  - `valid()` 同时满足指针非空与令牌未过期；
+  - 隐式转换到 `Widget*`，`operator->` 与 `explicit operator bool` 让现有事件代码基本无需改写。
+- `prune_stale_targets()` 在 `tick()` 开头、`layout()` 之前执行：
+  - 令牌过期 → 直接清空（不能再调用虚函数）；
+  - 令牌有效但已不在树上（overlay 待销毁）→ 先 `on_mouse_leave()` / `on_focus_lost()` 再清空。

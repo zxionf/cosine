@@ -13,7 +13,7 @@
 - M1 基座稳定完成
 - M2 事件 / 布局 / 控件 / 文本 / 裁剪完成
 - M3 工程化完成：UIContext、输入抽象、调试指标、错误处理、CI 质量门、打包、文档
-- `ctest` 19/19 通过；ASAN 通过；lavapipe 冒烟（ui_demo + ui_gallery）通过
+- `ctest` 20/20 通过；ASAN 通过；lavapipe 冒烟（ui_demo + ui_gallery）通过
 - `build-ci` 全新构建通过
 - `examples/ui_demo` 控件可交互，`--version` 输出 `cosine 0.3.0`
 - 分层为 `cosine_text` / `cosine_ui` / `cosine_backend` / `cosine_app`
@@ -43,7 +43,7 @@
 ### P1：可维护性与可交付性
 
 - **R07（部分解决）全局可变状态**：UIContext 已接管 UI 主题/字体；`Line`/`Rectangle`/`Triangle` 的 active atlas 仍待 graphics context。
-- **R08（部分解决）测试偏薄**：19 个测试 + ASAN + lavapipe 冒烟（ui_demo/ui_gallery）；缺 Windows 实测。
+- **R08（部分解决）测试偏薄**：20 个测试 + ASAN + lavapipe 冒烟（ui_demo/ui_gallery）；缺 Windows 实测。
 - **R09（部分解决）Windows 未实测**：新增 GitHub Actions Windows job，待首次运行确认。
 - **R10（已解决）性能无度量**：FrameStats + DebugOverlay 已提供 frame time/FPS/draw call/顶点/索引。
 - **R11（已解决）UI 耦合 GLFW**：KeyCode/Modifier 抽象；GLFW 映射只在 Application。
@@ -114,7 +114,7 @@
 
 ## 5. 质量门
 
-- `ctest` 全绿（当前 19 个）。
+- `ctest` 全绿（当前 20 个）。
 - ASAN 构建与测试通过；lavapipe 冒烟无 validation 错误。
 - `ui_demo` 连续交互 60 秒，Vulkan validation 无错误。
 - 项目自身代码无警告。
