@@ -27,8 +27,13 @@ public:
         set_pos(slot.pos);
         set_size(slot.size);
     }
-    void append_to(xel::graphics::DrawList&) const override {}
+    void append_to(xel::graphics::DrawList&) const override
+    {
+        if (draw_log) draw_log->push_back(draw_id);
+    }
 
+    bool hit_testable() const override { return hit_testable_; }
+    void set_hit_testable(bool value) { hit_testable_ = value; }
     bool focusable() const override { return focusable_; }
     void set_focusable(bool value) { focusable_ = value; }
 
@@ -55,8 +60,12 @@ public:
     int focus_gained = 0;
     int focus_lost = 0;
 
+    static inline std::vector<int>* draw_log = nullptr;
+    int draw_id = 0;
+
 private:
     bool focusable_ = false;
+    bool hit_testable_ = true;
 };
 
 class TestContainer : public Widget
@@ -217,6 +226,69 @@ int main()
         ch.codepoint = U'x';
         f.ui.dispatch(ch);
         assert(f.tree.b->chars == 1);
+    }
+
+    {
+        std::vector<int> order;
+        TestWidget::draw_log = &order;
+
+        auto root = std::make_unique<xel::ui::UIRoot>(0.0f, 0.0f, 200.0f, 200.0f);
+        auto normal = std::make_unique<TestWidget>(0.0f, 0.0f, 200.0f, 200.0f);
+        normal->draw_id = 1;
+        auto overlay = std::make_unique<TestWidget>(20.0f, 20.0f, 100.0f, 100.0f);
+        overlay->draw_id = 2;
+        auto* normal_ptr = normal.get();
+        auto* overlay_ptr = overlay.get();
+        root->add(std::move(normal));
+        root->add_overlay(std::move(overlay));
+
+        xel::ui::UISystem ui{std::move(root)};
+        ui.tick();
+
+        xel::graphics::DrawList list;
+        list.set_full_clip({0.0f, 0.0f, 200.0f, 200.0f});
+        ui.root()->append_to(list);
+        assert(order.size() == 2);
+        assert(order[0] == 1 && order[1] == 2);
+
+        auto mouse = [](xel::event::InputEvent::Type type, glm::vec2 pos) {
+            xel::event::InputEvent e;
+            e.type = type;
+            e.mouse_pos = pos;
+            return e;
+        };
+
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonDown, {50.0f, 50.0f}));
+        assert(overlay_ptr->down == 1);
+        assert(normal_ptr->down == 0);
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonUp, {50.0f, 50.0f}));
+        assert(overlay_ptr->up == 1);
+
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonDown, {150.0f, 150.0f}));
+        assert(normal_ptr->down == 1);
+
+        TestWidget::draw_log = nullptr;
+    }
+
+    {
+        auto root = std::make_unique<xel::ui::UIRoot>(0.0f, 0.0f, 200.0f, 200.0f);
+        auto normal = std::make_unique<TestWidget>(0.0f, 0.0f, 200.0f, 200.0f);
+        auto pass = std::make_unique<TestWidget>(0.0f, 0.0f, 200.0f, 200.0f);
+        pass->set_hit_testable(false);
+        auto* normal_ptr = normal.get();
+        auto* pass_ptr = pass.get();
+        root->add(std::move(normal));
+        root->add_overlay(std::move(pass));
+
+        xel::ui::UISystem ui{std::move(root)};
+        ui.tick();
+
+        xel::event::InputEvent down;
+        down.type = xel::event::InputEvent::Type::MouseButtonDown;
+        down.mouse_pos = {50.0f, 50.0f};
+        ui.dispatch(down);
+        assert(normal_ptr->down == 1);
+        assert(pass_ptr->down == 0);
     }
 
     std::cout << "ui event tests passed\n";

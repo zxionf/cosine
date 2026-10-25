@@ -22,12 +22,17 @@ bool collect_hit_path(xel::ui::Widget* widget, glm::vec2 pos, std::vector<xel::u
 
     path.push_back(widget);
 
+    // overlay 层优先命中，其次才是普通子项；两者内部都按后加入者优先。
+    const auto& overlays = widget->overlays();
+    for (auto it = overlays.rbegin(); it != overlays.rend(); ++it) {
+        if (collect_hit_path(it->get(), pos, path)) return true;
+    }
+
     // 顶层优先命中
     const auto& children = widget->children();
     for (auto it = children.rbegin(); it != children.rend(); ++it) {
         if (collect_hit_path(it->get(), pos, path)) return true;
     }
-
     // 只在自己可命中时才返回自己
     if (widget->hit_testable() && widget->global_bounds().contains(pos)) return true;
 
@@ -105,6 +110,10 @@ void UISystem::collect_focusable(Widget* widget, std::vector<Widget*>& out) cons
 {
     if (!widget || !widget->visible()) return;
     if (widget->focusable()) out.push_back(widget);
+    // overlay 处于顶层，Tab 顺序也优先进入。
+    for (const auto& overlay : widget->overlays()) {
+        collect_focusable(overlay.get(), out);
+    }
     for (const auto& child : widget->children()) {
         collect_focusable(child.get(), out);
     }

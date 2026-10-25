@@ -4,25 +4,21 @@ include_directories(${PROJECT_SOURCE_DIR}/interpreter)
 add_executable(testglfwinit testglfwinit.cpp)
 target_link_libraries(testglfwinit PRIVATE glfw)
 
-add_executable(test_ui_layout
-    test_ui_layout.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/vbox.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/hbox.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/root.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/scroll_view.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas.cpp
-)
-target_link_libraries(test_ui_layout PRIVATE glm::glm)
+add_executable(test_ui_layout test_ui_layout.cpp)
+target_link_libraries(test_ui_layout PRIVATE cosine_ui)
 
-add_executable(test_ui_events
-    test_ui_events.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/ui_system.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/vbox.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/root.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/scroll_view.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas.cpp
+add_executable(test_ui_events test_ui_events.cpp)
+target_link_libraries(test_ui_events PRIVATE cosine_ui)
+
+add_executable(test_ui_controls test_ui_controls.cpp)
+target_link_libraries(test_ui_controls PRIVATE cosine_ui)
+
+add_executable(test_text test_text.cpp)
+target_include_directories(test_text PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
+    ${STB_INCLUDE_DIR}
 )
-target_link_libraries(test_ui_events PRIVATE glm::glm glfw)
+target_link_libraries(test_text PRIVATE cosine_text glfw)
 
 file(GLOB_RECURSE interpreter_test
     ${PROJECT_SOURCE_DIR}/interpreter/*.cpp
@@ -32,6 +28,19 @@ list(FILTER interpreter_test EXCLUDE REGEX "main.cpp")
 add_executable(test_interpreter_token test_interpreter_token.cpp ../interpreter/token.cpp ../interpreter/lexer.cpp)
 add_executable(test_intepreter_tree_structure test_intepreter_tree_structure.cpp ${interpreter_test})
 add_executable(test_intepreter_tree_evaluator test_intepreter_tree_evaluator.cpp ${interpreter_test})
+
+# 测试不使用 C++ modules；显式关闭，避免额外 CXX_SCAN 进程和 -fmodules-ts 开销。
+set(COSINE_TEST_TARGETS
+    testglfwinit
+    test_ui_layout
+    test_ui_events
+    test_ui_controls
+    test_text
+    test_interpreter_token
+    test_intepreter_tree_structure
+    test_intepreter_tree_evaluator
+)
+set_target_properties(${COSINE_TEST_TARGETS} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 
 add_test(NAME ui_layout COMMAND test_ui_layout)
 add_test(NAME ui_events COMMAND test_ui_events)
@@ -46,29 +55,5 @@ set_tests_properties(
     PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-add_executable(test_ui_controls
-    test_ui_controls.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/ui_system.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/root.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/vbox.cpp
-    ${PROJECT_SOURCE_DIR}/src/ui/scroll_view.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas.cpp
-)
-target_link_libraries(test_ui_controls PRIVATE glm::glm glfw)
 add_test(NAME ui_controls COMMAND test_ui_controls)
-
-add_executable(test_text
-    test_text.cpp
-    ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas.cpp
-)
-target_include_directories(test_text PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
-    ${STB_INCLUDE_DIR}
-)
-target_link_libraries(test_text PRIVATE glm::glm glfw)
 add_test(NAME text_utf8 COMMAND test_text)
-
-target_sources(test_text PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/font_atlas_builder.cpp)
-target_link_libraries(test_text PRIVATE freetype)
-
-target_sources(test_text PRIVATE ${PROJECT_SOURCE_DIR}/src/graphics/font_face.cpp)

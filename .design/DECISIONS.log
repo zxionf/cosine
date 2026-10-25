@@ -115,3 +115,13 @@ Change: 20261024-m2-gui-mvp
 Context: M2-E 需要真正的裁剪栈和按 scissor/texture 切批，而原来所有绘制写进单个 DrawBatch
 Decision: 引入 graphics::DrawList：维护 clip 栈、当前 texture 与多个 DrawBatch；Drawable::append_to 改为接收 DrawList；ScrollView/TextInput/Panel/Label/Splitter 自动 push/pop clip；Renderer 从 DrawList 上传并按批次设置 scissor/descriptor
 Consequences: 裁剪与切批由绘制期自动处理；ex4 的手动 scissor 仍保留兼容，M2-F 再移除；显式 overlay/z-order 与 render target 仍待做
+## [24] 2026-10-25 02:30:08 UTC
+Change: 20261024-m2-gui-mvp
+Context: E05 需要 Tooltip/弹窗稳定置顶，且不能因为控件加入顺序被普通子项覆盖
+Decision: UIRoot 增加独立 overlay 子项层：普通子项先绘制，overlay 后绘制；命中测试和 Tab 顺序先 overlay；overlay 尺寸走 measure，位置用局部坐标
+Consequences: Tooltip/弹窗只需 add_overlay 即可置顶；普通容器仍按 children 顺序绘制；显式数值 z-index 暂不引入，overlay 内部按加入顺序叠放
+## [25] 2026-10-25 02:44:06 UTC
+Change: 20261024-m2-gui-mvp
+Context: 干净构建时 font_atlas.cpp 被 5 个 target 各编译一次，UI 源被 3-4 个 target 重复编译；CI 裸 -j 在 32 核上同时启动过多 cc1plus，叠加后台 Android Studio/QEMU 导致内存耗尽
+Decision: 抽出 cosine_text（font_atlas/builder/face）和 cosine_ui（root/vbox/hbox/scroll_view/ui_system）静态库；backend、ex4、测试统一链接；CI 默认 -j2 并支持 COSINE_JOBS；全局关闭 module scan，仅 Vulkan backend/ex2/ex4 显式开启
+Consequences: 共享源只编译一次，C++ 编译边从 67 降到 49；测试不再生成 CXX_SCAN/-fmodules-ts；CI 默认低并行度避免 OOM

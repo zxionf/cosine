@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 4.0.0)
 project(cosvideo)
 
 set(CMAKE_CXX_STANDARD 20)
+# 项目只在 Vulkan 头（import vulkan_hpp;）使用 C++ modules。
+# 默认关闭全局 module scan，避免普通测试/图形目标被 -fmodules-ts 和 CXX_SCAN 额外消耗内存；
+# 需要 modules 的 target 在 src/CMakeLists.txt 里单独打开 CXX_SCAN_FOR_MODULES。
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 include(FetchContent)
 
 # find_package(glm CONFIG REQUIRED)
@@ -66,8 +70,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
-add_subdirectory(test)
-
-add_subdirectory(interpreter)
-
 add_subdirectory(src)
+add_subdirectory(test)
+add_subdirectory(interpreter)

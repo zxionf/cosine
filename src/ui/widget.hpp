@@ -9,6 +9,7 @@
 #include <memory>
 #include <optional>
 #include <stdexcept>
+#include <vector>
 
 namespace xel::ui
 {
@@ -47,6 +48,8 @@ public:
         throw std::logic_error("Widget::add is not supported by this widget");
     }
     virtual const std::vector<std::unique_ptr<Widget>>& children() const { static const std::vector<std::unique_ptr<Widget>> empty; return empty; }
+    // overlay 是顶层绘制/命中层：root 先绘制普通子项，再绘制 overlay；命中测试反向进行。
+    virtual const std::vector<std::unique_ptr<Widget>>& overlays() const { static const std::vector<std::unique_ptr<Widget>> empty; return empty; }
     virtual Widget* parent() const { return parent_; }
     void set_parent(Widget* parent) { parent_ = parent; }
 
@@ -68,6 +71,7 @@ public:
     {
         if (is_debug()) debug_rect(list);
         for (const auto& child : children()) child->append_debug_tree(list);
+        for (const auto& overlay : overlays()) overlay->append_debug_tree(list);
     }
     void debug_rect(graphics::DrawList& list) const {
         auto [x, y, w, h] = global_;

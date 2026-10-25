@@ -60,13 +60,14 @@
 - [x] E02 裁剪栈（容器 push/pop scissor）
 - [x] E03 ScrollView / TextInput / Panel / Label / Splitter 自动裁剪
 - [x] E04 按 texture/scissor 切批
-- [ ] E05 图层 / z-order，弹窗/Tooltip 置顶（当前按绘制顺序，显式 overlay 层待做）
+- [x] E05 图层 / z-order：UIRoot overlay 层，Tooltip/弹窗先命中、后绘制
 - [ ] E06 render target 抽象占位
 - [x] E07 validation 冒烟（ex4 短时运行）
 - [x] E08 裁剪 / draw list 测试
 
 ## M2-F 应用层与 demo 收口
 
+- [x] F00 CMake 构建去重：`cosine_text` / `cosine_ui`，CI 默认 `-j2`，测试关闭 module scan
 - [ ] F01 删除 ex4 手动 scroll->on_scroll/measure/arrange，统一走 UISystem
 - [ ] F02 Renderer 的 draw_frame / F11 截图 / 空 process_mouse_move 移出应用层
 - [ ] F03 形成 examples/ui_demo 作为 M2 验收对象
@@ -91,8 +92,9 @@
 - M2-B 完成：Hbox、Spacer、padding/margin、flex/grow、min/max、主轴分布、measure 缓存、ScrollView 双轴
 - M2-C 完成：Theme、FontAtlas、Label、Panel、Button、Checkbox、Slider、TextInput、List、Splitter、Tooltip；控件已接入 ex4
 - M2-D 完成：UTF-8、codepoint FontAtlas、换行/省略号、TextInput codepoint、FreeType C2 CJK 图集、D3 动态字形、fallback、字体文档与性能测试
-- M2-E 基本完成：DrawList、scissor 栈、ScrollView/TextInput/Panel/Label/Splitter 自动裁剪、按 texture/scissor 切批、裁剪测试
+- M2-E 基本完成：DrawList、scissor 栈、自动裁剪、按 texture/scissor 切批、UIRoot overlay 层（Tooltip/弹窗置顶）、裁剪/图层测试
 - 已修复面板不响应：光标坐标按 framebuffer 缩放后与布局坐标一致；debug 树保留但 ex4 已关闭，hover 视觉保留
 - 评估与问题已归档到 `docs/project_assessment.md`；R01–R18 已纳入阶段计划
+- 构建去重：新增 `cosine_text` / `cosine_ui`，共享源只编译一次；CI 默认 `-j2`；测试目标关闭 module scan
 - 7/7 ctest 通过；ex4 运行无 validation error，CJK 与动态字形（囧）均正常显示
-- 剩余：E05 显式 overlay/z-order、E06 render target 占位；随后 M2-F demo/应用层收口
+- 剩余：E06 render target 抽象占位；随后 M2-F demo/应用层收口

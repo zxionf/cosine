@@ -12,6 +12,7 @@
 #include "ui/checkbox.hpp"
 #include "ui/slider.hpp"
 #include "ui/text_input.hpp"
+#include "ui/tooltip.hpp"
 
 #include <format>
 
@@ -104,6 +105,11 @@ int main()
     panel->add(std::move(cjk_input));
     panel->add(std::make_unique<xel::ui::Label>("动态字形：囧"));
     app.uisys.root()->add(std::move(panel));
+
+    auto tooltip = std::make_unique<xel::ui::Tooltip>("Overlay tooltip");
+    auto* tooltip_ptr = tooltip.get();
+    app.uisys.root()->add_overlay(std::move(tooltip));
+    tooltip_ptr->show_at({720.0f, 200.0f});
     while (!app.window_.should_close())
     {
         glfwPollEvents();
