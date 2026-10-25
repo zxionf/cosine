@@ -27,12 +27,27 @@ jobs:
 
       - name: Install Slang
         run: |
+          # 归档布局在不同版本间可能变化（顶层目录 or 直接 bin/），
+          # 解压后用 find 定位 slangc，避免 strip-components 猜错层级。
           curl -fsSL -o slang.tar.gz \
             "https://github.com/shader-slang/slang/releases/download/v${SLANG_VERSION}/slang-${SLANG_VERSION}-linux-x86_64.tar.gz"
           mkdir -p "${HOME}/tools/slang"
-          tar -xzf slang.tar.gz -C "${HOME}/tools/slang" --strip-components=1
-          "${HOME}/tools/slang/bin/slangc" -v
-          echo "SLANGC_EXECUTABLE=${HOME}/tools/slang/bin/slangc" >> "$GITHUB_ENV"
+          tar -xzf slang.tar.gz -C "${HOME}/tools/slang"
+          SLANGC="$(find "${HOME}/tools/slang" -maxdepth 4 -type f -name slangc | head -n 1)"
+          if [ -z "$SLANGC" ]; then
+            echo "slangc not found; archive layout:"
+            find "${HOME}/tools/slang" -maxdepth 3 | head -n 50
+            exit 1
+          fi
+          chmod +x "$SLANGC"
+          "$SLANGC" -v
+          echo "SLANGC_EXECUTABLE=${SLANGC}" >> "$GITHUB_ENV"
+
+      - name: Toolchain versions
+        run: |
+          cmake --version
+          ninja --version
+          g++ --version | head -n 1
 
       - name: Configure and build
         run: |
@@ -77,6 +92,19 @@ jobs:
       - name: Install Vulkan SDK
         run: choco install vulkan-sdk -y --no-progress
 
+      - name: Locate Vulkan SDK
+        shell: pwsh
+        run: |
+          # choco 安装后当前会话不一定有新环境变量，显式从默认安装目录解析。
+          $sdk = $env:VULKAN_SDK
+          if (-not $sdk -or -not (Test-Path $sdk)) {
+            $dir = Get-ChildItem 'C:\VulkanSDK' -Directory -ErrorAction SilentlyContinue |
+              Sort-Object Name -Descending | Select-Object -First 1
+            if ($dir) { $sdk = $dir.FullName }
+          }
+          if (-not $sdk) { throw "Vulkan SDK not found" }
+          Write-Host "VULKAN_SDK=$sdk"
+          "VULKAN_SDK=$sdk" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
       - name: Install Slang
         shell: pwsh
         run: |
@@ -84,15 +112,33 @@ jobs:
           Invoke-WebRequest -Uri $url -OutFile slang.zip
           Expand-Archive -Path slang.zip -DestinationPath slang -Force
           $slangc = Get-ChildItem -Path slang -Filter slangc.exe -Recurse | Select-Object -First 1
+          if (-not $slangc) { throw "slangc.exe not found in archive" }
+          Write-Host "slangc: $($slangc.FullName)"
           "SLANGC_EXECUTABLE=$($slangc.FullName)" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Toolchain versions
+        shell: pwsh
+        run: |
+          cmake --version
+          ninja --version
 
       - name: Configure and build
         shell: pwsh
         run: |
-          cmake -S . -B build-ci -G "Visual Studio 17 2022" -A x64 `
+          cmake -S . -B build-ci -G Ninja `
             -DCMAKE_BUILD_TYPE=Debug `
             -DSLANGC_EXECUTABLE="$env:SLANGC_EXECUTABLE"
-          cmake --build build-ci --config Debug --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build-ci --parallel 2
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Unit tests
-        run: ctest --test-dir build-ci -C Debug --output-on-failure
+        shell: pwsh
+        run: |
+          ctest --test-dir build-ci --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

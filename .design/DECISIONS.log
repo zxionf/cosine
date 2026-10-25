@@ -255,3 +255,8 @@ Change: 20261025-m3-5-table
 Context: M6 编辑器需要表格（资源浏览器/属性列表），M3.5 先补齐基础表格控件
 Decision: Table 采用『固定表头 + 正文裁剪 + 自绘滚动条』的单控件实现（不套 ScrollView），列宽支持固定与弹性（<=0 均分剩余宽度），选中行高亮 + hover + 斑马纹，键盘 Up/Down/Home/End 自动滚动；同时把 Rectangle 的半透明颜色改为预乘 alpha 以匹配管线混合模式
 Consequences: 表格可直接用于资源列表；半透明矩形（选区/遮罩/斑马纹/高亮）颜色恢复正常；不做列宽拖拽/排序/多选/单元格编辑/横向滚动
+## [52] 2026-10-25 13:16:46 UTC
+Change: 20261025-ci-fixes
+Context: GitHub Actions 两个 job 失败：Linux 解压后找不到 slangc，Windows 找不到 Visual Studio 实例
+Decision: Linux 不再使用 tar --strip-components，改为解压后 find 定位 slangc（兼容两种发行包布局）；Windows 放弃 VS 生成器，改用 ilammy/msvc-dev-cmd + Ninja，并显式解析 C:\VulkanSDK 写入 VULKAN_SDK；两个 job 增加工具链版本打印
+Consequences: CI 不再依赖发行包目录层级与 VS 实例探测；Windows 构建走 Ninja 单配置，ctest 不再需要 -C Debug；Windows 仍只做构建与单元测试

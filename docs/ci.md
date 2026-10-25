@@ -40,13 +40,33 @@ COSINE_SMOKE_SECONDS=30 ./scripts/smoke-lavapipe.sh
 `.github/workflows/ci.yml` 包含两个 job：
 
 - **Linux**：GCC + Ninja，X11 版 GLFW，`ctest`，ASAN 构建与测试，`xvfb-run` + lavapipe 冒烟。
-- **Windows**：MSVC，Chocolatey 安装 Vulkan SDK，构建与 `ctest`。
+- **Windows**：MSVC（`ilammy/msvc-dev-cmd` + Ninja），Chocolatey 安装 Vulkan SDK，构建与 `ctest`。
 
 两个 job 都通过仓库脚本或等价命令构建，避免 CI 与本地命令分叉。
 Slang 版本固定在工作流顶部的 `SLANG_VERSION`，升级时同步更新。
 
+### Slang 安装
+
+不同版本的发行包布局并不一致（有的顶层直接是 `bin/`，有的多一层目录），
+因此工作流不使用 `--strip-components`，而是解压后 `find` 定位 `slangc`：
+
+```bash
+SLANGC="$(find "${HOME}/tools/slang" -maxdepth 4 -type f -name slangc | head -n 1)"
+```
+
+找不到时会打印归档前 50 个条目再失败，便于定位版本差异。
+
+### Windows 构建器
+
+- 不使用 `-G "Visual Studio 17 2022"`（镜像上 VS 实例探测不稳定），
+  改为 `ilammy/msvc-dev-cmd@v1` 设置 MSVC 环境 + `-G Ninja`。
+- `find_package(Vulkan)` 依赖 `VULKAN_SDK`：Chocolatey 安装后当前会话未必有该变量，
+  工作流会显式解析 `C:\VulkanSDK\<version>` 并写入 `GITHUB_ENV`。
+
 ## 已知限制
 
 - Windows job 只做构建与单元测试，没有窗口级运行冒烟。
+- 工作流要求 CMake >= 4.0.0（项目 `cmake_minimum_required`），镜像自带的 CMake 版本需满足。
+- Slang 归档布局随版本变化，定位逻辑在 `docs/ci.md` 有说明。
 - lavapipe 冒烟只验证启动与 validation 干净，不做像素比对。
 - 未启用 clang / 多编译器矩阵。

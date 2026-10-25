@@ -1,6 +1,6 @@
 # Agent State
 
-Active Change: 无
-Phase: M3.5 UI 打磨（Table 完成）
+Active Change: 20261025-ci-fixes
+Phase: CI 修复（等待远端重跑确认）
 Blocked: 无
-Next: TreeView、Tooltip 延迟与翻转、Grid/Wrap 布局、控件状态样式统一
+Next: 远端 CI 通过后关闭；M3.5 继续 TreeView
