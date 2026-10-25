@@ -55,6 +55,10 @@ public:
     virtual Widget* parent() const { return parent_; }
     void set_parent(Widget* parent) { parent_ = parent; }
 
+    // 生命周期令牌：容器可能直接销毁子控件（如 clear_children），
+    // UISystem 用 weak_ptr 判断保存的指针是否仍然有效，避免悬垂解引用。
+    const std::shared_ptr<const bool>& alive_token() const { return alive_token_; }
+
     // UIContext 沿 parent 链查找；root 持有 context，子控件不重复拥有资源。
     virtual void set_context(UIContext* context)
     {
@@ -176,6 +180,7 @@ protected:
     bool has_align_ = false;
     Widget* parent_ = nullptr;
     UIContext* context_ = nullptr;
+    std::shared_ptr<const bool> alive_token_ = std::make_shared<const bool>(true);
     Edges padding_{};
     Edges margin_{};
     float flex_grow_ = 0.0f;

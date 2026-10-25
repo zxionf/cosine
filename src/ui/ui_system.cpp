@@ -40,6 +40,19 @@ bool collect_hit_path(xel::ui::Widget* widget, glm::vec2 pos, std::vector<xel::u
     path.pop_back();
     return false;
 }
+
+bool tree_contains(const xel::ui::Widget* widget, const xel::ui::Widget* target)
+{
+    if (!widget) return false;
+    if (widget == target) return true;
+    for (const auto& child : widget->children()) {
+        if (tree_contains(child.get(), target)) return true;
+    }
+    for (const auto& overlay : widget->overlays()) {
+        if (tree_contains(overlay.get(), target)) return true;
+    }
+    return false;
+}
 } // namespace
 
 namespace xel::ui
@@ -57,8 +70,45 @@ UISystem::UISystem(std::unique_ptr<UIRoot> root) : root_{std::move(root)}
     }
 }
 
+void UISystem::prune_stale_targets()
+{
+    // 两种失效路径：
+    // 1) 控件已被容器直接销毁（令牌过期）——不能再调用任何虚函数；
+    // 2) 控件还在，但已从树上移除（如 overlay 被移除，layout 时才销毁）——
+    //    先通知 leave/lost，再清理目标。
+    auto in_tree = [this](Widget* widget) {
+        return widget != nullptr && tree_contains(root_.get(), widget);
+    };
+
+    if (hovered_.widget) {
+        if (!hovered_.valid()) {
+            hovered_.clear();
+        } else if (!in_tree(hovered_.widget)) {
+            hovered_->set_hovered(false);
+            hovered_->on_mouse_leave();
+            hovered_.clear();
+        }
+    }
+
+    if (pressed_.widget && (!pressed_.valid() || !in_tree(pressed_.widget))) {
+        pressed_.clear();
+    }
+
+    if (focused_.widget) {
+        if (!focused_.valid()) {
+            focused_.clear();
+        } else if (!in_tree(focused_.widget)) {
+            focused_->on_focus_lost();
+            focused_.clear();
+        }
+    }
+}
+
 void UISystem::tick()
 {
+    // 先清理悬垂目标，再触发 layout（layout 会销毁已移除的 overlay）。
+    prune_stale_targets();
+
     bool resized = false;
     if (window_) {
         const auto extent = window_->get_extent();

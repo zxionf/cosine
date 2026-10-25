@@ -195,3 +195,8 @@ Change: 20261025-m3-g-docs-release
 Context: 编辑器需要下拉选择，且必须验证 overlay 命中与键盘导航；同时事件派发过程中不能直接销毁 overlay
 Decision: 新增 Dropdown：点击/空格/回车/下键展开，overlay 由全屏 DropdownScrim + DropdownList 组成（先命中遮罩，列表后加入更高）；方向键/Home/End 移动高亮，Enter 提交，Esc/Tab/点击遮罩/再次点击按钮关闭；UIRoot 新增 remove_overlay 延迟回收（trash_ 在下次 layout 释放）避免派发中悬垂指针；KeyCode 增加 Escape 并映射 GLFW_KEY_ESCAPE；列表最小宽度 160px
 Consequences: Dropdown 成为首个复用 overlay 的可交互控件；remove_overlay 提供了通用浮层关闭机制；后续 Dialog/Menu 可复用同一模式；Tab 关闭时不吞掉焦点切换
+## [40] 2026-10-25 08:23:04 UTC
+Change: 20261025-m3-5-ui-fixes
+Context: 点击 Dropdown 选项后 UISystem::hovered_ 指向已被 layout 销毁的 DropdownList，下一次鼠标移动解引用导致段错误；容器 clear_children/set_content 还会立即销毁子控件
+Decision: Widget 增加 shared_ptr<const bool> 生命周期令牌；UISystem 的 hovered/pressed/focused 改为 Target{widget, weak_ptr}，valid() 判断令牌未过期；tick() 开头在 layout 前调用 prune_stale_targets：令牌过期直接清空，已移出树则先 on_mouse_leave/on_focus_lost 再清空
+Consequences: 交互目标不再悬垂；不需要全局控件注册表；控件所有权模型不变；新增两项回归测试（Dropdown 点击、clear_children）

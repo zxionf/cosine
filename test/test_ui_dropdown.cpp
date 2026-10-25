@@ -1,6 +1,8 @@
 #include "ui/dropdown.hpp"
+#include "ui/color_rect.hpp"
 #include "ui/root.hpp"
 #include "ui/ui_system.hpp"
+#include "ui/vbox.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -154,6 +156,83 @@ int main()
         assert(ui.root()->overlays().size() == before);
     }
 
+    // ---------- 回归：通过事件系统点击下拉项后不悬垂 ----------
+    {
+        auto root = std::make_unique<xel::ui::UIRoot>(0.0f, 0.0f, 600.0f, 400.0f);
+        auto dropdown = std::make_unique<xel::ui::Dropdown>(std::vector<std::string>{"A", "B", "C"}, 0);
+        auto* dd = dropdown.get();
+        dd->set_pos(40.0f, 40.0f);
+        root->add(std::move(dropdown));
+
+        xel::ui::UISystem ui{std::move(root)};
+        ui.tick();
+
+        auto mouse = [](xel::event::InputEvent::Type type, glm::vec2 pos) {
+            xel::event::InputEvent e;
+            e.type = type;
+            e.mouse_pos = pos;
+            return e;
+        };
+
+        // 悬停并点击按钮 → 展开
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseMove, {60.0f, 55.0f}));
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonDown, {60.0f, 55.0f}));
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonUp, {60.0f, 55.0f}));
+        ui.tick();
+        assert(dd->is_open());
+        assert(ui.hovered() == dd);
+
+        // 悬停到列表第二行
+        auto* list = ui.root()->overlays().back().get();
+        const auto bounds = list->global_bounds();
+        const glm::vec2 row{bounds.pos.x + 8.0f, bounds.pos.y + 40.0f};
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseMove, row));
+        ui.tick();
+        assert(ui.hovered() == list);
+
+        // 点击该行：提交并移除 overlay（此时 hovered_ 仍指向列表）
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonDown, row));
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseButtonUp, row));
+        assert(dd->selected() == 1);
+        assert(!dd->is_open());
+
+        // tick 会销毁已移除的 overlay，并把悬垂的 hover 目标清掉。
+        ui.tick();
+        assert(ui.hovered() == nullptr);
+
+        // 再次移动鼠标不能崩溃。
+        ui.dispatch(mouse(xel::event::InputEvent::Type::MouseMove, {300.0f, 300.0f}));
+        assert(ui.hovered() == nullptr);
+        ui.tick();
+    }
+
+    // ---------- 回归：清空子项后 hover 目标不能悬垂 ----------
+    {
+        auto root = std::make_unique<xel::ui::UIRoot>(0.0f, 0.0f, 400.0f, 300.0f);
+        auto box = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 300.0f, 200.0f);
+        auto* box_ptr = box.get();
+        auto rect = std::make_unique<xel::ui::ColorRect>(0.0f, 0.0f, 120.0f, 40.0f, glm::vec4{1.0f});
+        auto* rect_ptr = rect.get();
+        box->add(std::move(rect));
+        root->add(std::move(box));
+
+        xel::ui::UISystem ui{std::move(root)};
+        ui.tick();
+
+        xel::event::InputEvent move;
+        move.type = xel::event::InputEvent::Type::MouseMove;
+        move.mouse_pos = {20.0f, 20.0f};
+        ui.dispatch(move);
+        assert(ui.hovered() == rect_ptr);
+
+        // 清空子项：下一次 tick 会销毁控件，hover 目标需要被清理。
+        box_ptr->clear_children();
+        ui.tick();
+        assert(ui.hovered() == nullptr);
+
+        ui.dispatch(move);
+        assert(ui.hovered() == nullptr || ui.hovered() == box_ptr);
+    }
     std::cout << "ui dropdown tests passed\n";
     return 0;
 }
