@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 无
-Phase: M4 启动——easing 完成（cosine_anim 库、五种曲线、cubic-bezier 二分求逆）
+Phase: M4 进行中——easing、scene-node 完成（cosine_anim）
 Blocked: 无
-Next: M4 scene-node（场景图 / 节点模型：Group、Shape、Text、Image、Camera）
+Next: M4 property-system（属性注册 + 类型擦除读写，时间轴与轨道的地基）

@@ -15,6 +15,7 @@ target_link_libraries(cosine_text PUBLIC glm::glm freetype Vulkan::Headers)
 # 动画内核：缓动、属性、时间轴；只依赖 glm，不依赖 UI。
 add_library(cosine_anim STATIC
     anim/easing.cpp
+    anim/scene.cpp
 )
 target_include_directories(cosine_anim PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

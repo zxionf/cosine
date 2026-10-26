@@ -555,3 +555,8 @@ Change: 20261026-easing
 Context: M4 动画内核需要关键帧之间的缓动曲线，UI 的固定 ease_out_quad 不够用，且动画模块不应依赖 UI
 Decision: 新建 cosine_anim 库与 anim/easing.hpp：Easing 枚举（Linear/EaseIn/EaseOut/EaseInOut/CubicBezier）+ 二分求逆的自定义 cubic-bezier，x1/x2 clamp 到 [0,1]
 Consequences: 纯逻辑可测、不依赖 UI；二分 24 次精度约 6e-8；后续 scene/timeline/property 放进同一库
+## [112] 2026-10-26 11:59:22 UTC
+Change: 20261026-scene-node
+Context: M4 需要可被属性系统寻址的节点树，UI 的 Widget 树不适合承载动画语义
+Decision: 新建 scene::Scene/Node：单层结构（类型枚举 + 通用 transform + 类型专属字段），NodeId 自增不复用，children 存 id 列表
+Consequences: 属性系统与序列化只面对一个结构体；id 稳定支撑后续序列化；不用继承避免 dynamic_cast

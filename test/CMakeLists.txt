@@ -118,6 +118,9 @@ target_link_libraries(test_ui_smooth_scroll PRIVATE cosine_ui)
 add_executable(test_anim_easing test_anim_easing.cpp)
 target_link_libraries(test_anim_easing PRIVATE cosine_anim)
 
+add_executable(test_anim_scene test_anim_scene.cpp)
+target_link_libraries(test_anim_scene PRIVATE cosine_anim)
+
 add_executable(test_ui_events test_ui_events.cpp)
 target_link_libraries(test_ui_events PRIVATE cosine_ui)
 
@@ -151,6 +154,7 @@ set(COSINE_TEST_TARGETS
     test_ui_image
     test_ui_smooth_scroll
     test_anim_easing
+    test_anim_scene
     test_ui_events
     test_ui_controls
     test_text
@@ -196,6 +200,7 @@ add_test(NAME ui_absolute_zindex COMMAND test_ui_absolute_zindex)
 add_test(NAME ui_image COMMAND test_ui_image)
 add_test(NAME ui_smooth_scroll COMMAND test_ui_smooth_scroll)
 add_test(NAME anim_easing COMMAND test_anim_easing)
+add_test(NAME anim_scene COMMAND test_anim_scene)
 add_test(NAME ui_events COMMAND test_ui_events)
 add_test(NAME interpreter_token COMMAND test_interpreter_token)
 add_test(NAME interpreter_tree_structure COMMAND test_intepreter_tree_structure)
