@@ -86,6 +86,8 @@ private:
     // 指针手势状态：时间用 tick(dt) 累加，不依赖系统时钟，保证可确定性测试。
     static constexpr int kButtonLeft = 0;
     static constexpr int kButtonRight = 1;
+    // Tab 顺序中「未显式设置」的排序键：显式 order 应远小于它。
+    static constexpr int kAutoTabOrder = 1'000'000;
 
     struct ClickRecord
     {

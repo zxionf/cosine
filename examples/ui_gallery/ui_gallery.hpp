@@ -464,12 +464,27 @@ inline UiGallery build(ui::UIRoot& root)
             "Pointer events (click / double click / right click / long press)", 18.0f));
         section->add(std::make_unique<ui::Label>(
             "Double click within 400 ms and 6 px; long press 600 ms without leaving; right click does not take focus.",
-            14.0f));
-        auto pointer_state = std::make_unique<ui::Label>("pointer: -", 14.0f);
+            14.0f));        auto pointer_state = std::make_unique<ui::Label>("pointer: -", 14.0f);
         gallery.pointer_state = pointer_state.get();
         section->add(std::make_unique<detail::PointerProbe>(pointer_state.get()));
         section->add(std::move(pointer_state));
-        section->add(std::make_unique<ui::Label>("Radio group (single selection)", 18.0f));
+
+        section->add(std::make_unique<ui::Label>("Tab order (visual 3 / 1 / 2 → tab 1 → 2 → 3)", 18.0f));
+        auto order_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        order_row->set_spacing(8.0f);
+        auto order_third = std::make_unique<ui::Button>("tab 3");
+        order_third->set_tab_order(3);
+        auto order_first = std::make_unique<ui::Button>("tab 1");
+        order_first->set_tab_order(1);
+        auto order_second = std::make_unique<ui::Button>("tab 2");
+        order_second->set_tab_order(2);
+        order_row->add(std::move(order_third));
+        order_row->add(std::move(order_first));
+        order_row->add(std::move(order_second));
+        section->add(std::move(order_row));
+        section->add(std::make_unique<ui::Label>(
+            "tab_order: >0 explicit (smaller first), 0 tree order, <0 skipped by Tab.", 14.0f));
+        section->add(std::make_unique<ui::Label>("Radio group (single selection, Up/Down switches, one Tab stop)", 18.0f));
         auto radios = std::make_unique<ui::RadioGroup>(300.0f);
         gallery.radio_group = radios.get();
         radios->set_options({"Small", "Medium", "Large"}, 1);

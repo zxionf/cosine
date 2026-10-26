@@ -208,6 +208,10 @@ public:
 
     virtual bool hit_testable() const { return true; }
     virtual bool focusable() const { return false; }
+
+    // Tab 顺序：>0 为显式顺序（小的先）；0 按树序（默认）；<0 不参与 Tab（仍可点击/程序聚焦）。
+    void set_tab_order(int order) { tab_order_ = order; }
+    int tab_order() const { return tab_order_; }
     virtual bool on_mouse_move(glm::vec2 pos) { (void)pos; return false; }
     virtual void on_hover(glm::vec2 pos) { (void)pos; }
     virtual void on_mouse_leave() {}
@@ -320,6 +324,7 @@ private:
     bool debug_ = false;
     std::optional<float> radius_override_;
     bool layout_dirty_ = true;
+    int tab_order_ = 0;
     // visual_style() 在 const 的 append_to 中惰性更新过渡状态。
     mutable StyleTransition transition_;
 };

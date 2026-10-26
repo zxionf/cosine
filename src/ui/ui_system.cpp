@@ -228,24 +228,79 @@ void UISystem::collect_focusable(Widget* widget, std::vector<Widget*>& out) cons
 
 void UISystem::focus_next(bool backwards)
 {
-    std::vector<Widget*> focusable;
-    collect_focusable(root_.get(), focusable);
-    if (focusable.empty()) return;
+    // 先按树序收集全部可聚焦控件（含 tab_order < 0 的），用于定位起点。
+    std::vector<Widget*> ordered;
+    collect_focusable(root_.get(), ordered);
+    if (ordered.empty()) return;
 
-    auto it = std::find(focusable.begin(), focusable.end(), focused_);
-    std::size_t index = 0;
-    if (it != focusable.end()) {
-        index = static_cast<std::size_t>(std::distance(focusable.begin(), it));
-        if (backwards) {
-            index = (index + focusable.size() - 1) % focusable.size();
-        } else {
-            index = (index + 1) % focusable.size();
+    struct Entry
+    {
+        Widget* widget = nullptr;
+        std::size_t tree_index = 0;
+    };
+
+    std::vector<Entry> tabbable;
+    tabbable.reserve(ordered.size());
+    for (std::size_t i = 0; i < ordered.size(); ++i) {
+        if (ordered[i]->tab_order() >= 0) tabbable.push_back({ordered[i], i});
+    }
+    if (tabbable.empty()) return;
+
+    // 显式 order 整体排在「按树序」之前；同值或未设时保持树序。
+    std::stable_sort(tabbable.begin(), tabbable.end(), [](const Entry& a, const Entry& b) {
+        const int ao = a.widget->tab_order() > 0 ? a.widget->tab_order() : kAutoTabOrder;
+        const int bo = b.widget->tab_order() > 0 ? b.widget->tab_order() : kAutoTabOrder;
+        return ao < bo;
+    });
+
+    auto position_of = [&](Widget* widget) -> std::size_t {
+        for (std::size_t i = 0; i < tabbable.size(); ++i) {
+            if (tabbable[i].widget == widget) return i;
         }
-    } else if (backwards) {
-        index = focusable.size() - 1;
+        return tabbable.size(); // 不在 Tab 序列中
+    };
+
+    std::size_t index = 0;
+    const std::size_t current = position_of(focused_.widget);
+    if (current < tabbable.size()) {
+        index = backwards ? (current + tabbable.size() - 1) % tabbable.size()
+                          : (current + 1) % tabbable.size();
+    } else if (focused_.widget != nullptr) {
+        // 焦点在 tab_order < 0 的控件上（如 RadioGroup 内被点击的 Radio）：
+        // 按树序找其后第一个可 Tab 的目标，循环回绕。
+        std::size_t start = ordered.size();
+        for (std::size_t i = 0; i < ordered.size(); ++i) {
+            if (ordered[i] == focused_.widget) {
+                start = i;
+                break;
+            }
+        }
+
+        if (start == ordered.size()) {
+            index = backwards ? tabbable.size() - 1 : 0;
+        } else {
+            std::size_t best = tabbable.size();
+            for (std::size_t i = 0; i < tabbable.size(); ++i) {
+                const std::size_t tree_index = tabbable[i].tree_index;
+                const bool candidate = backwards ? tree_index < start : tree_index > start;
+                if (!candidate) continue;
+                if (best == tabbable.size() ||
+                    (backwards ? tree_index > tabbable[best].tree_index
+                               : tree_index < tabbable[best].tree_index)) {
+                    best = i;
+                }
+            }
+            if (best == tabbable.size()) {
+                index = backwards ? tabbable.size() - 1 : 0;
+            } else {
+                index = best;
+            }
+        }
+    } else {
+        index = backwards ? tabbable.size() - 1 : 0;
     }
 
-    set_focus(focusable[index]);
+    set_focus(tabbable[index].widget);
 }
 
 void UISystem::dispatch_mouse_move(const event::InputEvent& event)

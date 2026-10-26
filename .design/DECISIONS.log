@@ -400,3 +400,13 @@ Change: none
 Context: 内容完全滚出视区时裁剪交集高度为 0，渲染层仍提交绘制；部分驱动对 extent=0 的 scissor 行为不一致，可能沿用上一个 scissor
 Decision: 渲染循环遇到空 scissor（宽或高为 0）直接跳过该 batch，不调用 setScissor/drawIndexed
 Consequences: 消除对驱动行为的依赖，同时省掉无效 draw call；已滚出视区的内容不可能再被绘制
+## [81] 2026-10-26 08:01:04 UTC
+Change: 20261026-focus-order
+Context: Tab 顺序完全由深度优先树序决定，控件无法调整；而面板类 UI 经常需要「视觉顺序 ≠ 逻辑顺序」
+Decision: 新增 Widget::set_tab_order(int)：>0 显式顺序（小的先）、0 按树序（默认）、<0 不参与 Tab；focus_next 用 stable_sort，键为 order>0?order:1e6，显式整体在前、同类保持树序
+Consequences: 默认行为与迁移前完全一致；负值控件仍可鼠标点击与程序 set_focus；建议显式 order 取 1..9999
+## [82] 2026-10-26 08:01:04 UTC
+Change: 20261026-focus-order
+Context: RadioGroup 内每个 Radio 都是独立 Tab 停靠点，且无方向键，与单选组标准语义（组=一个停靠点、组内方向键切换）不符
+Decision: RadioGroup 实现 roving tabindex：子 Radio tab_order=-1、组 focusable、Up/Down/Home/End 切换并让焦点标记跟随选中项；焦点在组内 Radio 上时 focus_next 用树序定位并跳过整组
+Consequences: Tab 不会逐项穿过单选项；鼠标点击组内项后按 Tab 直接跳到组后控件；焦点框仍由 Radio 自己绘制，自动跟随 FocusStyle/FocusPolicy
