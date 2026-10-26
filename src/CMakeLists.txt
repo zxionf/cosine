@@ -16,6 +16,7 @@ target_link_libraries(cosine_text PUBLIC glm::glm freetype Vulkan::Headers)
 add_library(cosine_anim STATIC
     anim/easing.cpp
     anim/scene.cpp
+    anim/property.cpp
 )
 target_include_directories(cosine_anim PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

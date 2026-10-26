@@ -5,6 +5,8 @@
 
 namespace xel::scene
 {
+using namespace anim;
+
 Scene::Scene()
 {
     root_ = next_id_++;
@@ -123,6 +125,96 @@ void Scene::for_each(const std::function<void(const Node&)>& fn) const
         for (auto rit = kids.rbegin(); rit != kids.rend(); ++rit) {
             stack.push_back(*rit);
         }
+    }
+}
+
+std::optional<PropertyValue> Scene::get_property(NodeId id, PropertyId prop) const
+{
+    const Node* n = find(id);
+    if (n == nullptr) return std::nullopt;
+
+    switch (prop) {
+        case prop::Position: return PropertyValue{n->transform.position};
+        case prop::Rotation: return PropertyValue{n->transform.rotation};
+        case prop::Scale: return PropertyValue{n->transform.scale};
+        case prop::Visible: return PropertyValue{n->visible};
+        case prop::Size: return PropertyValue{n->size};
+        case prop::Color: return PropertyValue{n->color};
+        case prop::Text: return PropertyValue{n->text};
+        case prop::TextSize: return PropertyValue{n->text_size};
+        case prop::Zoom: return PropertyValue{n->zoom};
+        case prop::TextureId: return PropertyValue{n->texture_id};
+        default: return std::nullopt;
+    }
+}
+
+bool Scene::set_property(NodeId id, PropertyId prop, const PropertyValue& value)
+{
+    Node* n = find(id);
+    if (n == nullptr) return false;
+
+    switch (prop) {
+        case prop::Position:
+            if (const auto* v = std::get_if<glm::vec2>(&value)) {
+                n->transform.position = *v;
+                return true;
+            }
+            return false;
+        case prop::Rotation:
+            if (const auto* v = std::get_if<float>(&value)) {
+                n->transform.rotation = *v;
+                return true;
+            }
+            return false;
+        case prop::Scale:
+            if (const auto* v = std::get_if<glm::vec2>(&value)) {
+                n->transform.scale = *v;
+                return true;
+            }
+            return false;
+        case prop::Visible:
+            if (const auto* v = std::get_if<bool>(&value)) {
+                n->visible = *v;
+                return true;
+            }
+            return false;
+        case prop::Size:
+            if (const auto* v = std::get_if<glm::vec2>(&value)) {
+                n->size = *v;
+                return true;
+            }
+            return false;
+        case prop::Color:
+            if (const auto* v = std::get_if<glm::vec4>(&value)) {
+                n->color = *v;
+                return true;
+            }
+            return false;
+        case prop::Text:
+            if (const auto* v = std::get_if<std::string>(&value)) {
+                n->text = *v;
+                return true;
+            }
+            return false;
+        case prop::TextSize:
+            if (const auto* v = std::get_if<float>(&value)) {
+                n->text_size = *v;
+                return true;
+            }
+            return false;
+        case prop::Zoom:
+            if (const auto* v = std::get_if<float>(&value)) {
+                n->zoom = *v;
+                return true;
+            }
+            return false;
+        case prop::TextureId:
+            if (const auto* v = std::get_if<std::uint32_t>(&value)) {
+                n->texture_id = *v;
+                return true;
+            }
+            return false;
+        default: return false;
     }
 }
 } // namespace xel::scene

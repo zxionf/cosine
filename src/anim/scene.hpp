@@ -1,11 +1,15 @@
 #pragma once
 
+#include "property.hpp"
+
 #include <glm/glm.hpp>
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace xel::scene
@@ -83,6 +87,10 @@ public:
 
     // 深度优先、先父后子；children 按存储顺序展开。
     void for_each(const std::function<void(const Node&)>& fn) const;
+
+    // 属性读写：类型不匹配、属性未知或节点不存在时返回 nullopt / false。
+    std::optional<anim::PropertyValue> get_property(NodeId id, anim::PropertyId prop) const;
+    bool set_property(NodeId id, anim::PropertyId prop, const anim::PropertyValue& value);
 
 private:
     // ancestor 是否是 node 自身或其祖先。

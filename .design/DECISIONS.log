@@ -575,3 +575,8 @@ Change: 20261026-vulkan-idle-shutdown
 Context: 程序正常退出时大量 Vulkan 校验错误（资源在 GPU 仍使用时被销毁）；此前 timeout 强杀掩盖了它
 Decision: Renderer 析构开头 queue.waitIdle()；两个 example 增加 COSINE_EXIT_AFTER 正常退出钩子
 Consequences: 退出路径安全；冒烟改为正常退出，能覆盖析构代码；不再只用 timeout 强杀
+## [116] 2026-10-26 12:55:44 UTC
+Change: 20261026-property-system
+Context: 时间轴每条 track 是 (节点, 属性) → 关键帧，需要统一读写入口且不依赖具体字段类型
+Decision: 内置属性 id 用编译期常量（prop::*）、PropertyValue 用 variant、PropertyRegistry 提供名字↔id↔类型映射；Scene 用 switch 分发，类型不匹配返回 false
+Consequences: 轨道与序列化只依赖 PropertyId；未知属性与类型错误显式失败；新增属性需同时改 prop 常量、注册表与 switch
