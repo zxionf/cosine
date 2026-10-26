@@ -72,6 +72,11 @@ public:
     glm::vec2 white_uv() const { return white_uv_; }
     uint64_t revision() const { return revision_; }
 
+    // 已用高度占比（shelf packing 进度），供监控与测试。
+    float used_ratio() const;
+    // 最近一次 add_glyph 是否因图集空间不足失败（区别于「字符不存在」）。
+    bool last_add_out_of_space() const { return last_add_out_of_space_; }
+
     float line_height(float size) const { return metrics_.line_height_ratio * size; }
     float line_step(float size, float line_spacing) const { return line_height(size) + line_spacing; }
 
@@ -113,6 +118,7 @@ private:
     int base_pixel_size_ = 16;
     GlyphLoader glyph_loader_;
     uint64_t revision_ = 0;
+    bool last_add_out_of_space_ = false;
 
     int pack_x_ = 1;
     int pack_y_ = 1;

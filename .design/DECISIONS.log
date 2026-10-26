@@ -600,3 +600,8 @@ Change: 20261026-anim-showcase
 Context: M4 能力齐全但只有一个窄 demo，需要对外演示与 M4.5 验收
 Decision: 新增 ui_anim_showcase：三展区（缓动对比、层级缩放脉冲、属性动画含 text/visible）+ 控制行（暂停/跳转/变速/循环）+ 时间点事件，全部由 Scene+Timeline+Player 驱动
 Consequences: M4.5 验收有可视对象；rotation / Image 纹理 / 滑块 seek 留待后续
+## [121] 2026-10-26 14:47:21 UTC
+Change: 20261026-atlas-space
+Context: 多字号挤满图集后，空间不足被 ensure_glyph 永久记入 missing，字形不可恢复
+Decision: add_glyph 用 last_add_out_of_space 区分空间不足；ensure_glyph 仅对真缺字写入 missing；新增 used_ratio 监控水位
+Consequences: 图集腾出空间后字形可重试；缺字仍缓存；淘汰/重建与多纹理槽留待 T2/M6

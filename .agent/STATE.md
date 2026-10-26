@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 无
-Phase: M4.5 动画展厅完成（ui_anim_showcase）；M4.6 为文本/图集 backlog
+Phase: M4.6 T1 图集空间治理完成；M4.5 展厅完成
 Blocked: 无
-Next: M5 XEL 绑定（或按需处理 M4.6 项）
+Next: M4.6 其余项（T2 纹理上传优化等）或 M5 XEL 绑定

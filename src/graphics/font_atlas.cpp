@@ -117,6 +117,7 @@ bool FontAtlas::add_glyph(char32_t codepoint,
                           float advance_ratio, float bearing_x_ratio, float bearing_y_ratio,
                           float pixel_size)
 {
+    last_add_out_of_space_ = false;
     if (width <= 0 || height <= 0) {
         add_empty_glyph(codepoint, advance_ratio, pixel_size);
         return true;
@@ -127,7 +128,10 @@ bool FontAtlas::add_glyph(char32_t codepoint,
         pack_y_ += pack_row_height_ + 2;
         pack_row_height_ = 0;
     }
-    if (pack_y_ + height + 2 >= tex_height_) return false;
+    if (pack_y_ + height + 2 >= tex_height_) {
+        last_add_out_of_space_ = true;
+        return false;
+    }
 
     const int dst_x = pack_x_ + 1;
     const int dst_y = pack_y_ + 1;
@@ -175,6 +179,13 @@ int FontAtlas::quantize_size(float size)
     return std::clamp(static_cast<int>(std::lround(size)), 4, 160);
 }
 
+float FontAtlas::used_ratio() const
+{
+    if (tex_height_ <= 0) return 0.0f;
+    const float used = static_cast<float>(pack_y_ + pack_row_height_);
+    return std::clamp(used / static_cast<float>(tex_height_), 0.0f, 1.0f);
+}
+
 void FontAtlas::add_empty_glyph(char32_t codepoint, float advance_ratio, float pixel_size)
 {
     Glyph g;
@@ -191,7 +202,8 @@ bool FontAtlas::ensure_glyph(char32_t codepoint, int pixel_size)
     if (!glyph_loader_) return false;
 
     if (glyph_loader_(*this, codepoint, pixel_size)) return true;
-    missing_.insert(key);
+    // 空间不足可重试（图集腾出空间后）；只有真正的缺字才永久记录。
+    if (!last_add_out_of_space_) missing_.insert(key);
     return false;
 }
 
