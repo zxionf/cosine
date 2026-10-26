@@ -7,7 +7,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <format>
 #include <functional>
+#include <string>
 
 
 namespace xel::ui
@@ -88,7 +90,50 @@ public:
             handle_color = mix_color(t.slider_handle, t.accent, 0.15f);
         }
         graphics::append_rounded_rect(list, handle_bounds, draw_radius, handle_color);
+
+        // 拖动反馈：手柄外圈一条强调色环（不依赖 FocusPolicy，仅表示正在拖拽）。
+        if (dragging_ && enabled_) {
+            graphics::append_rounded_ring(list,
+                                          {handle_bounds.x - 1.0f, handle_bounds.y - 1.0f,
+                                           handle_bounds.z + 2.0f, handle_bounds.w + 2.0f},
+                                          draw_radius + 1.0f, 2.0f, t.accent);
+        }
+
         append_focus_ring(list, handle_bounds, draw_radius);
+
+        // 拖动中的数值气泡：clamp 在控件内，避开父级裁剪。
+        if (dragging_ && enabled_) {
+            if (auto* atlas = font_atlas()) {
+                const std::string text = step_ >= 1.0f
+                    ? std::format("{:.0f}", value_)
+                    : std::format("{:.2f}", value_);
+                const glm::vec2 text_size = atlas->measure(text, t.text_size);
+                const float bubble_w = text_size.x + t.padding;
+                const float bubble_h = atlas->line_height(t.text_size) + t.padding * 0.5f;
+
+                float bubble_x = handle_bounds.x + (handle_bounds.z - bubble_w) * 0.5f;
+                float bubble_y = handle_bounds.y - bubble_h - 6.0f;
+                if (bubble_y < global_.pos.y) {
+                    bubble_y = handle_bounds.y + handle_bounds.w + 6.0f;
+                }
+                bubble_x = std::clamp(bubble_x, global_.pos.x,
+                                      std::max(global_.pos.x, global_.pos.x + global_.size.x - bubble_w));
+                bubble_y = std::clamp(bubble_y, global_.pos.y,
+                                      std::max(global_.pos.y, global_.pos.y + global_.size.y - bubble_h));
+
+                const BoxStyle bubble = visual_style(StyleRole::Tooltip, ControlState::Normal);
+                graphics::append_rounded_rect(list, {bubble_x, bubble_y, bubble_w, bubble_h},
+                                              corner_radius(t.radius_small), bubble.fill);
+                if (bubble.border_width > 0.0f) {
+                    graphics::append_rounded_ring(list, {bubble_x, bubble_y, bubble_w, bubble_h},
+                                                  corner_radius(t.radius_small), bubble.border_width, bubble.border);
+                }
+                atlas->append_text(list,
+                                   bubble_x + (bubble_w - text_size.x) * 0.5f,
+                                   bubble_y + (bubble_h - text_size.y) * 0.5f,
+                                   t.text_size, text, bubble.text);
+            }
+        }
     }
 
     bool focusable() const override { return true; }

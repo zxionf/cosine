@@ -8,6 +8,7 @@
 #include "../graphics/box.hpp"
 #include "../graphics/line.hpp"
 #include "../graphics/rectangle.hpp"
+#include "../graphics/triangle.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -27,6 +28,8 @@ struct MenuItem
     bool separator = false;
     bool enabled = true;
     std::function<void()> action;
+    // 递归结构：天然支持任意层子菜单。
+    std::vector<MenuItem> children;
 
     static MenuItem separator_item()
     {
@@ -45,6 +48,18 @@ struct MenuItem
         item.enabled = enabled;
         return item;
     }
+
+    // 子菜单项：children 非空时显示右向箭头，悬停/Enter 展开。
+    static MenuItem submenu(std::string label, std::vector<MenuItem> children, bool enabled = true)
+    {
+        MenuItem item;
+        item.label = std::move(label);
+        item.children = std::move(children);
+        item.enabled = enabled;
+        return item;
+    }
+
+    bool has_submenu() const { return !children.empty(); }
 };
 
 namespace detail
@@ -93,15 +108,15 @@ private:
     std::function<void(glm::vec2)> hover_bar_;
 };
 
-// 下拉菜单浮层：绘制菜单项、处理悬停与点击。
+// 下拉菜单浮层：绘制菜单项、处理悬停与点击；可持有任意层子菜单的内容。
 class MenuPopup : public Widget
 {
 public:
-    MenuPopup(MenuBar& owner, int menu_index, float width, float height)
-        : owner_{&owner}, menu_index_{menu_index}
+    MenuPopup(MenuBar& owner, float width, float height)
+        : owner_{&owner}
     {
         // 尺寸由 arrange() 直接写入 local_；不要设置 min/max_size，
-        // 否则 clamp_size 会把后续菜单的尺寸锁死在创建时的值上。
+        // 否则 clamp_size 会把后续尺寸锁死在创建时的值上。
         local_ = {{0.0f, 0.0f}, {width, height}};
     }
 
@@ -119,26 +134,46 @@ public:
     bool on_click(glm::vec2 pos, int) override;
     bool hit_testable() const override { return true; }
 
-    int hovered() const { return hovered_; }
-    void set_hovered(int index) { hovered_ = index; }
-    int menu_index() const { return menu_index_; }
-    // 切换菜单时只更新内容来源，不重建 widget（overlay 生命周期保持不变）。
-    // 注意：只有真正换菜单才清空悬停，否则每帧 arrange 都会把 hover 抹掉。
-    void set_menu_index(int index)
+    // 内容源：顶层菜单或某层子菜单的拷贝（菜单项数量少，拷贝换来地址稳定）。
+    const std::vector<MenuItem>& items() const { return items_; }
+    void set_items(std::vector<MenuItem> items)
     {
-        if (menu_index_ == index) return;
-        menu_index_ = index;
+        items_ = std::move(items);
         hovered_ = -1;
+        keyboard_highlight_ = -1;
+        const glm::vec2 size = {content_width(), content_height()};
+        local_ = {global_.pos, size};
+        global_ = local_;
     }
+
+    int hovered() const { return hovered_; }
+    void set_hovered(int index)
+    {
+        hovered_ = index;
+        if (index >= 0) keyboard_highlight_ = -1;
+    }
+    int keyboard_highlight() const { return keyboard_highlight_; }
+    void set_keyboard_highlight(int index)
+    {
+        keyboard_highlight_ = index;
+        if (index >= 0) hovered_ = -1;
+    }
+    // 绘制用：鼠标优先，其次键盘。
+    int highlighted() const { return hovered_ >= 0 ? hovered_ : keyboard_highlight_; }
 
     float row_height() const;
     float separator_height() const;
+    // 某一项的顶部 y（global），供子菜单定位。
+    float item_top(int index) const;
+    float content_width() const;
+    float content_height() const;
 
 private:
     int index_at(glm::vec2 pos) const;
     MenuBar* owner_ = nullptr;
-    int menu_index_ = 0;
+    std::vector<MenuItem> items_;
     int hovered_ = -1;
+    int keyboard_highlight_ = -1;
 };
 
 const std::vector<MenuItem>& menu_items(const MenuBar& bar, int index);
@@ -174,29 +209,33 @@ public:
 
     bool is_open() const { return open_ >= 0; }
     int open_menu() const { return open_; }
+    // 当前打开的子菜单层数（0 = 只有顶层菜单）。
+    int submenu_depth() const
+    {
+        return popups_.empty() ? 0 : static_cast<int>(popups_.size()) - 1;
+    }
 
     void open(int index)
     {
         if (index < 0 || index >= menu_count()) return;
-        if (!is_open() && !create_overlay(index)) return;
+        if (!ensure_overlay()) return;
         open_ = index;
-        highlight_ = first_actionable(index);
+        active_depth_ = 0;
+        // 切换菜单时复用同一个 popup widget，只换内容（overlay 生命周期保持不变）。
+        close_deeper(1);
+        popups_[0]->set_items(menus_[static_cast<std::size_t>(index)]);
+        popups_[0]->set_keyboard_highlight(first_actionable_of(popups_[0]->items()));
         update_popup_geometry();
-        apply_hover_highlight();
         mark_layout_dirty();
     }
 
     void close()
     {
-        if (!is_open() && !popup_ && !scrim_) return;
-        if (auto* root = find_root()) {
-            root->remove_overlay(popup_);
-            root->remove_overlay(scrim_);
-        }
-        popup_ = nullptr;
+        close_all_popups();
+        if (auto* root = find_root(); root && scrim_) root->remove_overlay(scrim_);
         scrim_ = nullptr;
         open_ = -1;
-        highlight_ = -1;
+        active_depth_ = 0;
         mark_layout_dirty();
     }
 
@@ -307,14 +346,37 @@ public:
             case event::KeyCode::Escape:
                 close();
                 return true;
-            case event::KeyCode::Left:
+            case event::KeyCode::Left: {
+                // 子菜单里 Left 退回父层；顶层时切换到上一个菜单。
+                if (active_depth_ > 0) {
+                    close_deeper(active_depth_);
+                    active_depth_--;
+                    return true;
+                }
                 current_ = (open_ - 1 + menu_count()) % menu_count();
                 open(current_);
                 return true;
-            case event::KeyCode::Right:
-                current_ = (open_ + 1) % menu_count();
-                open(current_);
-                return true;
+            }
+            case event::KeyCode::Right: {
+                auto* active = active_popup();
+                const int highlight = active ? active->keyboard_highlight() : -1;
+                if (active && highlight >= 0 &&
+                    highlight < static_cast<int>(active->items().size()) &&
+                    active->items()[static_cast<std::size_t>(highlight)].has_submenu()) {
+                    open_submenu_from(active, highlight, active_depth_);
+                    active_depth_ = std::min(active_depth_ + 1, static_cast<int>(popups_.size()) - 1);
+                    if (auto* sub = active_popup()) {
+                        sub->set_keyboard_highlight(first_actionable_of(sub->items()));
+                    }
+                    return true;
+                }
+                if (active_depth_ == 0) {
+                    current_ = (open_ + 1) % menu_count();
+                    open(current_);
+                    return true;
+                }
+                return false;
+            }
             case event::KeyCode::Down:
                 move_highlight(1);
                 return true;
@@ -322,17 +384,18 @@ public:
                 move_highlight(-1);
                 return true;
             case event::KeyCode::Home:
-                highlight_ = first_actionable(open_);
-                apply_hover_highlight();
+                set_highlight_edge(false);
                 return true;
             case event::KeyCode::End:
-                highlight_ = last_actionable(open_);
-                apply_hover_highlight();
+                set_highlight_edge(true);
                 return true;
             case event::KeyCode::Enter:
-            case event::KeyCode::Space:
-                activate(highlight_);
+            case event::KeyCode::Space: {
+                auto* active = active_popup();
+                if (!active) return false;
+                activate(active, active->keyboard_highlight());
                 return true;
+            }
             default:
                 return false;
         }
@@ -342,6 +405,8 @@ public:
     {
         Widget::on_focus_lost();
         hovered_ = -1;
+        // 失焦时收起菜单：键盘 Tab 离开菜单栏不应该留下悬空的弹层。
+        if (is_open()) close();
     }
 
 private:
@@ -415,89 +480,211 @@ private:
         return height;
     }
 
-    bool create_overlay(int index)
+    bool ensure_overlay()
     {
         auto* root = find_root();
         if (!root) return false;
+        if (popup_ && scrim_) return true;
 
-        auto scrim = std::make_unique<detail::MenuScrim>(
-            [this]() { close(); },
-            [this](glm::vec2 pos) { hover_titles(pos); });
-        scrim_ = scrim.get();
+        close_all_popups();
 
-        auto popup = std::make_unique<detail::MenuPopup>(
-            *this, index, popup_width(index), popup_height(index));
-        popup_ = popup.get();
+        if (!scrim_) {
+            auto scrim = std::make_unique<detail::MenuScrim>(
+                [this]() { close(); },
+                [this](glm::vec2 pos) { hover_titles(pos); });
+            scrim_ = scrim.get();
+            root->add_overlay(std::move(scrim));
+        }
 
-        root->add_overlay(std::move(scrim));
+        auto popup = std::make_unique<detail::MenuPopup>(*this, 160.0f, 0.0f);
+        auto* raw = popup.get();
         root->add_overlay(std::move(popup));
+
+        popups_ = {raw};
+        sub_items_ = {-1};
+        popup_ = raw;
         return true;
     }
 
     void update_popup_geometry()
     {
-        if (!popup_ || open_ < 0) return;
-        const auto& t = ui_theme();
-        const float width = popup_width(open_);
-        const float height = popup_height(open_);
+        if (popups_.empty() || open_ < 0) return;
+
         const float x = title_left(open_);
         const float y = global_.pos.y + global_.size.y + 2.0f;
-        popup_->set_menu_index(open_);
-        popup_->arrange({{x, y}, {width, height}});
-        (void)t;
+        popups_[0]->arrange({{x, y}, popups_[0]->local_bounds().size});
+
+        auto* root = find_root();
+        const float viewport_w = root ? root->global_bounds().size.x : 1.0e9f;
+
+        for (std::size_t depth = 1; depth < popups_.size(); ++depth) {
+            auto* parent = popups_[depth - 1];
+            auto* sub = popups_[depth];
+            const int item = sub_items_[depth];
+            if (item < 0 || item >= static_cast<int>(parent->items().size())) break;
+
+            const auto parent_bounds = parent->global_bounds();
+            const glm::vec2 sub_size = sub->local_bounds().size;
+            float sub_x = parent_bounds.pos.x + parent_bounds.size.x - 4.0f;
+            // 右边界不够时翻到父菜单左侧。
+            if (sub_x + sub_size.x > viewport_w) {
+                sub_x = parent_bounds.pos.x - sub_size.x + 4.0f;
+            }
+            sub->arrange({{sub_x, parent->item_top(item)}, sub_size});
+        }
     }
 
-    int first_actionable(int index) const
+    static int first_actionable_of(const std::vector<MenuItem>& list)
     {
-        const auto& list = menus_[static_cast<std::size_t>(index)];
         for (std::size_t i = 0; i < list.size(); ++i) {
             if (!list[i].separator && list[i].enabled) return static_cast<int>(i);
         }
         return -1;
     }
 
-    int last_actionable(int index) const
+    static int last_actionable_of(const std::vector<MenuItem>& list)
     {
-        const auto& list = menus_[static_cast<std::size_t>(index)];
         for (int i = static_cast<int>(list.size()) - 1; i >= 0; --i) {
-            if (!list[static_cast<std::size_t>(i)].separator && list[static_cast<std::size_t>(i)].enabled) {
-                return i;
-            }
+            const auto& item = list[static_cast<std::size_t>(i)];
+            if (!item.separator && item.enabled) return i;
         }
         return -1;
     }
 
+    int popup_depth(detail::MenuPopup* popup) const
+    {
+        for (std::size_t i = 0; i < popups_.size(); ++i) {
+            if (popups_[i] == popup) return static_cast<int>(i);
+        }
+        return -1;
+    }
+
+    detail::MenuPopup* active_popup() const
+    {
+        if (popups_.empty()) return nullptr;
+        const int depth = std::clamp(active_depth_, 0, static_cast<int>(popups_.size()) - 1);
+        return popups_[static_cast<std::size_t>(depth)];
+    }
+
+    void close_deeper(int depth)
+    {
+        if (depth <= 0) return;
+        auto* root = find_root();
+        while (static_cast<int>(popups_.size()) > depth) {
+            auto* popup = popups_.back();
+            if (root) root->remove_overlay(popup);
+            popups_.pop_back();
+            sub_items_.pop_back();
+        }
+        if (active_depth_ >= static_cast<int>(popups_.size())) {
+            active_depth_ = static_cast<int>(popups_.size()) - 1;
+        }
+    }
+
+    void close_all_popups()
+    {
+        auto* root = find_root();
+        for (auto* popup : popups_) {
+            if (root) root->remove_overlay(popup);
+        }
+        popups_.clear();
+        sub_items_.clear();
+        popup_ = nullptr;
+        active_depth_ = 0;
+    }
+
+    // 打开（或切换到）某一层菜单项的子菜单。
+    void open_submenu_from(detail::MenuPopup* parent, int item_index, int depth)
+    {
+        if (!parent) return;
+        if (depth < 0) depth = popup_depth(parent);
+        if (depth < 0) return;
+
+        const auto& list = parent->items();
+        if (item_index < 0 || item_index >= static_cast<int>(list.size())) return;
+        const auto& item = list[static_cast<std::size_t>(item_index)];
+        if (!item.has_submenu()) {
+            close_deeper(depth + 1);
+            return;
+        }
+
+        // 已经是同一项：只更新几何。
+        const std::size_t next = static_cast<std::size_t>(depth + 1);
+        if (next < popups_.size() && sub_items_[next] == item_index) {
+            update_popup_geometry();
+            return;
+        }
+
+        close_deeper(depth + 1);
+        auto* root = find_root();
+        if (!root) return;
+
+        auto sub = std::make_unique<detail::MenuPopup>(*this, 160.0f, 0.0f);
+        auto* raw = sub.get();
+        raw->set_items(item.children);
+        root->add_overlay(std::move(sub));
+        popups_.push_back(raw);
+        sub_items_.push_back(item_index);
+        update_popup_geometry();
+    }
+
+    // 鼠标悬停到某一层时调用：有子菜单就展开，否则收掉更深层。
+    void on_popup_hover(detail::MenuPopup* popup, int index)
+    {
+        const int depth = popup_depth(popup);
+        if (depth < 0) return;
+        active_depth_ = depth;
+
+        const auto& list = popup->items();
+        if (index >= 0 && index < static_cast<int>(list.size()) &&
+            list[static_cast<std::size_t>(index)].has_submenu()) {
+            open_submenu_from(popup, index, depth);
+        } else {
+            close_deeper(depth + 1);
+        }
+    }
+
     void move_highlight(int delta)
     {
-        if (open_ < 0) return;
-        const auto& list = menus_[static_cast<std::size_t>(open_)];
+        auto* active = active_popup();
+        if (!active) return;
+        const auto& list = active->items();
         if (list.empty()) return;
-        int index = highlight_;
-        for (int step = 0; step < static_cast<int>(list.size()); ++step) {
+
+        const int count = static_cast<int>(list.size());
+        int index = active->keyboard_highlight();
+        for (int step = 0; step < count; ++step) {
             index += delta;
-            if (index < 0) index = static_cast<int>(list.size()) - 1;
-            if (index >= static_cast<int>(list.size())) index = 0;
+            if (index < 0) index = count - 1;
+            if (index >= count) index = 0;
             const auto& item = list[static_cast<std::size_t>(index)];
             if (!item.separator && item.enabled) {
-                highlight_ = index;
-                apply_hover_highlight();
+                active->set_keyboard_highlight(index);
                 return;
             }
         }
     }
 
-    void apply_hover_highlight()
+    void set_highlight_edge(bool last)
     {
-        if (popup_) popup_->set_hovered(highlight_);
+        auto* active = active_popup();
+        if (!active) return;
+        active->set_keyboard_highlight(last ? last_actionable_of(active->items())
+                                            : first_actionable_of(active->items()));
     }
 
-    void activate(int index)
+    void activate(detail::MenuPopup* popup, int index)
     {
-        if (open_ < 0 || index < 0) return;
-        const auto& list = menus_[static_cast<std::size_t>(open_)];
+        if (!popup || index < 0) return;
+        const auto& list = popup->items();
         if (index >= static_cast<int>(list.size())) return;
         const auto& item = list[static_cast<std::size_t>(index)];
         if (item.separator || !item.enabled) return;
+
+        if (item.has_submenu()) {
+            open_submenu_from(popup, index, popup_depth(popup));
+            return;
+        }
 
         // 先关闭再执行回调：回调里可以安全地打开对话框或修改菜单结构。
         auto action = item.action;
@@ -511,8 +698,14 @@ private:
     int highlight_ = -1;
     int hovered_ = -1;
     int current_ = 0;
-    detail::MenuPopup* popup_ = nullptr;
+    int active_depth_ = 0;
+    detail::MenuPopup* popup_ = nullptr; // == popups_[0]
     detail::MenuScrim* scrim_ = nullptr;
+    // 层级栈：popups_[0] 是顶层菜单，之后是逐层打开的子菜单。
+    // 所有权在 root 的 overlay 列表，这里只记裸指针。
+    std::vector<detail::MenuPopup*> popups_;
+    // popups_[d] 的来源项索引（d >= 1）；与 popups_ 对齐。
+    std::vector<int> sub_items_;
 };
 
 namespace detail
@@ -534,14 +727,47 @@ inline float MenuPopup::separator_height() const
     return 9.0f;
 }
 
+inline float MenuPopup::content_width() const
+{
+    const auto& t = owner_->ui_theme();
+    float width = 160.0f;
+    for (const auto& item : items_) {
+        if (item.separator) continue;
+        const float shortcut_w = item.shortcut.empty()
+            ? 0.0f : owner_->text_width(item.shortcut) + t.padding * 2.0f;
+        const float arrow_w = item.has_submenu() ? t.control_height * 0.5f : 0.0f;
+        width = std::max(width, owner_->text_width(item.label) + shortcut_w + arrow_w + t.padding * 3.0f);
+    }
+    return width;
+}
+
+inline float MenuPopup::content_height() const
+{
+    const auto& t = owner_->ui_theme();
+    float height = t.padding * 2.0f;
+    for (const auto& item : items_) {
+        height += item.separator ? separator_height() : row_height();
+    }
+    return height;
+}
+
+inline float MenuPopup::item_top(int index) const
+{
+    float y = global_.pos.y + owner_->ui_theme().padding;
+    const int count = std::min(index, static_cast<int>(items_.size()));
+    for (int i = 0; i < count; ++i) {
+        y += items_[static_cast<std::size_t>(i)].separator ? separator_height() : row_height();
+    }
+    return y;
+}
+
 inline int MenuPopup::index_at(glm::vec2 pos) const
 {
     if (!global_.contains(pos)) return -1;
     float y = global_.pos.y + owner_->ui_theme().padding;
-    const auto& list = menu_items(*owner_, menu_index_);
-    for (std::size_t i = 0; i < list.size(); ++i) {
-        const float row = list[i].separator ? separator_height() : row_height();
-        if (pos.y >= y && pos.y <= y + row) return list[i].separator ? -1 : static_cast<int>(i);
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        const float row = items_[i].separator ? separator_height() : row_height();
+        if (pos.y >= y && pos.y <= y + row) return items_[i].separator ? -1 : static_cast<int>(i);
         y += row;
     }
     return -1;
@@ -561,11 +787,11 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
 
     auto* atlas = owner_->font_atlas();
     float y = global_.pos.y + t.padding;
-    const auto& items = menu_items(*owner_, menu_index_);
     const float line_h = atlas ? atlas->line_height(t.text_size) : t.text_size;
+    const int highlighted_index = highlighted();
 
-    for (std::size_t i = 0; i < items.size(); ++i) {
-        const auto& item = items[i];
+    for (std::size_t i = 0; i < items_.size(); ++i) {
+        const auto& item = items_[i];
         const float row = item.separator ? separator_height() : row_height();
 
         if (item.separator) {
@@ -576,7 +802,7 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
             continue;
         }
 
-        const bool active = static_cast<int>(i) == hovered_ && item.enabled;
+        const bool active = static_cast<int>(i) == highlighted_index && item.enabled;
         if (active) {
             const BoxStyle style = t.style(StyleRole::MenuItem, ControlState::Hovered);
             graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, global_.size.x - 4.0f, row},
@@ -584,6 +810,7 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
         }
 
         const glm::vec4 color = item.enabled ? t.text : t.text_disabled;
+        const float arrow_space = item.has_submenu() ? t.control_height * 0.5f : 0.0f;
         if (atlas) {
             const float text_y = y + (row - line_h) * 0.5f;
             atlas->append_text(list, global_.pos.x + t.padding * 2.0f, text_y,
@@ -591,9 +818,18 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
             if (!item.shortcut.empty()) {
                 const float shortcut_w = atlas->measure(item.shortcut, t.text_size).x;
                 atlas->append_text(list,
-                                   global_.pos.x + global_.size.x - t.padding * 2.0f - shortcut_w,
+                                   global_.pos.x + global_.size.x - t.padding * 2.0f - arrow_space - shortcut_w,
                                    text_y, t.text_size, item.shortcut, t.text_disabled);
             }
+        }
+
+        // 子菜单标记：右侧向三角。
+        if (item.has_submenu()) {
+            const float ax = global_.pos.x + global_.size.x - t.padding - 4.0f;
+            const float ay = y + row * 0.5f;
+            graphics::Triangle arrow{ax, ay - 4.0f, ax, ay + 4.0f, ax + 4.0f, ay,
+                                     item.enabled ? t.text_muted : t.text_disabled};
+            arrow.append_to(list);
         }
         y += row;
     }
@@ -601,8 +837,12 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
 
 inline bool MenuPopup::on_mouse_move(glm::vec2 pos)
 {
-    hovered_ = index_at(pos);
-    if (hovered_ >= 0) owner_->highlight_ = hovered_;
+    const int index = index_at(pos);
+    if (index != hovered_) {
+        hovered_ = index;
+        keyboard_highlight_ = -1;
+        owner_->on_popup_hover(this, index);
+    }
     return true;
 }
 
@@ -610,7 +850,7 @@ inline bool MenuPopup::on_click(glm::vec2 pos, int)
 {
     const int index = index_at(pos);
     if (index < 0) return true;
-    owner_->activate(index);
+    owner_->activate(this, index);
     return true;
 }
 } // namespace detail

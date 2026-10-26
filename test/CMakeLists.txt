@@ -52,6 +52,15 @@ target_link_libraries(test_ui_scroll_snap PRIVATE cosine_ui)
 add_executable(test_ui_focus_order test_ui_focus_order.cpp)
 target_link_libraries(test_ui_focus_order PRIVATE cosine_ui)
 
+add_executable(test_ui_drag_feedback test_ui_drag_feedback.cpp)
+target_link_libraries(test_ui_drag_feedback PRIVATE cosine_ui)
+
+add_executable(test_ui_progress test_ui_progress.cpp)
+target_link_libraries(test_ui_progress PRIVATE cosine_ui)
+
+add_executable(test_ui_submenu test_ui_submenu.cpp)
+target_link_libraries(test_ui_submenu PRIVATE cosine_ui)
+
 add_executable(test_ui_gallery test_ui_gallery.cpp)
 target_include_directories(test_ui_gallery PRIVATE
     ${PROJECT_SOURCE_DIR}/examples/ui_gallery
@@ -131,6 +140,9 @@ set(COSINE_TEST_TARGETS
     test_ui_pointer_events
     test_ui_scroll_snap
     test_ui_focus_order
+    test_ui_drag_feedback
+    test_ui_progress
+    test_ui_submenu
     test_ui_widgets
     test_ui_scrollbar
     test_ui_dropdown
@@ -176,6 +188,9 @@ add_test(NAME ui_transition COMMAND test_ui_transition)
 add_test(NAME ui_pointer_events COMMAND test_ui_pointer_events)
 add_test(NAME ui_scroll_snap COMMAND test_ui_scroll_snap)
 add_test(NAME ui_focus_order COMMAND test_ui_focus_order)
+add_test(NAME ui_drag_feedback COMMAND test_ui_drag_feedback)
+add_test(NAME ui_progress COMMAND test_ui_progress)
+add_test(NAME ui_submenu COMMAND test_ui_submenu)
 add_test(NAME ui_widgets COMMAND test_ui_widgets)
 add_test(NAME ui_scrollbar COMMAND test_ui_scrollbar)
 add_test(NAME ui_dropdown COMMAND test_ui_dropdown)

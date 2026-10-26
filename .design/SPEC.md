@@ -702,3 +702,124 @@ Radio group 标题补「Up/Down 切换，组只占一个 Tab 停靠点」。
 - 不做任意容器的方向键焦点移动（只 RadioGroup；TabBar/Dropdown 已有）。
 - 不做焦点记忆（切回窗口恢复上次焦点）。
 - 不引入 `tab_order` 的持久化或运行时重排（顺序在布局树变化后按同一规则重算）。
+
+## 拖拽反馈
+### 现状
+
+- `Slider` 拖动时只有值在变：手柄与轨道颜色几乎不变，也看不到当前数值。
+- `Splitter` 拖动时手柄样式与 hover 相同，没有"正在拖拽"的视觉；`ratio` 固定 clamp 在 `[0.1, 0.9]`，不考虑子项自己的 `min_size`，子项可能被压到 0 宽。
+
+### 设计
+
+**Slider**
+
+- 拖动中（`dragging_`）：
+  - 手柄外圈一条 `accent` 描边环（`append_rounded_ring`，厚度 2，半径 = 手柄半径 + 1）。
+    复用焦点环的几何，但**不依赖** `FocusPolicy`（拖拽反馈不是焦点，键盘策略为 Never 时也应显示）。
+  - 手柄上方显示数值气泡：圆角矩形 + 居中文本。
+    宽度 = 文本宽 + `padding`，高度 = 行高 + `padding * 0.5`；
+    位置 = 手柄中心上方 10px，水平中心对齐手柄，并 clamp 到控件 bounds 内（避免被父级裁剪）。
+  - 文本格式：`step_ >= 1` 用 `{:.0f}`，否则 `{:.2f}`；没有 `font_atlas` 时跳过气泡。
+- hover（未拖动）：维持现有的手柄混入 `accent` 15%。
+- 边界：`value_` 已有 clamp；气泡只反映当前值。
+- 副作用：拖动期间顶点数增加（气泡 + 环），松开后恢复原状。
+
+**Splitter**
+
+- hover：维持现有 `Control` hover 填充 + 主题圆角。
+- 拖动中（`dragging_`）：手柄填充改为 `accent` 28% 半透明，并叠加 `accent` 描边环（厚 1），明确"正在拖拽"。
+- 边界约束：`set_ratio` 保留 `[0.1, 0.9]` 兜底，并按子项 `min_size` 推导实际上下限：
+
+```text
+usable = 主轴尺寸 - handle_size
+lower  = clamp(first_min / usable, 0, 0.9)
+upper  = clamp(1 - second_min / usable, lower, 1)
+ratio  = clamp(ratio, max(0.1 兜底…仅当 min_size 为 0), ...)
+```
+
+取主轴分量：`Horizontal` 用 `min_size().x`，`Vertical` 用 `min_size().y`。
+`arrange` 时也 clamp 一次，保证容器尺寸变化后不越界。
+
+**gallery**
+
+- `Inputs` 分区 Slider 标题补「drag shows value bubble」。
+- `Containers` 分区 Splitter 子面板设 `min_size`，标题补「drag highlight, respects child min size」，用于人工验收约束效果。
+
+### 验证
+
+`test_ui_drag_feedback`（纯逻辑）：
+
+- Slider：按下后 `append_to` 顶点数增加（气泡 + 环），松开后恢复；拖动到范围外时值仍被 clamp；`step_ >= 1` 与 `< 1` 两种气泡都不崩。
+- Splitter：给子项设较大 `min_size` 后拖到极端，`ratio` 被限制在可满足 min_size 的区间；`dragging` 时顶点数增加；松开后恢复。
+- 现有 32 个测试全部通过；ASAN 通过；gallery 冒烟 `validation=0`。
+
+### 边界（本次不做）
+
+- 不做鼠标光标形状切换（需要 window API，属应用层）。
+- 不做拖拽起始阈值、双击复位、拖拽结束吸附。
+- 气泡不做出现/消失动画（瞬切）。
+- 不改 `Splitter::handle_size`（固定 6），不改 Slider 的轨道内缩布局。
+
+## 进度与子菜单
+### Progress 不确定态
+
+- `set_indeterminate(bool)` / `indeterminate()`：切换确定/不确定两种表现，默认确定。
+- 动画时间用已有的 `Widget::on_update(dt)`（由 `UISystem::update_tree` 每帧驱动），
+  推进 `phase_ ∈ [0, 1)`，周期固定 1.2s；仅在 `indeterminate()` 为真时推进。
+- 绘制：`Track` 角色轨道 + 一条宽 30% 的 `accent` 条带，位置 `x = (w + band) * phase - band`，
+  即从左外滑到右外循环；条带两端圆角用 `radius_pill`（classic 为直角）。
+- 确定态绘制不变；切回确定态时保留 `phase_`（下次再进入不确定态从上次位置继续）。
+- 不确定态不显示百分比文本（本来就没有）。
+
+### 菜单子菜单（多层）
+
+- `MenuItem::children`（`std::vector<MenuItem>`，默认空）+ 工厂 `MenuItem::submenu(label, children, enabled)`；
+  `has_submenu()` = `!children.empty()`。递归结构天然支持任意层数。
+- `MenuPopup` 改为持有自己的 `items` **拷贝**（`set_items`）：顶层来自 `MenuBar` 的菜单，子层来自父项 `children`。
+  菜单项数量小，拷贝换来地址稳定与生命周期简单。
+- `MenuBar` 用 `std::vector<std::unique_ptr<MenuPopup>> popups_` 维护层级栈：
+  `popups_[0]` 是顶层菜单，`popups_[1..]` 是逐层打开的子菜单。
+- 绘制：有子菜单的行右侧画右向三角（`graphics::Triangle`），快捷键文本让位。
+- 交互：
+  - 悬停到「有子菜单」的行 → 关闭该层之后的所有子菜单，再打开新子菜单；
+  - 悬停到无子菜单的行 → 关闭该层之后的子菜单；
+  - 定位：子菜单 `x = 父 popup 右边 - 4`；右边界不足时翻到父 popup 左侧；`y = 该行顶部`，并 clamp 到窗口内；
+  - 点击项：有子菜单则打开子菜单；否则执行 `action` 并关闭整条链；
+  - `Escape` / 点击菜单外 → 关闭整条链。
+- 键盘（作用于 `active_depth_ = popups_.size() - 1` 这一层）：
+  - `Up`/`Down`/`Home`/`End` 在当前层移动高亮；
+  - `Right` 进入子菜单（高亮项有子菜单时）；`Left` 退回父层；
+  - `Enter`/`Space`：有子菜单则进入，否则执行 `action` 并关闭全部；
+  - `Escape` 关闭全部。
+- 每层的高亮：`MenuPopup` 自己持有 `hovered_`（鼠标）与 `keyboard_highlight_`（键盘），
+  绘制时鼠标优先、否则用键盘高亮，不再依赖 `MenuBar` 的单一 `highlight_`。
+- 顶层菜单之间的 Left/Right 切换保留（在 `active_depth_ == 0` 且当前项无子菜单时生效）。
+
+### 验证
+
+`test_ui_progress`：
+
+- 不确定态：`tick(dt)` 后 `phase` 增加，条带位置随之变化；不同 `dt` 序列可复现。
+- 确定态：`phase` 不推进，绘制与迁移前一致（顶点数不变）。
+- 顶点数：不确定态 > 0，且条带在两端不越出控件裁剪区。
+
+`test_ui_submenu`：
+
+- `MenuItem::children` 结构与 `has_submenu`。
+- 悬停有子菜单的行 → overlay 数量 +1；悬停无子菜单的行 → 回到原数量。
+- 导航到第二层：继续悬停另一带子菜单的项 → overlay 数量按层增加。
+- 键盘：`Right` 进入、`Left` 退回、`Enter` 执行并全关；多层时 `Left` 只退一层。
+- 点击子菜单项 → `action` 被调用一次，且所有 overlay 关闭。
+- `Escape` 关闭整条链。
+- 子菜单项的 `action` 与快捷键文本不影响布局（右三角与快捷键不重叠）。
+
+gallery：
+
+- `Inputs` 分区新增 indeterminate Progress（gallery 主循环已传真实 `dt`）。
+- `Menu` 分区增加一个多层子菜单示例（如 `Edit → Advanced → Text → …`），用于人工验收。
+
+### 边界（本次不做）
+
+- 子菜单支持任意层数；不做子菜单的打开/关闭动画（与「面板/弹层出现消失过渡」一起留到以后）。
+- 不做 `Progress` 的百分比文本、不做条带走动的缓动曲线（匀速）。
+- 不做子菜单的虚拟滚动（项过多时不做滚动，只 clamp 到窗口内）。

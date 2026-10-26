@@ -106,6 +106,9 @@ struct UiGallery
     ui::FocusPolicy focus_policy = ui::FocusPolicy::Keyboard;
     // 状态过渡时长（毫秒）；0 = 关闭动画。
     float transition_ms = 120.0f;
+    // 截图/冒烟钩子：首帧布局完成后再应用的滚动偏移（负值 = 不应用）。
+    float pending_scroll = -1.0f;
+    std::size_t current_section = 0;
     // 主题级圆角缩放：0 = 直角，1 = 默认，2 = 双倍（所有控件继承）。
     float radius_scale = 1.0f;
     ui::Label* radius_state = nullptr;
@@ -211,6 +214,7 @@ struct UiGallery
 
     void show_section(std::size_t index)
     {
+        current_section = index;
         for (std::size_t i = 0; i < sections.size(); ++i) {
             sections[i]->set_visible(i == index);
         }
@@ -418,7 +422,7 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.checkbox_state = checkbox_state.get();
         section->add(std::move(checkbox_state));
 
-        section->add(std::make_unique<ui::Label>("Slider", 18.0f));
+        section->add(std::make_unique<ui::Label>("Slider (drag shows value bubble)", 18.0f));
         auto slider = std::make_unique<ui::Slider>(480.0f);
         slider->set_range(0.0f, 100.0f);
         slider->set_step(1.0f);
@@ -502,6 +506,11 @@ inline UiGallery build(ui::UIRoot& root)
         progress->set_value(0.4f);
         section->add(std::move(progress));
 
+        section->add(std::make_unique<ui::Label>("Progress (indeterminate, animates with frame dt)", 18.0f));
+        auto busy = std::make_unique<ui::Progress>(480.0f);
+        busy->set_indeterminate(true);
+        section->add(std::move(busy));
+
         section->add(std::make_unique<ui::Label>("Dropdown (overlay list, arrow keys)", 18.0f));
         auto dropdown = std::make_unique<ui::Dropdown>(
             std::vector<std::string>{"Solid", "Dashed", "Dotted"}, 0);
@@ -531,13 +540,20 @@ inline UiGallery build(ui::UIRoot& root)
     // ---------- Containers ----------
     {
         std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Containers")};
-        section->add(std::make_unique<ui::Label>("Splitter (drag the middle bar)", 18.0f));
+        section->add(std::make_unique<ui::Label>(
+            "Splitter (drag the middle bar: highlight, respects child min size)", 18.0f));
         auto splitter = std::make_unique<ui::Splitter>(620.0f, 140.0f);
         splitter->set_min_size({620.0f, 140.0f});
         splitter->set_max_size({620.0f, 140.0f});
-        splitter->set_panes(
-            std::make_unique<ui::ColorRect>(0.0f, 0.0f, 300.0f, 140.0f, glm::vec4{0.18f, 0.42f, 0.62f, 1.0f}),
-            std::make_unique<ui::ColorRect>(0.0f, 0.0f, 300.0f, 140.0f, glm::vec4{0.24f, 0.58f, 0.38f, 1.0f}));
+        {
+            auto left_pane = std::make_unique<ui::ColorRect>(
+                0.0f, 0.0f, 300.0f, 140.0f, glm::vec4{0.18f, 0.42f, 0.62f, 1.0f});
+            left_pane->set_min_size({180.0f, 140.0f});
+            auto right_pane = std::make_unique<ui::ColorRect>(
+                0.0f, 0.0f, 300.0f, 140.0f, glm::vec4{0.24f, 0.58f, 0.38f, 1.0f});
+            right_pane->set_min_size({180.0f, 140.0f});
+            splitter->set_panes(std::move(left_pane), std::move(right_pane));
+        }
         gallery.splitter = splitter.get();
         section->add(std::move(splitter));
 
@@ -769,6 +785,24 @@ inline UiGallery build(ui::UIRoot& root)
             ui::MenuItem::make("Select all", [&gallery]() {
                 if (gallery.menu_state) gallery.menu_state->set_text("menu: Edit > Select all");
             }, "Ctrl+A"),
+            ui::MenuItem::separator_item(),
+            // 多层子菜单：Edit → Advanced → Text → …
+            ui::MenuItem::submenu("Advanced", {
+                ui::MenuItem::make("Normalize", [&gallery]() {
+                    if (gallery.menu_state) gallery.menu_state->set_text("menu: Edit > Advanced > Normalize");
+                }),
+                ui::MenuItem::submenu("Text", {
+                    ui::MenuItem::make("Upper case", [&gallery]() {
+                        if (gallery.menu_state) gallery.menu_state->set_text("menu: Edit > Advanced > Text > Upper");
+                    }),
+                    ui::MenuItem::make("Lower case", [&gallery]() {
+                        if (gallery.menu_state) gallery.menu_state->set_text("menu: Edit > Advanced > Text > Lower");
+                    }),
+                }),
+                ui::MenuItem::make("Sort lines", [&gallery]() {
+                    if (gallery.menu_state) gallery.menu_state->set_text("menu: Edit > Advanced > Sort");
+                }, "Ctrl+Shift+S"),
+            }),
         });
         menu->add_menu("View", {
             ui::MenuItem::make("Toggle debug overlay", [&gallery]() {
@@ -1033,6 +1067,10 @@ inline UiGallery build(ui::UIRoot& root)
         const int index = std::atoi(section);
         if (index >= 0 && index < static_cast<int>(gallery.sections.size())) {
             gallery.show_section(static_cast<std::size_t>(index));
+            // 冒烟/截图用：首帧布局后自动滚动当前分区，覆盖“内容溢出视口”的路径。
+            if (const char* scroll = std::getenv("COSINE_GALLERY_SCROLL")) {
+                gallery.pending_scroll = static_cast<float>(std::atof(scroll));
+            }
         }
     }
     if (std::getenv("COSINE_GALLERY_DIALOG")) gallery.open_dialog();

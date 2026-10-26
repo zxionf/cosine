@@ -6,6 +6,7 @@
 #include "../graphics/box.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace xel::ui
 {
@@ -24,6 +25,15 @@ public:
 
     float value() const { return value_; }
     void set_preferred_width(float width) { preferred_width_ = width; mark_layout_dirty(); }
+
+    // 不确定态：条带循环滑动，由 on_update(dt) 推进。
+    void set_indeterminate(bool indeterminate)
+    {
+        indeterminate_ = indeterminate;
+        mark_layout_dirty();
+    }
+    bool indeterminate() const { return indeterminate_; }
+    float phase() const { return phase_; }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
@@ -48,10 +58,21 @@ public:
         const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
         graphics::append_rounded_rect(list, bounds, radius, track_style.fill);
 
-        const float fill_w = global_.size.x * value_;
-        if (fill_w > 0.0f) {
-            const BoxStyle fill_style = t.style(StyleRole::Accent, ControlState::Normal);
-            graphics::append_rounded_rect(list, {bounds.x, bounds.y, fill_w, bounds.w}, radius, fill_style.fill);
+        const BoxStyle fill_style = t.style(StyleRole::Accent, ControlState::Normal);
+        if (indeterminate_) {
+            // 条带保持完整宽度滑出，超出部分交给裁剪；
+            // 注意 x 是相对控件左边缘的偏移，必须加上 bounds.x 才是绝对坐标。
+            const float band_w = std::max(24.0f, bounds.z * 0.3f);
+            const float x = bounds.x + (bounds.z + band_w) * phase_ - band_w;
+            list.push_clip(bounds);
+            graphics::append_rounded_rect(list, {x, bounds.y, band_w, bounds.w}, radius, fill_style.fill);
+            list.pop_clip();
+        } else {
+            const float fill_w = bounds.z * value_;
+            if (fill_w > 0.0f) {
+                graphics::append_rounded_rect(list, {bounds.x, bounds.y, fill_w, bounds.w},
+                                              radius, fill_style.fill);
+            }
         }
 
         if (t.border > 0.0f) {
@@ -61,8 +82,23 @@ public:
 
     bool hit_testable() const override { return false; }
 
+protected:
+    void on_update(float dt) override
+    {
+        if (!indeterminate_) return;
+        constexpr float kPeriod = 1.2f;
+        phase_ = std::fmod(phase_ + dt / kPeriod, 1.0f);
+        if (phase_ < 0.0f) phase_ += 1.0f;
+        // 浮点累积可能得到 0.9999999，归零避免相位卡在末尾。
+        if (phase_ >= 1.0f - 1e-4f) phase_ = 0.0f;
+    }
+
+public:
+
 private:
     float value_ = 0.0f;
     float preferred_width_ = 220.0f;
+    bool indeterminate_ = false;
+    float phase_ = 0.0f;
 };
 } // namespace xel::ui

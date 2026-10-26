@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace xel::ui
@@ -41,8 +42,33 @@ public:
     bool hit_testable() const override { return true; }
     bool clips_children() const override { return true; }
 
-    void set_ratio(float ratio) { ratio_ = std::clamp(ratio, 0.1f, 0.9f); mark_layout_dirty(); }
+    void set_ratio(float ratio)
+    {
+        const auto limits = ratio_limits();
+        ratio_ = std::clamp(ratio, limits.first, limits.second);
+        mark_layout_dirty();
+    }
     float ratio() const { return ratio_; }
+    // 当前尺寸下可用的比例区间（由两个子项的 min_size 推导）。
+    std::pair<float, float> ratio_limits() const
+    {
+        constexpr float kFallbackMin = 0.1f;
+        constexpr float kFallbackMax = 0.9f;
+        const float handle = handle_size();
+        const bool horizontal = orientation_ == Orientation::Horizontal;
+        const float extent = horizontal ? global_.size.x : global_.size.y;
+        const float usable = extent - handle;
+        if (usable <= 0.0f || children_.size() < 2) return {kFallbackMin, kFallbackMax};
+
+        const glm::vec2 first_min = children_[0]->min_size();
+        const glm::vec2 second_min = children_[1]->min_size();
+        const float first_need = horizontal ? first_min.x : first_min.y;
+        const float second_need = horizontal ? second_min.x : second_min.y;
+
+        const float lower = std::max(kFallbackMin, std::min(kFallbackMax, first_need / usable));
+        const float upper = std::min(kFallbackMax, std::max(lower, 1.0f - second_need / usable));
+        return {lower, upper};
+    }
     void set_orientation(Orientation orientation) { orientation_ = orientation; mark_layout_dirty(); }
 
     glm::vec2 measure(glm::vec2 constraints) override
@@ -54,6 +80,8 @@ public:
     void arrange(Rect slot) override
     {
         global_ = slot;
+        const auto limits = ratio_limits();
+        ratio_ = std::clamp(ratio_, limits.first, limits.second);
         const float handle = handle_size();
         if (children_.size() < 2) {
             if (!children_.empty()) children_[0]->arrange(slot);
@@ -90,9 +118,19 @@ public:
 
         // 手柄：颜色沿用 panel_border，圆角随主题（classic 为直角）。
         const BoxStyle bar_style = visual_style(StyleRole::Control,
-                                                     is_hovered() ? ControlState::Hovered : ControlState::Normal);
-        const glm::vec4 bar_color = is_hovered() ? bar_style.fill : t.panel_border;
-        graphics::append_rounded_rect(list, {x, y, w, h}, corner_radius(t.radius_small), bar_color);
+                                                is_hovered() ? ControlState::Hovered : ControlState::Normal);
+        glm::vec4 bar_color = t.panel_border;
+        if (dragging_) {
+            bar_color = with_alpha(t.accent, 0.28f);
+        } else if (is_hovered()) {
+            bar_color = bar_style.fill;
+        }
+        const float bar_radius = corner_radius(t.radius_small);
+        graphics::append_rounded_rect(list, {x, y, w, h}, bar_radius, bar_color);
+        // 拖动反馈：描边强调色细环。
+        if (dragging_) {
+            graphics::append_rounded_ring(list, {x, y, w, h}, bar_radius, 1.0f, t.accent);
+        }
 
         for (const auto& child : children_) {
             if (child->visible()) {

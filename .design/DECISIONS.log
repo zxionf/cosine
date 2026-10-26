@@ -410,3 +410,43 @@ Change: 20261026-focus-order
 Context: RadioGroup 内每个 Radio 都是独立 Tab 停靠点，且无方向键，与单选组标准语义（组=一个停靠点、组内方向键切换）不符
 Decision: RadioGroup 实现 roving tabindex：子 Radio tab_order=-1、组 focusable、Up/Down/Home/End 切换并让焦点标记跟随选中项；焦点在组内 Radio 上时 focus_next 用树序定位并跳过整组
 Consequences: Tab 不会逐项穿过单选项；鼠标点击组内项后按 Tab 直接跳到组后控件；焦点框仍由 Radio 自己绘制，自动跟随 FocusStyle/FocusPolicy
+## [83] 2026-10-26 08:17:11 UTC
+Change: 20261026-drag-feedback
+Context: Slider 拖动时没有数值提示，调参无法确认当前值；气泡若允许画到控件外会被父级裁剪
+Decision: 拖动中在手柄上方绘制数值气泡（按 step_>=1 用整数格式、否则两位小数），水平居中于手柄、垂直优先上方，并 clamp 在控件 bounds 内；手柄加 accent 环，环不依赖 FocusPolicy
+Consequences: 拖动期间顶点数增加、松开恢复；气泡始终可见不被裁；FocusPolicy=Never 时也能看到拖拽反馈
+## [84] 2026-10-26 08:17:11 UTC
+Change: 20261026-drag-feedback
+Context: Splitter 拖拽无视觉反馈，且 ratio 固定 clamp [0.1,0.9]，子项可能被压到小于自身 min_size
+Decision: 拖动中手柄用 accent 28% 填充 + 细环；ratio 上下限由子项主轴 min_size 推导（usable=主轴-handle），set_ratio 与 arrange 都 clamp，min_size 为 0 时退回 0.1/0.9
+Consequences: 子项不会被压到不可用尺寸；容器尺寸变化后 ratio 自动夹取；测试覆盖 min_size 约束与兑底两种情形
+## [85] 2026-10-26 08:37:47 UTC
+Change: 20261026-progress-submenu
+Context: Progress 只有确定态，长任务无法表达「进行中但不知道进度」
+Decision: 新增 indeterminate：phase 由 on_update(dt) 按 1.2s 周期推进并回绕，绘制 30% 宽 accent 条带、x=(w+band)*phase-band 并 clamp 在控件内；确定态绘制不变、切回后相位保留
+Consequences: 随真实帧时间推进、纯逻辑可测；相位对浮点累积做归零保护；不做百分比文本与缓动
+## [86] 2026-10-26 08:37:47 UTC
+Change: 20261026-progress-submenu
+Context: 菜单原本只有单层 popup，子菜单需要多层且要避免重建 overlay 导致指针失效
+Decision: MenuItem 增加递归 children；MenuPopup 持有 items 拷贝并维护 hovered/keyboard 两个高亮；MenuBar 用 popup 栈（裸指针、所有权在 root）管理层级，切换顶层菜单时复用同一个 popup widget 只换内容
+Consequences: 支持任意层子菜单；hover 逐层展开、悬停兄弟项收掉更深层；Right/Left 逐层进出、Esc 全关；右侧空间不足时翻到父菜单左侧
+## [87] 2026-10-26 08:47:16 UTC
+Change: 20261026-progress-submenu
+Context: 不确定态进度条在接近右边界时宽度被 clamp 压缩，视觉上像「还没走出去就从左边重来」
+Decision: 条带不再 clamp 宽度：用完整 band_w 绘制，并 push_clip 到控件范围，超出部分交给 scissor 裁掉
+Consequences: 条带保持形状从右边界滑出，两端是裁剪而非压缩；测试断言 phase 0.9 时宽度仍等于 band_w 且右端越界
+## [88] 2026-10-26 08:47:16 UTC
+Change: 20261026-progress-submenu
+Context: 菜单打开时焦点转移到其它控件（如 Tab 离开菜单栏），弹层仍然留在屏幕上
+Decision: MenuBar::on_focus_lost 除了清 hovered 还调用 close()，收起整条菜单链
+Consequences: Tab 或程序性 set_focus 离开菜单栏时弹层立即消失；test_ui_submenu 覆盖该路径
+## [89] 2026-10-26 09:04:03 UTC
+Change: 20261026-progress-submenu
+Context: 不确定态条带只走到控件内部 x=200 处就回绕：条带位置把相对偏移当成了绝对坐标，缺少 bounds.x
+Decision: 条带 x 改为 bounds.x + (bounds.z + band_w) * phase - band_w，再用 push_clip(bounds) 让它从右边界真正滑出
+Consequences: 条带从控件左侧外滑到右侧外（实测 phase 0→0.99 时 x=40→357，控件 100..300）；测试增加非零位置用例
+## [90] 2026-10-26 09:04:03 UTC
+Change: 20261026-progress-submenu
+Context: 控件顶部偶尔多画 1~2 行像素：UI 裁剪矩形是小数，渲染层向外 floor/ceil 取整，scissor 比控件多出最多 1px
+Decision: 裁剪两端统一取整：DrawList::push_clip/set_clip 把矩形 round 到像素网格，渲染层改用 lround（不再 floor/ceil 外扩）
+Consequences: scissor 与 UI 裁剪完全一致，控件顶/底不再多出像素；代价是极端半像素位置下文字降部最多被裁 0.5px

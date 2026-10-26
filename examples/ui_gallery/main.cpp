@@ -60,6 +60,16 @@ int run()
 
         app.uisys.tick(std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f));
 
+        // 首帧布局完成后再应用待定滚动（build 时还没有 viewport 尺寸）。
+        if (gallery.pending_scroll >= 0.0f) {
+            if (gallery.current_section < gallery.sections.size()) {
+                if (auto* view = gallery.sections[gallery.current_section]->scroll_view()) {
+                    view->set_scroll_offset({0.0f, gallery.pending_scroll});
+                }
+            }
+            gallery.pending_scroll = -1.0f;
+        }
+
         if (open_dropdown_once) {
             open_dropdown_once = false;
             gallery.dropdown->open();

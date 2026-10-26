@@ -868,16 +868,17 @@ void Renderer::end()
     // }
     for (const auto& batch : draw_list_.batches()) {
         if (batch.indices.empty()) continue;
-        // 裁剪矩形向外取整：向下取整左上、向上取整右下，避免把亚像素边缘（
-        // 例如字母降部）截掉一整行。
+        // UI 层已把裁剪矩形对齐到像素网格，这里取最近整数即可：
+        // 向外取整（floor/ceil）会让 scissor 比控件大最多 1px，
+        // 表现在屏幕上就是控件顶部/底部多出一条像素。
         const float sx0 = batch.scissor.x;
         const float sy0 = batch.scissor.y;
         const float sx1 = sx0 + std::max(0.0f, batch.scissor.z);
         const float sy1 = sy0 + std::max(0.0f, batch.scissor.w);
-        const int x0 = std::max(0, static_cast<int>(std::floor(sx0)));
-        const int y0 = std::max(0, static_cast<int>(std::floor(sy0)));
-        const int x1 = std::min(static_cast<int>(target.extent.width), static_cast<int>(std::ceil(sx1)));
-        const int y1 = std::min(static_cast<int>(target.extent.height), static_cast<int>(std::ceil(sy1)));
+        const int x0 = std::max(0, static_cast<int>(std::lround(sx0)));
+        const int y0 = std::max(0, static_cast<int>(std::lround(sy0)));
+        const int x1 = std::min(static_cast<int>(target.extent.width), static_cast<int>(std::lround(sx1)));
+        const int y1 = std::min(static_cast<int>(target.extent.height), static_cast<int>(std::lround(sy1)));
         const uint32_t scissor_w = static_cast<uint32_t>(std::max(0, x1 - x0));
         const uint32_t scissor_h = static_cast<uint32_t>(std::max(0, y1 - y0));
         // 空裁剪区不提交绘制：某些驱动对 extent=0 的 scissor 行为不一致，

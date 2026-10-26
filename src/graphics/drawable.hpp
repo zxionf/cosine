@@ -49,6 +49,9 @@ public:
     }
     void set_clip(glm::vec4 clip)
     {
+        // 裁剪边界对齐到像素网格：渲染层按整数 scissor 提交，
+        // 两边都取整才不会让控件顶部/底部多出一行像素。
+        clip = {std::round(clip.x), std::round(clip.y), std::round(clip.z), std::round(clip.w)};
         if (clips_.empty()) clips_.push_back(clip);
         else clips_.back() = clip;
         needs_new_batch_ = true;
@@ -56,6 +59,7 @@ public:
 
     void push_clip(glm::vec4 clip)
     {
+        clip = {std::round(clip.x), std::round(clip.y), std::round(clip.z), std::round(clip.w)};
         clips_.push_back(intersect(current_clip(), clip));
         needs_new_batch_ = true;
     }
