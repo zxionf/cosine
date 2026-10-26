@@ -550,3 +550,8 @@ Change: 20261026-scroll-fast-mode
 Context: Smooth 的 0.12s 时间常数偏柔和，滚轮停止后滑行尾巴明显
 Decision: 新增 ScrollMode::Fast：tau = max(0.03, smoothing*0.4)，吸附 0.5px，停止输入 0.1s 后 tau 再减半
 Consequences: 三种模式可切换；Fast 仍是目标跟随模型，不引入惯性；Smooth/Line 的既有语义不变
+## [111] 2026-10-26 11:54:32 UTC
+Change: 20261026-easing
+Context: M4 动画内核需要关键帧之间的缓动曲线，UI 的固定 ease_out_quad 不够用，且动画模块不应依赖 UI
+Decision: 新建 cosine_anim 库与 anim/easing.hpp：Easing 枚举（Linear/EaseIn/EaseOut/EaseInOut/CubicBezier）+ 二分求逆的自定义 cubic-bezier，x1/x2 clamp 到 [0,1]
+Consequences: 纯逻辑可测、不依赖 UI；二分 24 次精度约 6e-8；后续 scene/timeline/property 放进同一库

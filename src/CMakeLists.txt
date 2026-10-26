@@ -12,6 +12,15 @@ target_include_directories(cosine_text PUBLIC
 # vertex.hpp 公开包含 <vulkan/vulkan.hpp>，因此头文件路径要传递给所有消费者。
 target_link_libraries(cosine_text PUBLIC glm::glm freetype Vulkan::Headers)
 
+# 动画内核：缓动、属性、时间轴；只依赖 glm，不依赖 UI。
+add_library(cosine_anim STATIC
+    anim/easing.cpp
+)
+target_include_directories(cosine_anim PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(cosine_anim PUBLIC glm::glm)
+
 # UI 库：布局、控件、事件、DrawList 消费端；测试和 ex4 不再各自重复编译。
 add_library(cosine_ui STATIC
     ui/vbox.cpp
@@ -37,9 +46,11 @@ target_link_libraries(cosine_ui
 if(MSVC)
     target_compile_options(cosine_text PRIVATE /W4)
     target_compile_options(cosine_ui PRIVATE /W4)
+    target_compile_options(cosine_anim PRIVATE /W4)
 else()
     target_compile_options(cosine_text PRIVATE -Wall -Wextra -Wshadow)
     target_compile_options(cosine_ui PRIVATE -Wall -Wextra -Wshadow)
+    target_compile_options(cosine_anim PRIVATE -Wall -Wextra -Wshadow)
 endif()
 
 add_library(cosine_backend STATIC

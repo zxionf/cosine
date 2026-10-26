@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 无
-Phase: M3.6 平滑滚动完成（Smooth / Fast / Line）+ 布局修复；gallery 可切换三种模式
+Phase: M4 启动——easing 完成（cosine_anim 库、五种曲线、cubic-bezier 二分求逆）
 Blocked: 无
-Next: M4（动画内核）——按 easing → scene-node → property-system 顺序启动
+Next: M4 scene-node（场景图 / 节点模型：Group、Shape、Text、Image、Camera）
