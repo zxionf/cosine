@@ -105,7 +105,7 @@ struct BoxStyle {
 - gallery 新增 `Style` 分区：同一组控件并列展示 normal/hover/pressed/disabled/focused 五种外观（用 `set_hovered()`/`set_enabled(false)`/`set_focused()` 构造伪状态），半径与密度各一组按钮，键盘 Tab 进入控件时可见焦点环、鼠标点击后隐藏。
 - 全量：`cmake --build build -j` + `ctest` 全绿，gallery 连续运行无 validation error。
 
-## 边界
+### 边界（本变更不做的事）
 
 - 不做颜色/圆角插值过渡：需要 `Widget::update(dt)` 与 `UISystem::tick(dt)` 的节拍改造，与「UI 动画」事项同批做，避免本次同时改状态模型与时间模型。
 - 经典样式只保留「直角 + 贴边焦点框」这一组几何，不保留其它历史特例（各控件曾经各自写的 hover 高亮色改为统一 `ControlState`）。
