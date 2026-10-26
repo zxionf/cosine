@@ -17,6 +17,7 @@ add_library(cosine_anim STATIC
     anim/easing.cpp
     anim/scene.cpp
     anim/property.cpp
+    anim/timeline.cpp
 )
 target_include_directories(cosine_anim PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

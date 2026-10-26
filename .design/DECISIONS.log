@@ -580,3 +580,8 @@ Change: 20261026-property-system
 Context: 时间轴每条 track 是 (节点, 属性) → 关键帧，需要统一读写入口且不依赖具体字段类型
 Decision: 内置属性 id 用编译期常量（prop::*）、PropertyValue 用 variant、PropertyRegistry 提供名字↔id↔类型映射；Scene 用 switch 分发，类型不匹配返回 false
 Consequences: 轨道与序列化只依赖 PropertyId；未知属性与类型错误显式失败；新增属性需同时改 prop 常量、注册表与 switch
+## [117] 2026-10-26 13:01:16 UTC
+Change: 20261026-timeline-track
+Context: 属性系统只解决读写，播放还需要按时间采样关键帧并写回场景
+Decision: Track 存按时间排序的 Keyframe，采样时用区间终点帧的 easing 插值；Timeline 提供 seek/advance/apply，seek 是确定性跳转
+Consequences: bool/string/uint32 为阶跃插值；同一时间重复 apply 结果一致，满足 M4 的确定性 seek 验收
