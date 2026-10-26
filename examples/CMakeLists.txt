@@ -37,6 +37,20 @@ if(COSINE_CXX_MODULE_SCAN)
 endif()
 add_dependencies(ui_anim_demo shaders copy_assets)
 
+# 动画能力全面展示（M4.5）：缓动、层级、属性动画、事件与播放控制。
+add_executable(ui_anim_showcase
+    ui_anim_showcase/main.cpp
+)
+target_link_libraries(ui_anim_showcase PRIVATE cosine_app cosine_anim)
+target_include_directories(ui_anim_showcase PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui_anim_showcase
+)
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(ui_anim_showcase PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
+add_dependencies(ui_anim_showcase shaders copy_assets)
+
 cosine_apply_sanitizers(ui_demo)
 cosine_apply_sanitizers(ui_gallery)
 cosine_apply_sanitizers(ui_anim_demo)
+cosine_apply_sanitizers(ui_anim_showcase)

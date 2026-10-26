@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 无
-Phase: M4 完成（scene / property / timeline / easing / player / events + SceneView）
+Phase: M4.5 动画展厅完成（ui_anim_showcase）；M4.6 为文本/图集 backlog
 Blocked: 无
-Next: M5 XEL 绑定（解释器改可嵌入库 + 宿主 API）
+Next: M5 XEL 绑定（或按需处理 M4.6 项）
