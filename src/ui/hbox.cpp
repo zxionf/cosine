@@ -37,7 +37,8 @@ void Hbox::layout()
 void Hbox::append_to(graphics::DrawList& list) const
 {
     if (is_debug()) { debug_rect(list); }
-    for (const auto& child : children_) {
+    // z-index 控制同层绘制顺序（大的在上）；没有非零 z 时保持加入顺序。
+    for (Widget* child : paint_order()) {
         if (child->visible()) child->append_to(list);
     }
 }
@@ -63,11 +64,14 @@ glm::vec2 Hbox::measure(glm::vec2 constraints)
 
     float total_w = pad_l + pad_r;
     float max_h = 0.0f;
+    std::size_t placed = 0;
 
     for (std::size_t i = 0; i < children_.size(); ++i) {
-        if (i > 0) total_w += spacing_;
-
         const auto& child = children_[i];
+        // 绝对定位子项不参与流式尺寸。
+        if (child->absolute()) continue;
+        if (placed > 0) total_w += spacing_;
+        ++placed;
         const float ml = child->margin_left();
         const float mr = child->margin_right();
         const float mt = child->margin_top();
@@ -102,6 +106,7 @@ void Hbox::arrange(Rect slot)
 
     struct Item
     {
+        Widget* child;
         glm::vec2 size;
         float ml, mt, mr, mb;
     };
@@ -110,8 +115,9 @@ void Hbox::arrange(Rect slot)
     items.reserve(children_.size());
     float natural_w = 0.0f;
 
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        const auto& child = children_[i];
+    // 流式子项：绝对定位的子项不占位、不参与 spacing 与 flex 分配。
+    for (const auto& child : children_) {
+        if (child->absolute()) continue;
         const float ml = child->margin_left();
         const float mt = child->margin_top();
         const float mr = child->margin_right();
@@ -119,30 +125,30 @@ void Hbox::arrange(Rect slot)
 
         const glm::vec2 cs = Widget::measure_child(*child, {inner_w, std::max(0.0f, inner_h - mt - mb)});
 
-        items.push_back({cs, ml, mt, mr, mb});
+        if (!items.empty()) natural_w += spacing_;
+        items.push_back({child.get(), cs, ml, mt, mr, mb});
         natural_w += ml + cs.x + mr;
-        if (i > 0) natural_w += spacing_;
     }
 
     float extra = inner_w - natural_w;
     if (extra > 0.0f) {
         float grow_sum = 0.0f;
-        for (const auto& child : children_) grow_sum += child->flex_grow();
+        for (const auto& item : items) grow_sum += item.child->flex_grow();
 
         if (grow_sum > 0.0f) {
-            for (std::size_t i = 0; i < children_.size(); ++i) {
-                const float grow = children_[i]->flex_grow();
+            for (auto& item : items) {
+                const float grow = item.child->flex_grow();
                 if (grow <= 0.0f) continue;
-                items[i].size = children_[i]->clamp_size({
-                    items[i].size.x + extra * grow / grow_sum,
-                    items[i].size.y
+                item.size = item.child->clamp_size({
+                    item.size.x + extra * grow / grow_sum,
+                    item.size.y
                 });
             }
 
             natural_w = 0.0f;
             for (std::size_t i = 0; i < items.size(); ++i) {
-                natural_w += items[i].ml + items[i].size.x + items[i].mr;
                 if (i > 0) natural_w += spacing_;
+                natural_w += items[i].ml + items[i].size.x + items[i].mr;
             }
             extra = inner_w - natural_w;
         }
@@ -161,19 +167,18 @@ void Hbox::arrange(Rect slot)
             x += std::max(0.0f, extra);
             break;
         case MainAlign::SpaceBetween:
-            if (children_.size() > 1 && extra > 0.0f) {
-                gap += extra / static_cast<float>(children_.size() - 1);
+            if (items.size() > 1 && extra > 0.0f) {
+                gap += extra / static_cast<float>(items.size() - 1);
             }
             break;
     }
 
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        auto& child = children_[i];
-        auto& item = items[i];
-        const Align a = resolve_align(*child);
+    for (auto& item : items) {
+        Widget& child = *item.child;
+        const Align a = resolve_align(child);
         const float available_h = std::max(0.0f, inner_h - item.mt - item.mb);
         // 百分比尺寸优先：声明了高百分比的子项不再被 stretch 拉满。
-        const bool pct_y = child->size_percent().y > 0.0f;
+        const bool pct_y = child.size_percent().y > 0.0f;
 
         float cy;
         if (a.stretch_y && !pct_y) {
@@ -183,8 +188,15 @@ void Hbox::arrange(Rect slot)
             cy = inner_y + item.mt + (available_h - item.size.y) * a.y;
         }
 
-        child->arrange({{x + item.ml, cy}, item.size});
+        child.arrange({{x + item.ml, cy}, item.size});
         x += item.ml + item.size.x + item.mr + gap;
+    }
+
+    // 绝对定位子项：按自身坐标相对内容区放置，尺寸走同一套测量规则。
+    for (const auto& child : children_) {
+        if (!child->absolute()) continue;
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
+        child->arrange({{inner_x + child->x(), inner_y + child->y()}, cs});
     }
 }
 } // namespace xel::ui

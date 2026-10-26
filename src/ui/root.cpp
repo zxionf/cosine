@@ -54,10 +54,11 @@ void UIRoot::set_theme(const Theme& value)
 
 void UIRoot::append_to(graphics::DrawList& list) const
 {
-    for (const auto& child : children_) {
+    // z-index 控制同层绘制顺序；overlays 始终在 children 之上。
+    for (Widget* child : paint_order()) {
         if (child->visible()) child->append_to(list);
     }
-    for (const auto& overlay : overlays_) {
+    for (Widget* overlay : overlay_paint_order()) {
         if (overlay->visible()) overlay->append_to(list);
     }
     if (is_debug()) append_debug_tree(list);

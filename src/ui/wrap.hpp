@@ -60,10 +60,9 @@ public:
 private:
     struct Row
     {
-        std::size_t begin = 0; // 子项区间 [begin, end)
-        std::size_t end = 0;
-        float width = 0.0f;    // 含 margin 与行内间距
-        float height = 0.0f;   // 含 margin
+        std::vector<std::size_t> items; // 流式子项在 children_ 中的索引
+        float width = 0.0f;             // 含 margin 与行内间距
+        float height = 0.0f;            // 含 margin
     };
 
     // 按可用宽折行；unbounded 为真时全部排成一行。

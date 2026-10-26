@@ -43,7 +43,8 @@ void Wrap::layout()
 void Wrap::append_to(graphics::DrawList& list) const
 {
     if (is_debug()) debug_rect(list);
-    for (const auto& child : children_) {
+    // z-index 控制同层绘制顺序（大的在上）；没有非零 z 时保持加入顺序。
+    for (Widget* child : paint_order()) {
         if (child->visible()) child->append_to(list);
     }
 }
@@ -64,6 +65,8 @@ std::vector<Wrap::Row> Wrap::layout_rows(float inner_w, bool unbounded)
 
     for (std::size_t i = 0; i < children_.size(); ++i) {
         const auto& child = children_[i];
+        // 绝对定位子项不参与折行。
+        if (child->absolute()) continue;
         const float ml = child->margin_left();
         const float mr = child->margin_right();
         const float mt = child->margin_top();
@@ -74,32 +77,30 @@ std::vector<Wrap::Row> Wrap::layout_rows(float inner_w, bool unbounded)
         const float need = ml + cs.x + mr;
         const float item_h = mt + cs.y + mb;
 
-        const bool row_empty = row.end == row.begin;
+        const bool row_empty = row.items.empty();
         const bool overflows = !unbounded && !row_empty
             && used + spacing_x_ + need > inner_w;
 
         if (overflows) {
-            rows.push_back(row);
+            rows.push_back(std::move(row));
             row = Row{};
-            row.begin = i;
-            row.end = i + 1;
+            row.items.push_back(i);
             row.width = need;
             row.height = item_h;
             used = need;
         } else {
-            if (row_empty) row.begin = i;
-            else {
+            if (!row_empty) {
                 row.width += spacing_x_;
                 used += spacing_x_;
             }
-            row.end = i + 1;
+            row.items.push_back(i);
             row.width += need;
             row.height = std::max(row.height, item_h);
             used += need;
         }
     }
 
-    if (row.end > row.begin) rows.push_back(row);
+    if (!row.items.empty()) rows.push_back(std::move(row));
     return rows;
 }
 
@@ -154,7 +155,7 @@ void Wrap::arrange(Rect slot)
     float y = slot.pos.y + pad_t;
     for (const auto& row : rows) {
         const float extra = inner_w - row.width;
-        const float count = static_cast<float>(row.end - row.begin);
+        const float count = static_cast<float>(row.items.size());
         float gap = spacing_x_;
         float x = inner_x;
 
@@ -168,14 +169,14 @@ void Wrap::arrange(Rect slot)
                 x += std::max(0.0f, extra);
                 break;
             case MainAlign::SpaceBetween:
-                if (row.end - row.begin > 1 && extra > 0.0f) {
+                if (row.items.size() > 1 && extra > 0.0f) {
                     gap += extra / (count - 1.0f);
                 }
                 break;
         }
 
-        for (std::size_t i = row.begin; i < row.end; ++i) {
-            auto& child = children_[i];
+        for (std::size_t idx : row.items) {
+            auto& child = children_[idx];
             const Align a = resolve_align(*child);
 
             const float ml = child->margin_left();
@@ -202,6 +203,13 @@ void Wrap::arrange(Rect slot)
         }
 
         y += row.height + spacing_y_;
+    }
+
+    // 绝对定位子项：按自身坐标相对内容区放置，尺寸走同一套测量规则。
+    for (const auto& child : children_) {
+        if (!child->absolute()) continue;
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, slot.size.y});
+        child->arrange({{inner_x + child->x(), slot.pos.y + pad_t + child->y()}, cs});
     }
 }
 } // namespace xel::ui

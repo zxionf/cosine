@@ -936,6 +936,18 @@ inline UiGallery build(ui::UIRoot& root)
         canvas->add(std::move(half));
         section->add(std::move(canvas));
 
+        section->add(std::make_unique<ui::Label>("绝对定位 + z-index：卡片右下角角标（不参与流式布局）", 18.0f));
+        auto card = std::make_unique<ui::Panel>(0.0f, 0.0f, 320.0f, 100.0f);
+        card->set_min_size({320.0f, 100.0f});
+        card->set_max_size({320.0f, 100.0f});
+        card->add(std::make_unique<ui::Label>("Card content", 16.0f));
+        auto badge = std::make_unique<ui::ColorRect>(0.0f, 0.0f, 56.0f, 22.0f, glm::vec4{0.95f, 0.45f, 0.35f, 1.0f});
+        badge->set_absolute(true);
+        badge->set_pos(244.0f, 46.0f);
+        badge->set_z_index(10);
+        card->add(std::move(badge));
+        section->add(std::move(card));
+
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
     }

@@ -183,6 +183,33 @@ public:
 
     void set_flex_grow(float grow) { flex_grow_ = grow < 0.0f ? 0.0f : grow; mark_layout_dirty(); }
     float flex_grow() const { return flex_grow_; }
+
+    // 绝对定位：脱离流式布局，按 (x, y) 相对父内容区定位；容器不计入其尺寸。
+    void set_absolute(bool value)
+    {
+        absolute_ = value;
+        mark_layout_dirty();
+    }
+    bool absolute() const { return absolute_; }
+
+    // 同层绘制/命中顺序键：数值大的画在上面、命中优先。默认 0（按加入顺序）。
+    void set_z_index(int value) { z_index_ = value; }
+    int z_index() const { return z_index_; }
+
+    // 按 z-index 稳定升序排列的一组控件；没有非零 z 时保持原顺序（避免每帧排序）。
+    static std::vector<Widget*> sorted_paint_order(const std::vector<std::unique_ptr<Widget>>& list)
+    {
+        std::vector<Widget*> order;
+        order.reserve(list.size());
+        for (const auto& item : list) order.push_back(item.get());
+        if (std::any_of(order.begin(), order.end(), [](Widget* w) { return w->z_index() != 0; })) {
+            std::stable_sort(order.begin(), order.end(),
+                [](Widget* a, Widget* b) { return a->z_index() < b->z_index(); });
+        }
+        return order;
+    }
+    std::vector<Widget*> paint_order() const { return sorted_paint_order(children()); }
+    std::vector<Widget*> overlay_paint_order() const { return sorted_paint_order(overlays()); }
     void set_min_size(glm::vec2 size) { min_size_ = size; mark_layout_dirty(); }
     void set_max_size(glm::vec2 size) { max_size_ = size; mark_layout_dirty(); }
     glm::vec2 min_size() const { return min_size_; }
@@ -286,6 +313,8 @@ protected:
     Edges padding_{};
     Edges margin_{};
     float flex_grow_ = 0.0f;
+    bool absolute_ = false;
+    int z_index_ = 0;
     glm::vec2 size_percent_{-1.0f, -1.0f};
     float aspect_ratio_ = 0.0f;
     glm::vec2 min_size_{0.0f, 0.0f};

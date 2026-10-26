@@ -48,7 +48,8 @@ void Grid::layout()
 void Grid::append_to(graphics::DrawList& list) const
 {
     if (is_debug()) debug_rect(list);
-    for (const auto& child : children_) {
+    // z-index 控制同层绘制顺序（大的在上）；没有非零 z 时保持加入顺序。
+    for (Widget* child : paint_order()) {
         if (child->visible()) child->append_to(list);
     }
 }
@@ -136,9 +137,15 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
     }
 
     const int cols = column_count(widths_);
-    const int rows = children_.empty()
+
+    // 绝对定位子项不占格：行数只按流式子项计算。
+    std::size_t flow_count = 0;
+    for (const auto& child : children_) {
+        if (!child->absolute()) ++flow_count;
+    }
+    const int rows = flow_count == 0
         ? 0
-        : static_cast<int>((children_.size() + static_cast<std::size_t>(cols) - 1) / static_cast<std::size_t>(cols));
+        : static_cast<int>((flow_count + static_cast<std::size_t>(cols) - 1) / static_cast<std::size_t>(cols));
 
     const float pad_l = padding_left();
     const float pad_r = padding_right();
@@ -151,9 +158,12 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
     if (unbounded_w) {
         // 无界约束下弹性列取该列子项的自然宽最大值，使「内容自适应」可用。
         std::vector<float> natural(static_cast<std::size_t>(cols), 0.0f);
+        std::size_t flow = 0;
         for (std::size_t i = 0; i < children_.size(); ++i) {
             const auto& child = children_[i];
-            const int col = static_cast<int>(i % static_cast<std::size_t>(cols));
+            if (child->absolute()) continue;
+            const int col = static_cast<int>(flow % static_cast<std::size_t>(cols));
+            ++flow;
             const glm::vec2 cs = Widget::measure_child(*child, {kUnbounded, kUnbounded});
             const float need = child->margin_left() + cs.x + child->margin_right();
             natural[static_cast<std::size_t>(col)] =
@@ -177,10 +187,13 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
         ? kUnbounded
         : std::max(0.0f, constraints.y - pad_t - pad_b);
 
+    std::size_t flow = 0;
     for (std::size_t i = 0; i < children_.size(); ++i) {
         const auto& child = children_[i];
-        const int row = static_cast<int>(i / static_cast<std::size_t>(cols));
-        const int col = static_cast<int>(i % static_cast<std::size_t>(cols));
+        if (child->absolute()) continue;
+        const int row = static_cast<int>(flow / static_cast<std::size_t>(cols));
+        const int col = static_cast<int>(flow % static_cast<std::size_t>(cols));
+        ++flow;
         const std::size_t ci = static_cast<std::size_t>(col);
 
         const float cell_w = std::max(0.0f, layout.width[ci] - child->margin_left() - child->margin_right());
@@ -211,27 +224,37 @@ void Grid::arrange(Rect slot)
     const float pad_l = padding_left();
     const float pad_r = padding_right();
     const float pad_t = padding_top();
+    const float pad_b = padding_bottom();
     const float inner_w = std::max(0.0f, slot.size.x - pad_l - pad_r);
+    const float inner_h = std::max(0.0f, slot.size.y - pad_t - pad_b);
 
     const ColumnLayout layout = resolve_columns(inner_w);
-    const int rows = static_cast<int>(
-        (children_.size() + static_cast<std::size_t>(cols) - 1) / static_cast<std::size_t>(cols));
+
+    // 流式子项索引：绝对定位子项不占格。
+    std::vector<std::size_t> flow;
+    flow.reserve(children_.size());
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+        if (!children_[i]->absolute()) flow.push_back(i);
+    }
+    const int rows = flow.empty()
+        ? 0
+        : static_cast<int>((flow.size() + static_cast<std::size_t>(cols) - 1) / static_cast<std::size_t>(cols));
 
     // 先按列宽测量一次，得到每格内容尺寸与行高（行高 = 行内最大内容高）。
-    std::vector<glm::vec2> cell_size(children_.size(), glm::vec2{0.0f, 0.0f});
+    std::vector<glm::vec2> cell_size(flow.size(), glm::vec2{0.0f, 0.0f});
     std::vector<float> row_h(static_cast<std::size_t>(rows), 0.0f);
 
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        const auto& child = children_[i];
-        const int row = static_cast<int>(i / static_cast<std::size_t>(cols));
-        const int col = static_cast<int>(i % static_cast<std::size_t>(cols));
+    for (std::size_t k = 0; k < flow.size(); ++k) {
+        const auto& child = children_[flow[k]];
+        const int row = static_cast<int>(k / static_cast<std::size_t>(cols));
+        const int col = static_cast<int>(k % static_cast<std::size_t>(cols));
         const std::size_t ci = static_cast<std::size_t>(col);
 
         const float cell_w =
             std::max(0.0f, layout.width[ci] - child->margin_left() - child->margin_right());
         glm::vec2 cs = Widget::measure_child(*child, {cell_w, kUnbounded});
         cs.x = std::min(cs.x, cell_w);
-        cell_size[i] = cs;
+        cell_size[k] = cs;
         row_h[static_cast<std::size_t>(row)] = std::max(
             row_h[static_cast<std::size_t>(row)],
             child->margin_top() + cs.y + child->margin_bottom());
@@ -241,11 +264,11 @@ void Grid::arrange(Rect slot)
     for (int r = 0; r < rows; ++r) {
         const float cell_h = row_h[static_cast<std::size_t>(r)];
         for (int c = 0; c < cols; ++c) {
-            const std::size_t i = static_cast<std::size_t>(r) * static_cast<std::size_t>(cols)
+            const std::size_t k = static_cast<std::size_t>(r) * static_cast<std::size_t>(cols)
                 + static_cast<std::size_t>(c);
-            if (i >= children_.size()) break;
+            if (k >= flow.size()) break;
 
-            auto& child = children_[i];
+            auto& child = children_[flow[k]];
             const std::size_t ci = static_cast<std::size_t>(c);
             const Align a = resolve_cell_align(*child);
 
@@ -254,7 +277,7 @@ void Grid::arrange(Rect slot)
             const float avail_h =
                 std::max(0.0f, cell_h - child->margin_top() - child->margin_bottom());
 
-            glm::vec2 size = cell_size[i];
+            glm::vec2 size = cell_size[k];
             float cx = 0.0f;
             float cy = 0.0f;
 
@@ -277,6 +300,13 @@ void Grid::arrange(Rect slot)
             child->arrange({{slot.pos.x + pad_l + cx, y + cy}, size});
         }
         y += cell_h + spacing_y_;
+    }
+
+    // 绝对定位子项：按自身坐标相对内容区放置，尺寸走同一套测量规则。
+    for (const auto& child : children_) {
+        if (!child->absolute()) continue;
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
+        child->arrange({{slot.pos.x + pad_l + child->x(), slot.pos.y + pad_t + child->y()}, cs});
     }
 }
 } // namespace xel::ui

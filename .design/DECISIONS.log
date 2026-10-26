@@ -495,3 +495,18 @@ Change: 20261026-percent-aspect
 Context: 容器 stretch 会覆盖子项尺寸，与百分比可能冲突
 Decision: 已启用百分比的轴跳过 stretch 覆盖，百分比优先；位置仍由 align 决定
 Consequences: 语义单一可预测；Vbox/Hbox/Grid/Wrap 的 stretch 分支都需检查该轴是否声明百分比
+## [100] 2026-10-26 09:55:59 UTC
+Change: 20261026-absolute-zindex
+Context: 容器内需要角标/浮层，脱离流式布局，同时要复用已有的百分比与宽高比测量
+Decision: absolute 子项的 x()/y() 相对父容器内容区（padding 内）原点；尺寸仍走 Widget::measure_child；容器 measure 不计入其尺寸、arrange 单独定位
+Consequences: 角标可用百分比定尺寸；不做 position:fixed 与相对最近定位祖先的 CSS 语义
+## [101] 2026-10-26 09:55:59 UTC
+Change: 20261026-absolute-zindex
+Context: 同层子项需要显式控制绘制与命中的先后
+Decision: z-index 默认 0，绘制按稳定升序、命中按降序；paint_order() 在无非零 z 时直接返回原序，overlays 永远在 children 之上
+Consequences: 容器与 UISystem 共用同一函数，绘制/命中/更新/Tab 顺序一致；Panel/TabBar 等未接入容器仍按加入顺序
+## [102] 2026-10-26 09:55:59 UTC
+Change: 20261026-absolute-zindex
+Context: 绝对定位子项的位置由坐标决定，align/stretch 可能与之冲突
+Decision: 绝对定位子项不参与 align 与 stretch，尺寸由 measure_child 解析后直接使用
+Consequences: 语义简单可预测；需要居中时用百分比尺寸或自行计算坐标

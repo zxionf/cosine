@@ -23,16 +23,16 @@ bool collect_hit_path(xel::ui::Widget* widget, glm::vec2 pos, std::vector<xel::u
 
     path.push_back(widget);
 
-    // overlay 层优先命中，其次才是普通子项；两者内部都按后加入者优先。
-    const auto& overlays = widget->overlays();
+    // overlay 层优先命中，其次才是普通子项；两者内部按 z-index 降序（大的先命中）。
+    const std::vector<xel::ui::Widget*> overlays = widget->overlay_paint_order();
     for (auto it = overlays.rbegin(); it != overlays.rend(); ++it) {
-        if (collect_hit_path(it->get(), pos, path)) return true;
+        if (collect_hit_path(*it, pos, path)) return true;
     }
 
     // 顶层优先命中
-    const auto& children = widget->children();
+    const std::vector<xel::ui::Widget*> children = widget->paint_order();
     for (auto it = children.rbegin(); it != children.rend(); ++it) {
-        if (collect_hit_path(it->get(), pos, path)) return true;
+        if (collect_hit_path(*it, pos, path)) return true;
     }
     // 只在自己可命中时才返回自己
     if (widget->hit_testable() && widget->global_bounds().contains(pos)) return true;
@@ -145,11 +145,11 @@ void UISystem::update_tree(Widget* widget, float dt)
 {
     if (!widget || !widget->visible()) return;
     widget->update(dt);
-    for (const auto& child : widget->children()) {
-        update_tree(child.get(), dt);
+    for (xel::ui::Widget* child : widget->paint_order()) {
+        update_tree(child, dt);
     }
-    for (const auto& overlay : widget->overlays()) {
-        update_tree(overlay.get(), dt);
+    for (xel::ui::Widget* overlay : widget->overlay_paint_order()) {
+        update_tree(overlay, dt);
     }
 }
 
@@ -217,12 +217,12 @@ void UISystem::collect_focusable(Widget* widget, std::vector<Widget*>& out) cons
 {
     if (!widget || !widget->visible()) return;
     if (widget->focusable()) out.push_back(widget);
-    // overlay 处于顶层，Tab 顺序也优先进入。
-    for (const auto& overlay : widget->overlays()) {
-        collect_focusable(overlay.get(), out);
+    // overlay 处于顶层，Tab 顺序也优先进入；同层按 z-index 升序。
+    for (xel::ui::Widget* overlay : widget->overlay_paint_order()) {
+        collect_focusable(overlay, out);
     }
-    for (const auto& child : widget->children()) {
-        collect_focusable(child.get(), out);
+    for (xel::ui::Widget* child : widget->paint_order()) {
+        collect_focusable(child, out);
     }
 }
 
