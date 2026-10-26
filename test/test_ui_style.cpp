@@ -9,10 +9,12 @@
 #include "ui/theme.hpp"
 #include "ui/ui_system.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <iostream>
 #include <memory>
+#include <vector>
 
 namespace
 {
@@ -507,6 +509,69 @@ void test_classic_shapes()
     ui::set_theme(ui::Theme::dark());
 }
 
+// Checkbox 的勾选块必须像素对齐且与外框同心：
+// 半像素 inset 会让它在屏幕上看去偏左/偏上。
+void test_checkbox_pixel_alignment()
+{
+    ui::set_theme(ui::Theme::dark()
+                      .with_rounding(false)
+                      .with_focus_policy(ui::FocusPolicy::Never));
+
+    ui::Checkbox checkbox("x", true);
+    checkbox.arrange({{0.0f, 0.0f}, {200.0f, 24.0f}});
+
+    graphics::DrawList list;
+    list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
+    checkbox.append_to(list);
+
+    // 顶点顺序：背景 4 → 边框环 16 → 勾选块 4（经典样式无圆角弧度）。
+    std::vector<glm::vec2> points;
+    for (const auto& batch : list.batches()) {
+        for (const auto& vertex : batch.vertices) points.push_back(vertex.pos);
+    }
+    assert(points.size() == 24);
+
+    // 所有顶点落在整像素上。
+    for (const auto& point : points) {
+        assert(point.x == std::floor(point.x));
+        assert(point.y == std::floor(point.y));
+    }
+
+    // 外框矩形：points[0]=(x,y)、points[2]=(x+w,y+h)。
+    const float box_cx = (points[0].x + points[2].x) * 0.5f;
+    const float box_cy = (points[0].y + points[2].y) * 0.5f;
+
+    float mx0 = points[20].x, mx1 = points[20].x;
+    float my0 = points[20].y, my1 = points[20].y;
+    for (std::size_t i = 20; i < 24; ++i) {
+        mx0 = std::min(mx0, points[i].x);
+        mx1 = std::max(mx1, points[i].x);
+        my0 = std::min(my0, points[i].y);
+        my1 = std::max(my1, points[i].y);
+    }
+
+    // 同心。
+    assert(std::fabs((mx0 + mx1) * 0.5f - box_cx) < 1e-4f);
+    assert(std::fabs((my0 + my1) * 0.5f - box_cy) < 1e-4f);
+    // 四边留白相等。
+    assert(std::fabs((mx0 - points[0].x) - (points[2].x - mx1)) < 1e-4f);
+    assert(std::fabs((my0 - points[0].y) - (points[2].y - my1)) < 1e-4f);
+
+    // 位置为半像素时也对齐到整像素（round），且仍保持同心。
+    checkbox.arrange({{0.5f, 0.5f}, {200.0f, 25.0f}});
+    graphics::DrawList half_list;
+    half_list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
+    checkbox.append_to(half_list);
+    for (const auto& batch : half_list.batches()) {
+        for (const auto& vertex : batch.vertices) {
+            assert(vertex.pos.x == std::floor(vertex.pos.x));
+            assert(vertex.pos.y == std::floor(vertex.pos.y));
+        }
+    }
+
+    ui::set_theme(ui::Theme::dark());
+}
+
 } // namespace
 
 int main()
@@ -520,6 +585,7 @@ int main()
     test_focus_visibility();
     test_focus_policy_matrix();
     test_classic_shapes();
+    test_checkbox_pixel_alignment();
     test_widget_migration();
     std::cout << "ui style tests passed\n";
     return 0;

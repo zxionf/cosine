@@ -76,6 +76,7 @@ struct BoxStyle {
 - `Theme::with_rounding(bool)` 只改几何（圆角与 `focus_style`），不碰 `focus_policy`；`Theme::with_focus_policy(...)` 只改时机。链式调用后写者胜，顺序任意。
 - `with_rounding` 是单向变换：要回到圆角样式，从基础主题重新派生（`base.with_rounding(true)`），避免清零值被当成新基准。
 - 判定集中在 `Widget::focus_visible()`（读 `focus_policy`）与 `Widget::append_focus_ring()`（读 `focus_style`），控件不分支。
+- 像素对齐：Checkbox 的外框、边框环与勾选块都 `round` 到整像素，勾选块 inset 也取整（`round(box*0.25)`），保证四边留白严格相等；半像素 inset 会让勾选块看上去偏心、边缘发虚。
 - 经典预设 = `with_rounding(false).with_focus_policy(Always)`，复刻旧观感（鼠标点击聚焦也显示边框）；现代预设 = `with_rounding(true).with_focus_policy(Keyboard)`。
 - gallery 左侧导航有 `Style: Rounded/Classic` 与 `Focus: Keyboard/Always/Never` 两个独立按钮；`Style` 分区另有 `Rounded/Classic` 与 `Keyboard only/Always/Never` 两行对照。环境变量：`COSINE_GALLERY_CLASSIC=1`、`COSINE_GALLERY_FOCUS=keyboard|always|never`。
 - 切换 Style 会把焦点时机复位为该风格的预设（Classic → Always、Rounded → Keyboard），之后点 Focus 按钮可任意覆盖，两维仍然自由组合。
@@ -88,7 +89,7 @@ struct BoxStyle {
 
 ### 验证
 
-- `test_ui_style`：`style()` 各角色/状态取值来源；`control_state()` 优先级；`with_density()` 缩放与幂等；`with_rounding()` 归零与 `Border` 焦点框几何（16 顶点、不外扩）；`with_focus_policy()` 与几何的 2×3 组合矩阵（可见性 + 几何顶点数）；圆角 clamp；圆角矩形几何（顶点/索引数、索引不越界、退化到 4 顶点）；环带厚度与半径退化。
+- `test_ui_style`：`style()` 各角色/状态取值来源；`control_state()` 优先级；`with_density()` 缩放与幂等；`with_rounding()` 归零与 `Border` 焦点框几何（16 顶点、不外扩）；`with_focus_policy()` 与几何的 2×3 组合矩阵（可见性 + 几何顶点数）；圆角 clamp；圆角矩形几何（顶点/索引数、索引不越界、退化到 4 顶点）；环带厚度与半径退化；圆形控件退化（slider 12 / progress 24 / radio 26 顶点）；Checkbox 像素对齐（整数顶点、勾选块与外框同心、四边留白相等）。
 - `test_ui_theme` 现有断言必须继续通过（`name`、明暗对比、切主题后 padding/text_size 生效）。
 - gallery 新增 `Style` 分区：同一组控件并列展示 normal/hover/pressed/disabled/focused 五种外观（用 `set_hovered()`/`set_enabled(false)`/`set_focused()` 构造伪状态），半径与密度各一组按钮，键盘 Tab 进入控件时可见焦点环、鼠标点击后隐藏。
 - 全量：`cmake --build build -j` + `ctest` 全绿，gallery 连续运行无 validation error。

@@ -325,3 +325,8 @@ Change: 20261026-style-system
 Context: 经典模式下 slider 的胶囊轨道/圆形手柄、progress 圆头、radio 圆形标记仍然是圆的：它们用了 slider_height*0.5、box*0.5 这类硬编码圆角，不读 Theme 圆角
 Decision: 新增 Theme::radius_pill（默认 1000，绘制时 clamp 到短边一半，with_rounding(false) 归零），Slider 轨道与手柄、Progress、Radio 统一改用它
 Consequences: 圆形控件随圆角开关联动：modern 为胶囊/圆形，classic 为直角/方形；per-widget corner_radius 覆盖仍优先；几何断言由 test_classic_shapes 覆盖
+## [66] 2026-10-26 05:57:32 UTC
+Change: 20261026-style-system
+Context: Checkbox 勾选后的中间方块看起来没有完美居中：inset=box*0.25 在 box=18 时是 4.5，方块边界落在半像素上，光栅化后左右留白不均、边缘发虚
+Decision: Checkbox 绘制做像素对齐：checkbox_size、控件 x/y、圆角半径与 marker inset 全部 round 到整像素，保证四边留白严格相等
+Consequences: 勾选块与外框同心且边界落在整像素；half-pixel 位置输入也先 round 再绘制；test_ui_style 断言所有顶点为整数且留白相等

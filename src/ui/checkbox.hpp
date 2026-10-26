@@ -7,6 +7,7 @@
 #include "../graphics/box.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <string>
 
@@ -50,12 +51,14 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const float box = t.checkbox_size;
-        const float bx = global_.pos.x;
-        const float by = global_.pos.y + (global_.size.y - box) * 0.5f;
+        // 像素对齐：外框、边框与勾选块都落在整像素上，
+        // 否则半像素边缘会让勾选块看上去偏心（左右/上下留白不均）。
+        const float box = std::round(t.checkbox_size);
+        const float bx = std::round(global_.pos.x);
+        const float by = std::round(global_.pos.y + (global_.size.y - box) * 0.5f);
         const BoxStyle control = t.style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
         const glm::vec4 box_bounds{bx, by, box, box};
-        const float radius = corner_radius(t.radius_small);
+        const float radius = std::round(corner_radius(t.radius_small));
 
         graphics::append_rounded_rect(list, box_bounds, radius, t.checkbox_bg);
         // 边框：hover 时用强调色提示可点，平时用 checkbox 专属边框色。
@@ -63,10 +66,12 @@ public:
         graphics::append_rounded_ring(list, box_bounds, radius, t.border, border_color);
 
         if (checked_) {
-            const float inset = box * 0.25f;
+            // inset 取整：勾选块与外框同心，四边留白完全相等且边界落在整像素。
+            const float inset = std::round(box * 0.25f);
+            const float marker = box - inset * 2.0f;
             const BoxStyle accent = t.style(StyleRole::Accent, control_state(enabled_, is_hovered(), pressed_));
             graphics::append_rounded_rect(list,
-                                          {bx + inset, by + inset, box - inset * 2.0f, box - inset * 2.0f},
+                                          {bx + inset, by + inset, marker, marker},
                                           radius * 0.5f,
                                           accent.fill);
         }

@@ -20,6 +20,7 @@
 - [x] T06c 经典样式下行为等价：圆角归零后绘制回到 4 顶点矩形，焦点框回到贴边四框
 - [x] T06d 预设组合：经典 = `with_rounding(false)+Always`，现代 = `with_rounding(true)+Keyboard`；其余组合由两维自由拼
 - [x] T06e 圆形控件跟随开关：新增 `Theme::radius_pill`（大值 + clamp），Slider 轨道/手柄、Progress、Radio 用它；classic 下回到直角/方形
+- [x] T06f Checkbox 像素对齐：外框/边框/勾选块 round 到整像素，inset 取整后四边留白相等
 
 ## 第二批（下一变更：列表与浮层）
 
@@ -28,7 +29,7 @@
 
 ## 验证与展示
 
-- [x] T08 `test_ui_style`：样式解析、状态优先级、密度缩放（含可逆与幂等）、圆角/环带几何（顶点数、索引合法、全在矩形内、半径 clamp）、焦点 2×3 组合矩阵、经典样式几何（贴边四框 16 顶点）、圆形控件退化（slider 12 / progress 24 / radio 26 顶点）
+- [x] T08 `test_ui_style`：样式解析、状态优先级、密度缩放（含可逆与幂等）、圆角/环带几何（顶点数、索引合法、全在矩形内、半径 clamp）、焦点 2×3 组合矩阵、经典样式几何（贴边四框 16 顶点）、圆形控件退化（slider 12 / progress 24 / radio 26 顶点）、Checkbox 像素对齐（整数顶点 + 同心 + 四边留白相等）
 - [x] T09 现有测试回归：28/28 通过（`test_ui_theme`、`test_ui_widgets`、`test_ui_controls`、`test_ui_gallery` 等）
 - [x] T10 gallery `Style` 分区：五态对照、圆角覆盖 0/4/10/18、密度三档、强调色样例、Rounded/Classic 与 Keyboard/Always/Never 两行独立选项；导航栏 `Style`/`Focus` 两个切换按钮与 `COSINE_GALLERY_CLASSIC`/`COSINE_GALLERY_FOCUS` 环境变量
 - [x] T11 全量构建 + ctest 28/28 + ASAN 28/28 + gallery 冒烟（默认/经典、深色/浅色组合均无 validation 错误）
