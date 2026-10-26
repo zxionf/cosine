@@ -1,8 +1,9 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
-#include "../graphics/rectangle.hpp"
+#include "../graphics/box.hpp"
 
 #include <algorithm>
 
@@ -41,21 +42,21 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const float height = global_.size.y;
+        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const float radius = corner_radius(t.radius_pill);
 
-        graphics::Rectangle track{global_.pos.x, global_.pos.y, global_.size.x, height, t.slider_track};
-        track.append_to(list);
+        const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
+        graphics::append_rounded_rect(list, bounds, radius, track_style.fill);
 
         const float fill_w = global_.size.x * value_;
         if (fill_w > 0.0f) {
-            graphics::Rectangle fill{global_.pos.x, global_.pos.y, fill_w, height, t.slider_fill};
-            fill.append_to(list);
+            const BoxStyle fill_style = t.style(StyleRole::Accent, ControlState::Normal);
+            graphics::append_rounded_rect(list, {bounds.x, bounds.y, fill_w, bounds.w}, radius, fill_style.fill);
         }
 
-        graphics::Rectangle border_top{global_.pos.x, global_.pos.y, global_.size.x, t.border, t.panel_border};
-        graphics::Rectangle border_bottom{global_.pos.x, global_.pos.y + height - t.border, global_.size.x, t.border, t.panel_border};
-        border_top.append_to(list);
-        border_bottom.append_to(list);
+        if (t.border > 0.0f) {
+            graphics::append_rounded_ring(list, bounds, radius, t.border, t.panel_border);
+        }
     }
 
     bool hit_testable() const override { return false; }

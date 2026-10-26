@@ -1,10 +1,12 @@
 #pragma once
 
 #include "../graphics/drawable.hpp"
+#include "../graphics/box.hpp"
 #include "../graphics/line.hpp"
 #include "rect.hpp"
 #include "align.hpp"
 #include "uicontext.hpp"
+#include "style.hpp"
 #include "../events/key_code.hpp"
 
 #include <limits>
@@ -87,6 +89,46 @@ public:
     bool visible() const { return visible_; }
     bool is_hovered() const { return hovered_; }
     void set_hovered(bool hovered) { hovered_ = hovered; }
+
+    // 焦点由基类持有：控件不再各自保存 focused_，样式解析与焦点环统一读这里。
+    bool is_focused() const { return focused_; }
+    void set_focused(bool focused) { focused_ = focused; }
+    // 焦点可见性只由 FocusPolicy 决定，与几何风格（圆角环 / 贴边框）无关：
+    // Keyboard = 仅键盘操作期间显示，Always = 聚焦即显示，Never = 从不显示。
+    bool focus_visible() const
+    {
+        if (!focused_) return false;
+        const UIContext* ctx = context();
+        if (ctx == nullptr) return true;
+        switch (ctx->theme.focus_policy) {
+            case FocusPolicy::Always: return true;
+            case FocusPolicy::Never:  return false;
+            case FocusPolicy::Keyboard: break;
+        }
+        return ctx->input_mode == InputMode::Keyboard;
+    }
+    // 焦点环画在控件外扩 focus_offset 的圆角环上，不压住内容边缘。
+    // 经典样式（FocusStyle::Border）则回到贴控件内边缘的四条实心框：无圆角、不外扩。
+    void append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const
+    {
+        if (!focus_visible()) return;
+        const auto& t = ui_theme();
+        const float thickness = t.focus_thickness;
+        if (t.focus_style == FocusStyle::Border) {
+            graphics::append_rounded_rect(list, {rect.x, rect.y, rect.z, thickness}, 0.0f, t.accent);
+            graphics::append_rounded_rect(list, {rect.x, rect.y + rect.w - thickness, rect.z, thickness}, 0.0f, t.accent);
+            graphics::append_rounded_rect(list, {rect.x, rect.y, thickness, rect.w}, 0.0f, t.accent);
+            graphics::append_rounded_rect(list, {rect.x + rect.z - thickness, rect.y, thickness, rect.w}, 0.0f, t.accent);
+            return;
+        }
+        const float offset = t.focus_offset;
+        graphics::append_rounded_ring(
+            list,
+            {rect.x - offset, rect.y - offset, rect.z + offset * 2.0f, rect.w + offset * 2.0f},
+            radius + offset,
+            thickness,
+            t.accent);
+    }
     void set_visible(bool visible) { visible_ = visible; mark_layout_dirty(); }
     virtual void debug() { debug_ = true; }
     bool is_debug() const { return debug_; }
@@ -134,6 +176,11 @@ public:
     glm::vec2 max_size() const { return max_size_; }
     glm::vec2 clamp_size(glm::vec2 size) const { return glm::clamp(size, min_size_, max_size_); }
 
+    // 单控件圆角覆盖：默认用样式角色解析出的档位，个别控件可单独指定。
+    void set_corner_radius(float radius) { radius_override_ = radius; }
+    void clear_corner_radius() { radius_override_.reset(); }
+    float corner_radius(float fallback) const { return radius_override_.value_or(fallback); }
+
     // 内边距
     virtual float padding_left()   const { return padding_.left; }
     virtual float padding_right()  const { return padding_.right; }
@@ -159,8 +206,8 @@ public:
     virtual bool on_key_down(event::KeyCode key, event::Modifier mods) { (void)key; (void)mods; return false; }
     virtual bool on_key_up(event::KeyCode key, event::Modifier mods) { (void)key; (void)mods; return false; }
     virtual bool on_char(char32_t codepoint) { (void)codepoint; return false; }
-    virtual void on_focus_gained() {}
-    virtual void on_focus_lost() {}
+    virtual void on_focus_gained() { focused_ = true; }
+    virtual void on_focus_lost() { focused_ = false; }
 
     // 布局脏标记：任何尺寸/子项变化都会沿 parent 链向上传播，并使测量缓存失效
     void mark_layout_dirty()
@@ -190,7 +237,9 @@ protected:
 private:
     bool visible_ = true;
     bool hovered_ = false;
+    bool focused_ = false;
     bool debug_ = false;
+    std::optional<float> radius_override_;
     bool layout_dirty_ = true;
 };
 } // namespace xel::ui

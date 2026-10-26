@@ -94,7 +94,15 @@ struct UiGallery
     ui::Widget* tip_watermark = nullptr;
     ui::Tooltip* tooltip = nullptr;
     ui::Button* theme_button = nullptr;
+    ui::Button* style_button = nullptr;
+    ui::Button* focus_button = nullptr;
+    ui::Label* density_state = nullptr;
     bool light_theme = false;
+    // 经典样式：直角（焦点框几何随之改为贴边框）。
+    bool classic_style = false;
+    // 焦点显示时机：与现代/经典几何正交，可任意组合。
+    ui::FocusPolicy focus_policy = ui::FocusPolicy::Keyboard;
+    ui::Density density = ui::Density::Normal;
 
     void open_dialog()
     {
@@ -116,12 +124,59 @@ struct UiGallery
         });
         if (ui_system) ui_system->set_focus(dialog_host->preferred_focus());
     }
+    // 主题、密度、圆角、焦点时机是四个独立维度：都从基础主题重新派生。
+    void apply_theme()
+    {
+        ui::Theme value = light_theme ? ui::Theme::light() : ui::Theme::dark();
+        root->set_theme(value.with_density(density)
+                             .with_rounding(!classic_style)
+                             .with_focus_policy(focus_policy));
+        if (theme_button) {
+            theme_button->set_label(light_theme ? "Theme: Light" : "Theme: Dark");
+        }
+        if (style_button) {
+            style_button->set_label(classic_style ? "Style: Classic" : "Style: Rounded");
+        }
+        if (focus_button) {
+            focus_button->set_label(focus_policy == ui::FocusPolicy::Keyboard ? "Focus: Keyboard"
+                                    : focus_policy == ui::FocusPolicy::Always ? "Focus: Always"
+                                                                             : "Focus: Never");
+        }
+    }
     void toggle_theme()
     {
         light_theme = !light_theme;
-        root->set_theme(light_theme ? ui::Theme::light() : ui::Theme::dark());
-        if (theme_button) {
-            theme_button->set_label(light_theme ? "Theme: Light" : "Theme: Dark");
+        apply_theme();
+    }
+    void set_focus_policy(ui::FocusPolicy value)
+    {
+        focus_policy = value;
+        apply_theme();
+    }
+    void cycle_focus_policy()
+    {
+        switch (focus_policy) {
+            case ui::FocusPolicy::Keyboard: set_focus_policy(ui::FocusPolicy::Always); break;
+            case ui::FocusPolicy::Always:   set_focus_policy(ui::FocusPolicy::Never); break;
+            case ui::FocusPolicy::Never:    set_focus_policy(ui::FocusPolicy::Keyboard); break;
+        }
+    }
+    // 圆角 ↔ 直角整组切换；同时把焦点时机恢复到该风格的默认（经典 = Always），
+    // 之后可用 Focus 按钮任意覆盖，两者仍然可自由组合。
+    void toggle_style()
+    {
+        classic_style = !classic_style;
+        focus_policy = classic_style ? ui::FocusPolicy::Always : ui::FocusPolicy::Keyboard;
+        apply_theme();
+    }
+    void set_density(ui::Density value)
+    {
+        density = value;
+        apply_theme();
+        if (density_state) {
+            density_state->set_text(value == ui::Density::Compact ? "density: compact"
+                                    : value == ui::Density::Spacious ? "density: spacious"
+                                                                     : "density: normal");
         }
     }
     std::vector<ui::Button*> nav_buttons;
@@ -185,7 +240,7 @@ inline UiGallery build(ui::UIRoot& root)
 {
     UiGallery gallery;
     gallery.root = &root;
-    gallery.section_names = {"Overview", "Text", "Inputs", "Containers", "Overlays", "Menu", "Layout"};
+    gallery.section_names = {"Overview", "Text", "Inputs", "Containers", "Overlays", "Menu", "Layout", "Style"};
 
     // ---------- 左侧导航 ----------
     auto nav = std::make_unique<ui::Panel>(16.0f, 16.0f, UiGallery::kNavWidth, UiGallery::kContentHeight);
@@ -209,6 +264,16 @@ inline UiGallery build(ui::UIRoot& root)
     });
     gallery.theme_button = theme_button.get();
     nav->add(std::move(theme_button));
+    auto style_button = std::make_unique<ui::Button>("Style: Rounded", [&gallery]() {
+        gallery.toggle_style();
+    });
+    gallery.style_button = style_button.get();
+    nav->add(std::move(style_button));
+    auto focus_button = std::make_unique<ui::Button>("Focus: Keyboard", [&gallery]() {
+        gallery.cycle_focus_policy();
+    });
+    gallery.focus_button = focus_button.get();
+    nav->add(std::move(focus_button));
     nav->add(std::make_unique<ui::Button>("Toggle debug (F1)", [&gallery]() {
         gallery.debug->toggle();
     }));
@@ -693,6 +758,111 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
     }
+    // ---------- Style：样式系统（角色 / 状态 / 圆角 / 密度）----------
+    {
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Style")};
+        section->add(std::make_unique<ui::Label>(
+            "Each control resolves a BoxStyle from Theme by role + state: Surface, Control, Input, Track, "
+            "Accent, Row, MenuItem, Tooltip. Fill, border, radius, accent and density all come from the theme.",
+            14.0f));
+
+        section->add(std::make_unique<ui::Label>("Rounded vs classic preset", 18.0f));
+        auto presets = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        presets->set_spacing(8.0f);
+        presets->add(std::make_unique<ui::Button>("Rounded", [&gallery]() {
+            gallery.classic_style = false;
+            gallery.apply_theme();
+        }));
+        presets->add(std::make_unique<ui::Button>("Classic", [&gallery]() {
+            gallery.classic_style = true;
+            gallery.apply_theme();
+        }));
+        section->add(std::move(presets));
+        section->add(std::make_unique<ui::Label>(
+            "Classic keeps the pre-style-system look: square corners and a focus border drawn inside the widget. "
+            "Rounded adds corner radius and an outline ring outside the widget.",
+            14.0f));
+
+        section->add(std::make_unique<ui::Label>("Focus reveal (independent of corners)", 18.0f));
+        auto policies = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        policies->set_spacing(8.0f);
+        policies->add(std::make_unique<ui::Button>("Keyboard only", [&gallery]() {
+            gallery.set_focus_policy(ui::FocusPolicy::Keyboard);
+        }));
+        policies->add(std::make_unique<ui::Button>("Always", [&gallery]() {
+            gallery.set_focus_policy(ui::FocusPolicy::Always);
+        }));
+        policies->add(std::make_unique<ui::Button>("Never", [&gallery]() {
+            gallery.set_focus_policy(ui::FocusPolicy::Never);
+        }));
+        section->add(std::move(policies));
+        section->add(std::make_unique<ui::Label>(
+            "Keyboard only paints while the keyboard is the active input; Always paints on focus; Never hides it. "
+            "All three work with both Rounded and Classic corners.",
+            14.0f));
+
+        section->add(std::make_unique<ui::Label>("Control states", 18.0f));
+        auto states = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        states->set_spacing(8.0f);
+        states->add(std::make_unique<ui::Button>("Normal"));
+        auto hover_state = std::make_unique<ui::Button>("Hover");
+        hover_state->set_hovered(true);
+        states->add(std::move(hover_state));
+        auto pressed_state = std::make_unique<ui::Button>("Pressed");
+        pressed_state->set_pressed(true);
+        states->add(std::move(pressed_state));
+        auto disabled_state = std::make_unique<ui::Button>("Disabled");
+        disabled_state->set_enabled(false);
+        states->add(std::move(disabled_state));
+        auto focus_state = std::make_unique<ui::Button>("Keyboard focus");
+        focus_state->set_focused(true);
+        states->add(std::move(focus_state));
+        section->add(std::move(states));
+        section->add(std::make_unique<ui::Label>(
+            "The focus ring paints only while the keyboard is the active input source: press Tab to reveal it, "
+            "then move the mouse to hide it.", 14.0f));
+
+        section->add(std::make_unique<ui::Label>("Corner radius (per-widget override)", 18.0f));
+        auto radii = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        radii->set_spacing(8.0f);
+        for (float radius : {0.0f, 4.0f, 10.0f, 18.0f}) {
+            auto button = std::make_unique<ui::Button>(std::format("radius {:.0f}", radius));
+            button->set_corner_radius(radius);
+            radii->add(std::move(button));
+        }
+        section->add(std::move(radii));
+
+        section->add(std::make_unique<ui::Label>("Density", 18.0f));
+        auto densities = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        densities->set_spacing(8.0f);
+        densities->add(std::make_unique<ui::Button>("Compact", [&gallery]() {
+            gallery.set_density(ui::Density::Compact);
+        }));
+        densities->add(std::make_unique<ui::Button>("Normal", [&gallery]() {
+            gallery.set_density(ui::Density::Normal);
+        }));
+        densities->add(std::make_unique<ui::Button>("Spacious", [&gallery]() {
+            gallery.set_density(ui::Density::Spacious);
+        }));
+        section->add(std::move(densities));
+        auto density_label = std::make_unique<ui::Label>("density: normal", 14.0f);
+        gallery.density_state = density_label.get();
+        section->add(std::move(density_label));
+
+        section->add(std::make_unique<ui::Label>("Accent (checkbox / radio / slider / progress)", 18.0f));
+        auto accent_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        accent_row->set_spacing(12.0f);
+        accent_row->add(std::make_unique<ui::Checkbox>("checked", true));
+        accent_row->add(std::make_unique<ui::Radio>("selected", true));
+        auto accent_slider = std::make_unique<ui::Slider>(220.0f);
+        accent_slider->set_value(0.65f);
+        accent_row->add(std::move(accent_slider));
+        section->add(std::move(accent_row));
+
+        gallery.sections.push_back(section.get());
+        root.add(std::move(section));
+    }
+
     // ---------- Overlay 层 ----------
     auto tooltip = std::make_unique<ui::Tooltip>("");
     gallery.tooltip = tooltip.get();
@@ -705,6 +875,19 @@ inline UiGallery build(ui::UIRoot& root)
     gallery.show_section(0);
     if (const char* theme = std::getenv("COSINE_GALLERY_THEME"); theme && std::strcmp(theme, "light") == 0) {
         gallery.toggle_theme();
+    }
+    if (std::getenv("COSINE_GALLERY_CLASSIC")) {
+        gallery.classic_style = true;
+        gallery.apply_theme();
+    }
+    if (const char* focus = std::getenv("COSINE_GALLERY_FOCUS")) {
+        if (std::strcmp(focus, "always") == 0) {
+            gallery.set_focus_policy(ui::FocusPolicy::Always);
+        } else if (std::strcmp(focus, "never") == 0) {
+            gallery.set_focus_policy(ui::FocusPolicy::Never);
+        } else if (std::strcmp(focus, "keyboard") == 0) {
+            gallery.set_focus_policy(ui::FocusPolicy::Keyboard);
+        }
     }
     if (const char* section = std::getenv("COSINE_GALLERY_SECTION")) {
         const int index = std::atoi(section);

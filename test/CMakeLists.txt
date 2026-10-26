@@ -37,6 +37,9 @@ target_link_libraries(test_ui_widgets PRIVATE cosine_ui)
 add_executable(test_ui_theme test_ui_theme.cpp)
 target_link_libraries(test_ui_theme PRIVATE cosine_ui)
 
+add_executable(test_ui_style test_ui_style.cpp)
+target_link_libraries(test_ui_style PRIVATE cosine_ui)
+
 add_executable(test_ui_gallery test_ui_gallery.cpp)
 target_include_directories(test_ui_gallery PRIVATE
     ${PROJECT_SOURCE_DIR}/examples/ui_gallery
@@ -111,6 +114,7 @@ set(COSINE_TEST_TARGETS
     test_version
     test_ui_gallery
     test_ui_theme
+    test_ui_style
     test_ui_widgets
     test_ui_scrollbar
     test_ui_dropdown
@@ -151,6 +155,7 @@ add_test(NAME asset_path COMMAND test_asset_path)
 add_test(NAME version COMMAND test_version)
 add_test(NAME ui_gallery COMMAND test_ui_gallery)
 add_test(NAME ui_theme COMMAND test_ui_theme)
+add_test(NAME ui_style COMMAND test_ui_style)
 add_test(NAME ui_widgets COMMAND test_ui_widgets)
 add_test(NAME ui_scrollbar COMMAND test_ui_scrollbar)
 add_test(NAME ui_dropdown COMMAND test_ui_dropdown)

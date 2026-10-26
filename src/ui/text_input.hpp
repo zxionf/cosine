@@ -1,9 +1,11 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
 #include "../graphics/utf8.hpp"
+#include "../graphics/box.hpp"
 #include "../graphics/rectangle.hpp"
 
 #include <algorithm>
@@ -99,20 +101,18 @@ public:
         const float pad = t.padding;
         const float line = line_height();
 
-        graphics::Rectangle bg{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, t.text_input_bg};
-        bg.append_to(list);
+        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const BoxStyle style = t.style(StyleRole::Input, control_state(enabled_, is_hovered(), false));
+        const float radius = corner_radius(style.radius);
+        graphics::append_rounded_rect(list, bounds, radius, style.fill);
 
-        const float border = t.border;
-        const glm::vec4 border_color = focused_ ? t.focus_ring
-            : (hovered_ ? glm::vec4{0.45f, 0.48f, 0.52f, 1.0f} : t.text_input_border);
-        graphics::Rectangle top   {global_.pos.x, global_.pos.y, global_.size.x, border, border_color};
-        graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - border, global_.size.x, border, border_color};
-        graphics::Rectangle left  {global_.pos.x, global_.pos.y, border, global_.size.y, border_color};
-        graphics::Rectangle right {global_.pos.x + global_.size.x - border, global_.pos.y, border, global_.size.y, border_color};
-        top.append_to(list);
-        bottom.append_to(list);
-        left.append_to(list);
-        right.append_to(list);
+        // 编辑中始终用强调色标出边框（鼠标点击进入编辑也应可见）；
+        // 焦点环只在键盘操作期间叠加，两者职责不同。
+        const glm::vec4 border_color = is_focused() ? t.accent : style.border;
+        if (style.border_width > 0.0f) {
+            graphics::append_rounded_ring(list, bounds, radius, style.border_width, border_color);
+        }
+        append_focus_ring(list, bounds, radius);
 
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
 
@@ -126,9 +126,6 @@ public:
     }
 
     bool focusable() const override { return true; }
-
-    void on_mouse_enter() override { hovered_ = true; }
-    void on_mouse_leave() override { hovered_ = false; }
 
     bool on_mouse_down(glm::vec2 pos, int) override
     {
@@ -239,8 +236,7 @@ public:
         }
     }
 
-    void on_focus_gained() override { focused_ = true; }
-    void on_focus_lost() override { focused_ = false; dragging_ = false; }
+    void on_focus_lost() override { dragging_ = false; Widget::on_focus_lost(); }
 
 private:
     float line_height() const
@@ -373,7 +369,7 @@ private:
                                 global_.pos.x + global_.size.x - pad, global_.pos.y + global_.size.y});
         }
 
-        if (focused_) {
+        if (is_focused()) {
             // 光标与选区都以行盒为基准，视觉上与文字居中对齐。
             const float cursor_y = text_y + (line_h - font_size) * 0.5f;
             graphics::Rectangle cursor_bar{
@@ -431,7 +427,7 @@ private:
                                     global_.pos.x + global_.size.x, global_.pos.y + global_.size.y});
             }
 
-            if (focused_ && row == cursor_line) {
+            if (is_focused() && row == cursor_line) {
                 graphics::Rectangle cursor_bar{
                     global_.pos.x + pad + cursor_x - row_scroll, y, 1.0f, line, t.text_input_cursor};
                 cursor_bar.append_to(list);
@@ -545,11 +541,9 @@ private:
     float max_height_ = 0.0f;
     bool multiline_ = false;
     bool enabled_ = true;
-    bool focused_ = false;
     bool dragging_ = false;
     mutable float scroll_offset_ = 0.0f;
     mutable float scroll_y_ = 0.0f;
-    bool hovered_ = false;
     std::function<void(const std::string&)> handler_;
 };
 } // namespace xel::ui

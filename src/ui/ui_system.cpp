@@ -138,6 +138,24 @@ std::vector<Widget*> UISystem::hit_path(Widget* root, glm::vec2 pos) const
 
 void UISystem::dispatch(const event::InputEvent& event)
 {
+    // 输入来源决定焦点环是否可见：键盘操作期间显示，鼠标操作期间隐藏。
+    if (auto* ctx = context()) {
+        switch (event.type) {
+            case event::InputEvent::Type::KeyDown:
+            case event::InputEvent::Type::KeyUp:
+                ctx->input_mode = InputMode::Keyboard;
+                break;
+            case event::InputEvent::Type::MouseMove:
+            case event::InputEvent::Type::MouseButtonDown:
+            case event::InputEvent::Type::MouseButtonUp:
+                ctx->input_mode = InputMode::Mouse;
+                break;
+            case event::InputEvent::Type::MouseScroll:
+            case event::InputEvent::Type::CharInput:
+                break;
+        }
+    }
+
     switch (event.type) {
         case event::InputEvent::Type::MouseMove: dispatch_mouse_move(event); break;
         case event::InputEvent::Type::MouseButtonDown:

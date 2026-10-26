@@ -1,9 +1,10 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
-#include "../graphics/rectangle.hpp"
+#include "../graphics/box.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -24,6 +25,8 @@ public:
     void set_on_click(std::function<void()> handler) { handler_ = std::move(handler); }
     void set_enabled(bool enabled) { enabled_ = enabled; mark_layout_dirty(); }
     bool enabled() const { return enabled_; }
+    // 伪状态：用于 gallery 与测试展示 pressed 外观，不参与事件流程。
+    void set_pressed(bool pressed) { pressed_ = pressed; }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
@@ -49,39 +52,27 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
+        const BoxStyle style = t.style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
+        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const float radius = corner_radius(style.radius);
 
-        glm::vec4 bg = t.button_bg;
-        if (!enabled_) bg = t.button_disabled;
-        else if (pressed_) bg = t.button_pressed;
-        else if (hovered_) bg = t.button_hover;
-
-        graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, bg};
-        background.append_to(list);
-
-        if (focused_) {
-            const float b = 2.0f;
-            graphics::Rectangle top   {global_.pos.x, global_.pos.y, global_.size.x, b, t.focus_ring};
-            graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b, global_.size.x, b, t.focus_ring};
-            graphics::Rectangle left  {global_.pos.x, global_.pos.y, b, global_.size.y, t.focus_ring};
-            graphics::Rectangle right {global_.pos.x + global_.size.x - b, global_.pos.y, b, global_.size.y, t.focus_ring};
-            top.append_to(list);
-            bottom.append_to(list);
-            left.append_to(list);
-            right.append_to(list);
+        graphics::append_rounded_rect(list, bounds, radius, style.fill);
+        if (style.border_width > 0.0f) {
+            graphics::append_rounded_ring(list, bounds, radius, style.border_width, style.border);
         }
+        append_focus_ring(list, bounds, radius);
 
         if (auto* atlas = font_atlas()) {
-            const glm::vec2 text_size = atlas->measure(label_, t.text_size);
+            const glm::vec2 text_size = atlas->measure(label_, style.text_size);
             const float tx = global_.pos.x + (global_.size.x - text_size.x) * 0.5f;
             const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
-            atlas->append_text(list, tx, ty, t.text_size, label_, enabled_ ? t.text : t.text_disabled);
+            atlas->append_text(list, tx, ty, style.text_size, label_, style.text);
         }
     }
 
     bool focusable() const override { return true; }
 
-    void on_mouse_enter() override { hovered_ = true; }
-    void on_mouse_leave() override { hovered_ = false; pressed_ = false; }
+    void on_mouse_leave() override { pressed_ = false; }
     bool on_mouse_down(glm::vec2, int) override
     {
         if (!enabled_) return false;
@@ -107,15 +98,11 @@ public:
         }
         return false;
     }
-    void on_focus_gained() override { focused_ = true; }
-    void on_focus_lost() override { focused_ = false; }
 
 private:
     std::string label_;
     std::function<void()> handler_;
     bool enabled_ = true;
-    bool hovered_ = false;
     bool pressed_ = false;
-    bool focused_ = false;
 };
 } // namespace xel::ui

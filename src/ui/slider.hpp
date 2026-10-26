@@ -1,8 +1,9 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
-#include "../graphics/rectangle.hpp"
+#include "../graphics/box.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -63,43 +64,35 @@ public:
         const float track_x = global_.pos.x + radius;
         const float track_w = std::max(0.0f, global_.size.x - radius * 2.0f);
         const float center_y = global_.pos.y + global_.size.y * 0.5f;
+        // 胶囊轨道：modern 取半高，classic（radius_pill=0）为直角。
+        const float track_radius = std::min(t.radius_pill, t.slider_height * 0.5f);
 
         const float track_y = center_y - t.slider_height * 0.5f;
-        const glm::vec4 track_color = hovered_ ? glm::vec4{0.30f, 0.33f, 0.37f, 1.0f} : t.slider_track;
-        graphics::Rectangle track{track_x, track_y, track_w, t.slider_height, track_color};
-        track.append_to(list);
+        const float draw_radius = corner_radius(t.radius_pill);
+        const BoxStyle track_style = t.style(StyleRole::Track, is_hovered() ? ControlState::Hovered : ControlState::Normal);
+        graphics::append_rounded_rect(list, {track_x, track_y, track_w, t.slider_height}, track_radius, track_style.fill);
 
         const float range = std::max(1e-6f, max_value_ - min_value_);
         const float norm = std::clamp((value_ - min_value_) / range, 0.0f, 1.0f);
         const float fill_w = track_w * norm;
         if (fill_w > 0.0f) {
-            graphics::Rectangle fill{track_x, track_y, fill_w, t.slider_height, t.slider_fill};
-            fill.append_to(list);
+            const BoxStyle fill_style = t.style(StyleRole::Accent, control_state(enabled_, false, false));
+            graphics::append_rounded_rect(list, {track_x, track_y, fill_w, t.slider_height}, track_radius, fill_style.fill);
         }
 
-        const float handle_x = track_x + fill_w - radius;
-        const float handle_y = center_y - radius;
-        graphics::Rectangle handle{handle_x, handle_y, radius * 2.0f, radius * 2.0f,
-                                   enabled_ ? t.slider_handle : t.text_disabled};
-        handle.append_to(list);
-
-        if (focused_) {
-            const float b = 2.0f;
-            graphics::Rectangle top   {handle_x, handle_y, radius * 2.0f, b, t.focus_ring};
-            graphics::Rectangle bottom{handle_x, handle_y + radius * 2.0f - b, radius * 2.0f, b, t.focus_ring};
-            graphics::Rectangle left  {handle_x, handle_y, b, radius * 2.0f, t.focus_ring};
-            graphics::Rectangle right {handle_x + radius * 2.0f - b, handle_y, b, radius * 2.0f, t.focus_ring};
-            top.append_to(list);
-            bottom.append_to(list);
-            left.append_to(list);
-            right.append_to(list);
+        const glm::vec4 handle_bounds{track_x + fill_w - radius, center_y - radius, radius * 2.0f, radius * 2.0f};
+        glm::vec4 handle_color = enabled_ ? t.slider_handle : t.text_disabled;
+        if (enabled_ && dragging_) {
+            handle_color = mix_color(t.slider_handle, t.accent, 0.35f);
+        } else if (enabled_ && is_hovered()) {
+            handle_color = mix_color(t.slider_handle, t.accent, 0.15f);
         }
+        graphics::append_rounded_rect(list, handle_bounds, draw_radius, handle_color);
+        append_focus_ring(list, handle_bounds, draw_radius);
     }
 
     bool focusable() const override { return true; }
 
-    void on_mouse_enter() override { hovered_ = true; }
-    void on_mouse_leave() override { hovered_ = false; }
     bool on_mouse_down(glm::vec2 pos, int) override
     {
         if (!enabled_) return false;
@@ -145,8 +138,7 @@ public:
         }
         return false;
     }
-    void on_focus_gained() override { focused_ = true; }
-    void on_focus_lost() override { focused_ = false; }
+    void on_focus_lost() override { dragging_ = false; Widget::on_focus_lost(); }
 
 private:
     void update_from_pos(glm::vec2 pos)
@@ -172,8 +164,6 @@ private:
     float step_ = 0.0f;
     bool enabled_ = true;
     bool dragging_ = false;
-    bool hovered_ = false;
-    bool focused_ = false;
     std::function<void(float)> handler_;
 };
 } // namespace xel::ui

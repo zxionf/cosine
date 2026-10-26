@@ -1,9 +1,10 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
-#include "../graphics/rectangle.hpp"
+#include "../graphics/box.hpp"
 #include "../graphics/triangle.hpp"
 
 #include <algorithm>
@@ -63,51 +64,39 @@ public:
         const float box = t.checkbox_size;
         const float bx = global_.pos.x;
         const float by = global_.pos.y + (global_.size.y - box) * 0.5f;
+        const BoxStyle control = t.style(StyleRole::Control, control_state(enabled_, is_hovered(), false));
+        const glm::vec4 box_bounds{bx, by, box, box};
+        // 单选标记：modern 为圆形（radius_pill 被 clamp 到半宽），classic 为方形。
+        const float radius = corner_radius(t.radius_pill);
 
-        graphics::Rectangle background{bx, by, box, box, t.checkbox_bg};
-        background.append_to(list);
-
-        const glm::vec4 border_color = hovered_ ? t.focus_ring : t.checkbox_border;
-        graphics::Rectangle top{bx, by, box, t.border, border_color};
-        graphics::Rectangle bottom{bx, by + box - t.border, box, t.border, border_color};
-        graphics::Rectangle left{bx, by, t.border, box, border_color};
-        graphics::Rectangle right{bx + box - t.border, by, t.border, box, border_color};
-        top.append_to(list);
-        bottom.append_to(list);
-        left.append_to(list);
-        right.append_to(list);
+        graphics::append_rounded_rect(list, box_bounds, radius, t.checkbox_bg);
+        const glm::vec4 border_color = is_hovered() && enabled_ ? t.accent : t.checkbox_border;
+        graphics::append_rounded_ring(list, box_bounds, radius, t.border, border_color);
 
         if (selected_) {
             // 菱形：两个三角形拼成，作为单选标记。
             const float cx = bx + box * 0.5f;
             const float cy = by + box * 0.5f;
             const float r = box * 0.28f;
-            graphics::Triangle upper{cx, cy - r, cx + r, cy, cx, cy + r, t.checkbox_fill};
-            graphics::Triangle lower{cx, cy - r, cx - r, cy, cx, cy + r, t.checkbox_fill};
+            const glm::vec4 marker = t.style(StyleRole::Accent, control_state(enabled_, is_hovered(), false)).fill;
+            graphics::Triangle upper{cx, cy - r, cx + r, cy, cx, cy + r, marker};
+            graphics::Triangle lower{cx, cy - r, cx - r, cy, cx, cy + r, marker};
             upper.append_to(list);
             lower.append_to(list);
         }
 
-        if (focused_) {
-            const float b = 2.0f;
-            graphics::Rectangle f_top{bx - b, by - b, box + b * 2.0f, b, t.focus_ring};
-            graphics::Rectangle f_bottom{bx - b, by + box, box + b * 2.0f, b, t.focus_ring};
-            f_top.append_to(list);
-            f_bottom.append_to(list);
-        }
+        append_focus_ring(list, box_bounds, radius);
 
         if (auto* atlas = font_atlas()) {
-            const glm::vec2 text_size = atlas->measure(label_, t.text_size);
+            const glm::vec2 text_size = atlas->measure(label_, control.text_size);
             const float tx = bx + box + t.spacing;
             const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
-            atlas->append_text(list, tx, ty, t.text_size, label_, enabled_ ? t.text : t.text_disabled);
+            atlas->append_text(list, tx, ty, control.text_size, label_, control.text);
         }
     }
 
     bool focusable() const override { return true; }
 
-    void on_mouse_enter() override { hovered_ = true; }
-    void on_mouse_leave() override { hovered_ = false; }
     bool on_click(glm::vec2, int) override
     {
         if (!enabled_) return false;
@@ -123,15 +112,12 @@ public:
         }
         return false;
     }
-    void on_focus_gained() override { focused_ = true; }
-    void on_focus_lost() override { focused_ = false; }
+    void on_focus_lost() override { Widget::on_focus_lost(); }
 
 private:
     std::string label_;
     bool selected_ = false;
     bool enabled_ = true;
-    bool hovered_ = false;
-    bool focused_ = false;
     std::function<void()> handler_;
 };
 } // namespace xel::ui

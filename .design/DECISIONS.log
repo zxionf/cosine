@@ -285,3 +285,43 @@ Change: 20261026-tooltip-enhance
 Context: M3.5 组件扩充的最后一项；原 Tooltip 由 gallery 每帧手动 show_at，缺少延迟、跟随与边界处理，靠近窗口右下角会被裁切
 Decision: Tooltip 增加 set_delay(默认 0.35s) 与 update_hover(dt, over_target, cursor, bounds)：悬停计时到阈值才显示，显示后跟随光标，右下溢出翻到左上并夹在 bounds 内；位置写相对 root 的局部坐标，由 UIRoot::layout 转全局
 Consequences: gallery 每帧传 dt 与 root bounds，显示时机由 Tooltip 自身管理；目标判定仍留在调用方，Tooltip 保持无命中、无锚点；淡入淡出等动画留到 M4 评估
+## [58] 2026-10-26 05:17:26 UTC
+Change: 20261026-style-system
+Context: 样式系统需要圆角，但 Vertex 只有 pos/color/uv，ui.slang 也没有局部坐标可用
+Decision: 圆角用几何九宫格细分（中心+四边矩形+四角扇形，区域互不重叠），radius<0.75 退化为 4 顶点矩形；不引入 SDF、不做抗锯齿
+Consequences: 半透明圆角不会二次提亮，tooltip/dialog 可直接用；顶点约 44/控件，262144 上限充裕；边缘为硬边，SDF/MSDF 作为后续评估项
+## [59] 2026-10-26 05:17:26 UTC
+Change: 20261026-style-system
+Context: 颜色/圆角插值过渡需要每帧 dt 与控件 update 钩子，UISystem::tick 目前不接受 dt
+Decision: 本次只落地状态枚举与 BoxStyle 解析，插值过渡并入阶段计划中的「UI 动画」事项
+Consequences: 避免同批修改状态模型与时间模型；后续过渡需给 Widget::update(dt) 与 UISystem::tick(dt)，并保持确定性测试
+## [60] 2026-10-26 05:17:26 UTC
+Change: 20261026-style-system
+Context: 11 个控件各自维护 hovered_/pressed_/focused_ 并手写颜色 if 链，样式无法统一
+Decision: Theme 按 8 个语义角色 StyleRole × 4 个 ControlState 解析 BoxStyle；focused_ 上提到 Widget 基类，焦点环仅在 InputMode::Keyboard 期间绘制
+Consequences: 新控件复用角色即可，不再扩 Theme 字段；鼠标点击聚焦不显示焦点环；第二批控件迁移时删除各自的 focused_/hovered_
+## [61] 2026-10-26 05:17:26 UTC
+Change: 20261026-style-system
+Context: 密度档位需要可逆切换，且 gallery 会来回切换 compact/normal/spacious
+Decision: with_density 按「目标/当前」系数比值缩放度量（0.85/1.0/1.15）与字号圆角（0.9/1.0/1.1），同档位直接返回副本
+Consequences: 切换可逆且幂等，避免多次切换累积误差；字号与圆角比例小于度量比例，保持可读性
+## [62] 2026-10-26 05:26:07 UTC
+Change: 20261026-style-system
+Context: 用户要求样式系统保留原有视觉（无圆角 + 贴边焦点框），不能只提供新版外观
+Decision: Theme 增加 FocusStyle{Outline,Border} 与 with_rounding(bool)：false 时全部圆角归零、焦点框改为贴控件内边缘的四条实心框
+Consequences: 控件无需分支（radius=0 时绘制自动退化为矩形），旧观感一键切回；with_rounding 为单向变换，回到圆角需从基础主题重新派生，避免清零值被当作新基准
+## [63] 2026-10-26 05:32:10 UTC
+Change: 20261026-style-system
+Context: 经典样式下鼠标点击聚焦的按钮不显示焦点框，与样式系统之前的观感不一致
+Decision: focus_visible() 在 FocusStyle::Border 时不检查 InputMode：聚焦即显示边框；圆角样式仍只在键盘操作期间显示焦点环
+Consequences: 经典样式完整保留旧行为（含鼠标点击聚焦）；两种风格的可见性差异集中在 focus_visible() 一处，测试覆盖两条路径
+## [64] 2026-10-26 05:43:16 UTC
+Change: 20261026-style-system
+Context: 焦点何时显示原先绑在几何风格上（Border 总是显示、Outline 仅键盘），用户要求现代/经典与显示/不显示自由组合
+Decision: 把时机拆成独立 FocusPolicy{Keyboard,Always,Never} 字段与 with_focus_policy()；几何 FocusStyle 只管画法，focus_visible() 只读 policy
+Consequences: 2×3 六种组合全部可用；with_rounding 不再改 policy；gallery 切 Style 时复位为该风格预设（Classic→Always、Rounded→Keyboard），Focus 按钮可随时覆盖
+## [65] 2026-10-26 05:49:58 UTC
+Change: 20261026-style-system
+Context: 经典模式下 slider 的胶囊轨道/圆形手柄、progress 圆头、radio 圆形标记仍然是圆的：它们用了 slider_height*0.5、box*0.5 这类硬编码圆角，不读 Theme 圆角
+Decision: 新增 Theme::radius_pill（默认 1000，绘制时 clamp 到短边一半，with_rounding(false) 归零），Slider 轨道与手柄、Progress、Radio 统一改用它
+Consequences: 圆形控件随圆角开关联动：modern 为胶囊/圆形，classic 为直角/方形；per-widget corner_radius 覆盖仍优先；几何断言由 test_classic_shapes 覆盖

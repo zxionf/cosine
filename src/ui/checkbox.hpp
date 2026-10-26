@@ -1,9 +1,10 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
-#include "../graphics/rectangle.hpp"
+#include "../graphics/box.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -52,46 +53,37 @@ public:
         const float box = t.checkbox_size;
         const float bx = global_.pos.x;
         const float by = global_.pos.y + (global_.size.y - box) * 0.5f;
+        const BoxStyle control = t.style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
+        const glm::vec4 box_bounds{bx, by, box, box};
+        const float radius = corner_radius(t.radius_small);
 
-        graphics::Rectangle box_bg{bx, by, box, box, t.checkbox_bg};
-        box_bg.append_to(list);
-
-        const glm::vec4 border_color = hovered_ ? t.focus_ring : t.checkbox_border;
-        graphics::Rectangle border_top   {bx, by, box, t.border, border_color};
-        graphics::Rectangle border_bottom{bx, by + box - t.border, box, t.border, border_color};
-        graphics::Rectangle border_left  {bx, by, t.border, box, border_color};
-        graphics::Rectangle border_right {bx + box - t.border, by, t.border, box, border_color};
-        border_top.append_to(list);
-        border_bottom.append_to(list);
-        border_left.append_to(list);
-        border_right.append_to(list);
+        graphics::append_rounded_rect(list, box_bounds, radius, t.checkbox_bg);
+        // 边框：hover 时用强调色提示可点，平时用 checkbox 专属边框色。
+        const glm::vec4 border_color = is_hovered() && enabled_ ? t.accent : t.checkbox_border;
+        graphics::append_rounded_ring(list, box_bounds, radius, t.border, border_color);
 
         if (checked_) {
             const float inset = box * 0.25f;
-            graphics::Rectangle fill{bx + inset, by + inset, box - inset * 2.0f, box - inset * 2.0f, t.checkbox_fill};
-            fill.append_to(list);
+            const BoxStyle accent = t.style(StyleRole::Accent, control_state(enabled_, is_hovered(), pressed_));
+            graphics::append_rounded_rect(list,
+                                          {bx + inset, by + inset, box - inset * 2.0f, box - inset * 2.0f},
+                                          radius * 0.5f,
+                                          accent.fill);
         }
 
-        if (focused_) {
-            const float b = 2.0f;
-            graphics::Rectangle top   {bx - b, by - b, box + b * 2.0f, b, t.focus_ring};
-            graphics::Rectangle bottom{bx - b, by + box, box + b * 2.0f, b, t.focus_ring};
-            top.append_to(list);
-            bottom.append_to(list);
-        }
+        append_focus_ring(list, box_bounds, radius);
 
         if (auto* atlas = font_atlas()) {
-            const glm::vec2 text_size = atlas->measure(label_, t.text_size);
+            const glm::vec2 text_size = atlas->measure(label_, control.text_size);
             const float tx = bx + box + t.spacing;
             const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
-            atlas->append_text(list, tx, ty, t.text_size, label_, enabled_ ? t.text : t.text_disabled);
+            atlas->append_text(list, tx, ty, control.text_size, label_, control.text);
         }
     }
 
     bool focusable() const override { return true; }
 
-    void on_mouse_enter() override { hovered_ = true; }
-    void on_mouse_leave() override { hovered_ = false; }
+    void on_mouse_leave() override { pressed_ = false; }
     bool on_mouse_down(glm::vec2, int) override
     {
         if (!enabled_) return false;
@@ -119,16 +111,13 @@ public:
         }
         return false;
     }
-    void on_focus_gained() override { focused_ = true; }
-    void on_focus_lost() override { focused_ = false; }
+    void on_focus_lost() override { pressed_ = false; Widget::on_focus_lost(); }
 
 private:
     std::string label_;
     bool checked_ = false;
     bool enabled_ = true;
-    bool hovered_ = false;
     bool pressed_ = false;
-    bool focused_ = false;
     std::function<void(bool)> handler_;
 };
 } // namespace xel::ui
