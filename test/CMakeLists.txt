@@ -109,6 +109,9 @@ target_link_libraries(test_ui_percent_aspect PRIVATE cosine_ui)
 add_executable(test_ui_absolute_zindex test_ui_absolute_zindex.cpp)
 target_link_libraries(test_ui_absolute_zindex PRIVATE cosine_ui)
 
+add_executable(test_ui_image test_ui_image.cpp)
+target_link_libraries(test_ui_image PRIVATE cosine_ui)
+
 add_executable(test_ui_events test_ui_events.cpp)
 target_link_libraries(test_ui_events PRIVATE cosine_ui)
 
@@ -139,6 +142,7 @@ set(COSINE_TEST_TARGETS
     test_ui_wrap
     test_ui_percent_aspect
     test_ui_absolute_zindex
+    test_ui_image
     test_ui_events
     test_ui_controls
     test_text
@@ -181,6 +185,7 @@ add_test(NAME ui_grid COMMAND test_ui_grid)
 add_test(NAME ui_wrap COMMAND test_ui_wrap)
 add_test(NAME ui_percent_aspect COMMAND test_ui_percent_aspect)
 add_test(NAME ui_absolute_zindex COMMAND test_ui_absolute_zindex)
+add_test(NAME ui_image COMMAND test_ui_image)
 add_test(NAME ui_events COMMAND test_ui_events)
 add_test(NAME interpreter_token COMMAND test_interpreter_token)
 add_test(NAME interpreter_tree_structure COMMAND test_intepreter_tree_structure)

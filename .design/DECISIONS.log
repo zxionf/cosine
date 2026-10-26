@@ -510,3 +510,13 @@ Change: 20261026-absolute-zindex
 Context: 绝对定位子项的位置由坐标决定，align/stretch 可能与之冲突
 Decision: 绝对定位子项不参与 align 与 stretch，尺寸由 measure_child 解析后直接使用
 Consequences: 语义简单可预测；需要居中时用百分比尺寸或自行计算坐标
+## [103] 2026-10-26 10:03:36 UTC
+Change: 20261026-image-widget
+Context: M3.5 需要 Image 控件，但真实纹理采样依赖 M6 资源管线（解码、上传、描述符、采样器）
+Decision: 先落地占位实现：source/texture_id/fit/tint 接口齐全，绘制固定为占位（底色+边框+对角交叉+文件名）；即使 texture_id != 0 也不采样
+Consequences: 布局层现在就能用图片位；M6 只需替换 append_to 的绘制实现，接口不变；不会出现『看似支持纹理实为空图』的误判
+## [104] 2026-10-26 10:03:36 UTC
+Change: 20261026-image-widget
+Context: 占位需要区分不同图片，但调用方不一定显式设置文案
+Decision: placeholder_text() 回退顺序：显式文案 → source 的文件名 → "image"
+Consequences: gallery 与调试场景零配置即可显示有意义的名字；找不到字体上下文时静默跳过文字

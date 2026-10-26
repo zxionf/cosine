@@ -8,6 +8,7 @@
 #include "ui/dialog.hpp"
 #include "ui/grid.hpp"
 #include "ui/hbox.hpp"
+#include "ui/image.hpp"
 #include "ui/label.hpp"
 #include "ui/menu_bar.hpp"
 #include "ui/list.hpp"
@@ -947,6 +948,23 @@ inline UiGallery build(ui::UIRoot& root)
         badge->set_z_index(10);
         card->add(std::move(badge));
         section->add(std::move(card));
+
+        section->add(std::make_unique<ui::Label>("Image 占位：有来源 / 空来源（宽 50%、16:9）", 18.0f));
+        auto image_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 620.0f, 200.0f);
+        image_row->set_padding(0.0f);
+        image_row->set_spacing(8.0f);
+        image_row->set_min_size({620.0f, 200.0f});
+        image_row->set_max_size({620.0f, 200.0f});
+        auto image_a = std::make_unique<ui::Image>(200.0f, 112.5f);
+        image_a->set_source("assets/tex/rock.png");
+        image_a->set_size_percent({0.5f, 0.0f});
+        image_a->set_aspect_ratio(16.0f / 9.0f);
+        image_row->add(std::move(image_a));
+        auto image_b = std::make_unique<ui::Image>(200.0f, 112.5f);
+        image_b->set_size_percent({0.5f, 0.0f});
+        image_b->set_aspect_ratio(16.0f / 9.0f);
+        image_row->add(std::move(image_b));
+        section->add(std::move(image_row));
 
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
