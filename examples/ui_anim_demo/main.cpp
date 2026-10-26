@@ -1,14 +1,15 @@
-// 动画演示：用现有 UI 控件 + cosine_anim 的缓动驱动位置与进度。
-// 目的：在 M4 的 scene 渲染接入之前，直观展示五种缓动曲线的差异。
+// 动画演示：scene::Scene + anim::Timeline + ui::SceneView。
+// 每条轨道驱动一个 Shape 节点的 position，显示同一时间下五种缓动的差异。
 
 #include "anim/easing.hpp"
+#include "anim/scene.hpp"
+#include "anim/timeline.hpp"
 #include "ui/button.hpp"
-#include "ui/color_rect.hpp"
 #include "ui/hbox.hpp"
 #include "ui/label.hpp"
-#include "ui/panel.hpp"
 #include "ui/progress.hpp"
 #include "ui/root.hpp"
+#include "ui/scene_view.hpp"
 #include "xel_application.hpp"
 
 #include <algorithm>
@@ -22,57 +23,33 @@
 
 namespace
 {
-struct Track
-{
-    xel::anim::Easing easing = xel::anim::Easing::Linear;
-    std::string name;
-    xel::ui::ColorRect* marker = nullptr;
-    float origin_x = 0.0f;
-    float span = 0.0f;
-};
-
 struct Demo
 {
+    xel::scene::Scene scene;
+    xel::anim::Timeline timeline;
+    xel::ui::SceneView* view = nullptr;
     xel::ui::Progress* progress = nullptr;
     xel::ui::Label* time_label = nullptr;
     xel::ui::Button* play_button = nullptr;
-    std::vector<Track> tracks;
-    float time = 0.0f;
     float duration = 3.0f;
-    bool playing = true;
-
-    float phase() const { return duration > 0.0f ? time / duration : 0.0f; }
 
     void update(float dt)
     {
-        if (playing) {
-            time += dt;
-            if (time >= duration) time -= duration;
-        }
-        const float t = phase();
+        timeline.advance(dt);
+        timeline.apply(scene);
 
-        // 同一时间、不同曲线：方块位置直接反映缓动结果。
-        for (auto& track : tracks) {
-            const float e = xel::anim::ease(track.easing, t);
-            track.marker->set_pos(track.origin_x + e * track.span, track.marker->y());
-        }
-
+        const float t = duration > 0.0f ? timeline.time() / duration : 0.0f;
         if (progress) progress->set_value(t);
         if (time_label) {
-            time_label->set_text(std::format("time: {:.2f} s / {:.1f} s   ({})",
-                                             time, duration, playing ? "playing" : "paused"));
+            time_label->set_text(std::format("time: {:.2f} s / {:.1f} s   ({})", timeline.time(),
+                                             duration,
+                                             timeline.playing() ? "playing" : "paused"));
         }
     }
 };
 
-Demo build(xel::ui::UIRoot& root)
+void build(Demo& demo, xel::ui::UIRoot& root)
 {
-    Demo demo;
-
-    auto stage = std::make_unique<xel::ui::Panel>(40.0f, 40.0f, 720.0f, 300.0f);
-    stage->set_min_size({720.0f, 300.0f});
-    stage->set_max_size({720.0f, 300.0f});
-
     const struct
     {
         xel::anim::Easing easing;
@@ -86,30 +63,49 @@ Demo build(xel::ui::UIRoot& root)
         {xel::anim::Easing::CubicBezier, "Custom cubic-bezier", {0.85f, 0.45f, 0.85f, 1.0f}},
     };
 
+    const float start_x = 60.0f;
+    const float end_x = 520.0f;
     float y = 12.0f;
-    for (const auto& def : defs) {
-        auto label = std::make_unique<xel::ui::Label>(def.name, 14.0f);
-        label->set_absolute(true);
-        label->set_absolute_pos({10.0f, y + 5.0f});
-        stage->add(std::move(label));
 
-        auto marker = std::make_unique<xel::ui::ColorRect>(0.0f, 0.0f, 36.0f, 22.0f, def.color);
-        marker->set_absolute(true);
-        marker->set_absolute_pos({150.0f, y});
-        demo.tracks.push_back({def.easing, def.name, marker.get(), 150.0f, 540.0f});
-        stage->add(std::move(marker));
+    for (const auto& def : defs) {
+        // 轨道名（Text 节点）。
+        const auto label = demo.scene.create(xel::scene::NodeType::Text, def.name);
+        auto* label_node = demo.scene.find(label);
+        label_node->text = def.name;
+        label_node->text_size = 14.0f;
+        label_node->color = {0.80f, 0.85f, 0.90f, 1.0f};
+        label_node->transform.position = {10.0f, y + 5.0f};
+
+        // 方块（Shape 节点）。
+        const auto block = demo.scene.create(xel::scene::NodeType::Shape, def.name);
+        auto* block_node = demo.scene.find(block);
+        block_node->size = {36.0f, 22.0f};
+        block_node->color = def.color;
+        block_node->transform.position = {start_x, y};
+
+        auto& track = demo.timeline.add_track(block, xel::anim::prop::Position);
+        track.add_key({0.0f, glm::vec2{start_x, y}, xel::anim::Easing::Linear});
+        track.add_key({demo.duration, glm::vec2{end_x, y}, def.easing});
 
         y += 46.0f;
     }
 
-    // 轨道参考线（静态）。
-    auto guide = std::make_unique<xel::ui::ColorRect>(
-        0.0f, 0.0f, 540.0f, 2.0f, glm::vec4{0.35f, 0.38f, 0.42f, 1.0f});
-    guide->set_absolute(true);
-    guide->set_absolute_pos({150.0f, 250.0f});
-    stage->add(std::move(guide));
+    // 参考线。
+    const auto guide = demo.scene.create(xel::scene::NodeType::Shape, "guide");
+    auto* guide_node = demo.scene.find(guide);
+    guide_node->size = {460.0f, 2.0f};
+    guide_node->color = {0.35f, 0.38f, 0.42f, 1.0f};
+    guide_node->transform.position = {start_x, 250.0f};
 
-    root.add(std::move(stage));
+    demo.timeline.set_duration(demo.duration);
+    demo.timeline.set_loop(true);
+    demo.timeline.play();
+
+    auto view = std::make_unique<xel::ui::SceneView>(&demo.scene);
+    view->set_pos(40.0f, 40.0f);
+    view->set_size(720.0f, 300.0f);
+    demo.view = view.get();
+    root.add(std::move(view));
 
     auto controls = std::make_unique<xel::ui::Hbox>(40.0f, 360.0f, 720.0f, 40.0f);
     controls->set_spacing(8.0f);
@@ -117,13 +113,19 @@ Demo build(xel::ui::UIRoot& root)
     controls->set_max_size({720.0f, 40.0f});
 
     auto play = std::make_unique<xel::ui::Button>("Pause", [&demo]() {
-        demo.playing = !demo.playing;
-        if (demo.play_button) demo.play_button->set_label(demo.playing ? "Pause" : "Play");
+        if (demo.timeline.playing()) demo.timeline.pause();
+        else demo.timeline.play();
+        if (demo.play_button) {
+            demo.play_button->set_label(demo.timeline.playing() ? "Pause" : "Play");
+        }
     });
     demo.play_button = play.get();
     controls->add(std::move(play));
 
-    controls->add(std::make_unique<xel::ui::Button>("Reset", [&demo]() { demo.time = 0.0f; }));
+    controls->add(std::make_unique<xel::ui::Button>("Reset", [&demo]() {
+        demo.timeline.seek(0.0f);
+        demo.timeline.apply(demo.scene);
+    }));
     root.add(std::move(controls));
 
     auto progress = std::make_unique<xel::ui::Progress>(720.0f);
@@ -135,16 +137,16 @@ Demo build(xel::ui::UIRoot& root)
     time_label->set_pos(40.0f, 462.0f);
     demo.time_label = time_label.get();
     root.add(std::move(time_label));
-
-    return demo;
 }
 
 int run()
 {
     xel::Application app{1200, 800, "XEL Animation Demo"};
-    auto demo = build(*app.uisys.root());
 
-    // 冒烟钩子：到时正常关窗，确保析构路径（Vulkan 资源释放）被执行。
+    // Demo 必须先于 build 存在：SceneView 持有 &demo.scene。
+    Demo demo;
+    build(demo, *app.uisys.root());
+
     const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER");
     const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
     float total_time = 0.0f;
@@ -158,17 +160,16 @@ int run()
         const auto& stats = app.renderer_.frame_stats();
         const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
 
-        // 先推进动画，再让 UI 系统按新位置布局。
         demo.update(dt);
         app.uisys.tick(dt);
+
+        app.renderer_.draw(*app.uisys.root());
+        app.renderer_.end();
 
         total_time += dt;
         if (exit_after > 0.0f && total_time >= exit_after) {
             glfwSetWindowShouldClose(app.window_.get_glfw_window(), GLFW_TRUE);
         }
-
-        app.renderer_.draw(*app.uisys.root());
-        app.renderer_.end();
     }
     return 0;
 }

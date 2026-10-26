@@ -112,6 +112,9 @@ target_link_libraries(test_ui_absolute_zindex PRIVATE cosine_ui)
 add_executable(test_ui_image test_ui_image.cpp)
 target_link_libraries(test_ui_image PRIVATE cosine_ui)
 
+add_executable(test_ui_scene_view test_ui_scene_view.cpp)
+target_link_libraries(test_ui_scene_view PRIVATE cosine_ui)
+
 add_executable(test_ui_smooth_scroll test_ui_smooth_scroll.cpp)
 target_link_libraries(test_ui_smooth_scroll PRIVATE cosine_ui)
 
@@ -158,6 +161,7 @@ set(COSINE_TEST_TARGETS
     test_ui_percent_aspect
     test_ui_absolute_zindex
     test_ui_image
+    test_ui_scene_view
     test_ui_smooth_scroll
     test_anim_easing
     test_anim_scene
@@ -206,6 +210,7 @@ add_test(NAME ui_wrap COMMAND test_ui_wrap)
 add_test(NAME ui_percent_aspect COMMAND test_ui_percent_aspect)
 add_test(NAME ui_absolute_zindex COMMAND test_ui_absolute_zindex)
 add_test(NAME ui_image COMMAND test_ui_image)
+add_test(NAME ui_scene_view COMMAND test_ui_scene_view)
 add_test(NAME ui_smooth_scroll COMMAND test_ui_smooth_scroll)
 add_test(NAME anim_easing COMMAND test_anim_easing)
 add_test(NAME anim_scene COMMAND test_anim_scene)

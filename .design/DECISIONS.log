@@ -585,3 +585,8 @@ Change: 20261026-timeline-track
 Context: 属性系统只解决读写，播放还需要按时间采样关键帧并写回场景
 Decision: Track 存按时间排序的 Keyframe，采样时用区间终点帧的 easing 插值；Timeline 提供 seek/advance/apply，seek 是确定性跳转
 Consequences: bool/string/uint32 为阶跃插值；同一时间重复 apply 结果一致，满足 M4 的确定性 seek 验收
+## [118] 2026-10-26 13:14:01 UTC
+Change: 20261026-scene-render
+Context: scene 是纯数据，M4 验收需要渲染；但不能把渲染放进只依赖 glm 的 cosine_anim
+Decision: 新增 ui::SceneView（Widget）把 Scene 摊平成 DrawList；cosine_ui PUBLIC 链接 cosine_anim
+Consequences: anim 保持纯逻辑；SceneView 复用现有 2D 管线与字体图集；rotation/Camera 暂不处理

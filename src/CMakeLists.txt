@@ -40,6 +40,7 @@ target_include_directories(cosine_ui PUBLIC
 target_link_libraries(cosine_ui
     PUBLIC
         cosine_text
+        cosine_anim
         glm::glm
     PRIVATE
         glfw
