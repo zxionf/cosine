@@ -1,8 +1,10 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
+#include "../graphics/box.hpp"
 #include "../graphics/line.hpp"
 #include "../graphics/rectangle.hpp"
 
@@ -183,9 +185,10 @@ public:
     {
         const auto& t = ui_theme();
 
-        graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y,
-                                       t.panel_bg};
-        background.append_to(list);
+        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
+        const float panel_radius = corner_radius(surface.radius);
+        graphics::append_rounded_rect(list, bounds, panel_radius, surface.fill);
 
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
 
@@ -209,14 +212,7 @@ public:
 
         draw_scrollbar(list, content, bar_w);
 
-        if (focused_) {
-            const float b = t.border;
-            graphics::Rectangle top{global_.pos.x, global_.pos.y, global_.size.x, b, t.focus_ring};
-            graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b,
-                                       global_.size.x, b, t.focus_ring};
-            top.append_to(list);
-            bottom.append_to(list);
-        }
+        append_focus_ring(list, bounds, panel_radius);
 
         list.pop_clip();
     }
@@ -330,8 +326,10 @@ public:
         }
     }
 
-    void on_focus_gained() override { focused_ = true; }
-    void on_focus_lost() override { focused_ = false; }
+    void on_focus_lost() override
+    {
+        Widget::on_focus_lost();
+    }
 
 private:
     float arrow_width() const { return 14.0f; }
@@ -436,17 +434,18 @@ private:
         const bool is_selected = row.path == selected_path_;
         const bool is_hovered = index == hovered_;
 
+        const float row_radius = corner_radius(t.radius_small);
         if (is_selected) {
-            const glm::vec4 color{t.focus_ring.r, t.focus_ring.g, t.focus_ring.b, 0.28f};
-            graphics::Rectangle highlight{global_.pos.x, y, body_w, row_height_, color};
-            highlight.append_to(list);
+            const glm::vec4 color{t.accent.r, t.accent.g, t.accent.b, 0.28f};
+            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
+                                          row_radius, color);
         } else if (is_hovered) {
-            graphics::Rectangle highlight{global_.pos.x, y, body_w, row_height_, t.button_hover};
-            highlight.append_to(list);
+            const BoxStyle row_style = t.style(StyleRole::Row, ControlState::Hovered);
+            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
+                                          row_radius, row_style.fill);
         } else if (striped_ && (index % 2) == 1) {
-            graphics::Rectangle stripe{global_.pos.x, y, body_w, row_height_,
-                                       glm::vec4{1.0f, 1.0f, 1.0f, 0.03f}};
-            stripe.append_to(list);
+            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
+                                          row_radius, {1.0f, 1.0f, 1.0f, 0.03f});
         }
 
         const float pad = t.padding;
@@ -494,8 +493,9 @@ private:
         const float max_scroll = std::max(0.0f, content - body_h);
         const float track_x = global_.pos.x + global_.size.x - bar_w;
 
-        graphics::Rectangle track{track_x, global_.pos.y, bar_w, body_h, t.scrollbar_track};
-        track.append_to(list);
+        const float bar_radius = corner_radius(t.radius_pill);
+        const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
+        graphics::append_rounded_rect(list, {track_x, global_.pos.y, bar_w, body_h}, bar_radius, track_style.fill);
 
         const float ratio = std::min(1.0f, body_h / std::max(1.0f, content));
         const float thumb_h = std::max(t.scrollbar_min_thumb, body_h * ratio);
@@ -503,9 +503,8 @@ private:
         const float thumb_y = global_.pos.y +
                               (max_scroll > 0.0f ? travel * (scroll_ / max_scroll) : 0.0f);
 
-        graphics::Rectangle thumb{track_x + 1.0f, thumb_y, std::max(1.0f, bar_w - 2.0f), thumb_h,
-                                  t.scrollbar_thumb};
-        thumb.append_to(list);
+        graphics::append_rounded_rect(list, {track_x + 1.0f, thumb_y, std::max(1.0f, bar_w - 2.0f), thumb_h},
+                                      bar_radius, t.scrollbar_thumb);
     }
 
     std::vector<TreeNode> roots_;
@@ -516,7 +515,6 @@ private:
     float indent_ = 16.0f;
     float scroll_ = 0.0f;
     bool striped_ = true;
-    bool focused_ = false;
     std::function<void(const std::vector<int>&)> on_select_;
 };
 } // namespace xel::ui

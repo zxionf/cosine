@@ -22,10 +22,10 @@
 - [x] T06e 圆形控件跟随开关：新增 `Theme::radius_pill`（大值 + clamp），Slider 轨道/手柄、Progress、Radio 用它；classic 下回到直角/方形
 - [x] T06f Checkbox 像素对齐：外框/边框/勾选块 round 到整像素，inset 取整后四边留白相等
 
-## 第二批（下一变更：列表与浮层）
+## 第二批（列表与浮层，已完成）
 
-- [ ] T07 Panel、MenuBar、Dropdown、TabBar、Table、TreeView、Tooltip、Dialog、ScrollView 滚动条、Splitter
-- [ ] T07b 第二批控件启用 `Row` / `MenuItem` / `Tooltip` 角色与 `row_height` 密度缩放，并接上 `append_inset_shadow`
+- [x] T07 Panel、MenuBar、Dropdown、TabBar、Table、TreeView、Tooltip、Dialog、ScrollView 滚动条、Splitter
+- [x] T07b 第二批控件启用 `Row` / `MenuItem` / `Tooltip` 角色与 `row_height` 密度缩放，并接上 `append_inset_shadow`
 
 ## 验证与展示
 

@@ -1,5 +1,7 @@
 #include "scroll_view.hpp"
 
+#include "style.hpp"
+#include "../graphics/box.hpp"
 #include "../graphics/rectangle.hpp"
 
 #include <algorithm>
@@ -258,10 +260,12 @@ void ScrollView::append_to(graphics::DrawList& list) const
         const Rect thumb = scrollbar_thumb_rect(vertical);
 
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
-        graphics::Rectangle track_rect{track.pos.x, track.pos.y, track.size.x, track.size.y, t.scrollbar_track};
-        track_rect.append_to(list);
-        graphics::Rectangle thumb_rect{thumb.pos.x, thumb.pos.y, thumb.size.x, thumb.size.y, t.scrollbar_thumb};
-        thumb_rect.append_to(list);
+        const float bar_radius = corner_radius(t.radius_pill);
+        const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
+        graphics::append_rounded_rect(list, {track.pos.x, track.pos.y, track.size.x, track.size.y},
+                                      bar_radius, track_style.fill);
+        graphics::append_rounded_rect(list, {thumb.pos.x, thumb.pos.y, thumb.size.x, thumb.size.y},
+                                      bar_radius, t.scrollbar_thumb);
         list.pop_clip();
     }
 }

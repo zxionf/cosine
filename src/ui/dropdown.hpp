@@ -1,9 +1,11 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "root.hpp"
 #include "../graphics/font_atlas.hpp"
+#include "../graphics/box.hpp"
 #include "../graphics/rectangle.hpp"
 #include "../graphics/triangle.hpp"
 
@@ -178,47 +180,38 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
+        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const BoxStyle style = t.style(StyleRole::Control,
+                                       control_state(enabled_, is_hovered() || is_open(), pressed_));
+        const float radius = corner_radius(style.radius);
 
-        glm::vec4 bg = t.button_bg;
-        if (!enabled_) bg = t.button_disabled;
-        else if (pressed_) bg = t.button_pressed;
-        else if (hovered_ || is_open()) bg = t.button_hover;
-
-        graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, bg};
-        background.append_to(list);
-
-        const glm::vec4 border_color = focused_ ? t.focus_ring : t.panel_border;
-        graphics::Rectangle top{global_.pos.x, global_.pos.y, global_.size.x, t.border, border_color};
-        graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - t.border, global_.size.x, t.border, border_color};
-        graphics::Rectangle left{global_.pos.x, global_.pos.y, t.border, global_.size.y, border_color};
-        graphics::Rectangle right{global_.pos.x + global_.size.x - t.border, global_.pos.y, t.border, global_.size.y, border_color};
-        top.append_to(list);
-        bottom.append_to(list);
-        left.append_to(list);
-        right.append_to(list);
+        graphics::append_rounded_rect(list, bounds, radius, style.fill);
+        // 编辑/展开中始终强调边框；焦点环只在 focus_policy 允许时叠加。
+        const glm::vec4 border_color = is_focused() ? t.accent : t.panel_border;
+        if (t.border > 0.0f) {
+            graphics::append_rounded_ring(list, bounds, radius, t.border, border_color);
+        }
+        append_focus_ring(list, bounds, radius);
 
         if (auto* atlas = font_atlas()) {
-            const glm::vec2 text_size = atlas->measure(selected_text(), t.text_size);
+            const glm::vec2 text_size = atlas->measure(selected_text(), style.text_size);
             atlas->append_text(list,
                                global_.pos.x + t.padding,
                                global_.pos.y + (global_.size.y - text_size.y) * 0.5f,
-                               t.text_size, selected_text(),
-                               enabled_ ? t.text : t.text_disabled);
+                               style.text_size, selected_text(), style.text);
         }
 
         // 下拉箭头
         const float ax = global_.pos.x + global_.size.x - t.padding - 5.0f;
         const float ay = global_.pos.y + global_.size.y * 0.5f;
-        graphics::Triangle arrow{ax, ay - 2.0f, ax + 10.0f, ay - 2.0f, ax + 5.0f, ay + 3.0f,
-                                 enabled_ ? t.text : t.text_disabled};
+        graphics::Triangle arrow{ax, ay - 2.0f, ax + 10.0f, ay - 2.0f, ax + 5.0f, ay + 3.0f, style.text};
         arrow.append_to(list);
     }
 
     bool focusable() const override { return true; }
     bool hit_testable() const override { return true; }
 
-    void on_mouse_enter() override { hovered_ = true; }
-    void on_mouse_leave() override { hovered_ = false; pressed_ = false; }
+    void on_mouse_leave() override { pressed_ = false; }
     bool on_mouse_down(glm::vec2, int button) override
     {
         if (!enabled_ || button != 0) return false;
@@ -274,8 +267,7 @@ public:
         }
     }
 
-    void on_focus_gained() override { focused_ = true; }
-    void on_focus_lost() override { focused_ = false; }
+    void on_focus_lost() override { close(); }
 
     // 供列表浮层回调。
     void commit(int index)
@@ -323,9 +315,7 @@ private:
     int selected_ = -1;
     int highlight_ = 0;
     bool enabled_ = true;
-    bool hovered_ = false;
     bool pressed_ = false;
-    bool focused_ = false;
     detail::DropdownList* popup_ = nullptr;
     detail::DropdownScrim* scrim_ = nullptr;
     std::function<void(int)> on_change_;
@@ -353,9 +343,14 @@ inline void DropdownList::append_to(graphics::DrawList& list) const
     const auto& t = ui_theme();
     const float row = row_height();
     const float width = global_.size.x;
+    const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
+    const float radius = corner_radius(t.radius_medium);
+    const glm::vec4 bounds{global_.pos.x, global_.pos.y, width, global_.size.y};
 
-    graphics::Rectangle background{global_.pos.x, global_.pos.y, width, global_.size.y, t.panel_bg};
-    background.append_to(list);
+    graphics::append_rounded_rect(list, bounds, radius, surface.fill);
+    if (surface.border_width > 0.0f) {
+        graphics::append_rounded_ring(list, bounds, radius, surface.border_width, surface.border);
+    }
 
     const auto& options = owner_->options();
     for (std::size_t i = 0; i < options.size(); ++i) {
@@ -364,12 +359,11 @@ inline void DropdownList::append_to(graphics::DrawList& list) const
             || (hovered_ < 0 && static_cast<int>(i) == owner_->highlight());
         const bool current = static_cast<int>(i) == owner_->selected();
 
-        if (highlighted) {
-            graphics::Rectangle highlight{global_.pos.x, y, width, row, t.button_hover};
-            highlight.append_to(list);
-        } else if (current) {
-            graphics::Rectangle current_bg{global_.pos.x, y, width, row, t.button_pressed};
-            current_bg.append_to(list);
+        if (highlighted || current) {
+            const BoxStyle item = t.style(StyleRole::MenuItem,
+                                          highlighted ? ControlState::Hovered : ControlState::Pressed);
+            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, width - 4.0f, row},
+                                          corner_radius(item.radius), item.fill);
         }
 
         if (auto* atlas = owner_->font_atlas()) {
@@ -379,11 +373,6 @@ inline void DropdownList::append_to(graphics::DrawList& list) const
                                t.text_size, options[i], t.text);
         }
     }
-
-    graphics::Rectangle border{global_.pos.x, global_.pos.y, width, t.border, t.panel_border};
-    border.append_to(list);
-    graphics::Rectangle border_bottom{global_.pos.x, global_.pos.y + global_.size.y - t.border, width, t.border, t.panel_border};
-    border_bottom.append_to(list);
 }
 
 inline bool DropdownList::on_mouse_move(glm::vec2 pos)

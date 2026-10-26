@@ -107,12 +107,12 @@ void test_style_roles()
     assert(dark.style(StyleRole::Accent, ControlState::Normal).fill == dark.accent);
     assert(dark.style(StyleRole::Accent, ControlState::Disabled).fill == dark.text_disabled);
 
-    // Row / MenuItem：默认透明，hover/pressed 用强调色半透明叠加。
+    // Row / MenuItem：默认透明，hover/pressed 沿用按钮色系（旧观感），圆角来自 radius_small。
     assert(dark.style(StyleRole::Row, ControlState::Normal).fill.a == 0.0f);
-    assert(near(dark.style(StyleRole::Row, ControlState::Hovered).fill.a, 0.12f));
-    assert(near(dark.style(StyleRole::Row, ControlState::Pressed).fill.a, 0.20f));
-    assert(near(dark.style(StyleRole::MenuItem, ControlState::Hovered).fill.a, 0.28f));
-    assert(near(dark.style(StyleRole::MenuItem, ControlState::Pressed).fill.a, 0.40f));
+    assert(dark.style(StyleRole::Row, ControlState::Hovered).fill == dark.button_hover);
+    assert(dark.style(StyleRole::Row, ControlState::Pressed).fill == dark.button_pressed);
+    assert(dark.style(StyleRole::MenuItem, ControlState::Hovered).fill == dark.button_hover);
+    assert(dark.style(StyleRole::MenuItem, ControlState::Pressed).fill == dark.button_pressed);
 
     // Tooltip：浮层底色 + 中档圆角。
     const auto tooltip = dark.style(StyleRole::Tooltip, ControlState::Normal);

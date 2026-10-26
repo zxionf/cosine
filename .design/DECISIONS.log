@@ -330,3 +330,13 @@ Change: 20261026-style-system
 Context: Checkbox 勾选后的中间方块看起来没有完美居中：inset=box*0.25 在 box=18 时是 4.5，方块边界落在半像素上，光栅化后左右留白不均、边缘发虚
 Decision: Checkbox 绘制做像素对齐：checkbox_size、控件 x/y、圆角半径与 marker inset 全部 round 到整像素，保证四边留白严格相等
 Consequences: 勾选块与外框同心且边界落在整像素；half-pixel 位置输入也先 round 再绘制；test_ui_style 断言所有顶点为整数且留白相等
+## [67] 2026-10-26 06:12:56 UTC
+Change: 20261026-style-system
+Context: Row / MenuItem 角色若用 accent 半透明高亮，会与迁移前的表格行、菜单项观感不同，classic 模式无法还原
+Decision: Row/MenuItem 的 Hover/Pressed 填充沿用 button_hover/button_pressed；选中态由控件自己叠加 accent 28% 半透明，不进 BoxStyle
+Consequences: modern 与 classic 的选中/悬停观感一致，仅圆角随风格变化；角色仍保留独立枚举，便于后续分化菜单与列表样式
+## [68] 2026-10-26 06:13:01 UTC
+Change: 20261026-style-system
+Context: 内阴影是新样式系统引入的视觉元素，classic 模式要求完全回到样式系统之前的观感
+Decision: with_rounding(false) 同时把 inset_shadow_size 归零，Panel/Tooltip 顶部内阴影关闭
+Consequences: classic = 直角 + 贴边焦点框 + 无内阴影，三者一致；modern 保留内阴影，层次感更强

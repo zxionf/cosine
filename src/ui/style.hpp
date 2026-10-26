@@ -90,9 +90,10 @@ inline BoxStyle Theme::style(StyleRole role, ControlState state) const
             break;
 
         case StyleRole::Row:
+            // 行高亮沿用旧观感（button 色系）：选中态由控件自己用 accent 半透明叠加。
             switch (state) {
-                case ControlState::Hovered: s.fill = with_alpha(accent, 0.12f); break;
-                case ControlState::Pressed: s.fill = with_alpha(accent, 0.20f); break;
+                case ControlState::Hovered: s.fill = button_hover; break;
+                case ControlState::Pressed: s.fill = button_pressed; break;
                 default: break;
             }
             s.radius = radius_small;
@@ -100,8 +101,8 @@ inline BoxStyle Theme::style(StyleRole role, ControlState state) const
 
         case StyleRole::MenuItem:
             switch (state) {
-                case ControlState::Hovered: s.fill = with_alpha(accent, 0.28f); break;
-                case ControlState::Pressed: s.fill = with_alpha(accent, 0.40f); break;
+                case ControlState::Hovered: s.fill = button_hover; break;
+                case ControlState::Pressed: s.fill = button_pressed; break;
                 default: break;
             }
             s.radius = radius_small;

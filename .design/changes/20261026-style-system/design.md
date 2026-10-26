@@ -65,7 +65,8 @@ struct BoxStyle {
 - 强调色：新增 `accent`（dark `#3399FF` / light `#1F73F2`）。`focus_ring`、`checkbox_fill`、`slider_fill`、进度填充统一由 `accent` 派生，旧字段保留为别名值。
 - 密度：`enum class Density { Compact, Normal, Spacious }`，`Theme::with_density(Density)` 返回缩放后的副本（Compact ×0.85、Normal ×1.0、Spacious ×1.15），作用于 `padding`/`spacing`/`control_height`/`row_height`/`checkbox_size`/`slider_handle_radius`/`scrollbar_width`；字号与圆角按 ×0.9 / ×1.0 / ×1.1 缩放。
 - 字号档位：`text_size`（Body）、`small_text_size`（Caption）、`heading_text_size`（Heading）；`typography.hpp` 的比例角色保持不变，只把基础档位对齐到这三个字段。
-- 内阴影：`inset_shadow`（颜色，alpha 低）+ `inset_shadow_size`（默认 6）。`append_inset_shadow()` 用 3–4 层递减 alpha 的圆角条模拟，只用于 `Surface` 顶部与 `Tooltip` 内缘。
+- 内阴影：`inset_shadow`（颜色，alpha 低）+ `inset_shadow_size`（默认 6）。`append_inset_shadow()` 用 3–4 层递减 alpha 的圆角条模拟，只用于 `Surface` 顶部与 `Tooltip` 内缘；classic 样式下 `inset_shadow_size` 归零。
+- 角色填充语义：`Row` / `MenuItem` 的 Hover/Pressed 沿用按钮色系（`button_hover` / `button_pressed`），保持旧观感；选中态由控件自己叠加 `accent` 半透明，不进 `BoxStyle`。
 
 ### 几何风格与焦点策略（两维正交）
 
@@ -80,6 +81,16 @@ struct BoxStyle {
 - 经典预设 = `with_rounding(false).with_focus_policy(Always)`，复刻旧观感（鼠标点击聚焦也显示边框）；现代预设 = `with_rounding(true).with_focus_policy(Keyboard)`。
 - gallery 左侧导航有 `Style: Rounded/Classic` 与 `Focus: Keyboard/Always/Never` 两个独立按钮；`Style` 分区另有 `Rounded/Classic` 与 `Keyboard only/Always/Never` 两行对照。环境变量：`COSINE_GALLERY_CLASSIC=1`、`COSINE_GALLERY_FOCUS=keyboard|always|never`。
 - 切换 Style 会把焦点时机复位为该风格的预设（Classic → Always、Rounded → Keyboard），之后点 Focus 按钮可任意覆盖，两维仍然自由组合。
+
+### 第二批落地细节（列表与浮层）
+
+- `Panel`：`Surface` 角色 + `radius_panel` 圆角 + `append_rounded_ring` 边框，hover 边框仍用 `accent`；顶部加 `append_inset_shadow`。
+- `Tooltip` / `MenuPopup` / `DropdownList`：`Surface` 或 `Tooltip` 角色 + 圆角；半透明底（`tooltip_bg` alpha 0.95）依赖九宫格不重叠切分。
+- `MenuBar` / `Dropdown` 按钮 / `TabBar` 标签：`Control` 角色（Normal/Hovered/Pressed），焦点统一 `append_focus_ring`。
+- `Table` / `TreeView`：面板背景 `Surface`，行高亮 `Row` 角色 + `radius_small`（左右内缩 2px），选中态仍是 `accent` 28% 半透明叠加，表头保持直角（面板内部元素，不跟随圆角）。
+- 滚动条（ScrollView / Table / TreeView）：轨道 `Track` 角色，滑块 `scrollbar_thumb`，圆角用 `radius_pill`（modern 圆头 / classic 直角）。
+- `Splitter`：手柄颜色仍为 `panel_border`，hover 时用 `Control` hover 填充，圆角 `radius_small`。
+- 内阴影随 `with_rounding(false)` 关闭（`inset_shadow_size` 归零），classic 完全回到旧观感。
 
 ### 迁移顺序
 

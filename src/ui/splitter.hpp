@@ -1,7 +1,9 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
+#include "../graphics/box.hpp"
 #include "../graphics/rectangle.hpp"
 
 #include <algorithm>
@@ -86,8 +88,11 @@ public:
         const float w = orientation_ == Orientation::Horizontal ? handle : global_.size.x;
         const float h = orientation_ == Orientation::Horizontal ? global_.size.y : handle;
 
-        graphics::Rectangle bar{x, y, w, h, t.panel_border};
-        bar.append_to(list);
+        // 手柄：颜色沿用 panel_border，圆角随主题（classic 为直角）。
+        const BoxStyle bar_style = t.style(StyleRole::Control,
+                                          is_hovered() ? ControlState::Hovered : ControlState::Normal);
+        const glm::vec4 bar_color = is_hovered() ? bar_style.fill : t.panel_border;
+        graphics::append_rounded_rect(list, {x, y, w, h}, corner_radius(t.radius_small), bar_color);
 
         for (const auto& child : children_) {
             if (child->visible()) {

@@ -1,8 +1,9 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "vbox.hpp"
-#include "../graphics/rectangle.hpp"
+#include "../graphics/box.hpp"
 
 #include <string>
 
@@ -31,35 +32,24 @@ public:
 
     bool hit_testable() const override { return true; }
 
-    void on_mouse_enter() override { hovered_ = true; }
-    void on_mouse_leave() override { hovered_ = false; }
-
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
+        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const BoxStyle style = t.style(StyleRole::Surface, ControlState::Normal);
+        const float radius = corner_radius(style.radius);
 
-        graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, t.panel_bg};
-        background.append_to(list);
-
-        if (t.border > 0.0f) {
-            const glm::vec4 border_color = hovered_ ? t.focus_ring : t.panel_border;
-            const float b = t.border;
-            graphics::Rectangle top   {global_.pos.x, global_.pos.y, global_.size.x, b, border_color};
-            graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b, global_.size.x, b, border_color};
-            graphics::Rectangle left  {global_.pos.x, global_.pos.y, b, global_.size.y, border_color};
-            graphics::Rectangle right {global_.pos.x + global_.size.x - b, global_.pos.y, b, global_.size.y, border_color};
-            top.append_to(list);
-            bottom.append_to(list);
-            left.append_to(list);
-            right.append_to(list);
+        graphics::append_rounded_rect(list, bounds, radius, style.fill);
+        if (style.border_width > 0.0f) {
+            // hover 时用强调色提示可交互（与迁移前一致）。
+            const glm::vec4 border_color = is_hovered() ? t.accent : style.border;
+            graphics::append_rounded_ring(list, bounds, radius, style.border_width, border_color);
         }
+        graphics::append_inset_shadow(list, bounds, radius, t.inset_shadow_size, t.inset_shadow);
 
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip(bounds);
         Vbox::append_to(list);
         list.pop_clip();
     }
-
-private:
-    bool hovered_ = false;
 };
 } // namespace xel::ui

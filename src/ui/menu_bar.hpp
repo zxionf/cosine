@@ -2,8 +2,10 @@
 
 #include "root.hpp"
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
+#include "../graphics/box.hpp"
 #include "../graphics/line.hpp"
 #include "../graphics/rectangle.hpp"
 
@@ -240,9 +242,10 @@ public:
             const bool hovered = static_cast<int>(i) == hovered_ && !active;
 
             if (active || hovered) {
-                graphics::Rectangle background{x, global_.pos.y, width, global_.size.y,
-                                               active ? t.button_pressed : t.button_hover};
-                background.append_to(list);
+                const BoxStyle style = t.style(StyleRole::MenuItem,
+                                               active ? ControlState::Pressed : ControlState::Hovered);
+                graphics::append_rounded_rect(list, {x, global_.pos.y, width, global_.size.y},
+                                              corner_radius(style.radius), style.fill);
             }
 
             if (auto* atlas = font_atlas()) {
@@ -254,12 +257,7 @@ public:
             x += width + t.spacing;
         }
 
-        if (focused_) {
-            const float b = t.border;
-            graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b,
-                                       global_.size.x, b, t.focus_ring};
-            bottom.append_to(list);
-        }
+        append_focus_ring(list, {global_.pos.x, global_.pos.y, global_.size.x, global_.size.y}, t.radius_small);
     }
 
     bool focusable() const override { return true; }
@@ -340,10 +338,9 @@ public:
         }
     }
 
-    void on_focus_gained() override { focused_ = true; }
     void on_focus_lost() override
     {
-        focused_ = false;
+        Widget::on_focus_lost();
         hovered_ = -1;
     }
 
@@ -514,7 +511,6 @@ private:
     int highlight_ = -1;
     int hovered_ = -1;
     int current_ = 0;
-    bool focused_ = false;
     detail::MenuPopup* popup_ = nullptr;
     detail::MenuScrim* scrim_ = nullptr;
 };
@@ -554,22 +550,14 @@ inline int MenuPopup::index_at(glm::vec2 pos) const
 inline void MenuPopup::append_to(graphics::DrawList& list) const
 {
     const auto& t = owner_->ui_theme();
+    const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+    const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
+    const float radius = corner_radius(t.radius_medium);
 
-    graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y,
-                                   t.panel_bg};
-    background.append_to(list);
-
-    const float b = t.border;
-    graphics::Rectangle top{global_.pos.x, global_.pos.y, global_.size.x, b, t.panel_border};
-    graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b,
-                               global_.size.x, b, t.panel_border};
-    graphics::Rectangle left{global_.pos.x, global_.pos.y, b, global_.size.y, t.panel_border};
-    graphics::Rectangle right{global_.pos.x + global_.size.x - b, global_.pos.y, b,
-                              global_.size.y, t.panel_border};
-    top.append_to(list);
-    bottom.append_to(list);
-    left.append_to(list);
-    right.append_to(list);
+    graphics::append_rounded_rect(list, bounds, radius, surface.fill);
+    if (surface.border_width > 0.0f) {
+        graphics::append_rounded_ring(list, bounds, radius, surface.border_width, surface.border);
+    }
 
     auto* atlas = owner_->font_atlas();
     float y = global_.pos.y + t.padding;
@@ -590,9 +578,9 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
 
         const bool active = static_cast<int>(i) == hovered_ && item.enabled;
         if (active) {
-            graphics::Rectangle highlight{global_.pos.x + 2.0f, y,
-                                          global_.size.x - 4.0f, row, t.button_hover};
-            highlight.append_to(list);
+            const BoxStyle style = t.style(StyleRole::MenuItem, ControlState::Hovered);
+            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, global_.size.x - 4.0f, row},
+                                          corner_radius(style.radius), style.fill);
         }
 
         const glm::vec4 color = item.enabled ? t.text : t.text_disabled;

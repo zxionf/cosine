@@ -1,9 +1,10 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
-#include "../graphics/rectangle.hpp"
+#include "../graphics/box.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -74,46 +75,36 @@ public:
         const auto& t = ui_theme();
         const float top = global_.pos.y;
         const float height = global_.size.y;
+        const float radius = corner_radius(t.radius_small);
 
         float x = global_.pos.x;
         for (std::size_t i = 0; i < tabs_.size(); ++i) {
             const float width = tab_width(tabs_[i]);
             const bool active = static_cast<int>(i) == selected_;
             const bool hovered = static_cast<int>(i) == hovered_ && !active;
+            const BoxStyle style = t.style(StyleRole::Control,
+                                           active ? ControlState::Pressed
+                                                  : hovered ? ControlState::Hovered
+                                                            : ControlState::Normal);
 
-            glm::vec4 bg = t.button_bg;
-            if (active) bg = t.button_pressed;
-            else if (hovered) bg = t.button_hover;
-
-            graphics::Rectangle background{x, top, width, height, bg};
-            background.append_to(list);
+            graphics::append_rounded_rect(list, {x, top, width, height}, radius, style.fill);
 
             if (active) {
-                graphics::Rectangle underline{x, top + height - 2.0f, width, 2.0f, t.focus_ring};
-                underline.append_to(list);
+                graphics::append_rounded_rect(list, {x, top + height - 2.0f, width, 2.0f}, radius, t.accent);
             }
 
             if (auto* atlas = font_atlas()) {
-                const glm::vec2 text_size = atlas->measure(tabs_[i], t.text_size);
+                const glm::vec2 text_size = atlas->measure(tabs_[i], style.text_size);
                 atlas->append_text(list,
                                    x + (width - text_size.x) * 0.5f,
                                    top + (height - text_size.y) * 0.5f,
-                                   t.text_size, tabs_[i], t.text);
+                                   style.text_size, tabs_[i], style.text);
             }
 
             x += width + t.spacing;
         }
 
-        if (focused_) {
-            graphics::Rectangle top_line{global_.pos.x, top, global_.size.x, t.border, t.focus_ring};
-            graphics::Rectangle bottom_line{global_.pos.x, top + height - t.border, global_.size.x, t.border, t.focus_ring};
-            graphics::Rectangle left_line{global_.pos.x, top, t.border, height, t.focus_ring};
-            graphics::Rectangle right_line{global_.pos.x + global_.size.x - t.border, top, t.border, height, t.focus_ring};
-            top_line.append_to(list);
-            bottom_line.append_to(list);
-            left_line.append_to(list);
-            right_line.append_to(list);
-        }
+        append_focus_ring(list, {global_.pos.x, top, global_.size.x, height}, radius);
     }
 
     bool focusable() const override { return true; }
@@ -157,8 +148,7 @@ public:
         return false;
     }
 
-    void on_focus_gained() override { focused_ = true; }
-    void on_focus_lost() override { focused_ = false; }
+    void on_focus_lost() override { Widget::on_focus_lost(); }
 
 private:
     float text_width(const std::string& text) const
@@ -192,7 +182,6 @@ private:
     int selected_ = -1;
     int hovered_ = -1;
     int index_at_last_mouse_ = -1;
-    bool focused_ = false;
     std::function<void(int)> on_change_;
 };
 } // namespace xel::ui

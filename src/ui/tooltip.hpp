@@ -1,9 +1,10 @@
 #pragma once
 
 #include "theme.hpp"
+#include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
-#include "../graphics/rectangle.hpp"
+#include "../graphics/box.hpp"
 
 #include <algorithm>
 #include <string>
@@ -87,12 +88,19 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        graphics::Rectangle background{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, t.tooltip_bg};
-        background.append_to(list);
+        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const BoxStyle style = t.style(StyleRole::Tooltip, ControlState::Normal);
+        const float radius = corner_radius(style.radius);
+
+        // tooltip_bg 是半透明色：圆角几何用九宫格不重叠切分，不会叠出亮边。
+        graphics::append_rounded_rect(list, bounds, radius, style.fill);
+        if (style.border_width > 0.0f) {
+            graphics::append_rounded_ring(list, bounds, radius, style.border_width, style.border);
+        }
 
         if (auto* atlas = font_atlas()) {
             atlas->append_text(list, global_.pos.x + t.padding, global_.pos.y + t.padding * 0.5f,
-                               t.small_text_size, text_, t.text);
+                               t.small_text_size, text_, style.text);
         }
     }
 

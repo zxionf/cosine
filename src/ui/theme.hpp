@@ -103,7 +103,7 @@ struct Theme
     glm::vec4 scrollbar_thumb{0.42f, 0.45f, 0.50f, 1.0f};
 
     // 内阴影：只用于 Surface 上缘与 Tooltip 内缘，多层半透明条模拟。
-    glm::vec4 inset_shadow{0.0f, 0.0f, 0.0f, 0.12f};
+    glm::vec4 inset_shadow{0.0f, 0.0f, 0.0f, 0.06f};
     float inset_shadow_size = 6.0f;
 
     float text_size = 16.0f;
@@ -226,6 +226,8 @@ inline Theme Theme::with_rounding(bool rounded) const
     theme_value.radius_large = 0.0f;
     theme_value.radius_panel = 0.0f;
     theme_value.radius_pill = 0.0f;
+    // 内阴影属于圆角视觉的一部分：classic 完全回到旧观感。
+    theme_value.inset_shadow_size = 0.0f;
     theme_value.focus_style = FocusStyle::Border;
     return theme_value;
 }
@@ -267,7 +269,7 @@ inline Theme Theme::light()
     t.tooltip_bg      = {0.97f, 0.97f, 0.98f, 0.98f};
     t.scrollbar_track = {0.80f, 0.82f, 0.85f, 1.0f};
     t.scrollbar_thumb = {0.55f, 0.58f, 0.62f, 1.0f};
-    t.inset_shadow    = {0.0f, 0.0f, 0.0f, 0.10f};
+    t.inset_shadow    = {0.0f, 0.0f, 0.0f, 0.05f};
     return t;
 }
 
