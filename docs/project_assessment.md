@@ -100,7 +100,7 @@
 
 1. `examples/ui_gallery` 分区展示全部现有控件（Overview/Text/Inputs/Containers/Overlays/Layout）。
 2. 主题切换：暗色/亮色即时生效（`UIRoot::set_theme`/`UISystem::set_theme`，gallery 按钮与 `COSINE_GALLERY_THEME`）。
-3. 组件补齐：TabBar、Radio/RadioGroup、Progress、Dropdown（均已完成）；待补 Dialog、Table/TreeView、Menu。
+3. 组件补齐：TabBar、Radio/RadioGroup、Progress、Dropdown、Dialog、Table、TreeView、MenuBar（均已完成）；子菜单、Image 与 Tooltip 增强待补。
 4. 样式系统：圆角/密度/控件状态样式统一（主题切换已完成）。
 5. 交互打磨：键盘导航、双击、滚动条、多行输入、tooltip 增强。
 6. 布局补充：Grid、Wrap、百分比尺寸、显式 z-index。

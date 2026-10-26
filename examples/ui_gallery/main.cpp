@@ -38,10 +38,11 @@ int run()
         app.renderer_.set_clear_color(app.uisys.context()->theme.window_bg);
         app.renderer_.begin();
 
-        const glm::vec2 cursor = cursor_to_framebuffer(app.window_);
-        gallery.update_tooltip(cursor);
-
         const auto& stats = app.renderer_.frame_stats();
+
+        const glm::vec2 cursor = cursor_to_framebuffer(app.window_);
+        gallery.update_tooltip(cursor, static_cast<float>(stats.frame_time_ms) / 1000.0f);
+
         gallery.stats->set_text(std::format(
             "fps: {:.1f}   frame: {:.2f} ms   draw calls: {}   vertices: {}   indices: {}",
             stats.fps, stats.frame_time_ms, stats.draw.draw_calls,

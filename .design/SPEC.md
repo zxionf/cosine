@@ -108,8 +108,23 @@
 - `Modifier` 用位标志支持 Shift/Ctrl/Alt/Super 组合。
 
 ## 头文件边界
-- 不支持列宽拖拽、列排序、多选、单元格编辑、横向滚动。
-- TreeView 不在表格控件范围内。
+- Table 不支持列宽拖拽、列排序、多选、单元格编辑、横向滚动。
+
+## TreeView
+- `TreeView` 是独立控件（不是 `Table` 子类）：`TreeNode { title, children, expanded }` + `set_roots` / `add_root` / `clear_roots`。
+- 选中为根索引路径 `std::vector<int>`；`selected_path` / `set_selected_path` / `selected_node` / `set_on_select(path)`。
+- 可见行是展开节点的前序遍历；绘制、命中与键盘共用 `visible_rows()`。
+- 绘制：面板背景、行高 26、缩进 16、chevron（展开下指/折叠右指）、选中/hover/斑马纹、自绘滚动条、整控件裁剪。
+- 交互：点击行选中、点击箭头切换展开；`Up/Down/Home/End` 移动，`Right` 展开或进入第一个子节点，`Left` 折叠或回到父级，`Enter/Space` 切换；滚轮 1.5 行，选中自动保持可见。
+- 折叠父级时子树内的选中上移到被折叠节点；`set_roots` / `collapse_all` 后选中截断到仍可见的最长前缀。
+- 边界：无多选、拖拽、内联重命名、懒加载、图标/复选标记。
+
+## Tooltip
+- `Tooltip` 是 overlay 控件，由 `update_hover(dt, over_target, cursor, bounds)` 驱动；`set_delay` 默认 0.35s。
+- 悬停累计达到延迟才显示，离开立即隐藏并清零计时；显示后跟随光标（偏移 16,18）。
+- 右下溢出时翻到左上，并夹在 `bounds`（root 的 `global_bounds`）内；bounds 为空时只按偏移定位。
+- 位置用相对 root 的局部坐标，由 `UIRoot::layout` 转全局；`hit_testable()` 为假，不拦截鼠标。
+- 目标判定（哪个控件显示什么文本）留在调用方（gallery）。
 
 ## 兼容与迁移
 - 测试中的 `GLFW_KEY_*` / `GLFW_MOD_*` 改为 `KeyCode` / `Modifier`。

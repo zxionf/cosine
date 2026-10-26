@@ -20,6 +20,7 @@
 #include "ui/tab_bar.hpp"
 #include "ui/table.hpp"
 #include "ui/tab_view.hpp"
+#include "ui/tree_view.hpp"
 #include "ui/spacer.hpp"
 #include "ui/splitter.hpp"
 #include "ui/text_input.hpp"
@@ -77,11 +78,19 @@ struct UiGallery
     ui::MenuBar* menu_bar = nullptr;
     ui::Table* table = nullptr;
     ui::Label* table_state = nullptr;
+    ui::TreeView* tree = nullptr;
+    ui::Label* tree_state = nullptr;
     ui::Label* menu_state = nullptr;
     ui::UISystem* ui_system = nullptr;
     ui::Label* dropdown_state = nullptr;
 
-    ui::Widget* tip_button = nullptr;
+    // 悬停提示目标：每个目标带自己的文本，命中第一个匹配项。
+    struct TipTarget
+    {
+        ui::Widget* widget = nullptr;
+        std::string text;
+    };
+    std::vector<TipTarget> tip_targets;
     ui::Widget* tip_watermark = nullptr;
     ui::Tooltip* tooltip = nullptr;
     ui::Button* theme_button = nullptr;
@@ -131,26 +140,22 @@ struct UiGallery
         }
     }
 
-    void update_tooltip(glm::vec2 cursor)
+    void update_tooltip(glm::vec2 cursor, float dt)
     {
-        const ui::Widget* target = nullptr;
-        if (tip_button && tip_button->visible() && tip_button->global_bounds().contains(cursor)) {
-            target = tip_button;
-        } else if (tip_watermark && tip_watermark->visible() && tip_watermark->global_bounds().contains(cursor)) {
-            target = tip_watermark;
+        const std::string* text = nullptr;
+        for (const auto& target : tip_targets) {
+            if (!target.widget || !target.widget->visible()) continue;
+            if (!target.widget->global_bounds().contains(cursor)) continue;
+            text = &target.text;
+            break;
         }
 
-        if (!target) {
-            tooltip->hide();
-            return;
-        }
+        if (text) tooltip->set_text(*text);
 
-        if (target == tip_button) {
-            tooltip->set_text("Focused widgets can be activated with Enter or Space");
-        } else {
-            tooltip->set_text("Overlay layer stays above panels and clips");
-        }
-        tooltip->show_at({cursor.x + 16.0f, cursor.y + 18.0f});
+        // 悬停延迟、跟随光标与边界翻转都由 Tooltip 自己驱动。
+        const ui::Rect bounds = root ? root->global_bounds()
+                                     : ui::Rect{glm::vec2{0.0f, 0.0f}, glm::vec2{0.0f, 0.0f}};
+        tooltip->update_hover(dt, text != nullptr, cursor, bounds);
     }
 };
 
@@ -226,6 +231,7 @@ inline UiGallery build(ui::UIRoot& root)
         auto watermark = std::make_unique<ui::Label>("Hover this line to see an overlay tooltip.", 16.0f,
                                                      glm::vec4{0.35f, 0.72f, 1.0f, 1.0f});
         gallery.tip_watermark = watermark.get();
+        gallery.tip_targets.push_back({watermark.get(), "Overlay layer stays above panels and clips"});
         section->add(std::move(watermark));
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
@@ -265,7 +271,7 @@ inline UiGallery build(ui::UIRoot& root)
         section->add(std::make_unique<ui::Label>("Buttons", 18.0f));
         auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 700.0f, 40.0f);
         auto normal = std::make_unique<ui::Button>("Enabled", [] {});
-        gallery.tip_button = normal.get();
+        gallery.tip_targets.push_back({normal.get(), "Focused widgets can be activated with Enter or Space"});
         row->add(std::move(normal));
         auto disabled = std::make_unique<ui::Button>("Disabled");
         disabled->set_enabled(false);
@@ -445,6 +451,62 @@ inline UiGallery build(ui::UIRoot& root)
         section->add(std::move(table));
         section->add(std::move(table_state));
 
+        section->add(std::make_unique<ui::Label>("TreeView (indent, expand/collapse, keyboard)", 18.0f));
+        section->add(std::make_unique<ui::Label>(
+            "Click a chevron to expand or collapse; Up/Down/Home/End move, Right/Left expand/collapse or step to parent, Enter/Space toggles.",
+            14.0f));
+        auto tree = std::make_unique<ui::TreeView>(620.0f, 220.0f);
+        {
+            auto leaf = [](std::string title) {
+                ui::TreeNode node;
+                node.title = std::move(title);
+                return node;
+            };
+            auto branch = [](std::string title, std::vector<ui::TreeNode> children, bool expanded) {
+                ui::TreeNode node;
+                node.title = std::move(title);
+                node.children = std::move(children);
+                node.expanded = expanded;
+                return node;
+            };
+
+            std::vector<ui::TreeNode> tree_roots;
+            tree_roots.push_back(branch("src", {
+                leaf("xel_application.cpp"),
+                branch("ui", {leaf("widget.hpp"), leaf("tree_view.hpp"), leaf("table.hpp")}, true),
+                branch("backend", {
+                    leaf("window.cpp"),
+                    branch("vulkan", {leaf("renderer.cpp"), leaf("swap_chain.cpp")}, false),
+                }, false),
+            }, true));
+            tree_roots.push_back(branch("assets", {
+                branch("fonts", {leaf("default8.png"), leaf("cjk.ttf")}, true),
+                leaf("shaders"),
+            }, false));
+            tree_roots.push_back(leaf("README.md"));
+            tree->set_roots(std::move(tree_roots));
+            tree->set_selected_path({0, 1, 1});
+        }
+        auto tree_state = std::make_unique<ui::Label>("tree: src/ui/tree_view.hpp", 12.0f);
+        gallery.tree_state = tree_state.get();
+        tree->set_on_select([&gallery](const std::vector<int>& path) {
+            if (!gallery.tree_state || !gallery.tree) return;
+
+            std::string joined;
+            for (std::size_t i = 0; i < path.size(); ++i) {
+                std::vector<int> prefix(path.begin(),
+                    path.begin() + static_cast<std::vector<int>::difference_type>(i + 1));
+                auto* node = gallery.tree->node_at(prefix);
+                if (!node) continue;
+                if (!joined.empty()) joined += '/';
+                joined += node->title;
+            }
+            if (!joined.empty()) gallery.tree_state->set_text("tree: " + joined);
+        });
+        gallery.tree = tree.get();
+        section->add(std::move(tree));
+        section->add(std::move(tree_state));
+
         section->add(std::make_unique<ui::Label>("ScrollView (vertical, clips content)", 18.0f));
         auto scroll = detail::make_scroll(620.0f, 160.0f);
         auto content = std::make_unique<ui::Vbox>(0.0f, 0.0f, 600.0f, 0.0f);
@@ -487,11 +549,19 @@ inline UiGallery build(ui::UIRoot& root)
         std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Overlays")};
         section->add(std::make_unique<ui::Label>(
             "Overlays are drawn after normal children and receive hit tests first.\n"
-            "Hover the button below or the watermark in Overview to see a tooltip.",
+            "Hover a target: the tooltip waits 350 ms, follows the cursor, and flips near window edges.",
             14.0f));
         auto button = std::make_unique<ui::Button>("Hover for tooltip", [] {});
-        gallery.tip_button = button.get();
+        gallery.tip_targets.push_back({button.get(), "Tooltips appear after a 350 ms hover delay"});
         section->add(std::move(button));
+        section->add(std::make_unique<ui::Label>(
+            "Hover the wide bar below: near the right edge the tooltip flips to the upper-left.",
+            14.0f));
+        auto edge_target = std::make_unique<ui::ColorRect>(0.0f, 0.0f, 940.0f, 40.0f,
+                                                           glm::vec4{0.24f, 0.42f, 0.72f, 1.0f});
+        gallery.tip_targets.push_back({edge_target.get(),
+            "Near the edge this tooltip flips to the upper-left and stays inside the window"});
+        section->add(std::move(edge_target));
         section->add(std::make_unique<ui::Label>(
             "Dialog / Modal: centered card over a scrim, Esc or backdrop click dismisses.",
             14.0f));

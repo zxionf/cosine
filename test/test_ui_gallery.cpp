@@ -43,14 +43,17 @@ int main()
 
     // Tooltip 跟随 hover 目标显示/隐藏。
     assert(!gallery.tooltip->visible());
-    gallery.update_tooltip(glm::vec2{-1000.0f, -1000.0f});
+    gallery.update_tooltip(glm::vec2{-1000.0f, -1000.0f}, 0.0f);
     assert(!gallery.tooltip->visible());
 
-    gallery.update_tooltip(center(*gallery.tip_watermark));
+    // 不足悬停延迟不显示，累计超过后显示。
+    gallery.update_tooltip(center(*gallery.tip_watermark), 0.1f);
+    assert(!gallery.tooltip->visible());
+    gallery.update_tooltip(center(*gallery.tip_watermark), 0.3f);
     assert(gallery.tooltip->visible());
     assert(!gallery.tooltip->text().empty());
 
-    gallery.update_tooltip(glm::vec2{-1000.0f, -1000.0f});
+    gallery.update_tooltip(glm::vec2{-1000.0f, -1000.0f}, 0.0f);
     assert(!gallery.tooltip->visible());
 
     // 调试面板默认隐藏。
