@@ -572,6 +572,34 @@ void test_checkbox_pixel_alignment()
     ui::set_theme(ui::Theme::dark());
 }
 
+// 主题级圆角缩放：控件默认从 Theme 继承，per-widget override 只是例外。
+void test_radius_scale()
+{
+    const ui::Theme base = ui::Theme::dark();
+
+    // 0x：全部直角，连 pill（圆形/胶囊）也归零。
+    const ui::Theme square = base.with_radius_scale(0.0f);
+    assert(square.radius == 0.0f);
+    assert(square.radius_small == 0.0f);
+    assert(square.radius_medium == 0.0f);
+    assert(square.radius_large == 0.0f);
+    assert(square.radius_panel == 0.0f);
+    assert(square.radius_pill == 0.0f);
+
+    // 2x：几何档位加倍，pill 仍保持「足够大」的语义值。
+    const ui::Theme doubled = base.with_radius_scale(2.0f);
+    assert(near(doubled.radius, base.radius * 2.0f));
+    assert(near(doubled.radius_panel, base.radius_panel * 2.0f));
+    assert(doubled.radius_pill > 100.0f);
+
+    // 与密度组合：两个变换都作用在圆角上，先密度后缩放。
+    const ui::Theme compact = base.with_density(ui::Density::Compact).with_radius_scale(0.5f);
+    assert(near(compact.radius, base.radius * 0.9f * 0.5f));
+
+    // 负值归零。
+    assert(base.with_radius_scale(-1.0f).radius == 0.0f);
+}
+
 } // namespace
 
 int main()
@@ -586,6 +614,7 @@ int main()
     test_focus_policy_matrix();
     test_classic_shapes();
     test_checkbox_pixel_alignment();
+    test_radius_scale();
     test_widget_migration();
     std::cout << "ui style tests passed\n";
     return 0;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include <glm/glm.hpp>
 
 namespace xel::ui
@@ -156,6 +158,8 @@ struct Theme
     Theme with_focus_policy(FocusPolicy policy) const;
     // 状态过渡时长（毫秒）：负值归零（关闭动画）。
     Theme with_transition_ms(float ms) const;
+    // 圆角整体缩放：0 = 直角，1 = 默认档位，2 = 双倍；仅 0 时连 pill（圆形/胶囊）也归零。
+    Theme with_radius_scale(float scale) const;
 
     static Theme dark() { return Theme{}; }
     static Theme light();
@@ -208,6 +212,20 @@ inline Theme Theme::with_density(Density target) const
     theme_value.radius_large *= text_scale;
     theme_value.radius_panel *= text_scale;
     theme_value.radius_pill *= text_scale;
+    return theme_value;
+}
+
+inline Theme Theme::with_radius_scale(float scale) const
+{
+    Theme theme_value = *this;
+    const float k = scale < 0.0f ? 0.0f : scale;
+    theme_value.radius *= k;
+    theme_value.radius_small *= k;
+    theme_value.radius_medium *= k;
+    theme_value.radius_large *= k;
+    theme_value.radius_panel *= k;
+    // pill 是「足够大 + clamp 到短边一半」的语义值：保持大值，只在 0 时变成直角。
+    if (k <= 0.0f) theme_value.radius_pill = 0.0f;
     return theme_value;
 }
 
@@ -296,8 +314,27 @@ inline const Theme& theme()
     return mutable_theme();
 }
 
+// 主题版本号：每次应用新主题都自增。控件用它让样式过渡缓存立即失效，
+// 否则切换主题/圆角/密度后控件会继续用旧主题解析出的颜色，直到下次状态变化。
+inline std::uint64_t& mutable_theme_revision()
+{
+    static std::uint64_t value = 0;
+    return value;
+}
+
+inline std::uint64_t theme_revision()
+{
+    return mutable_theme_revision();
+}
+
+inline void bump_theme_revision()
+{
+    ++mutable_theme_revision();
+}
+
 inline void set_theme(const Theme& value)
 {
     mutable_theme() = value;
+    bump_theme_revision();
 }
 } // namespace xel::ui

@@ -355,3 +355,23 @@ Change: 20261026-style-transition
 Context: classic（直角）样式要求复刻样式系统之前的观感，但过渡属于动效维度而非静态外观
 Decision: with_rounding(false) 不自动关闭过渡；transition_ms 由 with_transition_ms 独立设置，gallery 提供 Off/60/120/240 四档
 Consequences: 用户可自由组合经典直角 + 平滑过渡；与内阴影（静态，随 classic 关闭）的划分清晰
+## [72] 2026-10-26 07:03:02 UTC
+Change: 20261026-style-transition
+Context: 切换主题/圆角后，使用 visual_style 的控件颜色不立即刷新，要等鼠标划过触发状态变化才更新：过渡缓存 from/to 来自旧主题
+Decision: 引入全局 theme revision 计数器（全局 set_theme 与 UIRoot::set_theme 都自增），Widget::visual_style 检测到 revision 变化就直接重建缓存并立即到位
+Consequences: 主题/圆角/密度/过渡时长切换立即生效；交互状态切换仍保留插值过渡；多 UI 树共享计数器只会多一次重建，无副作用
+## [73] 2026-10-26 07:03:02 UTC
+Change: 20261026-style-transition
+Context: Dropdown 展开后最后一项下方多出一份 padding、第一项上方贴边，与 MenuBar 弹层的对称留白不一致
+Decision: 弹层高度改为 n*row + padding*2，行绘制与 index_at 命中都从 global_.pos.y + padding 起算
+Consequences: 上下留白一致；点击顶部 padding 区域不会误命中第一项；test_ui_dropdown 断言高度与行中心坐标
+## [74] 2026-10-26 07:15:47 UTC
+Change: 20261026-style-transition
+Context: Dropdown 选完后点击其他控件，边框仍显示强调色：其 on_focus_lost 覆写只调了 close()，没调基类，基类 focused_ 一直为 true
+Decision: 覆写 on_focus_lost/on_focus_gained 时一律先调用 Widget 基类实现，再叠加自身逻辑（Dropdown 改为 Widget::on_focus_lost() + close()）
+Consequences: 焦点状态与边框/焦点环一致；test_ui_dropdown 断言 set_focus(nullptr) 后 is_focused() 为 false；后续新控件沿用该约定
+## [75] 2026-10-26 07:15:47 UTC
+Change: 20261026-style-transition
+Context: 用户需要圆角能「继承」到所有控件，而 gallery 只演示了 per-widget set_corner_radius，改了看不出全局效果
+Decision: 新增 Theme::with_radius_scale(0/0.5/1/2)：缩放 radius/radius_small/medium/large/panel，0 时连 radius_pill 一起归零；per-widget set_corner_radius 仅作例外覆盖
+Consequences: 控件默认从 Theme 继承圆角，改一处即全局生效；pill 类控件在 scale>0 时已 clamp 到半宽，1x 与 2x 视觉一致；gallery 新增 Theme radius 行与 COSINE_GALLERY_RADIUS

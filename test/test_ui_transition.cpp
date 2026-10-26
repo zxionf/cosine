@@ -187,6 +187,28 @@ void test_tick_without_dt_keeps_working()
     assert(f.style(ui::ControlState::Normal).fill == f.theme().button_bg);
 }
 
+void test_theme_change_applies_immediately()
+{
+    Fixture f(100.0f);
+    const auto before = f.style(ui::ControlState::Normal);
+    assert(before.fill == f.theme().button_bg);
+
+    // 切主题后下一次取样式立即反映新主题，不用等 hover 触发状态变化。
+    f.system->set_theme(ui::Theme::light().with_transition_ms(100.0f));
+    const auto after = f.style(ui::ControlState::Normal);
+    assert(after.fill == f.theme().button_bg);
+    assert(after.fill != before.fill);
+    assert(!f.button->transition_active());
+
+    // 圆角开关同样立即生效。
+    f.system->set_theme(ui::Theme::light().with_rounding(false).with_transition_ms(100.0f));
+    assert(f.style(ui::ControlState::Normal).radius == 0.0f);
+
+    // 全局 set_theme 也走同一条失效路径。
+    ui::set_theme(ui::Theme::dark().with_transition_ms(100.0f));
+    assert(f.style(ui::ControlState::Normal).fill == f.theme().button_bg);
+}
+
 } // namespace
 
 int main()
@@ -198,6 +220,7 @@ int main()
     test_deterministic();
     test_disabled_transition();
     test_tick_without_dt_keeps_working();
+    test_theme_change_applies_immediately();
     std::cout << "ui transition tests passed\n";
     return 0;
 }

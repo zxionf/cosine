@@ -46,6 +46,8 @@ void UIRoot::purge_trash()
 void UIRoot::set_theme(const Theme& value)
 {
     context_storage_.theme = value;
+    // 主题变化后让所有控件的样式过渡缓存立即失效。
+    bump_theme_revision();
     set_context(&context_storage_);
     mark_layout_dirty();
 }

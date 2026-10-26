@@ -5,6 +5,7 @@
 #include "ui/vbox.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <memory>
 
@@ -40,6 +41,12 @@ int main()
         ui.tick();
 
         const std::size_t base = ui.root()->overlays().size();
+
+        // 焦点转移必须真正清掉 focused：否则 Dropdown 选完后边框会一直是强调色。
+        ui.set_focus(dd);
+        assert(dd->is_focused());
+        ui.set_focus(nullptr);
+        assert(!dd->is_focused());
 
         dd->open();
         ui.tick();
@@ -101,7 +108,14 @@ int main()
         const auto bounds = list->global_bounds();
         assert(bounds.size.x >= 160.0f);
         assert(bounds.size.y > 0.0f);
-        assert(list->on_click({bounds.pos.x + 4.0f, bounds.pos.y + 4.0f}, 0));
+
+        // 弹层上下各留一份 padding：高度 = 行高 × 项数 + padding × 2（与 MenuBar 一致）。
+        const auto drop_theme = xel::ui::Theme::dark();
+        const float pad = drop_theme.padding;
+        const float row = drop_theme.control_height;
+        assert(std::fabs(bounds.size.y - (row * 3.0f + pad * 2.0f)) < 0.01f);
+
+        assert(list->on_click({bounds.pos.x + 4.0f, bounds.pos.y + pad + row * 0.5f}, 0));
         assert(dd->selected() == 0);
         assert(!dd->is_open());
         ui.tick();
@@ -112,8 +126,9 @@ int main()
         ui.tick();
         list = ui.root()->overlays()[base + 1].get();
         const auto list_bounds = list->global_bounds();
-        assert(list->on_mouse_move({list_bounds.pos.x + 4.0f, list_bounds.pos.y + 40.0f}));
-        assert(list->on_click({list_bounds.pos.x + 4.0f, list_bounds.pos.y + 40.0f}, 0));
+        const float second_row_y = list_bounds.pos.y + pad + row * 1.5f;
+        assert(list->on_mouse_move({list_bounds.pos.x + 4.0f, second_row_y}));
+        assert(list->on_click({list_bounds.pos.x + 4.0f, second_row_y}, 0));
         assert(dd->selected() == 1);
         ui.tick();
         assert(ui.root()->overlays().size() == base);

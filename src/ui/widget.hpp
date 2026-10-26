@@ -35,6 +35,7 @@ struct StyleTransition
     BoxStyle to{};
     float progress = 1.0f; // 1 = 已完成
     bool started = false;
+    std::uint64_t revision = 0; // 建立时的主题版本
 };
 
 class Widget : public graphics::Drawable
@@ -262,8 +263,11 @@ public:
     {
         const auto& theme_value = ui_theme();
         const BoxStyle target = theme_value.style(role, state);
-        if (!transition_.started) {
-            transition_ = StyleTransition{role, state, target, target, 1.0f, true};
+        const std::uint64_t revision = theme_revision();
+        // 主题变化（切换主题/圆角/密度/过渡时长）：旧缓存的 from/to 已过时，
+        // 直接重建成目标样式，不做过渡——否则会等到下一次 hover 才刷新。
+        if (!transition_.started || transition_.revision != revision) {
+            transition_ = StyleTransition{role, state, target, target, 1.0f, true, revision};
             return target;
         }
         if (transition_.role != role || transition_.state != state) {

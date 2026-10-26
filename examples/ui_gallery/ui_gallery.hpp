@@ -105,6 +105,9 @@ struct UiGallery
     ui::FocusPolicy focus_policy = ui::FocusPolicy::Keyboard;
     // 状态过渡时长（毫秒）；0 = 关闭动画。
     float transition_ms = 120.0f;
+    // 主题级圆角缩放：0 = 直角，1 = 默认，2 = 双倍（所有控件继承）。
+    float radius_scale = 1.0f;
+    ui::Label* radius_state = nullptr;
     ui::Density density = ui::Density::Normal;
 
     void open_dialog()
@@ -134,7 +137,8 @@ struct UiGallery
         root->set_theme(value.with_density(density)
                              .with_rounding(!classic_style)
                              .with_focus_policy(focus_policy)
-                             .with_transition_ms(transition_ms));
+                             .with_transition_ms(transition_ms)
+                             .with_radius_scale(radius_scale));
         if (theme_button) {
             theme_button->set_label(light_theme ? "Theme: Light" : "Theme: Dark");
         }
@@ -164,6 +168,14 @@ struct UiGallery
         if (transition_state) {
             transition_state->set_text(value <= 0.0f ? "transition: off"
                                                      : std::format("transition: {:.0f} ms", value));
+        }
+    }
+    void set_radius_scale(float value)
+    {
+        radius_scale = value;
+        apply_theme();
+        if (radius_state) {
+            radius_state->set_text(std::format("theme radius: {:.1f}x", value));
         }
     }
     void cycle_focus_policy()
@@ -835,7 +847,27 @@ inline UiGallery build(ui::UIRoot& root)
             "The focus ring paints only while the keyboard is the active input source: press Tab to reveal it, "
             "then move the mouse to hide it.", 14.0f));
 
-        section->add(std::make_unique<ui::Label>("Corner radius (per-widget override)", 18.0f));
+        section->add(std::make_unique<ui::Label>("Theme corner radius (inherited by every control)", 18.0f));
+        auto theme_radii = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        theme_radii->set_spacing(8.0f);
+        theme_radii->add(std::make_unique<ui::Button>("0x (square)", [&gallery]() {
+            gallery.set_radius_scale(0.0f);
+        }));
+        theme_radii->add(std::make_unique<ui::Button>("0.5x", [&gallery]() {
+            gallery.set_radius_scale(0.5f);
+        }));
+        theme_radii->add(std::make_unique<ui::Button>("1x (default)", [&gallery]() {
+            gallery.set_radius_scale(1.0f);
+        }));
+        theme_radii->add(std::make_unique<ui::Button>("2x", [&gallery]() {
+            gallery.set_radius_scale(2.0f);
+        }));
+        section->add(std::move(theme_radii));
+        auto radius_label = std::make_unique<ui::Label>("theme radius: 1.0x", 14.0f);
+        gallery.radius_state = radius_label.get();
+        section->add(std::move(radius_label));
+
+        section->add(std::make_unique<ui::Label>("Per-widget override (only the buttons in this row)", 18.0f));
         auto radii = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
         radii->set_spacing(8.0f);
         for (float radius : {0.0f, 4.0f, 10.0f, 18.0f}) {
@@ -928,6 +960,9 @@ inline UiGallery build(ui::UIRoot& root)
         } else {
             gallery.set_transition_ms(static_cast<float>(std::atof(transition)));
         }
+    }
+    if (const char* radius = std::getenv("COSINE_GALLERY_RADIUS")) {
+        gallery.set_radius_scale(static_cast<float>(std::atof(radius)));
     }
     if (const char* section = std::getenv("COSINE_GALLERY_SECTION")) {
         const int index = std::atoi(section);

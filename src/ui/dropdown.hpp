@@ -137,7 +137,8 @@ public:
         const auto& t = ui_theme();
         const float row = row_height();
         const float width = std::max(global_.size.x, min_width());
-        const float height = static_cast<float>(options_.size()) * row + t.padding;
+        // 上下各留一份 padding：否则行从顶部开始画，底部会多出空白、顶部贴边。
+        const float height = static_cast<float>(options_.size()) * row + t.padding * 2.0f;
 
         auto scrim = std::make_unique<detail::DropdownScrim>([this]() { close(); });
         scrim->set_pos(0.0f, 0.0f);
@@ -267,7 +268,12 @@ public:
         }
     }
 
-    void on_focus_lost() override { close(); }
+    void on_focus_lost() override
+    {
+        // 必须先走基类：否则 focused_ 保持 true，边框会一直用强调色。
+        Widget::on_focus_lost();
+        close();
+    }
 
     // 供列表浮层回调。
     void commit(int index)
@@ -330,9 +336,11 @@ inline float DropdownList::row_height() const
 
 inline int DropdownList::index_at(glm::vec2 pos) const
 {
-    if (!owner_ || pos.y < global_.pos.y) return -1;
+    if (!owner_) return -1;
     const float row = row_height();
-    const int index = static_cast<int>((pos.y - global_.pos.y) / row);
+    const float top = global_.pos.y + ui_theme().padding;
+    if (pos.y < top) return -1;
+    const int index = static_cast<int>((pos.y - top) / row);
     if (index < 0 || index >= static_cast<int>(owner_->options().size())) return -1;
     return index;
 }
@@ -353,8 +361,9 @@ inline void DropdownList::append_to(graphics::DrawList& list) const
     }
 
     const auto& options = owner_->options();
+    const float top = global_.pos.y + t.padding;
     for (std::size_t i = 0; i < options.size(); ++i) {
-        const float y = global_.pos.y + static_cast<float>(i) * row;
+        const float y = top + static_cast<float>(i) * row;
         const bool highlighted = static_cast<int>(i) == hovered_
             || (hovered_ < 0 && static_cast<int>(i) == owner_->highlight());
         const bool current = static_cast<int>(i) == owner_->selected();
