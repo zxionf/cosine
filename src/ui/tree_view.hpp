@@ -250,6 +250,26 @@ public:
         return true;
     }
 
+    // 双击行：切换展开/折叠（与 Enter/Space 一致，叶子行不响应）。
+    // 箭头区域由单击负责切换，双击不再重复切换，避免双击时切换两次。
+    bool on_double_click(glm::vec2 pos, int) override
+    {
+        const int index = row_at(pos);
+        if (index < 0) return false;
+        const auto rows = visible_rows();
+        if (index >= static_cast<int>(rows.size())) return false;
+
+        const auto& row = rows[static_cast<std::size_t>(index)];
+        if (!row.node || !row.node->has_children()) return false;
+
+        const float arrow_left = global_.pos.x + ui_theme().padding +
+                                 static_cast<float>(row.depth) * indent_;
+        if (pos.x >= arrow_left && pos.x <= arrow_left + arrow_width()) return false;
+
+        toggle(row.path);
+        return true;
+    }
+
     bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
     {
         if (!global_.contains(pos)) return false;

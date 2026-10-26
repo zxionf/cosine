@@ -375,3 +375,18 @@ Change: 20261026-style-transition
 Context: 用户需要圆角能「继承」到所有控件，而 gallery 只演示了 per-widget set_corner_radius，改了看不出全局效果
 Decision: 新增 Theme::with_radius_scale(0/0.5/1/2)：缩放 radius/radius_small/medium/large/panel，0 时连 radius_pill 一起归零；per-widget set_corner_radius 仅作例外覆盖
 Consequences: 控件默认从 Theme 继承圆角，改一处即全局生效；pill 类控件在 scale>0 时已 clamp 到半宽，1x 与 2x 视觉一致；gallery 新增 Theme radius 行与 COSINE_GALLERY_RADIUS
+## [76] 2026-10-26 07:28:01 UTC
+Change: 20261026-pointer-events
+Context: 鼠标右键原先和左键走同一套流程：抢焦点并触发 on_click，导致按钮被右键激活、右键菜单与原控件焦点关系无法推理
+Decision: 右键只发 on_right_click，不抢焦点、不触发 on_click；中键保持现状
+Consequences: 右键菜单可以独立于焦点模型实现；既有控件不会被右键误激活；后续控件可只实现 on_right_click
+## [77] 2026-10-26 07:28:01 UTC
+Change: 20261026-pointer-events
+Context: 双击与长按需要时间判定，用系统时钟会让测试依赖真实时间、不可确定性复现
+Decision: UISystem 维护 elapsed_（tick(dt) 累加）作为手势时间基准；双击 = 同目标 + 同按钮 + ≤double_click_ms + ≤slop 像素；长按由 tick 驱动、移出取消、只触发一次
+Consequences: 纯逻辑测试可稳定复现所有手势；阈值可配置（0 关闭）；应用主循环必须传真实 dt
+## [78] 2026-10-26 07:28:01 UTC
+Change: 20261026-pointer-events
+Context: TreeView 箭头区的单击已负责展开/折叠，若双击也 toggle 会连续切换两次、净效果归零
+Decision: TreeView 的 on_double_click 排除箭头区域，只在行体上切换展开
+Consequences: 双击箭头与单击等价（由单击处理），双击行体切换展开；test_ui_tree 现有断言无需改动

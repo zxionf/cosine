@@ -62,6 +62,7 @@ struct UiGallery
     ui::TextInput* multiline_input = nullptr;
     ui::Label* multiline_state = nullptr;
     ui::Checkbox* checkbox = nullptr;
+    ui::Label* pointer_state = nullptr;
     ui::ScrollView* scroll_vertical = nullptr;
     ui::ScrollView* scroll_both = nullptr;
     ui::Splitter* splitter = nullptr;
@@ -241,6 +242,45 @@ struct UiGallery
 
 namespace detail
 {
+// 指针事件探针：继承 Button 复用绘制/焦点，只把四种手势上报到状态标签。
+class PointerProbe : public ui::Button
+{
+public:
+    explicit PointerProbe(ui::Label* state)
+        : ui::Button("Pointer probe"), state_{state}
+    {}
+
+    bool on_click(glm::vec2 pos, int button) override
+    {
+        ui::Button::on_click(pos, button);
+        report("click");
+        return true;
+    }
+    bool on_right_click(glm::vec2) override
+    {
+        report("right click");
+        return true;
+    }
+    bool on_double_click(glm::vec2, int) override
+    {
+        report("double click");
+        return true;
+    }
+    bool on_long_press(glm::vec2, int) override
+    {
+        report("long press");
+        return true;
+    }
+
+private:
+    void report(const char* what)
+    {
+        if (state_) state_->set_text(std::string("pointer: ") + what);
+    }
+
+    ui::Label* state_ = nullptr;
+};
+
 inline std::unique_ptr<ui::ScrollPanel> make_section(const std::string& title)
 {
     auto panel = std::make_unique<ui::ScrollPanel>(UiGallery::kContentX, 16.0f,
@@ -419,6 +459,13 @@ inline UiGallery build(ui::UIRoot& root)
         auto multiline_state = std::make_unique<ui::Label>("multiline: 28 chars, 3 lines", 14.0f);
         gallery.multiline_state = multiline_state.get();
         section->add(std::move(multiline_state));
+
+        section->add(std::make_unique<ui::Label>(
+            "Pointer events (click / double click / right click / long press)", 18.0f));
+        auto pointer_state = std::make_unique<ui::Label>("pointer: -", 14.0f);
+        gallery.pointer_state = pointer_state.get();
+        section->add(std::make_unique<detail::PointerProbe>(pointer_state.get()));
+        section->add(std::move(pointer_state));
         section->add(std::make_unique<ui::Label>("Radio group (single selection)", 18.0f));
         auto radios = std::make_unique<ui::RadioGroup>(300.0f);
         gallery.radio_group = radios.get();

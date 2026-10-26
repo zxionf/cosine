@@ -114,6 +114,10 @@ void UISystem::tick(float dt)
     // 先清理悬垂目标，再触发 layout（layout 会销毁已移除的 overlay）。
     prune_stale_targets();
 
+    // 指针手势的时间基准：用自身 dt 累加，不依赖系统时钟。
+    elapsed_ += dt;
+    update_long_press();
+
     bool resized = false;
     if (window_) {
         const auto extent = window_->get_extent();
@@ -158,6 +162,20 @@ std::vector<Widget*> UISystem::hit_path(Widget* root, glm::vec2 pos) const
 
 void UISystem::dispatch(const event::InputEvent& event)
 {
+    // 记录最新指针位置：长按/双击判定用。
+    switch (event.type) {
+        case event::InputEvent::Type::MouseMove:
+        case event::InputEvent::Type::MouseButtonDown:
+        case event::InputEvent::Type::MouseButtonUp:
+            pointer_pos_ = event.mouse_pos;
+            break;
+        case event::InputEvent::Type::MouseScroll:
+        case event::InputEvent::Type::KeyDown:
+        case event::InputEvent::Type::KeyUp:
+        case event::InputEvent::Type::CharInput:
+            break;
+    }
+
     // 输入来源决定焦点环是否可见：键盘操作期间显示，鼠标操作期间隐藏。
     if (auto* ctx = context()) {
         switch (event.type) {
@@ -265,15 +283,20 @@ void UISystem::dispatch_mouse_move(const event::InputEvent& event)
 
 void UISystem::dispatch_mouse_button(const event::InputEvent& event)
 {
+    const bool is_down = event.type == event::InputEvent::Type::MouseButtonDown;
+    const int button = event.mouse_button;
+
     const auto path = hit_path(root_.get(), event.mouse_pos);
     Widget* target = path.empty() ? nullptr : path.back();
 
-    if (event.type == event::InputEvent::Type::MouseButtonDown) {
+    if (is_down) {
         pressed_ = target;
         if (pressed_) {
-            if (pressed_->focusable()) set_focus(pressed_);
+            // 只有左键抢焦点：右键不应改变焦点，否则右键菜单与焦点关系无法推理。
+            if (button == kButtonLeft && pressed_->focusable()) set_focus(pressed_);
+            press_ = PressRecord{true, event.mouse_pos, button, elapsed_, false};
             bubble_to_root(pressed_, [&](Widget* widget) {
-                return widget->on_mouse_down(event.mouse_pos, event.mouse_button);
+                return widget->on_mouse_down(event.mouse_pos, button);
             });
         }
         return;
@@ -281,24 +304,85 @@ void UISystem::dispatch_mouse_button(const event::InputEvent& event)
 
     Widget* pressed = pressed_;
     pressed_ = nullptr;
+    const bool long_fired = press_.long_fired;
+    press_ = PressRecord{};
+
     if (!pressed) {
         if (target) {
             bubble_to_root(target, [&](Widget* widget) {
-                return widget->on_mouse_up(event.mouse_pos, event.mouse_button);
+                return widget->on_mouse_up(event.mouse_pos, button);
             });
         }
         return;
     }
 
     bubble_to_root(pressed, [&](Widget* widget) {
-        return widget->on_mouse_up(event.mouse_pos, event.mouse_button);
+        return widget->on_mouse_up(event.mouse_pos, button);
     });
 
-    if (pressed == target) {
+    if (pressed != target) return;
+
+    // 右键：只发 on_right_click，不触发 on_click，也不参与双击。
+    if (button == kButtonRight) {
         bubble_to_root(pressed, [&](Widget* widget) {
-            return widget->on_click(event.mouse_pos, event.mouse_button);
+            return widget->on_right_click(event.mouse_pos);
         });
+        return;
     }
+
+    bubble_to_root(pressed, [&](Widget* widget) {
+        return widget->on_click(event.mouse_pos, button);
+    });
+
+    // 双击判定：同目标 + 同按钮 + 时间/位置都在阈值内。
+    const bool same_target = last_click_.valid && last_click_.target.valid() &&
+                             last_click_.target.widget == pressed;
+    const bool within_time = same_target && double_click_ms_ > 0.0f &&
+                             (elapsed_ - last_click_.time) * 1000.0f <= double_click_ms_;
+    const bool within_slop = within_time &&
+                             glm::length(event.mouse_pos - last_click_.pos) <= double_click_slop_;
+    const bool same_button = last_click_.button == button;
+
+    if (same_target && within_time && within_slop && same_button) {
+        // 长按已经触发时不再追加双击，避免两套手势同时生效。
+        if (!long_fired) {
+            bubble_to_root(pressed, [&](Widget* widget) {
+                return widget->on_double_click(event.mouse_pos, button);
+            });
+        }
+        last_click_ = ClickRecord{};
+        return;
+    }
+
+    last_click_ = ClickRecord{};
+    last_click_.target = pressed;
+    last_click_.pos = event.mouse_pos;
+    last_click_.button = button;
+    last_click_.time = elapsed_;
+    last_click_.valid = true;
+}
+
+void UISystem::update_long_press()
+{
+    if (!press_.active || press_.long_fired) return;
+    if (long_press_ms_ <= 0.0f) return;
+    if (!pressed_.valid()) {
+        press_.active = false;
+        return;
+    }
+    // 指针移出目标就取消，避免拖动时误触。
+    if (!pressed_->global_bounds().contains(pointer_pos_)) {
+        press_.active = false;
+        return;
+    }
+    if ((elapsed_ - press_.time) * 1000.0f < long_press_ms_) return;
+
+    press_.long_fired = true;
+    const glm::vec2 press_pos = press_.pos;
+    const int press_button = press_.button;
+    bubble_to_root(pressed_, [&](Widget* widget) {
+        return widget->on_long_press(press_pos, press_button);
+    });
 }
 
 void UISystem::dispatch_mouse_scroll(const event::InputEvent& event)

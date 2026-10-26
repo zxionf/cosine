@@ -31,6 +31,14 @@ public:
     void set_focus(Widget* widget);
     void focus_next(bool backwards = false);
 
+    // 指针手势阈值：0 表示关闭对应手势。
+    void set_double_click_ms(float ms) { double_click_ms_ = ms; }
+    void set_long_press_ms(float ms) { long_press_ms_ = ms; }
+    void set_double_click_slop(float slop) { double_click_slop_ = slop; }
+    float double_click_ms() const { return double_click_ms_; }
+    float long_press_ms() const { return long_press_ms_; }
+    float double_click_slop() const { return double_click_slop_; }
+
 private:
     // 交互目标：同时记录指针与生命周期令牌。
     // 控件可能被容器直接销毁（clear_children / set_content），此时令牌过期，
@@ -58,6 +66,7 @@ private:
 
     std::vector<Widget*> hit_path(Widget* root, glm::vec2 pos) const;
     void update_tree(Widget* widget, float dt);
+    void update_long_press();
     void collect_focusable(Widget* widget, std::vector<Widget*>& out) const;
     // 移除 overlay / 子项后清理已失效的 hover、press、focus 目标。
     void prune_stale_targets();
@@ -73,6 +82,36 @@ private:
     Target hovered_;
     Target pressed_;
     Target focused_;
+
+    // 指针手势状态：时间用 tick(dt) 累加，不依赖系统时钟，保证可确定性测试。
+    static constexpr int kButtonLeft = 0;
+    static constexpr int kButtonRight = 1;
+
+    struct ClickRecord
+    {
+        Target target;
+        glm::vec2 pos{0.0f, 0.0f};
+        int button = -1;
+        float time = 0.0f;
+        bool valid = false;
+    };
+
+    struct PressRecord
+    {
+        bool active = false;
+        glm::vec2 pos{0.0f, 0.0f};
+        int button = -1;
+        float time = 0.0f;
+        bool long_fired = false;
+    };
+
+    float elapsed_ = 0.0f;
+    float double_click_ms_ = 400.0f;
+    float long_press_ms_ = 600.0f;
+    float double_click_slop_ = 6.0f;
+    glm::vec2 pointer_pos_{0.0f, 0.0f};
+    ClickRecord last_click_;
+    PressRecord press_;
 
     uint32_t last_width_ = 0;
     uint32_t last_height_ = 0;

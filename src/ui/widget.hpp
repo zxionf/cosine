@@ -215,6 +215,12 @@ public:
     virtual bool on_mouse_down(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
     virtual bool on_mouse_up(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
     virtual bool on_click(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
+    // 右键单击：不触发 on_click，也不抢焦点。
+    virtual bool on_right_click(glm::vec2 pos) { (void)pos; return false; }
+    // 双击：同目标、同按钮、时间与位置都在阈值内。
+    virtual bool on_double_click(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
+    // 长按：按住超过阈值且指针未移出控件。
+    virtual bool on_long_press(glm::vec2 pos, int button) { (void)pos; (void)button; return false; }
     virtual bool on_scroll(glm::vec2 pos, glm::vec2 delta) { (void)pos; (void)delta; return false; }
     virtual bool on_key_down(event::KeyCode key, event::Modifier mods) { (void)key; (void)mods; return false; }
     virtual bool on_key_up(event::KeyCode key, event::Modifier mods) { (void)key; (void)mods; return false; }
