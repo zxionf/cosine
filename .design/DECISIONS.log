@@ -570,3 +570,8 @@ Change: 20261026-anim-demo
 Context: 绝对定位子项每帧漂移：arrange 把 local_.pos 写成全局坐标，容器下帧又叠加父偏移
 Decision: Widget 增加 absolute_pos_ 与 set_absolute_pos，四个容器的绝对定位分支改用该相对偏移，不再读 x()/y()
 Consequences: 多帧布局位置稳定；set_absolute(true) 时以当前 local_.pos 作为初始偏移，兼容旧用法
+## [115] 2026-10-26 12:35:12 UTC
+Change: 20261026-vulkan-idle-shutdown
+Context: 程序正常退出时大量 Vulkan 校验错误（资源在 GPU 仍使用时被销毁）；此前 timeout 强杀掩盖了它
+Decision: Renderer 析构开头 queue.waitIdle()；两个 example 增加 COSINE_EXIT_AFTER 正常退出钩子
+Consequences: 退出路径安全；冒烟改为正常退出，能覆盖析构代码；不再只用 timeout 强杀

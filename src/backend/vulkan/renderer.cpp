@@ -32,7 +32,12 @@ Renderer::Renderer(VulkanContext& context, SwapChain& swap_chain) : context_{con
     create_command_buffers();
     create_sync_objects();
 }
-Renderer::~Renderer() {}
+Renderer::~Renderer()
+{
+    // 成员（swapchain / buffer / 同步对象）在本体之后析构；
+    // 必须先等 GPU 完成，否则校验层会报 "in use by VkQueue / VkCommandBuffer"。
+    context_.graphics_queue().waitIdle();
+}
 
 void Renderer::create_descriptor_set_layout()
 {

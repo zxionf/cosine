@@ -12,6 +12,7 @@
 #include "xel_application.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 #include <exception>
 #include <format>
 #include <iostream>
@@ -143,6 +144,11 @@ int run()
     xel::Application app{1200, 800, "XEL Animation Demo"};
     auto demo = build(*app.uisys.root());
 
+    // 冒烟钩子：到时正常关窗，确保析构路径（Vulkan 资源释放）被执行。
+    const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER");
+    const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
+    float total_time = 0.0f;
+
     while (!app.window_.should_close()) {
         glfwPollEvents();
 
@@ -155,6 +161,11 @@ int run()
         // 先推进动画，再让 UI 系统按新位置布局。
         demo.update(dt);
         app.uisys.tick(dt);
+
+        total_time += dt;
+        if (exit_after > 0.0f && total_time >= exit_after) {
+            glfwSetWindowShouldClose(app.window_.get_glfw_window(), GLFW_TRUE);
+        }
 
         app.renderer_.draw(*app.uisys.root());
         app.renderer_.end();

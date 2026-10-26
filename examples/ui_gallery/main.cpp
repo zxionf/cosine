@@ -58,7 +58,17 @@ int run()
                                   gallery.scroll_vertical->scroll_offset_vec());
         }
 
-        app.uisys.tick(std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f));
+        const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
+        app.uisys.tick(dt);
+
+        // 冒烟钩子：到时正常关窗，确保析构路径（Vulkan 资源释放）被执行。
+        if (const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER")) {
+            static float total_time = 0.0f;
+            total_time += dt;
+            if (total_time >= static_cast<float>(std::atof(exit_after_env))) {
+                glfwSetWindowShouldClose(app.window_.get_glfw_window(), GLFW_TRUE);
+            }
+        }
 
         // 首帧布局完成后再应用待定滚动（build 时还没有 viewport 尺寸）。
         if (gallery.pending_scroll >= 0.0f) {
