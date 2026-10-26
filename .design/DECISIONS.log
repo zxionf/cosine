@@ -450,3 +450,33 @@ Change: 20261026-progress-submenu
 Context: 控件顶部偶尔多画 1~2 行像素：UI 裁剪矩形是小数，渲染层向外 floor/ceil 取整，scissor 比控件多出最多 1px
 Decision: 裁剪两端统一取整：DrawList::push_clip/set_clip 把矩形 round 到像素网格，渲染层改用 lround（不再 floor/ceil 外扩）
 Consequences: scissor 与 UI 裁剪完全一致，控件顶/底不再多出像素；代价是极端半像素位置下文字降部最多被裁 0.5px
+## [91] 2026-10-26 09:20:57 UTC
+Change: 20261026-grid-layout
+Context: Grid 需要同时支持等分宫格与「标签列固定、内容列填充」的表单布局
+Decision: 列宽用单列表表达：正值=固定像素，非正值=弹性权重（-1 即 1fr）；set_columns(n) 等价于 n 个 -1，非法输入回退 1 列
+Consequences: 表单一行 add 即可完成，权重 2:1 等比例也支持；不引入 span/命名区域，保持表达式最小
+## [92] 2026-10-26 09:20:57 UTC
+Change: 20261026-grid-layout
+Context: 单元格垂直对齐需要行内多余高度，但 Grid 所在 slot 可能比内容高
+Decision: 行高 = 行内子项内容高（含 margin）的最大值，紧凑排布；不把 slot 多余高度均分给各行
+Consequences: 单行单子项时垂直居中无可见效果（符合紧凑语义）；行内多子项可垂直对齐；超出 slot 的部分由父容器/滚动容器裁剪
+## [93] 2026-10-26 09:20:57 UTC
+Change: 20261026-grid-layout
+Context: Grid 常处在 ScrollPanel 这类无界约束的父容器中，measure 必须给出可用的自然宽
+Decision: constraints.x >= 1e8 时弹性列取该列子项自然宽的最大值，总宽 = 固定列 + 自然宽列 + 间距
+Consequences: 内容自适应宽度可用；表单类 Grid 通常用 min_size/max_size 固定宽，不走该路径
+## [94] 2026-10-26 09:29:15 UTC
+Change: 20261026-wrap-layout
+Context: 工具栏、标签云需要子项数量不定时自动折行，Hbox 与 Grid 都表达不了
+Decision: Wrap 按内容宽从左到右累加，放不下且当前行非空时换行；单个超宽子项独占一行（x 不为负），超宽部分交给父容器裁剪
+Consequences: 子项顺序保持，不做 dense 重排与跨行；行高取行内子项高（含 margin）最大值
+## [95] 2026-10-26 09:29:15 UTC
+Change: 20261026-wrap-layout
+Context: 折行结果依赖可用宽，measure 与 arrange 若用不同宽度会得到不同行数、高度错位
+Decision: 有限约束下 measure 返回 max(constraints.x, 内容宽)；无界时返回内容宽（单行）。保证父容器按 measure 结果 arrange 时宽度一致
+Consequences: Wrap 作为块级容器占满可用宽；单个超宽子项仍返回内容宽，避免被压扁；需要固定宽度时用 max_size
+## [96] 2026-10-26 09:29:15 UTC
+Change: 20261026-wrap-layout
+Context: 流式布局中子项 x 由前序子项宽度决定，横向 align 没有实际意义
+Decision: 只使用子项 Align 的 y 分量（行内垂直对齐）与 stretch_y；忽略 a.x 与 stretch_x
+Consequences: 行内水平分布统一由 row_align（Start/Center/End/SpaceBetween）控制，语义不重叠

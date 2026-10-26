@@ -16,6 +16,8 @@ target_link_libraries(cosine_text PUBLIC glm::glm freetype Vulkan::Headers)
 add_library(cosine_ui STATIC
     ui/vbox.cpp
     ui/hbox.cpp
+    ui/grid.cpp
+    ui/wrap.cpp
     ui/root.cpp
     ui/ui_system.cpp
     ui/scroll_view.cpp

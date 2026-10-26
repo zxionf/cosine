@@ -6,6 +6,7 @@
 #include "ui/dropdown.hpp"
 #include "ui/debug_overlay.hpp"
 #include "ui/dialog.hpp"
+#include "ui/grid.hpp"
 #include "ui/hbox.hpp"
 #include "ui/label.hpp"
 #include "ui/menu_bar.hpp"
@@ -17,6 +18,7 @@
 #include "ui/scroll_panel.hpp"
 #include "ui/scroll_view.hpp"
 #include "ui/slider.hpp"
+#include "ui/wrap.hpp"
 #include "ui/tab_bar.hpp"
 #include "ui/table.hpp"
 #include "ui/tab_view.hpp"
@@ -878,6 +880,46 @@ inline UiGallery build(ui::UIRoot& root)
             grow_row->add(std::move(rect));
         }
         section->add(std::move(grow_row));
+
+        section->add(std::make_unique<ui::Label>("Grid: 标签列固定 120 + 内容列弹性", 18.0f));
+        auto form = std::make_unique<ui::Grid>(0.0f, 0.0f, 620.0f, 0.0f);
+        form->set_padding(0.0f);
+        form->set_column_widths({120.0f, -1.0f});
+        form->set_spacing(8.0f, 8.0f);
+        form->set_min_size({620.0f, 0.0f});
+        form->set_max_size({620.0f, 1.0e6f});
+        form->add(std::make_unique<ui::Label>("Name", 16.0f));
+        form->add(std::make_unique<ui::TextInput>("cosine", 460.0f));
+        form->add(std::make_unique<ui::Label>("Path", 16.0f));
+        form->add(std::make_unique<ui::TextInput>("/home/user/project", 460.0f));
+        section->add(std::move(form));
+
+        section->add(std::make_unique<ui::Label>("Grid: 3 列等分（按钮矩阵，列/行间距 8）", 18.0f));
+        auto pad = std::make_unique<ui::Grid>(0.0f, 0.0f, 620.0f, 0.0f);
+        pad->set_padding(0.0f);
+        pad->set_columns(3);
+        pad->set_spacing(8.0f, 8.0f);
+        pad->set_min_size({620.0f, 0.0f});
+        pad->set_max_size({620.0f, 1.0e6f});
+        for (const char* key : {"7", "8", "9", "4", "5", "6", "1", "2", "3"}) {
+            auto key_button = std::make_unique<ui::Button>(key, [] {});
+            key_button->set_min_size({0.0f, 32.0f});
+            pad->add(std::move(key_button));
+        }
+        section->add(std::move(pad));
+
+        section->add(std::make_unique<ui::Label>("Wrap: 宽度 620，超宽自动折行", 18.0f));
+        auto flow = std::make_unique<ui::Wrap>(0.0f, 0.0f, 620.0f, 0.0f);
+        flow->set_padding(0.0f);
+        flow->set_spacing(8.0f, 8.0f);
+        flow->set_max_size({620.0f, 1.0e6f});
+        for (const char* tag : {"alpha", "beta", "gamma", "delta", "epsilon", "zeta",
+                                "eta", "theta", "iota", "kappa", "lambda", "mu"}) {
+            auto chip = std::make_unique<ui::Button>(tag, [] {});
+            chip->set_min_size({0.0f, 28.0f});
+            flow->add(std::move(chip));
+        }
+        section->add(std::move(flow));
 
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
