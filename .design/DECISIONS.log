@@ -590,3 +590,8 @@ Change: 20261026-scene-render
 Context: scene 是纯数据，M4 验收需要渲染；但不能把渲染放进只依赖 glm 的 cosine_anim
 Decision: 新增 ui::SceneView（Widget）把 Scene 摊平成 DrawList；cosine_ui PUBLIC 链接 cosine_anim
 Consequences: anim 保持纯逻辑；SceneView 复用现有 2D 管线与字体图集；rotation/Camera 暂不处理
+## [119] 2026-10-26 13:26:57 UTC
+Change: 20261026-player-events
+Context: Timeline 与 Scene 的绑定散落在 demo，缺少时间点回调；M5 脚本需要事件挂载点
+Decision: 新增 anim::Player（tick/seek/apply/play/pause/toggle + add_event）；事件用 (before, after] 判定，seek 不触发，循环回绕重新生效
+Consequences: demo 与库共用同一路径；事件是单点回调（不做成对区间）；seek 的确定性不被事件打断

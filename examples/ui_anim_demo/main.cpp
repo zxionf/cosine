@@ -2,6 +2,7 @@
 // 每条轨道驱动一个 Shape 节点的 position，显示同一时间下五种缓动的差异。
 
 #include "anim/easing.hpp"
+#include "anim/player.hpp"
 #include "anim/scene.hpp"
 #include "anim/timeline.hpp"
 #include "ui/button.hpp"
@@ -27,6 +28,7 @@ struct Demo
 {
     xel::scene::Scene scene;
     xel::anim::Timeline timeline;
+    std::unique_ptr<xel::anim::Player> player;
     xel::ui::SceneView* view = nullptr;
     xel::ui::Progress* progress = nullptr;
     xel::ui::Label* time_label = nullptr;
@@ -35,15 +37,14 @@ struct Demo
 
     void update(float dt)
     {
-        timeline.advance(dt);
-        timeline.apply(scene);
+        player->tick(dt); // 播放中推进 + 采样写回场景
 
-        const float t = duration > 0.0f ? timeline.time() / duration : 0.0f;
+        const float t = duration > 0.0f ? player->time() / duration : 0.0f;
         if (progress) progress->set_value(t);
         if (time_label) {
-            time_label->set_text(std::format("time: {:.2f} s / {:.1f} s   ({})", timeline.time(),
+            time_label->set_text(std::format("time: {:.2f} s / {:.1f} s   ({})", player->time(),
                                              duration,
-                                             timeline.playing() ? "playing" : "paused"));
+                                             player->playing() ? "playing" : "paused"));
         }
     }
 };
@@ -99,7 +100,10 @@ void build(Demo& demo, xel::ui::UIRoot& root)
 
     demo.timeline.set_duration(demo.duration);
     demo.timeline.set_loop(true);
-    demo.timeline.play();
+
+    // Demo 已先于 build 存在，Player 持有的引用稳定。
+    demo.player = std::make_unique<xel::anim::Player>(demo.scene, demo.timeline);
+    demo.player->play();
 
     auto view = std::make_unique<xel::ui::SceneView>(&demo.scene);
     view->set_pos(40.0f, 40.0f);
@@ -113,18 +117,16 @@ void build(Demo& demo, xel::ui::UIRoot& root)
     controls->set_max_size({720.0f, 40.0f});
 
     auto play = std::make_unique<xel::ui::Button>("Pause", [&demo]() {
-        if (demo.timeline.playing()) demo.timeline.pause();
-        else demo.timeline.play();
+        demo.player->toggle();
         if (demo.play_button) {
-            demo.play_button->set_label(demo.timeline.playing() ? "Pause" : "Play");
+            demo.play_button->set_label(demo.player->playing() ? "Pause" : "Play");
         }
     });
     demo.play_button = play.get();
     controls->add(std::move(play));
 
     controls->add(std::make_unique<xel::ui::Button>("Reset", [&demo]() {
-        demo.timeline.seek(0.0f);
-        demo.timeline.apply(demo.scene);
+        demo.player->seek(0.0f);
     }));
     root.add(std::move(controls));
 

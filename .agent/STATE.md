@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 无
-Phase: M4 进行中——easing、scene、property、timeline、SceneView 完成
+Phase: M4 完成（scene / property / timeline / easing / player / events + SceneView）
 Blocked: 无
-Next: M4 player（确定性 seek + 暂停/拖动）与 events（时间点回调）
+Next: M5 XEL 绑定（解释器改可嵌入库 + 宿主 API）
