@@ -189,6 +189,38 @@ public:
     glm::vec2 max_size() const { return max_size_; }
     glm::vec2 clamp_size(glm::vec2 size) const { return glm::clamp(size, min_size_, max_size_); }
 
+    // 尺寸规格：每轴占父级可用空间的比例（>0 启用）与宽高比（>0 启用）。
+    void set_size_percent(glm::vec2 pct) { size_percent_ = pct; mark_layout_dirty(); }
+    void set_size_percent(float x, float y) { set_size_percent({x, y}); }
+    glm::vec2 size_percent() const { return size_percent_; }
+    void set_aspect_ratio(float ratio) { aspect_ratio_ = ratio > 0.0f ? ratio : 0.0f; mark_layout_dirty(); }
+    float aspect_ratio() const { return aspect_ratio_; }
+
+    // 容器测量子项的统一入口：先应用百分比与宽高比，再 clamp 到 min/max。
+    // constraints 是父级提供的可用空间；该轴无界（>= 1e8）时百分比不生效。
+    // 宽高比优先用宽推高；只指定了百分比高时用高推宽。
+    static glm::vec2 measure_child(Widget& child, glm::vec2 constraints)
+    {
+        constexpr float kUnbounded = 1.0e8f;
+        const glm::vec2 pct = child.size_percent();
+        const bool pct_x = pct.x > 0.0f && constraints.x < kUnbounded;
+        const bool pct_y = pct.y > 0.0f && constraints.y < kUnbounded;
+
+        glm::vec2 spec = constraints;
+        if (pct_x) spec.x = constraints.x * pct.x;
+        if (pct_y) spec.y = constraints.y * pct.y;
+
+        glm::vec2 size = child.measure(spec);
+        if (pct_x) size.x = spec.x;
+        if (pct_y) size.y = spec.y;
+
+        if (const float ratio = child.aspect_ratio(); ratio > 0.0f) {
+            if (pct_y && !pct_x) size.x = size.y * ratio;
+            else size.y = size.x / ratio;
+        }
+        return child.clamp_size(size);
+    }
+
     // 单控件圆角覆盖：默认用样式角色解析出的档位，个别控件可单独指定。
     void set_corner_radius(float radius) { radius_override_ = radius; }
     void clear_corner_radius() { radius_override_.reset(); }
@@ -254,6 +286,8 @@ protected:
     Edges padding_{};
     Edges margin_{};
     float flex_grow_ = 0.0f;
+    glm::vec2 size_percent_{-1.0f, -1.0f};
+    float aspect_ratio_ = 0.0f;
     glm::vec2 min_size_{0.0f, 0.0f};
     glm::vec2 max_size_{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
 

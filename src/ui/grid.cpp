@@ -154,7 +154,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
         for (std::size_t i = 0; i < children_.size(); ++i) {
             const auto& child = children_[i];
             const int col = static_cast<int>(i % static_cast<std::size_t>(cols));
-            const glm::vec2 cs = child->clamp_size(child->measure({kUnbounded, kUnbounded}));
+            const glm::vec2 cs = Widget::measure_child(*child, {kUnbounded, kUnbounded});
             const float need = child->margin_left() + cs.x + child->margin_right();
             natural[static_cast<std::size_t>(col)] =
                 std::max(natural[static_cast<std::size_t>(col)], need);
@@ -184,7 +184,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
         const std::size_t ci = static_cast<std::size_t>(col);
 
         const float cell_w = std::max(0.0f, layout.width[ci] - child->margin_left() - child->margin_right());
-        const glm::vec2 cs = child->clamp_size(child->measure({cell_w, inner_h}));
+        const glm::vec2 cs = Widget::measure_child(*child, {cell_w, inner_h});
         const float need = child->margin_top() + cs.y + child->margin_bottom();
         row_h[static_cast<std::size_t>(row)] =
             std::max(row_h[static_cast<std::size_t>(row)], need);
@@ -229,7 +229,7 @@ void Grid::arrange(Rect slot)
 
         const float cell_w =
             std::max(0.0f, layout.width[ci] - child->margin_left() - child->margin_right());
-        glm::vec2 cs = child->clamp_size(child->measure({cell_w, kUnbounded}));
+        glm::vec2 cs = Widget::measure_child(*child, {cell_w, kUnbounded});
         cs.x = std::min(cs.x, cell_w);
         cell_size[i] = cs;
         row_h[static_cast<std::size_t>(row)] = std::max(
@@ -258,7 +258,7 @@ void Grid::arrange(Rect slot)
             float cx = 0.0f;
             float cy = 0.0f;
 
-            if (a.stretch_x) {
+            if (a.stretch_x && child->size_percent().x <= 0.0f) {
                 size.x = avail_w;
                 cx = layout.offset[ci] + child->margin_left();
             } else {
@@ -266,7 +266,7 @@ void Grid::arrange(Rect slot)
                 cx = layout.offset[ci] + child->margin_left() + (avail_w - size.x) * a.x;
             }
 
-            if (a.stretch_y) {
+            if (a.stretch_y && child->size_percent().y <= 0.0f) {
                 size.y = avail_h;
                 cy = child->margin_top();
             } else {

@@ -73,8 +73,7 @@ glm::vec2 Vbox::measure(glm::vec2 constraints)
         const float mt = child->margin_top();
         const float mb = child->margin_bottom();
 
-        glm::vec2 cs = child->measure({std::max(0.0f, inner_w - ml - mr), inner_h});
-        cs = child->clamp_size(cs);
+        const glm::vec2 cs = Widget::measure_child(*child, {std::max(0.0f, inner_w - ml - mr), inner_h});
 
         total_h += mt + cs.y + mb;
         max_w = std::max(max_w, ml + cs.x + mr);
@@ -118,8 +117,7 @@ void Vbox::arrange(Rect slot)
         const float mr = child->margin_right();
         const float mb = child->margin_bottom();
 
-        glm::vec2 cs = child->measure({std::max(0.0f, inner_w - ml - mr), inner_h});
-        cs = child->clamp_size(cs);
+        const glm::vec2 cs = Widget::measure_child(*child, {std::max(0.0f, inner_w - ml - mr), inner_h});
 
         items.push_back({cs, ml, mt, mr, mb});
         natural_h += mt + cs.y + mb;
@@ -174,9 +172,11 @@ void Vbox::arrange(Rect slot)
         auto& item = items[i];
         const Align a = resolve_align(*child);
         const float available_w = std::max(0.0f, inner_w - item.ml - item.mr);
+        // 百分比尺寸优先：声明了宽百分比的子项不再被 stretch 拉满。
+        const bool pct_x = child->size_percent().x > 0.0f;
 
         float cx;
-        if (a.stretch_x) {
+        if (a.stretch_x && !pct_x) {
             item.size.x = available_w;
             cx = inner_x + item.ml;
         } else {

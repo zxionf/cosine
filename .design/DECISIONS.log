@@ -480,3 +480,18 @@ Change: 20261026-wrap-layout
 Context: 流式布局中子项 x 由前序子项宽度决定，横向 align 没有实际意义
 Decision: 只使用子项 Align 的 y 分量（行内垂直对齐）与 stretch_y；忽略 a.x 与 stretch_x
 Consequences: 行内水平分布统一由 row_align（Start/Center/End/SpaceBetween）控制，语义不重叠
+## [97] 2026-10-26 09:43:28 UTC
+Change: 20261026-percent-aspect
+Context: 容器尺寸变化时子项需要跟随（预览卡 16:9、半宽面板），固定像素无法表达
+Decision: Widget 增加 size_percent（每轴占父级可用空间比例，>0 启用），容器统一经 Widget::measure_child 解析；该轴约束无界（>=1e8）时百分比不生效
+Consequences: 一处声明在所有容器生效；无界场景退回自然尺寸，不会产生 0 或 NaN
+## [98] 2026-10-26 09:43:28 UTC
+Change: 20261026-percent-aspect
+Context: 宽高比只给一个 ratio，需要确定由哪条边推导另一边
+Decision: 指定了百分比高且没有百分比宽时用高推宽，其余情况用宽推高
+Consequences: 默认『宽定高随』；需要高度驱动时显式设置高度百分比
+## [99] 2026-10-26 09:43:28 UTC
+Change: 20261026-percent-aspect
+Context: 容器 stretch 会覆盖子项尺寸，与百分比可能冲突
+Decision: 已启用百分比的轴跳过 stretch 覆盖，百分比优先；位置仍由 align 决定
+Consequences: 语义单一可预测；Vbox/Hbox/Grid/Wrap 的 stretch 分支都需检查该轴是否声明百分比

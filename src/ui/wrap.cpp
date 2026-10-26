@@ -69,8 +69,8 @@ std::vector<Wrap::Row> Wrap::layout_rows(float inner_w, bool unbounded)
         const float mt = child->margin_top();
         const float mb = child->margin_bottom();
 
-        const glm::vec2 cs = child->clamp_size(
-            child->measure({std::max(0.0f, inner_w - ml - mr), kUnbounded}));
+        const glm::vec2 cs = Widget::measure_child(
+            *child, {std::max(0.0f, inner_w - ml - mr), kUnbounded});
         const float need = ml + cs.x + mr;
         const float item_h = mt + cs.y + mb;
 
@@ -183,12 +183,12 @@ void Wrap::arrange(Rect slot)
             const float mr = child->margin_right();
             const float mb = child->margin_bottom();
 
-            glm::vec2 size = child->clamp_size(
-                child->measure({std::max(0.0f, inner_w - ml - mr), kUnbounded}));
+            glm::vec2 size = Widget::measure_child(
+                *child, {std::max(0.0f, inner_w - ml - mr), kUnbounded});
 
             const float avail_h = std::max(0.0f, row.height - mt - mb);
             float cy = 0.0f;
-            if (a.stretch_y) {
+            if (a.stretch_y && child->size_percent().y <= 0.0f) {
                 size.y = avail_h;
                 cy = y + mt;
             } else {

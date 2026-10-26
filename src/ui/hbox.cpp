@@ -73,8 +73,7 @@ glm::vec2 Hbox::measure(glm::vec2 constraints)
         const float mt = child->margin_top();
         const float mb = child->margin_bottom();
 
-        glm::vec2 cs = child->measure({inner_w, std::max(0.0f, inner_h - mt - mb)});
-        cs = child->clamp_size(cs);
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, std::max(0.0f, inner_h - mt - mb)});
 
         total_w += ml + cs.x + mr;
         max_h = std::max(max_h, mt + cs.y + mb);
@@ -118,8 +117,7 @@ void Hbox::arrange(Rect slot)
         const float mr = child->margin_right();
         const float mb = child->margin_bottom();
 
-        glm::vec2 cs = child->measure({inner_w, std::max(0.0f, inner_h - mt - mb)});
-        cs = child->clamp_size(cs);
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, std::max(0.0f, inner_h - mt - mb)});
 
         items.push_back({cs, ml, mt, mr, mb});
         natural_w += ml + cs.x + mr;
@@ -174,9 +172,11 @@ void Hbox::arrange(Rect slot)
         auto& item = items[i];
         const Align a = resolve_align(*child);
         const float available_h = std::max(0.0f, inner_h - item.mt - item.mb);
+        // 百分比尺寸优先：声明了高百分比的子项不再被 stretch 拉满。
+        const bool pct_y = child->size_percent().y > 0.0f;
 
         float cy;
-        if (a.stretch_y) {
+        if (a.stretch_y && !pct_y) {
             item.size.y = available_h;
             cy = inner_y + item.mt;
         } else {

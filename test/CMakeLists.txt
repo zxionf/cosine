@@ -103,6 +103,9 @@ target_link_libraries(test_ui_grid PRIVATE cosine_ui)
 add_executable(test_ui_wrap test_ui_wrap.cpp)
 target_link_libraries(test_ui_wrap PRIVATE cosine_ui)
 
+add_executable(test_ui_percent_aspect test_ui_percent_aspect.cpp)
+target_link_libraries(test_ui_percent_aspect PRIVATE cosine_ui)
+
 add_executable(test_ui_events test_ui_events.cpp)
 target_link_libraries(test_ui_events PRIVATE cosine_ui)
 
@@ -131,6 +134,7 @@ set(COSINE_TEST_TARGETS
     test_ui_layout
     test_ui_grid
     test_ui_wrap
+    test_ui_percent_aspect
     test_ui_events
     test_ui_controls
     test_text
@@ -171,6 +175,7 @@ set_target_properties(${COSINE_TEST_TARGETS} PROPERTIES CXX_SCAN_FOR_MODULES OFF
 add_test(NAME ui_layout COMMAND test_ui_layout)
 add_test(NAME ui_grid COMMAND test_ui_grid)
 add_test(NAME ui_wrap COMMAND test_ui_wrap)
+add_test(NAME ui_percent_aspect COMMAND test_ui_percent_aspect)
 add_test(NAME ui_events COMMAND test_ui_events)
 add_test(NAME interpreter_token COMMAND test_interpreter_token)
 add_test(NAME interpreter_tree_structure COMMAND test_intepreter_tree_structure)

@@ -921,6 +921,21 @@ inline UiGallery build(ui::UIRoot& root)
         }
         section->add(std::move(flow));
 
+        section->add(std::make_unique<ui::Label>("百分比与宽高比：卡片宽 40%、16:9；色块宽 50%", 18.0f));
+        auto canvas = std::make_unique<ui::Vbox>(0.0f, 0.0f, 620.0f, 120.0f);
+        canvas->set_padding(0.0f);
+        canvas->set_spacing(8.0f);
+        canvas->set_min_size({620.0f, 0.0f});
+        canvas->set_max_size({620.0f, 1.0e6f});
+        auto preview = std::make_unique<ui::ColorRect>(0.0f, 0.0f, 100.0f, 100.0f, glm::vec4{0.30f, 0.55f, 0.85f, 1.0f});
+        preview->set_size_percent({0.4f, 0.0f});
+        preview->set_aspect_ratio(16.0f / 9.0f);
+        canvas->add(std::move(preview));
+        auto half = std::make_unique<ui::ColorRect>(0.0f, 0.0f, 100.0f, 24.0f, glm::vec4{0.45f, 0.65f, 0.90f, 1.0f});
+        half->set_size_percent({0.5f, 0.0f});
+        canvas->add(std::move(half));
+        section->add(std::move(canvas));
+
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
     }
