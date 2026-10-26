@@ -187,10 +187,21 @@ public:
     // 绝对定位：脱离流式布局，按 (x, y) 相对父内容区定位；容器不计入其尺寸。
     void set_absolute(bool value)
     {
+        if (value && !absolute_) absolute_pos_ = local_.pos; // 兼容：从当前位置开始
         absolute_ = value;
         mark_layout_dirty();
     }
     bool absolute() const { return absolute_; }
+
+    // 相对偏移与全局位置分离：arrange 会改写 local_.pos（全局），
+    // 若 absolute 子项读 x()/y() 会每帧累加父偏移。
+    void set_absolute_pos(glm::vec2 pos)
+    {
+        absolute_pos_ = pos;
+        absolute_ = true;
+        mark_layout_dirty();
+    }
+    glm::vec2 absolute_pos() const { return absolute_pos_; }
 
     // 同层绘制/命中顺序键：数值大的画在上面、命中优先。默认 0（按加入顺序）。
     void set_z_index(int value) { z_index_ = value; }
@@ -314,6 +325,7 @@ protected:
     Edges margin_{};
     float flex_grow_ = 0.0f;
     bool absolute_ = false;
+    glm::vec2 absolute_pos_{0.0f, 0.0f};
     int z_index_ = 0;
     glm::vec2 size_percent_{-1.0f, -1.0f};
     float aspect_ratio_ = 0.0f;

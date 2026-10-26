@@ -560,3 +560,13 @@ Change: 20261026-scene-node
 Context: M4 需要可被属性系统寻址的节点树，UI 的 Widget 树不适合承载动画语义
 Decision: 新建 scene::Scene/Node：单层结构（类型枚举 + 通用 transform + 类型专属字段），NodeId 自增不复用，children 存 id 列表
 Consequences: 属性系统与序列化只面对一个结构体；id 稳定支撑后续序列化；不用继承避免 dynamic_cast
+## [113] 2026-10-26 12:19:34 UTC
+Change: 20261026-anim-demo
+Context: M4 的 scene 尚无渲染路径，但 easing 已可用；需要直观看到不同缓动的差异
+Decision: 新增 ui_anim_demo：五条轨道（Linear/EaseIn/EaseOut/EaseInOut/自定义）用绝对定位方块展示同一时间的进度，配 Pause/Play/Reset 与总进度
+Consequences: example 只依赖现有 UI 控件 + cosine_anim；scene 渲染接入后可替换为节点驱动，界面结构不变
+## [114] 2026-10-26 12:19:34 UTC
+Change: 20261026-anim-demo
+Context: 绝对定位子项每帧漂移：arrange 把 local_.pos 写成全局坐标，容器下帧又叠加父偏移
+Decision: Widget 增加 absolute_pos_ 与 set_absolute_pos，四个容器的绝对定位分支改用该相对偏移，不再读 x()/y()
+Consequences: 多帧布局位置稳定；set_absolute(true) 时以当前 local_.pos 作为初始偏移，兼容旧用法

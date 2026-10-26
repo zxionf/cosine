@@ -209,7 +209,8 @@ void Wrap::arrange(Rect slot)
     for (const auto& child : children_) {
         if (!child->absolute()) continue;
         const glm::vec2 cs = Widget::measure_child(*child, {inner_w, slot.size.y});
-        child->arrange({{inner_x + child->x(), slot.pos.y + pad_t + child->y()}, cs});
+        child->arrange({{inner_x + child->absolute_pos().x,
+                         slot.pos.y + pad_t + child->absolute_pos().y}, cs});
     }
 }
 } // namespace xel::ui

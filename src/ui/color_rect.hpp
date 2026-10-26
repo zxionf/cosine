@@ -22,6 +22,9 @@ public:
         color_ = color;
     }
 
+    void set_color(glm::vec4 color) { color_ = color; }
+    glm::vec4 color() const { return color_; }
+
     void append_to(graphics::DrawList& list) const override
     {
         graphics::Rectangle rectangle(x(), y(), width(), height(), color_);

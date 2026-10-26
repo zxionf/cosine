@@ -95,6 +95,25 @@ void test_absolute_in_wrap()
     assert(nearly(c[0]->x(), 10.0f) && nearly(c[0]->y(), 10.0f));
 }
 
+void test_absolute_no_drift_across_layouts()
+{
+    xel::ui::Vbox box{0.0f, 0.0f, 200.0f, 100.0f};
+    box.set_padding(0.0f);
+    box.set_spacing(0.0f);
+
+    auto badge = std::make_unique<xel::ui::ColorRect>(0, 0, 20, 10, glm::vec4{1.0f});
+    badge->set_absolute_pos({30.0f, 40.0f});
+    box.add(std::move(badge));
+
+    // 多帧布局后位置不应漂移（arrange 会改写 local_.pos，absolute_pos 必须保持不变）。
+    for (int i = 0; i < 4; ++i) {
+        box.arrange({{0.0f, 0.0f}, {200.0f, 100.0f}});
+    }
+    const auto& c = box.children();
+    assert(nearly(c[0]->x(), 30.0f));
+    assert(nearly(c[0]->y(), 40.0f));
+}
+
 void test_paint_order_by_z()
 {
     xel::ui::Vbox box{0.0f, 0.0f, 100.0f, 100.0f};
@@ -151,6 +170,7 @@ int main()
     test_absolute_percent_width();
     test_absolute_in_grid();
     test_absolute_in_wrap();
+    test_absolute_no_drift_across_layouts();
     test_paint_order_by_z();
     test_paint_order_stable_without_z();
     test_absolute_only_container();

@@ -197,7 +197,7 @@ void Vbox::arrange(Rect slot)
     for (const auto& child : children_) {
         if (!child->absolute()) continue;
         const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
-        child->arrange({{inner_x + child->x(), inner_y + child->y()}, cs});
+        child->arrange({{inner_x + child->absolute_pos().x, inner_y + child->absolute_pos().y}, cs});
     }
 }
 } // namespace xel::ui

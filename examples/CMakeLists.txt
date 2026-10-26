@@ -24,5 +24,19 @@ if(COSINE_CXX_MODULE_SCAN)
 endif()
 add_dependencies(ui_gallery shaders copy_assets)
 
+# 动画演示：现有 UI 控件 + cosine_anim 的缓动驱动位置与进度。
+add_executable(ui_anim_demo
+    ui_anim_demo/main.cpp
+)
+target_link_libraries(ui_anim_demo PRIVATE cosine_app cosine_anim)
+target_include_directories(ui_anim_demo PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui_anim_demo
+)
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(ui_anim_demo PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
+add_dependencies(ui_anim_demo shaders copy_assets)
+
 cosine_apply_sanitizers(ui_demo)
 cosine_apply_sanitizers(ui_gallery)
+cosine_apply_sanitizers(ui_anim_demo)
