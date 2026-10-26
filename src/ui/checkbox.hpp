@@ -56,7 +56,7 @@ public:
         const float box = std::round(t.checkbox_size);
         const float bx = std::round(global_.pos.x);
         const float by = std::round(global_.pos.y + (global_.size.y - box) * 0.5f);
-        const BoxStyle control = t.style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
+        const BoxStyle control = visual_style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
         const glm::vec4 box_bounds{bx, by, box, box};
         const float radius = std::round(corner_radius(t.radius_small));
 
@@ -69,7 +69,7 @@ public:
             // inset 取整：勾选块与外框同心，四边留白完全相等且边界落在整像素。
             const float inset = std::round(box * 0.25f);
             const float marker = box - inset * 2.0f;
-            const BoxStyle accent = t.style(StyleRole::Accent, control_state(enabled_, is_hovered(), pressed_));
+            const BoxStyle accent = visual_style(StyleRole::Accent, control_state(enabled_, is_hovered(), pressed_));
             graphics::append_rounded_rect(list,
                                           {bx + inset, by + inset, marker, marker},
                                           radius * 0.5f,

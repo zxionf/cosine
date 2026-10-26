@@ -52,7 +52,7 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const BoxStyle style = t.style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
+        const BoxStyle style = visual_style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const float radius = corner_radius(style.radius);
 

@@ -21,6 +21,8 @@ public:
     UIContext* context() { return root_ ? root_->context() : nullptr; }
     void set_theme(const Theme& theme) { if (root_) root_->set_theme(theme); }
     void tick();
+    // dt 单位为秒；UI 状态过渡用它推进。无参重载按 1/60s 处理，保持旧调用点不变。
+    void tick(float dt);
 
     void dispatch(const event::InputEvent& event);
 
@@ -55,6 +57,7 @@ private:
     };
 
     std::vector<Widget*> hit_path(Widget* root, glm::vec2 pos) const;
+    void update_tree(Widget* widget, float dt);
     void collect_focusable(Widget* widget, std::vector<Widget*>& out) const;
     // 移除 overlay / 子项后清理已失效的 hover、press、focus 目标。
     void prune_stale_targets();

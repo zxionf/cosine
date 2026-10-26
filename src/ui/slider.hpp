@@ -69,14 +69,14 @@ public:
 
         const float track_y = center_y - t.slider_height * 0.5f;
         const float draw_radius = corner_radius(t.radius_pill);
-        const BoxStyle track_style = t.style(StyleRole::Track, is_hovered() ? ControlState::Hovered : ControlState::Normal);
+        const BoxStyle track_style = visual_style(StyleRole::Track, is_hovered() ? ControlState::Hovered : ControlState::Normal);
         graphics::append_rounded_rect(list, {track_x, track_y, track_w, t.slider_height}, track_radius, track_style.fill);
 
         const float range = std::max(1e-6f, max_value_ - min_value_);
         const float norm = std::clamp((value_ - min_value_) / range, 0.0f, 1.0f);
         const float fill_w = track_w * norm;
         if (fill_w > 0.0f) {
-            const BoxStyle fill_style = t.style(StyleRole::Accent, control_state(enabled_, false, false));
+            const BoxStyle fill_style = visual_style(StyleRole::Accent, control_state(enabled_, false, false));
             graphics::append_rounded_rect(list, {track_x, track_y, fill_w, t.slider_height}, track_radius, fill_style.fill);
         }
 

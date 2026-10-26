@@ -102,7 +102,7 @@ public:
         const float line = line_height();
 
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
-        const BoxStyle style = t.style(StyleRole::Input, control_state(enabled_, is_hovered(), false));
+        const BoxStyle style = visual_style(StyleRole::Input, control_state(enabled_, is_hovered(), false));
         const float radius = corner_radius(style.radius);
         graphics::append_rounded_rect(list, bounds, radius, style.fill);
 

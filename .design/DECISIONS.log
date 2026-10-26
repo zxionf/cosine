@@ -340,3 +340,18 @@ Change: 20261026-style-system
 Context: 内阴影是新样式系统引入的视觉元素，classic 模式要求完全回到样式系统之前的观感
 Decision: with_rounding(false) 同时把 inset_shadow_size 归零，Panel/Tooltip 顶部内阴影关闭
 Consequences: classic = 直角 + 贴边焦点框 + 无内阴影，三者一致；modern 保留内阴影，层次感更强
+## [69] 2026-10-26 06:45:09 UTC
+Change: 20261026-style-transition
+Context: 状态过渡可以插值全部 BoxStyle 字段，但圆角半径变化会改变圆弧分段数，导致相邻帧顶点数不同、批次重切
+Decision: 过渡只插值颜色（fill/border/text/focus_ring），radius/border_width/text_size 直接取目标值
+Consequences: 过渡全程顶点与索引数恒定，绘制批次稳定，测试可直接断言顶点数不变；几何瞬变在 120ms 尺度上不可见
+## [70] 2026-10-26 06:45:09 UTC
+Change: 20261026-style-transition
+Context: 状态在中途反向切换（hover→normal→hover）时，若起点取上一个状态的目标值会出现视觉跳变
+Decision: 过渡起点 from 取当前插值结果而非上一目标值；缓动固定 ease-out quad
+Consequences: 反向切换连续无跳变；曲线可配置归入大后期优化，不阻塞 M4
+## [71] 2026-10-26 06:45:09 UTC
+Change: 20261026-style-transition
+Context: classic（直角）样式要求复刻样式系统之前的观感，但过渡属于动效维度而非静态外观
+Decision: with_rounding(false) 不自动关闭过渡；transition_ms 由 with_transition_ms 独立设置，gallery 提供 Off/60/120/240 四档
+Consequences: 用户可自由组合经典直角 + 平滑过渡；与内阴影（静态，随 classic 关闭）的划分清晰

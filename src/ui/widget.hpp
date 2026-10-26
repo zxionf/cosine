@@ -9,6 +9,7 @@
 #include "style.hpp"
 #include "../events/key_code.hpp"
 
+#include <algorithm>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -23,6 +24,17 @@ struct Edges
     float top = 0.0f;
     float right = 0.0f;
     float bottom = 0.0f;
+};
+
+// 控件状态过渡缓存：只在 (role, state) 变化时重建，几何瞬时、颜色平滑。
+struct StyleTransition
+{
+    StyleRole role = StyleRole::Control;
+    ControlState state = ControlState::Normal;
+    BoxStyle from{};
+    BoxStyle to{};
+    float progress = 1.0f; // 1 = 已完成
+    bool started = false;
 };
 
 class Widget : public graphics::Drawable
@@ -234,12 +246,71 @@ protected:
     glm::vec2 min_size_{0.0f, 0.0f};
     glm::vec2 max_size_{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
 
+public:
+    // 每帧钩子：推进状态过渡，再交给控件自己的动画钩子。
+    // 非虚，避免派生类覆写时漏调基类；自定义动画写 on_update。
+    void update(float dt)
+    {
+        advance_transition(dt);
+        on_update(dt);
+    }
+
+    // 状态样式：替代直接 ui_theme().style(...)。
+    // 首次调用或 transition_ms == 0 时立即到位；状态变化时从当前插值结果出发，
+    // 因此中途反向（hover→normal→hover）不会跳变。
+    BoxStyle visual_style(StyleRole role, ControlState state) const
+    {
+        const auto& theme_value = ui_theme();
+        const BoxStyle target = theme_value.style(role, state);
+        if (!transition_.started) {
+            transition_ = StyleTransition{role, state, target, target, 1.0f, true};
+            return target;
+        }
+        if (transition_.role != role || transition_.state != state) {
+            transition_.from = current_transition_style();
+            transition_.to = target;
+            transition_.role = role;
+            transition_.state = state;
+            transition_.progress = transition_duration() <= 0.0f ? 1.0f : 0.0f;
+        }
+        return current_transition_style();
+    }
+
+    bool transition_active() const { return transition_.progress < 1.0f; }
+
+protected:
+    virtual void on_update(float /*dt*/) {}
+
 private:
+    float transition_duration() const
+    {
+        const float ms = ui_theme().transition_ms;
+        return ms > 0.0f ? ms / 1000.0f : 0.0f;
+    }
+
+    BoxStyle current_transition_style() const
+    {
+        return lerp_style(transition_.from, transition_.to, ease_out_quad(transition_.progress));
+    }
+
+    void advance_transition(float dt)
+    {
+        if (transition_.progress >= 1.0f) return;
+        const float duration = transition_duration();
+        if (duration <= 0.0f) {
+            transition_.progress = 1.0f;
+            return;
+        }
+        transition_.progress = std::min(1.0f, transition_.progress + dt / duration);
+    }
+
     bool visible_ = true;
     bool hovered_ = false;
     bool focused_ = false;
     bool debug_ = false;
     std::optional<float> radius_override_;
     bool layout_dirty_ = true;
+    // visual_style() 在 const 的 append_to 中惰性更新过渡状态。
+    mutable StyleTransition transition_;
 };
 } // namespace xel::ui

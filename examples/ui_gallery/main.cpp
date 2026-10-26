@@ -2,6 +2,7 @@
 #include "xel/version.hpp"
 #include "xel_application.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 #include <exception>
 #include <format>
@@ -57,7 +58,7 @@ int run()
                                   gallery.scroll_vertical->scroll_offset_vec());
         }
 
-        app.uisys.tick();
+        app.uisys.tick(std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f));
 
         if (open_dropdown_once) {
             open_dropdown_once = false;

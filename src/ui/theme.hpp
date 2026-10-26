@@ -137,6 +137,9 @@ struct Theme
     // 何时显示焦点框；与几何风格独立，由 with_focus_policy 设置。
     FocusPolicy focus_policy = FocusPolicy::Keyboard;
 
+    // 状态过渡时长（毫秒）：0 表示关闭动画，颜色立即到位。
+    float transition_ms = 120.0f;
+
     Density density = Density::Normal;
 
     // 主题标识，用于 UI 显示与切换判断。
@@ -151,6 +154,8 @@ struct Theme
     Theme with_rounding(bool rounded) const;
     // 焦点显示时机：与几何风格正交，链式调用时后写者胜。
     Theme with_focus_policy(FocusPolicy policy) const;
+    // 状态过渡时长（毫秒）：负值归零（关闭动画）。
+    Theme with_transition_ms(float ms) const;
 
     static Theme dark() { return Theme{}; }
     static Theme light();
@@ -203,6 +208,13 @@ inline Theme Theme::with_density(Density target) const
     theme_value.radius_large *= text_scale;
     theme_value.radius_panel *= text_scale;
     theme_value.radius_pill *= text_scale;
+    return theme_value;
+}
+
+inline Theme Theme::with_transition_ms(float ms) const
+{
+    Theme theme_value = *this;
+    theme_value.transition_ms = ms < 0.0f ? 0.0f : ms;
     return theme_value;
 }
 

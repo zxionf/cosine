@@ -106,6 +106,11 @@ void UISystem::prune_stale_targets()
 
 void UISystem::tick()
 {
+    tick(1.0f / 60.0f);
+}
+
+void UISystem::tick(float dt)
+{
     // 先清理悬垂目标，再触发 layout（layout 会销毁已移除的 overlay）。
     prune_stale_targets();
 
@@ -126,6 +131,21 @@ void UISystem::tick()
     if (resized || root_->layout_dirty()) {
         root_->layout();
         root_->clear_layout_dirty();
+    }
+
+    // 布局完成后再推进动画：过渡只改颜色，不会触发重排。
+    update_tree(root_.get(), dt);
+}
+
+void UISystem::update_tree(Widget* widget, float dt)
+{
+    if (!widget || !widget->visible()) return;
+    widget->update(dt);
+    for (const auto& child : widget->children()) {
+        update_tree(child.get(), dt);
+    }
+    for (const auto& overlay : widget->overlays()) {
+        update_tree(overlay.get(), dt);
     }
 }
 

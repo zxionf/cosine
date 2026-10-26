@@ -64,7 +64,7 @@ public:
         const float box = t.checkbox_size;
         const float bx = global_.pos.x;
         const float by = global_.pos.y + (global_.size.y - box) * 0.5f;
-        const BoxStyle control = t.style(StyleRole::Control, control_state(enabled_, is_hovered(), false));
+        const BoxStyle control = visual_style(StyleRole::Control, control_state(enabled_, is_hovered(), false));
         const glm::vec4 box_bounds{bx, by, box, box};
         // 单选标记：modern 为圆形（radius_pill 被 clamp 到半宽），classic 为方形。
         const float radius = corner_radius(t.radius_pill);
@@ -78,7 +78,7 @@ public:
             const float cx = bx + box * 0.5f;
             const float cy = by + box * 0.5f;
             const float r = box * 0.28f;
-            const glm::vec4 marker = t.style(StyleRole::Accent, control_state(enabled_, is_hovered(), false)).fill;
+            const glm::vec4 marker = visual_style(StyleRole::Accent, control_state(enabled_, is_hovered(), false)).fill;
             graphics::Triangle upper{cx, cy - r, cx + r, cy, cx, cy + r, marker};
             graphics::Triangle lower{cx, cy - r, cx - r, cy, cx, cy + r, marker};
             upper.append_to(list);

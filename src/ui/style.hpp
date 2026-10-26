@@ -25,6 +25,26 @@ inline glm::vec4 mix_color(glm::vec4 a, glm::vec4 b, float t)
     };
 }
 
+// 状态过渡插值：只混合颜色，几何字段（radius / border_width / text_size）直接取目标值。
+// 圆角半径变化会改变圆弧分段数，相邻帧顶点数不同会让批次重切。
+inline BoxStyle lerp_style(const BoxStyle& from, const BoxStyle& to, float t)
+{
+    const float k = std::clamp(t, 0.0f, 1.0f);
+    BoxStyle style = to;
+    style.fill = mix_color(from.fill, to.fill, k);
+    style.border = mix_color(from.border, to.border, k);
+    style.text = mix_color(from.text, to.text, k);
+    style.focus_ring = mix_color(from.focus_ring, to.focus_ring, k);
+    return style;
+}
+
+// 缓动：ease-out quad，起手快、收尾稳（UI 反馈的直觉）。
+inline float ease_out_quad(float t)
+{
+    const float k = 1.0f - std::clamp(t, 0.0f, 1.0f);
+    return 1.0f - k * k;
+}
+
 // 唯一的交互状态派生入口：控件不得再自己写 if 链决定用哪套颜色。
 inline ControlState control_state(bool enabled, bool hovered, bool pressed)
 {

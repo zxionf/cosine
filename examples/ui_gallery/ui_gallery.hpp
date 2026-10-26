@@ -97,11 +97,14 @@ struct UiGallery
     ui::Button* style_button = nullptr;
     ui::Button* focus_button = nullptr;
     ui::Label* density_state = nullptr;
+    ui::Label* transition_state = nullptr;
     bool light_theme = false;
     // 经典样式：直角（焦点框几何随之改为贴边框）。
     bool classic_style = false;
     // 焦点显示时机：与现代/经典几何正交，可任意组合。
     ui::FocusPolicy focus_policy = ui::FocusPolicy::Keyboard;
+    // 状态过渡时长（毫秒）；0 = 关闭动画。
+    float transition_ms = 120.0f;
     ui::Density density = ui::Density::Normal;
 
     void open_dialog()
@@ -130,7 +133,8 @@ struct UiGallery
         ui::Theme value = light_theme ? ui::Theme::light() : ui::Theme::dark();
         root->set_theme(value.with_density(density)
                              .with_rounding(!classic_style)
-                             .with_focus_policy(focus_policy));
+                             .with_focus_policy(focus_policy)
+                             .with_transition_ms(transition_ms));
         if (theme_button) {
             theme_button->set_label(light_theme ? "Theme: Light" : "Theme: Dark");
         }
@@ -152,6 +156,15 @@ struct UiGallery
     {
         focus_policy = value;
         apply_theme();
+    }
+    void set_transition_ms(float value)
+    {
+        transition_ms = value;
+        apply_theme();
+        if (transition_state) {
+            transition_state->set_text(value <= 0.0f ? "transition: off"
+                                                     : std::format("transition: {:.0f} ms", value));
+        }
     }
     void cycle_focus_policy()
     {
@@ -849,6 +862,26 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.density_state = density_label.get();
         section->add(std::move(density_label));
 
+        section->add(std::make_unique<ui::Label>("State transition", 18.0f));
+        auto transitions = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        transitions->set_spacing(8.0f);
+        transitions->add(std::make_unique<ui::Button>("Off", [&gallery]() {
+            gallery.set_transition_ms(0.0f);
+        }));
+        transitions->add(std::make_unique<ui::Button>("60 ms", [&gallery]() {
+            gallery.set_transition_ms(60.0f);
+        }));
+        transitions->add(std::make_unique<ui::Button>("120 ms", [&gallery]() {
+            gallery.set_transition_ms(120.0f);
+        }));
+        transitions->add(std::make_unique<ui::Button>("240 ms", [&gallery]() {
+            gallery.set_transition_ms(240.0f);
+        }));
+        section->add(std::move(transitions));
+        auto transition_label = std::make_unique<ui::Label>("transition: 120 ms", 14.0f);
+        gallery.transition_state = transition_label.get();
+        section->add(std::move(transition_label));
+
         section->add(std::make_unique<ui::Label>("Accent (checkbox / radio / slider / progress)", 18.0f));
         auto accent_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
         accent_row->set_spacing(12.0f);
@@ -887,6 +920,13 @@ inline UiGallery build(ui::UIRoot& root)
             gallery.set_focus_policy(ui::FocusPolicy::Never);
         } else if (std::strcmp(focus, "keyboard") == 0) {
             gallery.set_focus_policy(ui::FocusPolicy::Keyboard);
+        }
+    }
+    if (const char* transition = std::getenv("COSINE_GALLERY_TRANSITION")) {
+        if (std::strcmp(transition, "off") == 0) {
+            gallery.set_transition_ms(0.0f);
+        } else {
+            gallery.set_transition_ms(static_cast<float>(std::atof(transition)));
         }
     }
     if (const char* section = std::getenv("COSINE_GALLERY_SECTION")) {
