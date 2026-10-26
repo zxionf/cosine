@@ -2,6 +2,7 @@
 
 #include "theme.hpp"
 #include "widget.hpp"
+#include "scroll_mode.hpp"
 
 #include <vector>
 
@@ -26,6 +27,21 @@ public:
     glm::vec2 scroll_offset_vec() const { return offset_; }
     void set_scroll_offset(glm::vec2 offset);
 
+    // 滚动模式：Smooth = 滚轮只改目标、实际位置平滑逼近；Line = 立即到位。
+    void set_scroll_mode(ScrollMode mode) { scroll_mode_ = mode; }
+    ScrollMode scroll_mode() const { return scroll_mode_; }
+    // 平滑时间常数（秒）；0 = 立即到位。
+    void set_scroll_smoothing(float seconds) { smoothing_ = seconds > 0.0f ? seconds : 0.0f; }
+    float scroll_smoothing() const { return smoothing_; }
+    // Smooth 模式每格滚轮的像素步长。
+    void set_scroll_speed(float pixels_per_step) { scroll_speed_ = pixels_per_step; }
+    float scroll_speed() const { return scroll_speed_; }
+    // Line 模式每格滚轮的像素步长。
+    void set_scroll_line_step(float pixels_per_line) { line_step_ = pixels_per_line; }
+    float scroll_line_step() const { return line_step_; }
+    // 目标偏移（Smooth 模式下 offset 会向它收敛）。
+    glm::vec2 scroll_target() const { return target_; }
+
     // 滚动条可见性与几何，供测试与命中使用。
     bool scrollbar_visible(bool vertical) const;
     Rect scrollbar_track_rect(bool vertical) const;
@@ -38,6 +54,7 @@ public:
     bool on_mouse_down(glm::vec2 pos, int button) override;
     bool on_mouse_move(glm::vec2 pos) override;
     bool on_mouse_up(glm::vec2 pos, int button) override;
+    void on_update(float dt) override;
 
     bool hit_testable() const override { return true; }
     bool clips_children() const override { return true; }
@@ -63,6 +80,13 @@ private:
     glm::vec2 content_size_{};
     glm::vec2 viewport_{};
     glm::vec2 offset_{0.0f, 0.0f};
+    glm::vec2 target_{0.0f, 0.0f};
+    ScrollMode scroll_mode_ = ScrollMode::Smooth;
+    float smoothing_ = 0.12f;
+    float scroll_speed_ = 40.0f;
+    float line_step_ = 40.0f;
+    // 最近一次滚轮输入后的空闲时长，供 Fast 模式判断「该收尾了」。
+    float idle_ = 0.0f;
     Axis      axis_ = Axis::Vertical;
     bool      show_v_ = false;
     bool      show_h_ = false;

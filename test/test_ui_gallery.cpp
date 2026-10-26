@@ -77,6 +77,8 @@ int main()
     gallery.show_section(3);
     auto* containers_scroll = gallery.sections[3]->scroll_view();
     assert(containers_scroll->content_size().y > containers_scroll->viewport_size().y);
+    // 验证滚轮能驱动分区滚动：用离散模式避免平滑过渡的延迟效果。
+    containers_scroll->set_scroll_mode(xel::ui::ScrollMode::Line);
     const float before_scroll = containers_scroll->scroll_offset();
     xel::event::InputEvent wheel;
     wheel.type = xel::event::InputEvent::Type::MouseScroll;

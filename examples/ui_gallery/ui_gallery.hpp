@@ -17,6 +17,7 @@
 #include "ui/radio_group.hpp"
 #include "ui/root.hpp"
 #include "ui/scroll_panel.hpp"
+#include "ui/scroll_mode.hpp"
 #include "ui/scroll_view.hpp"
 #include "ui/slider.hpp"
 #include "ui/wrap.hpp"
@@ -68,6 +69,8 @@ struct UiGallery
     ui::Label* pointer_state = nullptr;
     ui::ScrollView* scroll_vertical = nullptr;
     ui::ScrollView* scroll_both = nullptr;
+    ui::ScrollMode scroll_mode = ui::ScrollMode::Smooth;
+    ui::Label* scroll_mode_state = nullptr;
     ui::Splitter* splitter = nullptr;
     ui::RadioGroup* radio_group = nullptr;
     ui::Progress* progress = nullptr;
@@ -228,8 +231,20 @@ struct UiGallery
         }
     }
 
-    void update_tooltip(glm::vec2 cursor, float dt)
+    // 统一切换所有滚动容器（分区 ScrollPanel、示例 ScrollView、Table、TreeView）。
+    void set_scroll_mode(ui::ScrollMode mode)
     {
+        scroll_mode = mode;
+        for (auto* section : sections) {
+            if (auto* view = section->scroll_view()) view->set_scroll_mode(mode);
+        }
+        if (scroll_vertical) scroll_vertical->set_scroll_mode(mode);
+        if (scroll_both) scroll_both->set_scroll_mode(mode);
+        if (table) table->set_scroll_mode(mode);
+        if (tree) tree->set_scroll_mode(mode);
+    }
+
+    void update_tooltip(glm::vec2 cursor, float dt)    {
         const std::string* text = nullptr;
         for (const auto& target : tip_targets) {
             if (!target.widget || !target.widget->visible()) continue;
@@ -1100,6 +1115,28 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.transition_state = transition_label.get();
         section->add(std::move(transition_label));
 
+        section->add(std::make_unique<ui::Label>("Scroll mode (mouse wheel): Smooth / Fast / Line", 18.0f));
+        auto scroll_mode_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
+        scroll_mode_row->set_spacing(8.0f);
+        scroll_mode_row->set_min_size({760.0f, 40.0f});
+        scroll_mode_row->set_max_size({760.0f, 40.0f});
+        scroll_mode_row->add(std::make_unique<ui::Button>("Smooth", [&gallery]() {
+            gallery.set_scroll_mode(ui::ScrollMode::Smooth);
+            if (gallery.scroll_mode_state) gallery.scroll_mode_state->set_text("scroll: smooth");
+        }));
+        scroll_mode_row->add(std::make_unique<ui::Button>("Fast", [&gallery]() {
+            gallery.set_scroll_mode(ui::ScrollMode::Fast);
+            if (gallery.scroll_mode_state) gallery.scroll_mode_state->set_text("scroll: fast");
+        }));
+        scroll_mode_row->add(std::make_unique<ui::Button>("Line", [&gallery]() {
+            gallery.set_scroll_mode(ui::ScrollMode::Line);
+            if (gallery.scroll_mode_state) gallery.scroll_mode_state->set_text("scroll: line");
+        }));
+        section->add(std::move(scroll_mode_row));
+        auto scroll_mode_label = std::make_unique<ui::Label>("scroll: smooth", 14.0f);
+        gallery.scroll_mode_state = scroll_mode_label.get();
+        section->add(std::move(scroll_mode_label));
+
         section->add(std::make_unique<ui::Label>("Accent (checkbox / radio / slider / progress)", 18.0f));
         auto accent_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 760.0f, 40.0f);
         accent_row->set_spacing(12.0f);
@@ -1158,6 +1195,19 @@ inline UiGallery build(ui::UIRoot& root)
             if (const char* scroll = std::getenv("COSINE_GALLERY_SCROLL")) {
                 gallery.pending_scroll = static_cast<float>(std::atof(scroll));
             }
+        }
+    }
+    if (const char* scroll_mode = std::getenv("COSINE_GALLERY_SCROLL_MODE")) {
+        const std::string mode_name = scroll_mode;
+        ui::ScrollMode mode = ui::ScrollMode::Smooth;
+        if (mode_name == "line") mode = ui::ScrollMode::Line;
+        else if (mode_name == "fast") mode = ui::ScrollMode::Fast;
+        gallery.set_scroll_mode(mode);
+        if (gallery.scroll_mode_state) {
+            gallery.scroll_mode_state->set_text(
+                mode_name == "line" ? "scroll: line"
+                : mode_name == "fast" ? "scroll: fast"
+                                       : "scroll: smooth");
         }
     }
     if (std::getenv("COSINE_GALLERY_DIALOG")) gallery.open_dialog();

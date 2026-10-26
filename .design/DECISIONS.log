@@ -520,3 +520,33 @@ Change: 20261026-image-widget
 Context: 占位需要区分不同图片，但调用方不一定显式设置文案
 Decision: placeholder_text() 回退顺序：显式文案 → source 的文件名 → "image"
 Consequences: gallery 与调试场景零配置即可显示有意义的名字；找不到字体上下文时静默跳过文字
+## [105] 2026-10-26 10:56:42 UTC
+Change: 20261026-smooth-scroll
+Context: 滚轮一格内容瞬移，长列表容易丢失位置感；需要过渡且不受帧率影响
+Decision: offset += (target - offset) * (1 - exp(-dt / tau))，tau 默认 0.12s；差值 < 0.25px 吸附；全程 clamp
+Consequences: 不同 dt 分割收敛轨迹一致；不引入初速度/惯性模型；tau=0 等于关闭过渡
+## [106] 2026-10-26 10:56:42 UTC
+Change: 20261026-smooth-scroll
+Context: 既要丝滑过渡，又要保留精确的按行步进
+Decision: 默认 ScrollMode::Smooth；Line 模式保留旧行为（ScrollView 像素步长，TreeView/Table 行步长 x1.5）
+Consequences: 依赖『立即位移』的既有测试需显式声明 Line；gallery 可用 COSINE_GALLERY_SCROLL_MODE 切换
+## [107] 2026-10-26 10:56:42 UTC
+Change: 20261026-smooth-scroll
+Context: 平滑更新每帧调用 mark_layout_dirty 会触发整树重排
+Decision: 平滑只调用 place_content()（内容平移）；TreeView/Table 直接改 scroll_，绘制按它计算
+Consequences: 滚动开销与内容控件数量解耦（ScrollView 仍会 arrange 内容，测量有缓存）
+## [108] 2026-10-26 11:14:31 UTC
+Change: 20261026-rect-init-fix
+Context: Containers 分区只显示面板背景与顶部内阴影，内容不可见；运行时 bounds 高度为 NaN
+Decision: Rect 的 pos/size 显式初始化为 0（glm::vec2 默认构造不写零），Table::measure 改用 clamp_size(min_size()) 而不是读 global_
+Consequences: 所有控件的 global_/local_ 在首次 arrange 前为 0，不再受对象布局变化影响；Table 尺寸由构造的 min/max 决定，不依赖 arrange 顺序
+## [109] 2026-10-26 11:35:36 UTC
+Change: 20261026-scroll-wheel-fix
+Context: Table / TreeView 滚轮完全无效，而 ScrollView 正常；dispatch 后 target 在下一帧被清零
+Decision: arrange 里不再把 scroll_target_ 重置为 scroll_，改为 clamp_scroll(scroll_target_) 保留目标；仅在可滚范围变化时收紧
+Consequences: 平滑滚动目标不会被每帧布局抹掉；结构变化（set_roots / collapse / 键盘）仍走 set_scroll_value 立即同步
+## [110] 2026-10-26 11:45:35 UTC
+Change: 20261026-scroll-fast-mode
+Context: Smooth 的 0.12s 时间常数偏柔和，滚轮停止后滑行尾巴明显
+Decision: 新增 ScrollMode::Fast：tau = max(0.03, smoothing*0.4)，吸附 0.5px，停止输入 0.1s 后 tau 再减半
+Consequences: 三种模式可切换；Fast 仍是目标跟随模型，不引入惯性；Smooth/Line 的既有语义不变

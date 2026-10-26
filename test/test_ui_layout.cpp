@@ -83,6 +83,8 @@ void test_scroll_view()
     assert(scroll->content_size().y > 600.0f);
 
     scroll->arrange({{0.0f, 0.0f}, {400.0f, 600.0f}});
+    // 本用例验证「滚动位移与边界」，用离散模式避免平滑过渡的延迟生效。
+    scroll->set_scroll_mode(xel::ui::ScrollMode::Line);
     assert(nearly(scroll->scroll_offset(), 0.0f));
 
     assert(scroll->on_scroll({10.0f, 10.0f}, {0.0f, -1.0f}));
@@ -253,6 +255,8 @@ void test_scroll_view_both_axes()
 
     scroll->measure({400.0f, 300.0f});
     scroll->arrange({{0.0f, 0.0f}, {400.0f, 300.0f}});
+    // 双向滚动的位移断言基于离散模式。
+    scroll->set_scroll_mode(xel::ui::ScrollMode::Line);
 
     assert(scroll->content_size().x > 400.0f);
     assert(scroll->content_size().y > 300.0f);

@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 无
-Phase: M3.5 全部完成并归档（组件扩充 / 样式系统 / 交互打磨 / 布局补充 / 文本显示）
+Phase: M3.6 平滑滚动完成（Smooth / Fast / Line）+ 布局修复；gallery 可切换三种模式
 Blocked: 无
-Next: M4（动画内核）——启动前先确认范围与属性系统边界
+Next: M4（动画内核）——按 easing → scene-node → property-system 顺序启动

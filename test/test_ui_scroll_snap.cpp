@@ -73,6 +73,8 @@ void test_tree_view_rows_snap()
     ui::TreeView tree;
     tree.set_roots(std::move(roots));
     tree.arrange({{100.0f, 400.0f}, {300.0f, 60.0f}});
+    // 行滚动与像素对齐的断言基于离散模式。
+    tree.set_scroll_mode(xel::ui::ScrollMode::Line);
 
     // 滚轮 0.5 格 → 1.5 * row_height * 0.5 会产生小数偏移。
     tree.on_scroll({150.0f, 420.0f}, {0.0f, -0.5f});
@@ -106,6 +108,8 @@ void test_table_rows_snap()
     }
     table.set_rows(rows);
     table.arrange({{100.0f, 400.0f}, {300.0f, 120.0f}});
+    // 行滚动与像素对齐的断言基于离散模式。
+    table.set_scroll_mode(ui::ScrollMode::Line);
 
     // 0.33 格 × 1.5 × 行高 28 = 13.86，产生小数偏移。
     table.on_scroll({150.0f, 420.0f}, {0.0f, -0.33f});

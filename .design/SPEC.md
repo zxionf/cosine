@@ -119,6 +119,54 @@
 - 折叠父级时子树内的选中上移到被折叠节点；`set_roots` / `collapse_all` 后选中截断到仍可见的最长前缀。
 - 边界：无多选、拖拽、内联重命名、懒加载、图标/复选标记。
 
+## 滚动目标保持（M3.6 修复）
+### 现象
+
+Table 与 TreeView 的滚轮滚动完全无效，而 ScrollView 正常。
+gallery 缺少 Smooth / Line 的运行时切换（只能靠环境变量）。
+
+### 根因
+
+`Table::arrange` / `TreeView::arrange` 里写的是：
+
+```cpp
+scroll_ = clamp_scroll(scroll_);
+scroll_target_ = scroll_;   // ← 每帧把滚轮目标清零
+```
+
+layout 每帧都会跑（子控件 `arrange` 里的 `set_size` 触发 `mark_layout_dirty`），
+于是滚轮刚设置的 `scroll_target_` 在下一帧布局时被清零，`on_update` 看不到差值，
+位置永远停在 0。`ScrollView::arrange` 用的是 `target_ = clamp_offset(target_)`（保留目标），
+所以只有它正常。
+
+调试证据：dispatch 后 `table.target=126`，下一帧打印 `target=0`。
+
+### 修复
+
+- `Table::arrange` / `TreeView::arrange` 改为 `scroll_target_ = clamp_scroll(scroll_target_);`
+  —— 保留目标，只在可滚范围变化（内容变短）时收紧。
+- `set_scroll_value()` 继续用于「程序化跳转 / 键盘 / 结构变化（set_roots、collapse）」：
+  立即设置位置并同步目标。
+
+### gallery
+
+- `UiGallery::set_scroll_mode(ScrollMode)`：统一切换所有分区 `ScrollPanel`、
+  示例 `ScrollView`（`scroll_vertical` / `scroll_both`）、`Table`、`TreeView`。
+- Style 分区新增 **Smooth / Line** 两个按钮 + `scroll: smooth|line` 状态标签。
+- `COSINE_GALLERY_SCROLL_MODE=line|smooth` 改为走同一入口，保持行为一致。
+
+### 验证
+
+- 复现程序：`on_scroll` → `arrange` → `update`，`target` 保持 126、`offset` 推进到 29.5。
+- `ctest` 41/41（build 与 ASAN）。
+- gallery 冒烟：Style、Containers、Containers(line) 三组 `validation=0`。
+- 截图：Style 分区可见 Smooth / Line 按钮与 `scroll: smooth` 状态。
+
+### 边界
+
+- 不改滚轮步长、平滑参数与模式语义（沿用 M3.6 的定义）。
+- 不做「每个容器独立的模式 UI」——gallery 只提供一个全局切换入口。
+
 ## Tooltip
 - `Tooltip` 是 overlay 控件，由 `update_hover(dt, over_target, cursor, bounds)` 驱动；`set_delay` 默认 0.35s。
 - 悬停累计达到延迟才显示，离开立即隐藏并清零计时；显示后跟随光标（偏移 16,18）。
@@ -1104,3 +1152,146 @@ gallery `Layout` 分区：两张占位图（一张有来源、一张空），验
 - 不做图片解码、纹理上传、采样（M6 资源管线）。
 - 不做九宫格拉伸、平铺（tile）、mipmap、色彩空间处理。
 - 不做图片缓存与异步加载。
+
+## M3.6 平滑滚动与离散行滚动
+### 为什么
+
+`ScrollView` 的滚轮是「像素步进 + 立即生效」，`TreeView` / `Table` 是「行步进 + 立即生效」，
+都缺少过渡：滚一格内容瞬移，长列表阅读时容易丢失位置感。需要两件事：
+
+- **平滑滚动**：滚轮只改变目标偏移，实际偏移按时间常数指数逼近，帧率无关；
+- **保留离散按行滚动**：需要「一格 = 一行」的精确步进时仍可切换。
+
+### API
+
+新增 `src/ui/scroll_mode.hpp`：`enum class ScrollMode { Smooth, Line }`。
+
+`ScrollView`：
+
+- `set_scroll_mode(ScrollMode)` / `scroll_mode()`，默认 `Smooth`；
+- `set_scroll_smoothing(float seconds)` / `scroll_smoothing()`，默认 `0.12`，`0` = 立即到位；
+- `set_scroll_speed(float pixels_per_step)`，默认 `40`（Smooth 模式每格像素）；
+- `set_scroll_line_step(float pixels_per_line)`，默认 `40`（Line 模式每格像素）；
+- `scroll_target()` 暴露目标值（测试与程序化查询）。
+
+`TreeView` / `Table`：
+
+- `set_scroll_mode(ScrollMode)` / `scroll_mode()`，默认 `Smooth`；
+- `set_scroll_smoothing(float seconds)` / `scroll_smoothing()`，默认 `0.12`；
+- 步进单位保持「行」：一格 = `row_height × 1.5`；模式只决定「立即 / 过渡」。
+
+### 平滑算法
+
+`offset += (target - offset) × (1 - exp(-dt / tau))`：
+
+- 与帧率无关：同样的总时长，不同 dt 分割不影响收敛轨迹；
+- 差值 < 0.25px 时吸附到目标，避免无限逼近；
+- 全程 `clamp` 到合法范围（内容变短时目标同步收紧）。
+
+`set_scroll_offset()` 是程序化跳转：同时设置 `offset` 与 `target`（立即生效）。
+拖动滚动条、点击轨道翻页直接改 `offset` 并同步 `target`（跟手优先，不做过渡）。
+
+### 性能
+
+- 平滑更新只调用 `place_content()`（内容平移），**不** `mark_layout_dirty()`，
+  避免每帧整树重排；
+- `TreeView` / `Table` 的绘制按 `scroll_` 直接算行位置，同样不触发重排；
+- `on_update(dt)` 由已有的 `UISystem::update_tree` 驱动，无需新定时器。
+
+### 验证
+
+新建 `test/test_ui_smooth_scroll.cpp` 并注册：
+
+- Smooth：`on_scroll` 后 `scroll_offset()` 不变、`scroll_target()` 变化；`update(dt)` 后单调逼近；
+- 连续 `update` 后精确等于目标（吸附）；
+- 帧率无关：同样总时长、不同 dt 分割，最终都吸附到同一目标；
+- Line：`on_scroll` 后立即等于目标；
+- clamp：目标不超出 `[0, max_scroll]`；
+- `set_scroll_offset` 立即生效且同步 target；
+- `Table`：Smooth 延迟、Line 立即（用 `set_rows` 造数据）。
+
+gallery：新增 `COSINE_GALLERY_SCROLL_MODE=line` 切到离散行滚动，默认 `smooth`。
+
+### 边界（本次不做）
+
+- 不做惯性（flick）与速度衰减：只做「目标跟随」，不引入初速度模型。
+- 不做滚动条拖动时的惯性/回弹/边缘橡皮筋。
+- 不做触摸板亚像素 delta 的特殊处理（按同一比例缩放）。
+
+## Rect 未初始化导致的 NaN 布局
+### 现象
+
+`ui_gallery` 的 Containers 分区只显示面板背景与顶部内阴影，内容（Splitter / TabView / Table）
+全部不可见；其它分区里含 Table 的地方同样受影响。
+
+### 根因
+
+`Rect` 的 `pos` / `size` 没有默认成员初始化，而 `glm::vec2` 的默认构造**不写零**
+（未定义 `GLM_FORCE_CTOR_INIT`）。因此 `Widget::global_` / `local_` 在首次 arrange 之前是未定义值。
+
+`Table::measure` 直接读 `global_.size`：
+
+```cpp
+return clamp_size(global_.size.x > 0.0f ? global_.size : local_.size);
+```
+
+首次测量时读到未定义值（NaN）→ `glm::clamp(NaN, …)` 仍是 NaN → 表格尺寸 NaN →
+父容器 `Vbox` 的内容高 NaN → `ScrollView::place_content` 把内容按 NaN 尺寸 arrange →
+`ScrollPanel` 的 bounds 高度 NaN → 视口裁剪为空 → 只剩面板自身的背景与内阴影。
+
+最近的布局改动给 `Widget` 增加了字段（`absolute_` / `z_index_` / `size_percent_` / `aspect_ratio_`），
+改变了对象布局，使 `global_` 落在非零内存上，才把这个潜在缺陷暴露出来。
+
+### 修复
+
+1. `Rect` 显式初始化：`glm::vec2 pos{0.0f, 0.0f}; glm::vec2 size{0.0f, 0.0f};`
+   —— 根本修复，所有控件的 `global_` / `local_` 在首次 arrange 前为 0。
+2. `Table::measure` 改为 `clamp_size(min_size())`，尺寸由构造时设置的 min/max 决定，
+   不再依赖 arrange 的执行顺序。
+
+### 验证
+
+- Containers 分区截图：Splitter 双栏、TabView 三页、Table 表头与行均正常显示。
+- `ctest --test-dir build`：41/41；`ctest --test-dir build-asan`：41/41。
+- gallery 冒烟：Containers、Layout(classic)、Overlays(line) 三组 `validation=0`。
+
+### 边界
+
+- 不改 `glm::vec2` 的全局行为（不定义 `GLM_FORCE_CTOR_INIT`），只在 `Rect` 层显式初始化。
+- 不重写 `Dropdown` 内部列表的 `measure`（它返回 `local_.size`，但 arrange 会先 `set_size`，
+  当前测试与冒烟均正常）。
+
+## 第三种滚动模式：Fast（停止输入后快速收尾）
+### 为什么
+
+`Smooth` 的时间常数是 0.12s，偏柔和：滚轮停止后仍有明显「滑行尾巴」。
+需要一种「一停就定」的手感，同时保留平滑过渡（而不是 `Line` 的瞬时跳变）。
+
+### 设计
+
+`ScrollMode` 增加 `Fast`：
+
+- 基础时间常数 = `max(0.03, smoothing × 0.4)`（默认约 0.048s，Smooth 的 40%）；
+- 吸附阈值 0.5px（Smooth 是 0.25px）；
+- **停止输入超过 0.1s 后时间常数再减半**（约 0.024s），视觉上快速定住。
+
+`idle_` 由控件的 `on_scroll` 清零、`on_update` 累加，不需要外部时间源，
+也不依赖 `UISystem::elapsed_`。
+
+### 接入
+
+- `ScrollView` / `TreeView` / `Table` 三个滚动容器都支持 `Fast`。
+- gallery Style 分区增加 `Fast` 按钮，与 `Smooth` / `Line` 并列；
+  `COSINE_GALLERY_SCROLL_MODE=fast` 同样可选。
+
+### 验证
+
+- `test_ui_smooth_scroll` 新增用例：同样 0.096s，`Fast` 的位移大于 `Smooth`；
+  再 0.64s 后 `Fast` 精确吸附到目标。
+- `ctest` 41/41（build 与 ASAN）。
+- gallery 冒烟与截图（Style 分区三个按钮）。
+
+### 边界
+
+- 不引入初速度 / 惯性模型；三种模式仍是「目标跟随」。
+- 不改变 `Smooth` 与 `Line` 的既有参数与语义。

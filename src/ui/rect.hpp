@@ -9,8 +9,10 @@ namespace xel::ui
 {
 struct Rect
 {
-    glm::vec2 pos;
-    glm::vec2 size;
+    // glm::vec2 的默认构造不写零（GLM 没有 GLM_FORCE_CTOR_INIT）；
+    // 这里显式初始化，避免控件在首次 arrange 前读到垃圾值（NaN）。
+    glm::vec2 pos{0.0f, 0.0f};
+    glm::vec2 size{0.0f, 0.0f};
 
     float left()   const { return pos.x; }
     float right()  const { return pos.x + size.x; }

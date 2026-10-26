@@ -87,7 +87,9 @@ glm::vec2 ScrollView::clamp_offset(glm::vec2 offset) const
 
 void ScrollView::set_scroll_offset(glm::vec2 offset)
 {
+    // 程序化跳转：目标同步，立即生效（不排队过渡）。
     offset_ = clamp_offset(offset);
+    target_ = offset_;
     place_content();
     mark_layout_dirty();
 }
@@ -165,6 +167,7 @@ void ScrollView::arrange(Rect slot)
     global_ = slot;
     update_metrics(slot.size);
     offset_ = clamp_offset(offset_);
+    target_ = clamp_offset(target_);
     place_content();
 }
 
@@ -172,15 +175,22 @@ bool ScrollView::on_scroll(glm::vec2 pos, glm::vec2 delta)
 {
     if (!global_bounds().contains(pos)) return false;
 
+    const float step = scroll_mode_ == ScrollMode::Line ? line_step_ : scroll_speed_;
     if (axis_ == Axis::Vertical || axis_ == Axis::Both) {
-        offset_.y -= delta.y * 40.0f;
+        target_.y -= delta.y * step;
     }
     if (axis_ == Axis::Horizontal || axis_ == Axis::Both) {
-        offset_.x -= delta.x * 40.0f;
+        target_.x -= delta.x * step;
     }
-    offset_ = clamp_offset(offset_);
-    place_content();
-    mark_layout_dirty();
+    target_ = clamp_offset(target_);
+    idle_ = 0.0f;
+
+    // Line 模式立即到位；Smooth / Fast 由 on_update(dt) 推进。
+    if (scroll_mode_ == ScrollMode::Line) {
+        offset_ = target_;
+        place_content();
+        mark_layout_dirty();
+    }
     return true;
 }
 
@@ -208,6 +218,7 @@ bool ScrollView::on_mouse_down(glm::vec2 pos, int button)
             if (vertical) offset_.y += delta;
             else          offset_.x += delta;
             offset_ = clamp_offset(offset_);
+            target_ = offset_;
             place_content();
             mark_layout_dirty();
             return true;
@@ -234,6 +245,7 @@ bool ScrollView::on_mouse_move(glm::vec2 pos)
 
     if (vertical) offset_.y = value;
     else          offset_.x = value;
+    target_ = offset_;
     place_content();
     mark_layout_dirty();
     return true;
@@ -244,6 +256,40 @@ bool ScrollView::on_mouse_up(glm::vec2, int)
     if (dragging_ == Drag::None) return false;
     dragging_ = Drag::None;
     return true;
+}
+
+void ScrollView::on_update(float dt)
+{
+    if (scroll_mode_ == ScrollMode::Line || dt <= 0.0f) return;
+
+    const glm::vec2 delta = target_ - offset_;
+    if (std::abs(delta.x) < 0.01f && std::abs(delta.y) < 0.01f) {
+        idle_ = 0.0f;
+        return;
+    }
+
+    idle_ += dt;
+
+    // 帧率无关的指数逼近：同样的总时长，不同 dt 分割不影响收敛轨迹。
+    float tau = smoothing_;
+    float snap = 0.25f;
+    if (scroll_mode_ == ScrollMode::Fast) {
+        // 基础时间常数就比 Smooth 小；停止输入 0.1s 后再减半，做到「一停就定」。
+        tau = std::max(0.03f, smoothing_ * 0.4f);
+        snap = 0.5f;
+        if (idle_ > 0.1f) tau *= 0.5f;
+    }
+
+    const float k = tau > 0.0f ? (1.0f - std::exp(-dt / tau)) : 1.0f;
+    offset_ += delta * k;
+
+    // 接近目标时吸附，避免无限逼近停在亚像素上。
+    if (std::abs(target_.x - offset_.x) < snap) offset_.x = target_.x;
+    if (std::abs(target_.y - offset_.y) < snap) offset_.y = target_.y;
+
+    offset_ = clamp_offset(offset_);
+    // 只平移内容，不触发整树重排。
+    place_content();
 }
 
 void ScrollView::append_to(graphics::DrawList& list) const

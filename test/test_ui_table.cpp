@@ -107,6 +107,8 @@ int main()
 
     // 滚轮滚动：内容高度 12*28=336 > 视口 170。
     table_ptr->set_selected(0);
+    // 离散模式：滚轮立即生效（平滑模式会延迟到下一帧）。
+    table_ptr->set_scroll_mode(xel::ui::ScrollMode::Line);
     const float before = table_ptr->scroll_offset();
     ui.dispatch([] {
         InputEvent event;

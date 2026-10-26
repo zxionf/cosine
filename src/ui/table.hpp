@@ -3,6 +3,7 @@
 #include "theme.hpp"
 #include "style.hpp"
 #include "widget.hpp"
+#include "scroll_mode.hpp"
 #include "../graphics/font_atlas.hpp"
 #include "../graphics/box.hpp"
 #include "../graphics/rectangle.hpp"
@@ -46,7 +47,7 @@ public:
     {
         rows_ = std::move(rows);
         if (selected_ >= static_cast<int>(rows_.size())) selected_ = rows_.empty() ? -1 : 0;
-        scroll_ = 0.0f;
+        set_scroll_value(0.0f);
         mark_layout_dirty();
     }
     void add_row(std::vector<std::string> row)
@@ -58,7 +59,7 @@ public:
     {
         rows_.clear();
         selected_ = -1;
-        scroll_ = 0.0f;
+        set_scroll_value(0.0f);
         mark_layout_dirty();
     }
 
@@ -94,10 +95,25 @@ public:
 
     float scroll_offset() const { return scroll_; }
 
+    // 滚动模式：Smooth = 滚轮只改目标、位置平滑逼近；Line = 立即到位（按行）。
+    void set_scroll_mode(ScrollMode mode) { scroll_mode_ = mode; }
+    ScrollMode scroll_mode() const { return scroll_mode_; }
+    void set_scroll_smoothing(float seconds) { smoothing_ = seconds > 0.0f ? seconds : 0.0f; }
+    float scroll_smoothing() const { return smoothing_; }
+    float scroll_target() const { return scroll_target_; }
+
+    // 立即设置滚动值并同步目标（程序化、键盘、结构变化时用）。
+    void set_scroll_value(float value)
+    {
+        scroll_ = clamp_scroll(value);
+        scroll_target_ = scroll_;
+    }
+
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        return clamp_size(global_.size.x > 0.0f ? global_.size : local_.size);
+        // 尺寸由 min/max 决定（构造时固定）；不读 global_，避免依赖 arrange 顺序。
+        return clamp_size(min_size());
     }
 
     void arrange(Rect slot) override
@@ -106,6 +122,8 @@ public:
         set_pos(slot.pos);
         set_size(slot.size);
         scroll_ = clamp_scroll(scroll_);
+        // 保留平滑目标（只按新的可滚范围收紧），否则每帧布局会把刚设置的滚轮目标清零。
+        scroll_target_ = clamp_scroll(scroll_target_);
     }
 
     void append_to(graphics::DrawList& list) const override
@@ -224,8 +242,34 @@ public:
     {
         if (!global_.contains(pos)) return false;
         if (content_height() <= body_height()) return false;
-        scroll_ = clamp_scroll(scroll_ - delta.y * row_height_ * 1.5f);
+        scroll_target_ = clamp_scroll(scroll_target_ - delta.y * row_height_ * 1.5f);
+        idle_ = 0.0f;
+        if (scroll_mode_ == ScrollMode::Line) scroll_ = scroll_target_;
         return true;
+    }
+
+    void on_update(float dt) override
+    {
+        if (scroll_mode_ == ScrollMode::Line || dt <= 0.0f) return;
+        const float diff = scroll_target_ - scroll_;
+        if (std::abs(diff) < 0.01f) {
+            idle_ = 0.0f;
+            return;
+        }
+        idle_ += dt;
+
+        float tau = smoothing_;
+        float snap = 0.25f;
+        if (scroll_mode_ == ScrollMode::Fast) {
+            // 基础更快；停止输入 0.1s 后再加速收尾。
+            tau = std::max(0.03f, smoothing_ * 0.4f);
+            snap = 0.5f;
+            if (idle_ > 0.1f) tau *= 0.5f;
+        }
+
+        const float k = tau > 0.0f ? (1.0f - std::exp(-dt / tau)) : 1.0f;
+        scroll_ = clamp_scroll(scroll_ + diff * k);
+        if (std::abs(scroll_target_ - scroll_) < snap) scroll_ = scroll_target_;
     }
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
@@ -269,14 +313,14 @@ private:
         if (selected_ < 0) return;
         // 还没布局（视口高度为 0）时不滚动，避免把初始 offset 推离 0。
         if (body_height() <= 0.0f) {
-            scroll_ = 0.0f;
+            set_scroll_value(0.0f);
             return;
         }
         const float top = static_cast<float>(selected_) * row_height_;
         const float bottom = top + row_height_;
         if (top < scroll_) scroll_ = top;
         else if (bottom > scroll_ + body_height()) scroll_ = bottom - body_height();
-        scroll_ = clamp_scroll(scroll_);
+        set_scroll_value(scroll_);
     }
 
     std::vector<float> column_widths(float available_width) const
@@ -382,6 +426,10 @@ private:
     float row_height_ = 28.0f;
     float header_height_ = 30.0f;
     float scroll_ = 0.0f;
+    float scroll_target_ = 0.0f;
+    ScrollMode scroll_mode_ = ScrollMode::Smooth;
+    float smoothing_ = 0.12f;
+    float idle_ = 0.0f;
     bool striped_ = true;
     std::function<void(int)> on_select_;
 };

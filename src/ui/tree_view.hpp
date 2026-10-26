@@ -3,6 +3,7 @@
 #include "theme.hpp"
 #include "style.hpp"
 #include "widget.hpp"
+#include "scroll_mode.hpp"
 #include "../graphics/font_atlas.hpp"
 #include "../graphics/box.hpp"
 #include "../graphics/line.hpp"
@@ -41,7 +42,7 @@ public:
     {
         roots_ = std::move(roots);
         validate_selection();
-        scroll_ = 0.0f;
+        set_scroll_value(0.0f);
         mark_layout_dirty();
     }
     const std::vector<TreeNode>& roots() const { return roots_; }
@@ -58,7 +59,7 @@ public:
         roots_.clear();
         selected_path_.clear();
         hovered_ = -1;
-        scroll_ = 0.0f;
+        set_scroll_value(0.0f);
         mark_layout_dirty();
     }
 
@@ -120,6 +121,7 @@ public:
         }
 
         scroll_ = clamp_scroll(scroll_);
+        scroll_target_ = scroll_;
         mark_layout_dirty();
     }
 
@@ -151,6 +153,20 @@ public:
 
     float scroll_offset() const { return scroll_; }
 
+    // 滚动模式：Smooth = 滚轮只改目标、位置平滑逼近；Line = 立即到位（按行）。
+    void set_scroll_mode(ScrollMode mode) { scroll_mode_ = mode; }
+    ScrollMode scroll_mode() const { return scroll_mode_; }
+    void set_scroll_smoothing(float seconds) { smoothing_ = seconds > 0.0f ? seconds : 0.0f; }
+    float scroll_smoothing() const { return smoothing_; }
+    float scroll_target() const { return scroll_target_; }
+
+    // 立即设置滚动值并同步目标（程序化、键盘、结构变化时用，避免平滑把位置拉回）。
+    void set_scroll_value(float value)
+    {
+        scroll_ = clamp_scroll(value);
+        scroll_target_ = scroll_;
+    }
+
     // 可见行（展开节点的前序遍历），交互与绘制共用同一份定义。
     struct VisibleRow
     {
@@ -179,6 +195,8 @@ public:
         set_pos(slot.pos);
         set_size(slot.size);
         scroll_ = clamp_scroll(scroll_);
+        // 保留平滑目标（只按新的可滚范围收紧），否则每帧布局会把刚设置的滚轮目标清零。
+        scroll_target_ = clamp_scroll(scroll_target_);
     }
 
     void append_to(graphics::DrawList& list) const override
@@ -279,8 +297,34 @@ public:
     {
         if (!global_.contains(pos)) return false;
         if (content_height() <= body_height()) return false;
-        scroll_ = clamp_scroll(scroll_ - delta.y * row_height_ * 1.5f);
+        scroll_target_ = clamp_scroll(scroll_target_ - delta.y * row_height_ * 1.5f);
+        idle_ = 0.0f;
+        if (scroll_mode_ == ScrollMode::Line) scroll_ = scroll_target_;
         return true;
+    }
+
+    void on_update(float dt) override
+    {
+        if (scroll_mode_ == ScrollMode::Line || dt <= 0.0f) return;
+        const float diff = scroll_target_ - scroll_;
+        if (std::abs(diff) < 0.01f) {
+            idle_ = 0.0f;
+            return;
+        }
+        idle_ += dt;
+
+        float tau = smoothing_;
+        float snap = 0.25f;
+        if (scroll_mode_ == ScrollMode::Fast) {
+            // 基础更快；停止输入 0.1s 后再加速收尾。
+            tau = std::max(0.03f, smoothing_ * 0.4f);
+            snap = 0.5f;
+            if (idle_ > 0.1f) tau *= 0.5f;
+        }
+
+        const float k = tau > 0.0f ? (1.0f - std::exp(-dt / tau)) : 1.0f;
+        scroll_ = clamp_scroll(scroll_ + diff * k);
+        if (std::abs(scroll_target_ - scroll_) < snap) scroll_ = scroll_target_;
     }
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
@@ -394,6 +438,7 @@ private:
             for (auto& child : node->children) stack.push_back(&child);
         }
         scroll_ = clamp_scroll(scroll_);
+        scroll_target_ = scroll_;
         mark_layout_dirty();
     }
 
@@ -428,7 +473,7 @@ private:
     {
         if (selected_path_.empty()) return;
         if (body_height() <= 0.0f) {
-            scroll_ = 0.0f;
+            set_scroll_value(0.0f);
             return;
         }
         const auto rows = visible_rows();
@@ -438,7 +483,7 @@ private:
             const float bottom = top + row_height_;
             if (top < scroll_) scroll_ = top;
             else if (bottom > scroll_ + body_height()) scroll_ = bottom - body_height();
-            scroll_ = clamp_scroll(scroll_);
+            set_scroll_value(scroll_);
             return;
         }
     }
@@ -539,6 +584,10 @@ private:
     float row_height_ = 26.0f;
     float indent_ = 16.0f;
     float scroll_ = 0.0f;
+    float scroll_target_ = 0.0f;
+    ScrollMode scroll_mode_ = ScrollMode::Smooth;
+    float smoothing_ = 0.12f;
+    float idle_ = 0.0f;
     bool striped_ = true;
     std::function<void(const std::vector<int>&)> on_select_;
 };
