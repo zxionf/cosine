@@ -30,3 +30,9 @@
 - [x] T18 修复 Windows job 误包含 bash 版 `Ensure CMake >= 4`（awk 插入位置命中了两处）
 - [x] T19 本地验证：module scan ON（GCC 16）下编译与 25/25 ctest 通过，YAML 可解析
 - [ ] T20 远端 CI 重跑确认
+
+## 终止（2026-10-26）
+
+- [x] T21 删除 `.github/workflows/ci.yml`，暂停远端 CI 维护
+- [x] T22 记录决策 #55：发布阶段按当时 runner 工具链重建 actions 脚本
+- T08 / T14 / T20 的“远端 CI 跑通”不再适用，随本次终止取消。

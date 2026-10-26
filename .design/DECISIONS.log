@@ -270,3 +270,8 @@ Change: 20261025-ci-fixes
 Context: 第三轮 CI 失败：Linux runner 为 GCC 13，CXX_SCAN_FOR_MODULES ON 但编译器不支持 import graph 扫描；Windows job 误执行了 bash 写的 CMake 版本步骤
 Decision: 顶层 CMake 增加 COSINE_CXX_MODULE_SCAN 能力探测（GCC>=14 / Clang>=16 / MSVC>=19.34），据此条件设置各 target 的 CXX_SCAN_FOR_MODULES；CI 的 Ensure CMake 步骤只保留在 Linux job
 Consequences: GCC 13 等环境可正常生成构建文件（走 #include 回退路径）；未来启用 import vulkan_hpp 时需要编译器满足版本门槛；CI 两个 job 的步骤恢复对称
+## [55] 2026-10-26 03:07:12 UTC
+Change: 20261025-ci-fixes
+Context: GitHub Actions 连续多轮失败都来自 runner 工具链与开发机不一致（GCC 13 无 import 扫描、Ubuntu 24.04 自带 Vulkan 头仅 1.3.275、MSVC 默认不按 UTF-8 解析源码），修复成本持续偏高，且当前阶段不需要远端流水线
+Decision: 删除 .github/workflows/ci.yml，暂停维护远端 CI；等大后期准备发布时，按当时的 runner 工具链重新创建 actions 脚本
+Consequences: 质量门回到本地脚本 scripts/ci-linux.sh / scripts/ci-windows.ps1（构建、ctest、ASAN、lavapipe 冒烟）；SPEC 的 CI 矩阵一节改为发布阶段重建；重建 CI 前先确认 runner 编译器与 Vulkan 头版本再写工作流

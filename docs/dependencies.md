@@ -54,7 +54,7 @@ Windows 依赖系统 Vulkan 运行时（显卡驱动）与 MSVC 运行库。
 4. `./scripts/smoke-lavapipe.sh` 冒烟
 5. 更新本文件的版本表
 
-Slang 升级时同步更新 `.github/workflows/ci.yml` 的 `SLANG_VERSION`。
+Slang 升级时同步更新 `docs/ci.md` 记录的工具链前提；若已重建远端 CI，再同步工作流中的 `SLANG_VERSION`。
 
 ## 平台前提
 

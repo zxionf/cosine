@@ -16,7 +16,7 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 |---|---|
 | `index.md` | 本页：入口与索引 |
 | `dependencies.md` | 第三方依赖、版本锁定、升级方式 |
-| `ci.md` | 构建命令、sanitizer、lavapipe 冒烟、CI 矩阵 |
+| `ci.md` | 构建命令、sanitizer、lavapipe 冒烟、远端 CI 现状 |
 | `packaging.md` | 版本号、Linux/Windows 打包、资源与字体策略、运行依赖 |
 | `font_atlas.md` | 字体图集格式、FreeType 生成、动态字形、字号策略 |
 | `interpreter.md` | XEL 解释器结构与实现笔记 |

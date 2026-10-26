@@ -160,12 +160,12 @@
 ## lavapipe 冒烟
 - 新增 `scripts/smoke-lavapipe.sh`：查找 lavapipe ICD（`COSINE_LAVAPIPE_ICD` 或已知路径），在 `VK_ICD_FILENAMES` + 校验层下运行 `ui_demo` 固定秒数。
 - 无 ICD 或无显示环境时明确 skip（退出码 0），有环境时校验日志不含 validation error。
-- 冒烟依赖窗口系统；CI 用 Xvfb/xvfb-run 提供显示。
+- 冒烟依赖窗口系统；无显示环境用 Xvfb/xvfb-run 提供显示。
 
-## CI 矩阵
-- 新增 `.github/workflows/ci.yml`：Linux（apt 安装 Vulkan/lavapipe/xvfb，构建、ctest、ASAN 构建、lavapipe 冒烟）与 Windows（MSVC + Vulkan SDK，构建、ctest）。
-- 复用 `scripts/ci-linux.sh` / `scripts/ci-windows.ps1`，避免 CI 与本地命令分叉。
-- Windows 首次在真实 CI 上验证；本地只保证脚本与 CMake 可配置。
+## CI
+- 当前不维护远端 CI：`.github/workflows/` 已移除（2026-10-26）。
+- 质量门由本地脚本承担：`scripts/ci-linux.sh` / `scripts/ci-windows.ps1`（构建、ctest、ASAN），以及 `scripts/smoke-lavapipe.sh`（Xvfb/xvfb-run 提供显示）。
+- 发布阶段再按当时的 GitHub runner 工具链（编译器版本、Vulkan 头版本、源码编码选项）重建 GitHub Actions 脚本。
 
 ## 版本号
 - `project(cosvideo VERSION 0.3.0)` 作为唯一版本源；CMake 生成 `version.hpp`（`xel::version_string()`）。

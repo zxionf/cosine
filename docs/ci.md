@@ -35,39 +35,22 @@ COSINE_SMOKE_SECONDS=30 ./scripts/smoke-lavapipe.sh
 
 没有可用的 ICD 或没有显示环境（`WAYLAND_DISPLAY`/`DISPLAY`）时脚本会 skip 并返回 0。
 
-## GitHub Actions
+## 远端 CI
 
-`.github/workflows/ci.yml` 包含两个 job：
+当前仓库不维护 GitHub Actions：`.github/workflows/` 已移除（2026-10-26）。
+质量门使用上面的本地命令（`scripts/ci-linux.sh`、`scripts/smoke-lavapipe.sh`）。
 
-- **Linux**：GCC + Ninja，X11 版 GLFW，`ctest`，ASAN 构建与测试，`xvfb-run` + lavapipe 冒烟。
-- **Windows**：MSVC（`ilammy/msvc-dev-cmd` + Ninja），Chocolatey 安装 Vulkan SDK，构建与 `ctest`。
+发布阶段重建工作流时，先按当时的 runner 工具链核对以下几点：
 
-两个 job 都通过仓库脚本或等价命令构建，避免 CI 与本地命令分叉。
-Slang 版本固定在工作流顶部的 `SLANG_VERSION`，升级时同步更新。
+- 编译器版本满足 `COSINE_CXX_MODULE_SCAN` 门槛（GCC 14 / Clang 16 / MSVC 19.34）。
+- Linux 发行版自带的 Vulkan 头可能过旧（例如 Ubuntu 24.04 只有 1.3.275）；
+  需要时安装官方 Vulkan-Headers，并用 `-DVulkan_INCLUDE_DIR` 指定。
+- Windows 上 MSVC 必须开启 `/utf-8`，否则源码中的 `U'中'` 会被当成多字符常量（C2015）。
+- Slang 发行包布局随版本变化：解压后用 `find` 定位 `slangc`，不要假设 `--strip-components` 层级。
+- Windows 用 `ilammy/msvc-dev-cmd` + `-G Ninja`，并显式解析 `C:\VulkanSDK\<version>` 写入 `VULKAN_SDK`。
+- CMake 需要 >= 4.0.0（项目 `cmake_minimum_required`），镜像版本不足时安装固定版本。
 
-### Slang 安装
-
-不同版本的发行包布局并不一致（有的顶层直接是 `bin/`，有的多一层目录），
-因此工作流不使用 `--strip-components`，而是解压后 `find` 定位 `slangc`：
-
-```bash
-SLANGC="$(find "${HOME}/tools/slang" -maxdepth 4 -type f -name slangc | head -n 1)"
-```
-
-找不到时会打印归档前 50 个条目再失败，便于定位版本差异。
-
-### Windows 构建器
-
-- 不使用 `-G "Visual Studio 17 2022"`（镜像上 VS 实例探测不稳定），
-  改为 `ilammy/msvc-dev-cmd@v1` 设置 MSVC 环境 + `-G Ninja`。
-- `find_package(Vulkan)` 依赖 `VULKAN_SDK`：Chocolatey 安装后当前会话未必有该变量，
-  工作流会显式解析 `C:\VulkanSDK\<version>` 并写入 `GITHUB_ENV`。
-
-### 工具链版本
-
-- Linux runner 自带 CMake 可能是 3.x，而项目 `cmake_minimum_required(VERSION 4.0.0)`。
-  工作流在版本不足时下载固定版本的官方二进制（`CMAKE_VERSION`）并链接到 `/usr/local/bin`。
-- Windows runner 的 CMake 已满足要求，无需额外安装。
+Slang 版本在重建时固定在工作流顶部的 `SLANG_VERSION`，升级时同步更新。
 
 ### C++ 模块扫描
 
@@ -100,8 +83,6 @@ Linux 上系统头文件默认可见，Windows 上必须由 `find_package(Vulkan
 
 ## 已知限制
 
-- Windows job 只做构建与单元测试，没有窗口级运行冒烟。
-- 工作流要求 CMake >= 4.0.0（项目 `cmake_minimum_required`），镜像自带的 CMake 版本需满足。
-- Slang 归档布局随版本变化，定位逻辑在 `docs/ci.md` 有说明。
+- 没有远端 CI，跨平台验证依赖本地脚本；Windows 只做构建与单元测试，没有窗口级运行冒烟。
 - lavapipe 冒烟只验证启动与 validation 干净，不做像素比对。
 - 未启用 clang / 多编译器矩阵。

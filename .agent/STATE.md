@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 20261025-ci-fixes
-Phase: CI 修复第三轮（GCC 13 模块扫描 / Windows 步骤误置）
+Phase: 远端 CI 已移除，发布阶段按当时工具链重建
 Blocked: 无
-Next: 远端 CI 通过后关闭；M3.5 继续 TreeView
+Next: 本地质量门 scripts/ci-linux.sh + ctest；M3.5 继续 TreeView
