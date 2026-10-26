@@ -462,6 +462,9 @@ inline UiGallery build(ui::UIRoot& root)
 
         section->add(std::make_unique<ui::Label>(
             "Pointer events (click / double click / right click / long press)", 18.0f));
+        section->add(std::make_unique<ui::Label>(
+            "Double click within 400 ms and 6 px; long press 600 ms without leaving; right click does not take focus.",
+            14.0f));
         auto pointer_state = std::make_unique<ui::Label>("pointer: -", 14.0f);
         gallery.pointer_state = pointer_state.get();
         section->add(std::make_unique<detail::PointerProbe>(pointer_state.get()));
@@ -588,7 +591,7 @@ inline UiGallery build(ui::UIRoot& root)
         section->add(std::move(table));
         section->add(std::move(table_state));
 
-        section->add(std::make_unique<ui::Label>("TreeView (indent, expand/collapse, keyboard)", 18.0f));
+        section->add(std::make_unique<ui::Label>("TreeView (indent, expand/collapse, double-click row, keyboard)", 18.0f));
         section->add(std::make_unique<ui::Label>(
             "Click a chevron to expand or collapse; Up/Down/Home/End move, Right/Left expand/collapse or step to parent, Enter/Space toggles.",
             14.0f));
@@ -644,7 +647,7 @@ inline UiGallery build(ui::UIRoot& root)
         section->add(std::move(tree));
         section->add(std::move(tree_state));
 
-        section->add(std::make_unique<ui::Label>("ScrollView (vertical, clips content)", 18.0f));
+        section->add(std::make_unique<ui::Label>("ScrollView (vertical, clips content, pixel-snapped scrolling)", 18.0f));
         auto scroll = detail::make_scroll(620.0f, 160.0f);
         auto content = std::make_unique<ui::Vbox>(0.0f, 0.0f, 600.0f, 0.0f);
         for (int i = 0; i < 12; ++i) {
@@ -656,7 +659,7 @@ inline UiGallery build(ui::UIRoot& root)
         gallery.scroll_vertical = scroll.get();
         section->add(std::move(scroll));
 
-        section->add(std::make_unique<ui::Label>("ScrollView (both axes)", 18.0f));
+        section->add(std::make_unique<ui::Label>("ScrollView (both axes, pixel-snapped scrolling)", 18.0f));
         auto both = detail::make_scroll(620.0f, 150.0f);
         both->set_axis(ui::ScrollView::Axis::Both);
         auto grid = std::make_unique<ui::Vbox>(0.0f, 0.0f, 1000.0f, 0.0f);

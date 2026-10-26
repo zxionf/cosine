@@ -868,8 +868,6 @@ void Renderer::end()
     // }
     for (const auto& batch : draw_list_.batches()) {
         if (batch.indices.empty()) continue;
-        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
-            *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
         // 裁剪矩形向外取整：向下取整左上、向上取整右下，避免把亚像素边缘（
         // 例如字母降部）截掉一整行。
         const float sx0 = batch.scissor.x;
@@ -880,10 +878,17 @@ void Renderer::end()
         const int y0 = std::max(0, static_cast<int>(std::floor(sy0)));
         const int x1 = std::min(static_cast<int>(target.extent.width), static_cast<int>(std::ceil(sx1)));
         const int y1 = std::min(static_cast<int>(target.extent.height), static_cast<int>(std::ceil(sy1)));
+        const uint32_t scissor_w = static_cast<uint32_t>(std::max(0, x1 - x0));
+        const uint32_t scissor_h = static_cast<uint32_t>(std::max(0, y1 - y0));
+        // 空裁剪区不提交绘制：某些驱动对 extent=0 的 scissor 行为不一致，
+        // 可能沿用上一个 scissor 而导致已滚出视区的内容露出。
+        if (scissor_w == 0 || scissor_h == 0) continue;
+
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
+            *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
         vk::Rect2D scissor{
             .offset = {x0, y0},
-            .extent = {static_cast<uint32_t>(std::max(0, x1 - x0)),
-                       static_cast<uint32_t>(std::max(0, y1 - y0))}
+            .extent = {scissor_w, scissor_h}
         };
         command_buffer.setScissor(0, scissor);
         command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {batch.vertex_offset});

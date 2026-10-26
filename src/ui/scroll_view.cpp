@@ -5,6 +5,7 @@
 #include "../graphics/rectangle.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace xel::ui
 {
@@ -151,8 +152,10 @@ glm::vec2 ScrollView::measure(glm::vec2 constraints)
 void ScrollView::place_content()
 {
     if (!content_) return;
+    // 像素对齐：内容位置取整，避免停留在半像素上；
+    // 滚动条 thumb 仍用原始 offset，保持滚动跟手的连续性。
     content_->arrange({
-        {global_.pos.x - offset_.x, global_.pos.y - offset_.y},
+        {global_.pos.x - std::round(offset_.x), global_.pos.y - std::round(offset_.y)},
         content_size_
     });
 }
@@ -248,7 +251,10 @@ void ScrollView::append_to(graphics::DrawList& list) const
     if (!content_) return;
 
     // 内容只画在可滚动区域内，滚动条区域留白。
-    list.push_clip({global_.pos.x, global_.pos.y, viewport_.x, viewport_.y});
+    // 裁剪边界对齐到像素网格：内容位置已取整（place_content），两者一致后
+    // 渲染层向外取整的 scissor 不会比内容区多出 1px。
+    list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
+                    std::round(viewport_.x), std::round(viewport_.y)});
     content_->append_to(list);
     list.pop_clip();
 

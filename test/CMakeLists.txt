@@ -46,6 +46,9 @@ target_link_libraries(test_ui_transition PRIVATE cosine_ui)
 add_executable(test_ui_pointer_events test_ui_pointer_events.cpp)
 target_link_libraries(test_ui_pointer_events PRIVATE cosine_ui)
 
+add_executable(test_ui_scroll_snap test_ui_scroll_snap.cpp)
+target_link_libraries(test_ui_scroll_snap PRIVATE cosine_ui)
+
 add_executable(test_ui_gallery test_ui_gallery.cpp)
 target_include_directories(test_ui_gallery PRIVATE
     ${PROJECT_SOURCE_DIR}/examples/ui_gallery
@@ -123,6 +126,7 @@ set(COSINE_TEST_TARGETS
     test_ui_style
     test_ui_transition
     test_ui_pointer_events
+    test_ui_scroll_snap
     test_ui_widgets
     test_ui_scrollbar
     test_ui_dropdown
@@ -166,6 +170,7 @@ add_test(NAME ui_theme COMMAND test_ui_theme)
 add_test(NAME ui_style COMMAND test_ui_style)
 add_test(NAME ui_transition COMMAND test_ui_transition)
 add_test(NAME ui_pointer_events COMMAND test_ui_pointer_events)
+add_test(NAME ui_scroll_snap COMMAND test_ui_scroll_snap)
 add_test(NAME ui_widgets COMMAND test_ui_widgets)
 add_test(NAME ui_scrollbar COMMAND test_ui_scrollbar)
 add_test(NAME ui_dropdown COMMAND test_ui_dropdown)

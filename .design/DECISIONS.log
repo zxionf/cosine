@@ -390,3 +390,13 @@ Change: 20261026-pointer-events
 Context: TreeView 箭头区的单击已负责展开/折叠，若双击也 toggle 会连续切换两次、净效果归零
 Decision: TreeView 的 on_double_click 排除箭头区域，只在行体上切换展开
 Consequences: 双击箭头与单击等价（由单击处理），双击行体切换展开；test_ui_tree 现有断言无需改动
+## [79] 2026-10-26 07:46:57 UTC
+Change: none
+Context: TreeView / ScrollView / Table 滚动时，内容可能停在半像素上；裁剪 scissor 在渲染层向外取整（floor 左上 / ceil 右下），两者叠加会让控件顶部多画出一条像素
+Decision: 滚动偏移与滚动类控件的裁剪边界统一取整到像素网格：ScrollView::place_content 对 offset round，TreeView/Table 用 round(scroll) 定位行，push_clip 的矩形也 round
+Consequences: 内容与裁剪边界都在整数网格上，scissor 不再比内容区多出 1px；滚动按整像素步进，thumb 仍用原始 offset 保持跟手
+## [80] 2026-10-26 07:46:57 UTC
+Change: none
+Context: 内容完全滚出视区时裁剪交集高度为 0，渲染层仍提交绘制；部分驱动对 extent=0 的 scissor 行为不一致，可能沿用上一个 scissor
+Decision: 渲染循环遇到空 scissor（宽或高为 0）直接跳过该 batch，不调用 setScissor/drawIndexed
+Consequences: 消除对驱动行为的依赖，同时省掉无效 draw call；已滚出视区的内容不可能再被绘制

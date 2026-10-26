@@ -190,20 +190,25 @@ public:
         const float panel_radius = corner_radius(surface.radius);
         graphics::append_rounded_rect(list, bounds, panel_radius, surface.fill);
 
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
+                        std::round(global_.size.x), std::round(global_.size.y)});
 
         const auto rows = visible_rows();
         const float content = static_cast<float>(rows.size()) * row_height_;
         const float bar_w = content > global_.size.y ? t.scrollbar_width + 2.0f : 0.0f;
         const float body_w = std::max(0.0f, global_.size.x - bar_w);
 
-        list.push_clip({global_.pos.x, global_.pos.y, body_w, global_.size.y});
+        list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
+                        std::round(body_w), std::round(global_.size.y)});
 
+        // 像素对齐：滚动偏移取整，避免内容停在半像素上，
+        // 使 scissor 向外取整后多画出一条顶部/底部像素。
+        const float snap = std::round(scroll_);
         const int first_visible = row_height_ > 0.0f
-            ? static_cast<int>(std::max(0.0f, scroll_) / row_height_)
+            ? static_cast<int>(std::max(0.0f, snap) / row_height_)
             : 0;
         for (int index = first_visible; index < static_cast<int>(rows.size()); ++index) {
-            const float y = global_.pos.y + static_cast<float>(index) * row_height_ - scroll_;
+            const float y = global_.pos.y + static_cast<float>(index) * row_height_ - snap;
             if (y + row_height_ < global_.pos.y) continue;
             if (y > global_.pos.y + global_.size.y) break;
             draw_row(list, rows[static_cast<std::size_t>(index)], index, y, body_w);

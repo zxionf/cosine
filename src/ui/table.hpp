@@ -117,7 +117,8 @@ public:
         const float panel_radius = corner_radius(surface.radius);
         graphics::append_rounded_rect(list, bounds, panel_radius, surface.fill);
 
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
+                        std::round(global_.size.x), std::round(global_.size.y)});
 
         const float header_h = header_height_;
         const float body_top_probe = global_.pos.y + header_h;
@@ -150,13 +151,16 @@ public:
         const float bar_w = content_height() > body_h ? t.scrollbar_width + 2.0f : 0.0f;
         const float body_w = std::max(0.0f, global_.size.x - bar_w);
 
-        list.push_clip({global_.pos.x, body_top, body_w, body_h});
+        list.push_clip({std::round(global_.pos.x), std::round(body_top),
+                        std::round(body_w), std::round(body_h)});
 
+        // 像素对齐：滚动偏移取整，避免行停在半像素上而多出一条溢出像素。
+        const float snap = std::round(scroll_);
         std::size_t first_visible = row_height_ > 0.0f
-            ? static_cast<std::size_t>(std::max(0.0f, scroll_) / row_height_)
+            ? static_cast<std::size_t>(std::max(0.0f, snap) / row_height_)
             : 0;
         for (std::size_t row = first_visible; row < rows_.size(); ++row) {
-            const float y = body_top + static_cast<float>(row) * row_height_ - scroll_;
+            const float y = body_top + static_cast<float>(row) * row_height_ - snap;
             if (y + row_height_ < body_top) continue;
             if (y > body_top + body_h) break;
 
