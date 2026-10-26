@@ -1,5 +1,6 @@
 #include "vulkan_context.hpp"
 
+#include <cstring>
 #include <iostream>
 
 namespace xel::backend::vulkan
@@ -127,7 +128,7 @@ void VulkanContext::create_logical_device()
 {
     std::vector<vk::QueueFamilyProperties> queue_family_properties = physical_device_.getQueueFamilyProperties();
 
-    uint32_t queue_index = ~0;
+    uint32_t queue_index = ~0u;
     for (uint32_t i = 0; i < static_cast<uint32_t>(queue_family_properties.size()); i++) {
         if ((queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics) && physical_device_.getSurfaceSupportKHR(i, *surface_)) {
             queue_index = i;
@@ -135,7 +136,10 @@ void VulkanContext::create_logical_device()
         }
     }
     if (queue_index == ~0u) {
-        throw std::runtime_error("[Vulkan] no queue family supports graphics + present on " + std::string(physical_device_.getProperties().deviceName));
+        // deviceName 是 vk::ArrayWrapper1D<char, N>，MSVC 下不能直接构造 std::string
+        // （拷贝/移动构造与 const char* 构造产生歧义），必须显式取 data()。
+        throw std::runtime_error("[Vulkan] no queue family supports graphics + present on " +
+                                 std::string(physical_device_.getProperties().deviceName.data()));
     }
 
     queue_index_ = queue_index;

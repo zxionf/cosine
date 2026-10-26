@@ -42,7 +42,7 @@ private:
     vk::raii::PhysicalDevice         physical_device_   = nullptr;
     vk::raii::Device                 device_            = nullptr;
     vk::raii::Queue                  graphics_queue_    = nullptr;
-    uint32_t queue_index_ = ~0;
+    uint32_t queue_index_ = ~0u;
 
     Window& window_;
 

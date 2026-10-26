@@ -76,6 +76,10 @@ FetchContent_Declare(
 # 获取 GLFW
 FetchContent_MakeAvailable(glfw)
 
+# 项目只使用 Vulkan，不使用 OpenGL：让所有包含 GLFW 头的目标都阻止 glfw3.h 拉入
+# <GL/gl.h> 等客户端 API 头，否则缺少 GL 开发包的机器（如 CI）会编译失败。
+target_compile_definitions(glfw INTERFACE GLFW_INCLUDE_NONE)
+
 set(FT_DISABLE_ZLIB       TRUE CACHE BOOL "" FORCE)
 set(FT_DISABLE_BZIP2      TRUE CACHE BOOL "" FORCE)
 set(FT_DISABLE_PNG        TRUE CACHE BOOL "" FORCE)

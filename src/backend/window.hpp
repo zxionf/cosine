@@ -2,6 +2,12 @@
 
 // #include "../events/event.hpp"
 
+// 项目只用 Vulkan，不使用 OpenGL：GLFW_INCLUDE_NONE 阻止 glfw3.h 拉入 <GL/gl.h>，
+// 否则在没有 GL 开发包的机器（如 CI 的 ubuntu-latest）上会编译失败。
+// CMake 侧也对 glfw 目标设置了同名 INTERFACE 定义，这里做一次守卫式补充。
+#ifndef GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_NONE
+#endif
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 

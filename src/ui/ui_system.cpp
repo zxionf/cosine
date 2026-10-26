@@ -117,7 +117,7 @@ void UISystem::tick()
             last_width_ = extent.width;
             last_height_ = extent.height;
             root_->set_pos(0, 0);
-            root_->set_size(extent.width, extent.height);
+            root_->set_size(static_cast<float>(extent.width), static_cast<float>(extent.height));
             root_->set_global_bounds({{0, 0}, {static_cast<float>(extent.width), static_cast<float>(extent.height)}});
             root_->mark_layout_dirty();
         }
