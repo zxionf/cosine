@@ -1,6 +1,11 @@
 #include "xel_application.hpp"
 #include "events/event.hpp"
 
+#include <algorithm>
+#include <cstdlib>
+#include <string>
+#include <string_view>
+
 
 namespace
 {
@@ -60,6 +65,18 @@ Application::Application(int window_w, int window_h, const std::string& title)
     glfwSetCharCallback(window_.get_glfw_window(), char_callback);
     glfwSetCursorPosCallback(window_.get_glfw_window(), cursor_pos_callback);
     glfwSetScrollCallback(window_.get_glfw_window(), scroll_callback);
+
+    // DPI 缩放：COSINE_UI_SCALE=auto 跟随真实 DPR（framebuffer/window），
+    // 或指定 0.25–4 的倍数；默认 1.0，与旧行为一致。
+    if (const char* env = std::getenv("COSINE_UI_SCALE")) {
+        const std::string_view value{env};
+        ui_scale_ = value == "auto"
+            ? std::max(1.0f, window_.framebuffer_scale().first)
+            : std::clamp(std::stof(std::string{value}), 0.25f, 4.0f);
+    }
+    renderer_.set_ui_scale(ui_scale_);
+    uisys.set_ui_scale(ui_scale_);
+    renderer_.set_font_pixel_ratio(ui_scale_);
 }
 
 Application::~Application()
@@ -84,7 +101,7 @@ void Application::mouse_button_callback(GLFWwindow* window, int button, int acti
 
     double mx, my;
     glfwGetCursorPos(window, &mx, &my);
-    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my);
+    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my) / app->ui_scale_;
 
     app->uisys.dispatch(event);
 }
@@ -118,7 +135,7 @@ void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     event::InputEvent event;
     event.type = event::InputEvent::Type::MouseMove;
-    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my);
+    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my) / app->ui_scale_;
     //e.mouse_delta = e.mouse_pos - app->last_mouse_;
     //app->last_mouse_ = e.mouse_pos;
     app->uisys.dispatch(event);
@@ -133,7 +150,7 @@ void Application::scroll_callback(GLFWwindow* window, double xoffset, double yof
     event.scroll_delta = static_cast<float>(yoffset);
     double mx, my;
     glfwGetCursorPos(window, &mx, &my);
-    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my);
+    event.mouse_pos = cursor_to_framebuffer(app->window_, mx, my) / app->ui_scale_;
     app->uisys.dispatch(event);
 }
 

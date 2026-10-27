@@ -91,7 +91,7 @@ inline void append_text_debug(DrawList& list, FontAtlas& atlas,
             continue;
         }
 
-        const FontAtlas::Glyph* glyph = atlas.glyph(codepoint, FontAtlas::quantize_size(size));
+        const FontAtlas::Glyph* glyph = atlas.glyph(codepoint, atlas.glyph_pixel_size(size));
         const float advance = (glyph ? glyph->advance_ratio : 0.5f) * size;
 
         // 换行规则与 append_text_wrapped 一致：行内已有内容且放不下时折行。

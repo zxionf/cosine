@@ -688,8 +688,11 @@ void Renderer::recreate_render_finished_semaphores()
 void Renderer::update_push_constants()
 {
     const vk::Extent2D extent = active_target_.valid() ? active_target_.extent : swap_chain_.extent();
+    // UI 逻辑坐标 → NDC；viewport 仍是物理像素，因此整体被放大 ui_scale_ 倍。
+    const float logical_w = static_cast<float>(extent.width) / ui_scale_;
+    const float logical_h = static_cast<float>(extent.height) / ui_scale_;
     PushConstant push_constant{
-        .scale      = glm::vec2(2.0f / extent.width, 2.0f / extent.height),
+        .scale      = glm::vec2(2.0f / logical_w, 2.0f / logical_h),
         .translate  = glm::vec2(-1.0f,                -1.0f),
         .time = static_cast<float>(glfwGetTime())
     };
@@ -899,10 +902,10 @@ void Renderer::end()
         const float sy0 = batch.scissor.y;
         const float sx1 = sx0 + std::max(0.0f, batch.scissor.z);
         const float sy1 = sy0 + std::max(0.0f, batch.scissor.w);
-        const int x0 = std::max(0, static_cast<int>(std::lround(sx0)));
-        const int y0 = std::max(0, static_cast<int>(std::lround(sy0)));
-        const int x1 = std::min(static_cast<int>(target.extent.width), static_cast<int>(std::lround(sx1)));
-        const int y1 = std::min(static_cast<int>(target.extent.height), static_cast<int>(std::lround(sy1)));
+        const int x0 = std::max(0, static_cast<int>(std::lround(sx0 * ui_scale_)));
+        const int y0 = std::max(0, static_cast<int>(std::lround(sy0 * ui_scale_)));
+        const int x1 = std::min(static_cast<int>(target.extent.width), static_cast<int>(std::lround(sx1 * ui_scale_)));
+        const int y1 = std::min(static_cast<int>(target.extent.height), static_cast<int>(std::lround(sy1 * ui_scale_)));
         const uint32_t scissor_w = static_cast<uint32_t>(std::max(0, x1 - x0));
         const uint32_t scissor_h = static_cast<uint32_t>(std::max(0, y1 - y0));
         // 空裁剪区不提交绘制：某些驱动对 extent=0 的 scissor 行为不一致，

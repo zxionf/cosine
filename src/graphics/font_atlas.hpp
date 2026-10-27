@@ -67,6 +67,11 @@ public:
     bool ensure_glyph(char32_t codepoint) { return ensure_glyph(codepoint, base_pixel_size_); }
     int base_pixel_size() const { return base_pixel_size_; }
 
+    // DPI：字形按「逻辑字号 × pixel_ratio」栅格化，绘制仍用逻辑字号（由投影放大）。
+    void set_pixel_ratio(float ratio) { pixel_ratio_ = ratio > 0.0f ? ratio : 1.0f; }
+    float pixel_ratio() const { return pixel_ratio_; }
+    int glyph_pixel_size(float size) const { return quantize_size(size * pixel_ratio_); }
+
     bool valid() const { return tex_width_ > 0 && tex_height_ > 0; }
     int width() const { return tex_width_; }
     int height() const { return tex_height_; }
@@ -124,6 +129,7 @@ private:
     std::unordered_map<uint64_t, Glyph> glyphs_;
     std::unordered_set<uint64_t> missing_;
     int base_pixel_size_ = 16;
+    float pixel_ratio_ = 1.0f;
     GlyphLoader glyph_loader_;
     uint64_t revision_ = 0;
     bool last_add_out_of_space_ = false;

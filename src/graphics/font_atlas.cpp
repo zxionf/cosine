@@ -198,7 +198,7 @@ uint64_t FontAtlas::glyph_key(char32_t codepoint, int pixel_size)
 int FontAtlas::quantize_size(float size)
 {
     if (!(size > 0.0f)) return 1;
-    return std::clamp(static_cast<int>(std::lround(size)), 4, 160);
+    return std::clamp(static_cast<int>(std::lround(size)), 4, 256);
 }
 
 float FontAtlas::used_ratio() const
@@ -273,7 +273,7 @@ const FontAtlas::Glyph* FontAtlas::glyph_or_fallback(char32_t codepoint, int pix
 
 glm::vec2 FontAtlas::measure(std::string_view text, float size, float line_spacing)
 {
-    const int glyph_px = quantize_size(size);
+    const int glyph_px = glyph_pixel_size(size);
     float max_w = 0.0f;
     float line_w = 0.0f;
     int lines = 1;
@@ -309,7 +309,7 @@ glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float ma
 {
     if (max_width <= 0.0f) return measure(text, size, line_spacing);
 
-    const int glyph_px = quantize_size(size);
+    const int glyph_px = glyph_pixel_size(size);
     float max_w = 0.0f;
     float line_w = 0.0f;
     int lines = 1;
@@ -345,7 +345,7 @@ glm::vec2 FontAtlas::measure_wrapped(std::string_view text, float size, float ma
 void FontAtlas::append_glyph(DrawBatch& batch, float& pen_x, float& pen_y, float size,
                              char32_t codepoint, glm::vec4 color, const TextClip& clip) const
 {
-    const int glyph_px = quantize_size(size);
+    const int glyph_px = glyph_pixel_size(size);
     const Glyph* g = glyph_or_fallback(codepoint, glyph_px);
     if (!g) {
         pen_x += size * 0.5f;
@@ -401,7 +401,7 @@ void FontAtlas::append_text(DrawList& list, float x, float y, float size,
     auto& batch = list.batch();
     float pen_x = x;
     float pen_y = y;
-    const int glyph_px = quantize_size(size);
+    const int glyph_px = glyph_pixel_size(size);
 
     std::size_t index = 0;
     while (index < text.size()) {
@@ -431,12 +431,12 @@ void FontAtlas::append_text_wrapped(DrawList& list, float x, float y, float size
     float line_w = 0.0f;
     int lines_used = 1;
 
-    const int glyph_px = quantize_size(size);
+    const int glyph_px = glyph_pixel_size(size);
 
     auto draw_ellipsis = [&]() {
         if (!ellipsis) return;
         for (int i = 0; i < 3; ++i) {
-            const Glyph* dot = glyph_or_fallback(U'.', quantize_size(size));
+            const Glyph* dot = glyph_or_fallback(U'.', glyph_pixel_size(size));
             if (!dot) break;
             const float advance = dot->advance_ratio * size;
             if (line_w + advance > max_width) break;

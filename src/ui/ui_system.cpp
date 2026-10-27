@@ -126,8 +126,11 @@ void UISystem::tick(float dt)
             last_width_ = extent.width;
             last_height_ = extent.height;
             root_->set_pos(0, 0);
-            root_->set_size(static_cast<float>(extent.width), static_cast<float>(extent.height));
-            root_->set_global_bounds({{0, 0}, {static_cast<float>(extent.width), static_cast<float>(extent.height)}});
+            // 物理 extent → 逻辑尺寸；投影与输入按同一比例换算。
+            const float logical_w = static_cast<float>(extent.width) / ui_scale_;
+            const float logical_h = static_cast<float>(extent.height) / ui_scale_;
+            root_->set_size(logical_w, logical_h);
+            root_->set_global_bounds({{0, 0}, {logical_w, logical_h}});
             root_->mark_layout_dirty();
         }
     }

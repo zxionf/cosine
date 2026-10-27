@@ -17,9 +17,14 @@ public:
     backend::vulkan::Renderer renderer_;
     ui::UISystem uisys;
 
+    // DPI：逻辑像素 → framebuffer 像素的缩放比（COSINE_UI_SCALE，默认 1.0）。
+    float ui_scale() const { return ui_scale_; }
+
     Application(int window_w, int window_h, const std::string& title);
     ~Application();
 private:
+    float ui_scale_ = 1.0f;
+
     static void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
     static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
     static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);

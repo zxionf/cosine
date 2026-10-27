@@ -54,6 +54,11 @@ public:
     void set_scissor(float x, float y, float w, float h);
     void reset_scissor();
 
+    // DPI：UI 使用逻辑像素坐标，投影与 scissor 按此比例换算到 framebuffer 像素。
+    void set_ui_scale(float scale) { ui_scale_ = scale > 0.0f ? scale : 1.0f; }
+    float ui_scale() const { return ui_scale_; }
+    void set_font_pixel_ratio(float ratio) { font_atlas_.set_pixel_ratio(ratio); }
+
     void draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color);
     void draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color);
     void draw_rect(float x, float y, float width, float height, glm::vec4 color);
@@ -167,6 +172,7 @@ private:
     std::vector<vk::raii::Semaphore> render_finished_semaphores_;
     std::vector<vk::raii::Fence>     in_flight_fences_;
     uint32_t frame_index_ = 0;
+    float ui_scale_ = 1.0f;
     uint32_t image_index_ = 0;
     bool     frame_acquired_ = false;
 

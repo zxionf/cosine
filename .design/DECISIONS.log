@@ -620,3 +620,8 @@ Change: 20261027-line-height-metrics
 Context: FontFace 直接用 FreeType height 作行高且只钳下限 1.0；部分字体 height < ascender+|descender|，降部被行框或控件边界裁切
 Decision: 新增 FontAtlas::normalize_metrics：line_height_ratio = max(line_height, ascent - descent, 1.0)；begin_generated 与 FontFace::metrics 统一走它
 Consequences: 行框与控件高度保证容得下降部，多行测量随之统一；行高可能变大导致布局略微增高（预期效果）
+## [125] 2026-10-27 02:45:02 UTC
+Change: 20261027-ui-dpi-scale
+Context: UI 坐标直接等于 framebuffer 像素，DPR>1 时 UI 过小；字形按逻辑字号栅格化在放大后会模糊
+Decision: 引入 ui_scale（默认 1.0）：root 尺寸与输入除以它，push constant 用逻辑尺寸，scissor 乘它；字形按 size*ratio 栅格化（上限 256）；COSINE_UI_SCALE=auto|数值 启用
+Consequences: 默认行为不变；高 DPI 下 UI 放大且字形清晰；运行中 DPI 变化需重启

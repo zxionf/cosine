@@ -24,6 +24,10 @@ public:
     // dt 单位为秒；UI 状态过渡用它推进。无参重载按 1/60s 处理，保持旧调用点不变。
     void tick(float dt);
 
+    // DPI：root 以逻辑像素为尺寸，物理 extent 除以该比例。默认 1.0，行为不变。
+    void set_ui_scale(float scale) { ui_scale_ = scale > 0.0f ? scale : 1.0f; }
+    float ui_scale() const { return ui_scale_; }
+
     void dispatch(const event::InputEvent& event);
 
     Widget* focused() const { return focused_.widget; }
@@ -116,6 +120,7 @@ private:
     PressRecord press_;
 
     uint32_t last_width_ = 0;
+    float ui_scale_ = 1.0f;
     uint32_t last_height_ = 0;
 
     backend::Window* window_ = nullptr;
