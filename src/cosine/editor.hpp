@@ -1,6 +1,8 @@
 #pragma once
 
+#include "anim/player.hpp"
 #include "anim/project.hpp"
+#include "ui/button.hpp"
 #include "ui/color_input.hpp"
 #include "ui/drag_float.hpp"
 #include "ui/label.hpp"
@@ -8,6 +10,7 @@
 #include "ui/panel.hpp"
 #include "ui/root.hpp"
 #include "ui/scene_view.hpp"
+#include "ui/timeline_view.hpp"
 #include "ui/tree_view.hpp"
 #include "ui/ui_system.hpp"
 #include "ui/widget.hpp"
@@ -42,6 +45,8 @@ public:
 
 private:
     void build();
+    void build_backdrop();
+    void toggle_playback();
     void build_menu();
     void build_toolbar();
     void build_panels();
@@ -62,15 +67,17 @@ private:
     ui::UIRoot* root_ = nullptr;
     ui::UISystem* uisys_ = nullptr;
     anim::Project project_;
+    std::unique_ptr<anim::Player> player_;
 
     ui::MenuBar* menu_ = nullptr;
+    ui::Panel* menu_bg_ = nullptr;
+    ui::Panel* toolbar_bg_ = nullptr;
     ui::Widget* toolbar_ = nullptr;
+    ui::Button* play_button_ = nullptr;
     ui::TreeView* scene_tree_ = nullptr;
     ui::SceneView* preview_ = nullptr;
     ui::Panel* property_panel_ = nullptr;
-    ui::Panel* timeline_panel_ = nullptr;
-    ui::Label* property_label_ = nullptr;
-    ui::Label* timeline_label_ = nullptr;
+    ui::TimelineView* timeline_view_ = nullptr;    ui::Label* property_label_ = nullptr;
     ui::Label* status_ = nullptr;
 
     // 属性面板行（M6.2）。

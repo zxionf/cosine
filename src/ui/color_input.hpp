@@ -77,25 +77,24 @@ public:
         }
 
         const float pad = std::max(4.0f, t.padding * 0.5f);
-        const float swatch = std::max(12.0f, global_.size.y - pad * 2.0f);
-        float x = global_.pos.x + pad;
 
         auto* atlas = font_atlas();
         if (atlas != nullptr && !label_.empty()) {
             const float line = atlas->line_height(t.text_size);
-            atlas->append_text(list, x, global_.pos.y + (global_.size.y - line) * 0.5f, t.text_size,
+            atlas->append_text(list, global_.pos.x + pad,
+                               global_.pos.y + (global_.size.y - line) * 0.5f, t.text_size,
                                label_, enabled_ ? t.text : t.text_disabled);
-            x += atlas->measure_width(label_, t.text_size) + pad;
         }
 
-        for (const glm::vec4& swatch_color : palette_) {
-            const glm::vec4 rect{x, global_.pos.y + pad, swatch, swatch};
-            graphics::append_rounded_rect(list, rect, 3.0f, swatch_color);
-            if (same_color(swatch_color, color_)) {
-                graphics::append_rounded_ring(list, rect, 3.0f, 2.0f,
+        // 色块矩形统一走 swatch_rect()：像素取整，避免 2px 环落在半像素上造成厚薄不均。
+        for (std::size_t i = 0; i < palette_.size(); ++i) {
+            const glm::vec4 rect = swatch_rect(i);
+            const float swatch_radius = std::min(radius, rect.z * 0.5f);
+            graphics::append_rounded_rect(list, rect, swatch_radius, palette_[i]);
+            if (same_color(palette_[i], color_)) {
+                graphics::append_rounded_ring(list, rect, swatch_radius, 2.0f,
                                               enabled_ ? t.accent : t.text_disabled);
             }
-            x += swatch + pad * 0.5f;
         }
 
         // 右侧十六进制：空间不足时不画，避免和色块挤在一起。
@@ -103,7 +102,8 @@ public:
         if (atlas != nullptr) {
             const float text_width = atlas->measure_width(text, t.text_size);
             const float right = global_.pos.x + global_.size.x - pad;
-            if (right - x >= text_width + pad) {
+            const glm::vec4 last_swatch = swatch_rect(palette_.size() - 1);
+            if (right - (last_swatch.x + last_swatch.z) >= text_width + pad) {
                 const float line = atlas->line_height(t.text_size);
                 atlas->append_text(list, right - text_width,
                                    global_.pos.y + (global_.size.y - line) * 0.5f, t.text_size,
@@ -180,25 +180,33 @@ private:
                            to_byte(color_.b));
     }
 
-    int swatch_hit(glm::vec2 pos) const
+    // 色块矩形：绘制与命中共用。位置严格取整，否则 2px 选中环会落在半像素上，
+    // 上/左被削薄、下/右显得厚。
+    glm::vec4 swatch_rect(std::size_t index) const
     {
-        const float pad = std::max(4.0f, ui_theme().padding * 0.5f);
-        const float swatch = std::max(12.0f, global_.size.y - pad * 2.0f);
-        float x = global_.pos.x + pad;
+        const auto& t = ui_theme();
+        const float pad = std::max(4.0f, t.padding * 0.5f);
+        const float swatch = std::max(12.0f, std::round(global_.size.y - pad * 2.0f));
 
+        float x = global_.pos.x + pad;
         if (!label_.empty()) {
             if (auto* atlas = font_atlas()) {
-                x += atlas->measure_width(label_, ui_theme().text_size) + pad;
+                x += atlas->measure_width(label_, t.text_size) + pad;
             }
         }
+        x += (swatch + pad * 0.5f) * static_cast<float>(index);
 
+        return {std::round(x), std::round(global_.pos.y + pad), swatch, swatch};
+    }
+
+    int swatch_hit(glm::vec2 pos) const
+    {
         for (std::size_t i = 0; i < palette_.size(); ++i) {
-            const glm::vec4 rect{x, global_.pos.y + pad, swatch, swatch};
+            const glm::vec4 rect = swatch_rect(i);
             if (pos.x >= rect.x && pos.x <= rect.x + rect.z && pos.y >= rect.y
                 && pos.y <= rect.y + rect.w) {
                 return static_cast<int>(i);
             }
-            x += swatch + pad * 0.5f;
         }
         return -1;
     }

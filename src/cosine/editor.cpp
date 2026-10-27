@@ -8,9 +8,13 @@ namespace xel::anim { namespace scene = ::xel::scene; }
 #include "anim/property.hpp"
 #include "ui/button.hpp"
 #include "ui/hbox.hpp"
+#include "ui/scroll_panel.hpp"
 #include "ui/theme.hpp"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <format>
 #include <functional>
 #include <string>
 #include <utility>
@@ -22,14 +26,14 @@ namespace
 namespace ns = xel::scene;
 namespace prop = xel::anim::prop;
 
-constexpr float kMenuHeight = 26.0f;
-constexpr float kToolbarHeight = 40.0f;
-constexpr float kTreeWidth = 240.0f;
-constexpr float kPropertyWidth = 300.0f;
-constexpr float kTimelineRatio = 0.30f;
+constexpr float kMenuHeight = 44.0f;
+constexpr float kToolbarHeight = 62.0f;
+constexpr float kTreeWidth = 280.0f;
+constexpr float kPropertyWidth = 380.0f;
+constexpr float kTimelineRatio = 0.28f;
 constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
 constexpr float kRadToDeg = 180.0f / 3.14159265358979323846f;
-constexpr float kStatusHeight = 22.0f;
+constexpr float kStatusHeight = 28.0f;
 
 // 固定尺寸 + 固定位置：UIRoot 的自由画布布局会尊重子项的 pos/size。
 void place(ui::Widget* widget, float x, float y, float width, float height)
@@ -46,7 +50,13 @@ void place(ui::Widget* widget, float x, float y, float width, float height)
 
 Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys) : root_(&root), uisys_(&uisys)
 {
+    // 验证用：COSINE_EDITOR_ROUNDED=1 启动即启用实验性圆角样式。
+    if (std::getenv("COSINE_EDITOR_ROUNDED") != nullptr) experimental_rounded_ = true;
+
     build_demo_content();
+    // Player 只持引用，Project 先于它存在且生命周期更长。
+    player_ = std::make_unique<anim::Player>(project_.scene, project_.timeline);
+    player_->play();
     build();
     apply_theme();
     layout();
@@ -54,9 +64,32 @@ Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys) : root_(&root), uisys_(&ui
 
 void Editor::build()
 {
+    build_backdrop();
     build_menu();
     build_toolbar();
     build_panels();
+}
+
+void Editor::toggle_playback()
+{
+    if (player_ == nullptr) return;
+    player_->toggle();
+    if (play_button_ != nullptr) {
+        play_button_->set_label(player_->playing() ? "Pause" : "Play");
+    }
+    set_status(player_->playing() ? "playing" : "paused");
+}
+
+void Editor::build_backdrop()
+{
+    // 菜单栗 / 工具栏的底色条：先 add，保证绘制在内容之下。
+    auto menu_bg = std::make_unique<ui::Panel>(0.0f, 0.0f, 1280.0f, kMenuHeight);
+    menu_bg_ = menu_bg.get();
+    root_->add(std::move(menu_bg));
+
+    auto toolbar_bg = std::make_unique<ui::Panel>(0.0f, 0.0f, 1280.0f, kToolbarHeight);
+    toolbar_bg_ = toolbar_bg.get();
+    root_->add(std::move(toolbar_bg));
 }
 
 void Editor::build_menu()
@@ -83,7 +116,7 @@ void Editor::build_menu()
     });
 
     menu->add_menu("Playback", {
-        ui::MenuItem::make("Play", [this] { set_status("play: pending M6.4b"); }, "Space"),
+        ui::MenuItem::make("Play / Pause", [this] { toggle_playback(); }, "Space"),
         ui::MenuItem::make("Reset", [this] {
             time_ = 0.0f;
             set_status("time reset");
@@ -97,15 +130,22 @@ void Editor::build_toolbar()
 {
     auto toolbar = std::make_unique<ui::Hbox>(0.0f, 0.0f, 520.0f, kToolbarHeight);
     toolbar->set_spacing(6.0f);
+    toolbar->set_cross_align(ui::Align::center_left()); // 垂直居中，避免按钮顶到条边
     toolbar_ = toolbar.get();
 
     auto add = [&toolbar](std::string label, std::function<void()> action) {
         toolbar->add(std::make_unique<ui::Button>(std::move(label), std::move(action)));
     };
-    add("Play", [this] { set_status("play: pending M6.4b"); });
+    auto play = std::make_unique<ui::Button>("Pause", [this] { toggle_playback(); });
+    play_button_ = play.get();
+    toolbar->add(std::move(play));
+
     add("Reset", [this] {
+        if (player_ == nullptr) return;
+        player_->seek(0.0f);
         time_ = 0.0f;
-        set_status("time reset");
+        if (timeline_view_ != nullptr) timeline_view_->set_time(0.0f);
+        set_status("reset to 0s");
     });
     add("Add Shape", [this] { add_shape_node(); });
     add("Style", [this] { toggle_rounded_style(); });
@@ -117,6 +157,7 @@ void Editor::build_panels()
 {
     auto tree = std::make_unique<ui::TreeView>(kTreeWidth, 300.0f);
     scene_tree_ = tree.get();
+    tree->set_row_height(38.0f); // 字号放大后行高要跟上，否则文字被裁
     tree->set_on_select([this](const std::vector<int>& path) { on_scene_selected(path); });
     root_->add(std::move(tree));
 
@@ -126,15 +167,26 @@ void Editor::build_panels()
 
     build_property_panel();
 
-    auto timeline = std::make_unique<ui::Panel>(0.0f, 0.0f, 800.0f, 200.0f);
-    timeline_panel_ = timeline.get();
-    auto timeline_label = std::make_unique<ui::Label>(
-        "Timeline placeholder (M6.3): ruler, tracks, keyframes", 13.0f);
-    timeline_label_ = timeline_label.get();
-    timeline->add(std::move(timeline_label));
+    // 时间轴：标尺 + 轨道 + 关键帧（M6.3）。
+    auto timeline = std::make_unique<ui::TimelineView>(&project_.timeline);
+    timeline_view_ = timeline.get();
+    timeline->set_pixels_per_second(120.0f);
+    timeline->set_on_seek([this](float seconds) {
+        if (player_ != nullptr) player_->seek(seconds);
+        time_ = seconds;
+        set_status(std::format("seek {:.2f}s", seconds));
+    });
+    timeline->set_on_key_moved([this] {
+        if (preview_ != nullptr) preview_->mark_layout_dirty();
+        set_status("keyframe moved");
+    });
+    timeline->set_on_changed([this] {
+        if (preview_ != nullptr) preview_->mark_layout_dirty();
+        set_status("timeline edited");
+    });
     root_->add(std::move(timeline));
 
-    auto status = std::make_unique<ui::Label>("ready", 12.0f);
+    auto status = std::make_unique<ui::Label>("ready", 18.0f);
     status_ = status.get();
     root_->add(std::move(status));
 
@@ -206,10 +258,11 @@ void Editor::refresh_scene_tree()
 
 void Editor::build_property_panel()
 {
-    auto panel = std::make_unique<ui::Panel>(0.0f, 0.0f, kPropertyWidth, 400.0f);
+    // 属性行数多于可用高度，用可滚动面板。
+    auto panel = std::make_unique<ui::ScrollPanel>(0.0f, 0.0f, kPropertyWidth, 400.0f);
     property_panel_ = panel.get();
 
-    auto title = std::make_unique<ui::Label>("Properties — no selection", 13.0f);
+    auto title = std::make_unique<ui::Label>("Properties — no selection", 20.0f);
     property_label_ = title.get();
     panel->add(std::move(title));
 
@@ -359,11 +412,19 @@ void Editor::apply_theme()
 {
     // classic 为默认外观：直角、无过渡、键盘焦点环。
     // 实验性圆角样式需要从 dark() 重新派生（with_rounding 是单向变换）。
-    const ui::Theme theme = ui::Theme::dark()
-                                .with_rounding(experimental_rounded_)
-                                .with_radius_scale(experimental_rounded_ ? 1.0f : 0.0f)
-                                .with_focus_policy(ui::FocusPolicy::Always)
-                                .with_transition_ms(experimental_rounded_ ? 120.0f : 0.0f);
+    const ui::Theme base = ui::Theme::dark()
+                               .with_rounding(experimental_rounded_)
+                               .with_radius_scale(experimental_rounded_ ? 1.0f : 0.0f)
+                               .with_focus_policy(ui::FocusPolicy::Always)
+                               .with_transition_ms(experimental_rounded_ ? 120.0f : 0.0f);
+    // 编辑器比 gallery 观看距离更远：字号与控件高度适度放大。
+    ui::Theme theme = base;
+    theme.text_size = 24.0f;
+    theme.small_text_size = 18.0f;
+    theme.heading_text_size = 32.0f;
+    theme.control_height = 44.0f;
+    theme.padding = 10.0f;
+    theme.spacing = 8.0f;
     root_->set_theme(theme);
 }
 
@@ -394,12 +455,14 @@ void Editor::layout()
     }
     const float preview_width = std::max(120.0f, width - tree_width - property_width);
 
+    place(menu_bg_, 0.0f, 0.0f, width, kMenuHeight);
     place(menu_, 0.0f, 0.0f, width, kMenuHeight);
+    place(toolbar_bg_, 0.0f, kMenuHeight, width, kToolbarHeight);
     place(toolbar_, 0.0f, kMenuHeight, width, kToolbarHeight);
     place(scene_tree_, 0.0f, body_top, tree_width, work_height);
     place(preview_, tree_width, body_top, preview_width, work_height);
     place(property_panel_, tree_width + preview_width, body_top, property_width, work_height);
-    place(timeline_panel_, 0.0f, body_top + work_height, width, timeline_height);
+    place(timeline_view_, 0.0f, body_top + work_height, width, timeline_height);
     place(status_, 0.0f, status_y, width, kStatusHeight);
 
     if (preview_ != nullptr) preview_->mark_layout_dirty();
@@ -407,7 +470,11 @@ void Editor::layout()
 
 void Editor::tick(float dt)
 {
-    time_ += dt;
+    if (player_ != nullptr) {
+        player_->tick(dt);
+        time_ = player_->time();
+        if (timeline_view_ != nullptr) timeline_view_->set_time(time_);
+    }
 
     const float width = root_->width();
     const float height = root_->height();

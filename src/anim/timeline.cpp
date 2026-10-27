@@ -43,6 +43,19 @@ bool Track::remove_key(float time)
     return true;
 }
 
+bool Track::set_key_time(float old_time, float new_time)
+{
+    const auto it = std::find_if(keys_.begin(), keys_.end(),
+                                 [old_time](const Keyframe& k) { return k.time == old_time; });
+    if (it == keys_.end()) return false;
+
+    Keyframe key = std::move(*it);
+    keys_.erase(it);
+    key.time = new_time;
+    add_key(std::move(key)); // 重新插入以保持有序
+    return true;
+}
+
 PropertyValue Track::sample(float time) const
 {
     if (keys_.empty()) return PropertyValue{0.0f};

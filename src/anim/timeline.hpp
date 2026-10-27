@@ -31,6 +31,8 @@ public:
     void add_key(Keyframe key);
     // 删除 time 精确匹配的关键帧；返回是否删除。
     bool remove_key(float time);
+    // 修改关键帧时间并保持有序；返回是否找到。
+    bool set_key_time(float old_time, float new_time);
     const std::vector<Keyframe>& keys() const { return keys_; }
 
     // 两端外推取端点；单帧轨道恒定。
@@ -74,6 +76,8 @@ public:
     Track* find_track(scene::NodeId node, PropertyId prop);
     const Track* find_track(scene::NodeId node, PropertyId prop) const;
     const std::vector<Track>& tracks() const { return tracks_; }
+    // 非 const：时间轴视图需要移动关键帧。
+    std::vector<Track>& tracks() { return tracks_; }
 
     void apply(scene::Scene& scene) const { apply(scene, time_); }
     void apply(scene::Scene& scene, float time) const;

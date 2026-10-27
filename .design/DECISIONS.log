@@ -665,3 +665,18 @@ Change: 20261027-color-input
 Context: 属性面板需要颜色输入；4 个 DragFloat 分量不直观
 Decision: ColorInput = 预设色板（6 色，可替换）+ 当前色高亮 + hex 只读显示 + 键盘 Left/Right 循环；点击色块即选；回调只取 RGB，alpha 保留节点原值；gallery 新增 Properties 分区（index 8）作独立验收
 Consequences: hex 文本输入待 TextInput 组合；gallery 分区数 8→9，测试断言需同步；取色器（HSV）不做
+## [134] 2026-10-27 12:57:52 UTC
+Change: 20261027-timeline-view
+Context: M6.3 需要时间轴编辑视图；现有 Track 的 keys() 只读，无法移动关键帧
+Decision: 新增 Track::set_key_time（erase + 保序重插）与非 const tracks()；TimelineView 用像素/秒映射绘制标尺+轨道+菱形关键帧+播放头，点击关键帧±8px 选中并拖拽，点其它位置 seek；编辑器用 COSINE_EXPORT_PNG 离屏导出界面验收
+Consequences: 播放头暂由 time_ 模拟；框选/吸附/右键菜单待补；导出时必须显式固定 root 尺寸（窗口回调未到时 layout 会 early-return）
+## [135] 2026-10-27 13:20:05 UTC
+Change: 20261027-timeline-interactions
+Context: M6.3 需要可用的时间轴交互，且播放要真正驱动预览
+Decision: 拖动吸附（整秒/其它关键帧，6px 阈值）、右键删除（空轨道一并移除）、双击循环插值；Editor 持 Player，tick 驱动游标与预览；导出加 COSINE_EXPORT_TIME 便于验证播放
+Consequences: 框选多选与批量移动待补；时间轴编辑暂不接 CommandStack（M6.4b 统一）；播放时属性面板不实时刷新
+## [136] 2026-10-27 13:47:34 UTC
+Change: 20261027-timeline-interactions
+Context: 时间轴需要多选批量移动；单个 key 顺序移动会与已有 key 碰撞；M6.3 验收要求存盘往返
+Decision: 轨道区空白按下框选（标尺区仍是 scrub），选中集合用 track+time；批量移动按 delta 方向排序后再移（右移先移大的）；拖动中同步 selected_time 与 selection；新增 test_edit_then_round_trip 验收
+Consequences: 未接 CommandStack（M6.4b）；框选每次重置、不支持追加选择
