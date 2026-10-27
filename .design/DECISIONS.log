@@ -610,3 +610,8 @@ Change: 20261027-atlas-dirty-upload
 Context: 动态加载单个字形会重传整张 2048² 纹理（16MB），造成加载卡顿
 Decision: FontAtlas 维护脏矩形（add_glyph 扩展、take_dirty_rect 读后清零）；渲染层按脏矩形做紧凑 staging + VkBufferImageCopy 区域上传；无像素变化时跳过上传
 Consequences: 单字形上传量降到几十 KB；多字形分散时合并为包围盒可能偏大；未做多矩形合并与分页图集
+## [123] 2026-10-27 02:16:57 UTC
+Change: 20261027-label-measure-cache
+Context: Label::append_to 每帧调用 atlas->measure 计算文本宽度，左对齐时完全无用；measure 也缺结果缓存
+Decision: 左对齐跳过测量；Label 维护单条测量缓存（key 含 text/size/wrap宽度/行距/行数/图集指针），相关 setter 与切图集都会失效
+Consequences: 左对齐 Label 每帧零测量；缓存单条，多约束交替会退化为重算但结果正确
