@@ -231,7 +231,7 @@ layout 每帧都会跑（子控件 `arrange` 里的 `set_size` 触发 `mark_layo
 - 发布阶段再按当时的 GitHub runner 工具链（编译器版本、Vulkan 头版本、源码编码选项）重建 GitHub Actions 脚本。
 
 ## 版本号
-- `project(cosvideo VERSION 0.3.0)` 作为唯一版本源；CMake 生成 `version.hpp`（`xel::version_string()`）。
+- `project(cosine VERSION 0.4.0)` 作为唯一版本源；CMake 生成 `version.hpp`（`xel::version_string()`）。
 - `ui_demo --version` 输出 `cosine <version>`，用于打包校验。
 - 版本号不在多个脚本里重复硬编码，打包脚本从 CMake 缓存 `PROJECT_VERSION` 读取。
 

@@ -4,7 +4,7 @@ MVP 的发布形态是**免安装的压缩包**：解压后直接运行，不需
 
 ## 版本号
 
-版本号唯一来源是根 `CMakeLists.txt` 的 `project(cosvideo VERSION ...)`。
+版本号唯一来源是根 `CMakeLists.txt` 的 `project(cosine VERSION ...)`。
 CMake 会生成 `xel/version.hpp`，`ui_demo --version` 输出：
 
 ```text

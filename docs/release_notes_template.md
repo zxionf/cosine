@@ -1,7 +1,7 @@
 # 发布说明模板
 
 > 复制本文件为 `dist/RELEASE_NOTES-<version>.md` 或粘贴到 GitHub Release。
-> 版本号与 `VERSION` / `ui_demo --version` / `project(cosvideo VERSION ...)` 保持一致。
+> 版本号与 `VERSION` / `ui_demo --version` / `project(cosine VERSION ...)` 保持一致。
 
 ## cosine <version>
 
