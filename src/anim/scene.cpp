@@ -32,6 +32,30 @@ NodeId Scene::create(NodeType type, std::string name)
     return id;
 }
 
+NodeId Scene::insert(Node node)
+{
+    if (node.id == kInvalidNode || nodes_.count(node.id) != 0) return kInvalidNode;
+
+    const NodeId id = node.id;
+    if (id >= next_id_) next_id_ = id + 1;
+    nodes_.emplace(id, std::move(node));
+    return id;
+}
+
+void Scene::clear()
+{
+    nodes_.clear();
+    root_ = kInvalidNode;
+    next_id_ = 1;
+}
+
+bool Scene::set_root(NodeId id)
+{
+    if (nodes_.count(id) == 0) return false;
+    root_ = id;
+    return true;
+}
+
 Node* Scene::find(NodeId id)
 {
     const auto it = nodes_.find(id);

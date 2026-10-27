@@ -72,6 +72,16 @@ public:
     // 创建节点并挂到 root 下。
     NodeId create(NodeType type, std::string name = {});
 
+    // 用指定 id 插入节点（序列化读回用）。id 为 0 或已存在时返回 kInvalidNode。
+    // 不自动挂到 root，也不修正 parent：父子关系由调用方第二遍设置。
+    // 会提升 next_id_，避免后续 create 复用已存在的 id。
+    NodeId insert(Node node);
+
+    // 清空所有节点（含默认 root）；root_ 重置为无效，next_id_ 归 1。
+    void clear();
+    // 指定 root 节点（必须存在）。序列化读回后用它恢复「新节点自动挂到 root」。
+    bool set_root(NodeId id);
+
     Node* find(NodeId id);
     const Node* find(NodeId id) const;
 

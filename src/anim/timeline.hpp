@@ -29,6 +29,8 @@ public:
     PropertyId property() const { return property_; }
 
     void add_key(Keyframe key);
+    // 删除 time 精确匹配的关键帧；返回是否删除。
+    bool remove_key(float time);
     const std::vector<Keyframe>& keys() const { return keys_; }
 
     // 两端外推取端点；单帧轨道恒定。
@@ -64,6 +66,13 @@ public:
     void advance(float dt);
 
     Track& add_track(scene::NodeId node, PropertyId prop);
+    // 存在 (node, prop) 则复用，否则新建。编辑器与命令层使用。
+    Track& ensure_track(scene::NodeId node, PropertyId prop);
+    // 删除 (node, prop) 轨道；返回是否存在。
+    bool remove_track(scene::NodeId node, PropertyId prop);
+    // 查找轨道指针；不存在返回 nullptr。
+    Track* find_track(scene::NodeId node, PropertyId prop);
+    const Track* find_track(scene::NodeId node, PropertyId prop) const;
     const std::vector<Track>& tracks() const { return tracks_; }
 
     void apply(scene::Scene& scene) const { apply(scene, time_); }

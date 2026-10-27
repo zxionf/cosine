@@ -640,3 +640,13 @@ Change: 20261027-offscreen-export
 Context: M6 需要把 UI 场景导出为图片，但仓库无离屏 target、无图像读回、无 PNG 写盘
 Decision: 离屏渲染复用 RenderTarget（final_layout=eTransferSrcOptimal）+ 单次命令 + copyImageToBuffer；格式用 B8G8R8A8_SRGB 与管线一致，读回后转 RGBA 写 PNG；导出入口 COSINE_EXPORT_PNG
 Consequences: 导出同步阻塞、只用于导出；字形必须在 append 之后再同步纹理，否则新字号不可见；M6.6 帧序列与视频复用同一路径
+## [129] 2026-10-27 06:54:12 UTC
+Change: none
+Context: M6.1 需要项目文件格式；候选 JSON / 自定义文本 / 二进制
+Decision: 采用二进制：16 字节头（'CSNP' + 0D0A1A0A + major.minor + flags + header_size=16）、固定小端、逐字段显式读写、单段落布局、节点按 id / 轨道按 (node,property) / 关键帧按 time 排序保证确定性；细节见 docs/project_format.md
+Consequences: 文件小、读取快、diff 不友好；major 不兼容 / minor 向后兼容；CRC 与压缩位已预留；将来内嵌资源时再改 chunk
+## [130] 2026-10-27 07:08:55 UTC
+Change: 20261027-project-serialize
+Context: M6.1 需要项目存盘与可撤销编辑；Scene 构造自带 root(id=1)，Timeline::add_track 无条件新建
+Decision: 按 docs/project_format.md 实现二进制读写；读回先 clear 再 insert，用「无父且 id 最小」重建 root；轨道用 ensure_track 去重；撤销用 Command 接口 + 幂等 apply/revert（AddNode 记住首次 id，RemoveNode 首次拍子树快照）
+Consequences: 重复保存字节一致；非法文件可读报错；命令必须幂等；撤销不含 UI 状态

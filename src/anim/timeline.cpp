@@ -34,6 +34,15 @@ void Track::add_key(Keyframe key)
     keys_.insert(it, std::move(key));
 }
 
+bool Track::remove_key(float time)
+{
+    const auto it = std::find_if(keys_.begin(), keys_.end(),
+                                 [time](const Keyframe& k) { return k.time == time; });
+    if (it == keys_.end()) return false;
+    keys_.erase(it);
+    return true;
+}
+
 PropertyValue Track::sample(float time) const
 {
     if (keys_.empty()) return PropertyValue{0.0f};
@@ -96,6 +105,40 @@ Track& Timeline::add_track(scene::NodeId node, PropertyId prop)
 {
     tracks_.emplace_back(node, prop);
     return tracks_.back();
+}
+
+Track& Timeline::ensure_track(scene::NodeId node, PropertyId prop)
+{
+    for (Track& track : tracks_) {
+        if (track.node() == node && track.property() == prop) return track;
+    }
+    return add_track(node, prop);
+}
+
+bool Timeline::remove_track(scene::NodeId node, PropertyId prop)
+{
+    const auto it = std::find_if(tracks_.begin(), tracks_.end(), [node, prop](const Track& track) {
+        return track.node() == node && track.property() == prop;
+    });
+    if (it == tracks_.end()) return false;
+    tracks_.erase(it);
+    return true;
+}
+
+Track* Timeline::find_track(scene::NodeId node, PropertyId prop)
+{
+    for (Track& track : tracks_) {
+        if (track.node() == node && track.property() == prop) return &track;
+    }
+    return nullptr;
+}
+
+const Track* Timeline::find_track(scene::NodeId node, PropertyId prop) const
+{
+    for (const Track& track : tracks_) {
+        if (track.node() == node && track.property() == prop) return &track;
+    }
+    return nullptr;
 }
 
 void Timeline::apply(scene::Scene& scene, float time) const

@@ -8,8 +8,9 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 1. `../.design/阶段计划.md` — 路线、阶段目标与出口条件（M1–M8）
 2. `../.design/SPEC.md` — 当前有效的设计事实（唯一真相源）
 3. `examples.md` — 四个示例的用途、按键与专属环境变量
-4. `project_assessment.md` — 历史评估与改进清单（归档）
-5. 按需深入具体主题（见下表）
+4. `project_format.md` — `.cosine` 项目文件格式（M6.1 开工前必读）
+5. `project_assessment.md` — 历史评估与改进清单（归档）
+6. 按需深入具体主题（见下表）
 
 ## 文档地图
 
@@ -20,6 +21,7 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 | `dependencies.md` | 第三方依赖、版本锁定、升级方式 |
 | `ci.md` | 构建命令、sanitizer、冒烟、测试分层与质量门、远端 CI 现状 |
 | `packaging.md` | 版本号、Linux/Windows 打包、资源与字体策略、运行依赖 |
+| `project_format.md` | `.cosine` 项目文件格式：文件头、版本、payload 布局、确定性、错误处理 |
 | `font_atlas.md` | 字体图集格式、FreeType 生成、动态字形、行高、脏矩形上传、DPI |
 | `history.md` | 已完成基线（M0 之前的骨架阶段）与历史变更摘要 |
 | `interpreter.md` | XEL 解释器结构与实现笔记 |

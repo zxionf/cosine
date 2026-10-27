@@ -133,6 +133,12 @@ target_link_libraries(test_anim_timeline PRIVATE cosine_anim)
 add_executable(test_anim_player test_anim_player.cpp)
 target_link_libraries(test_anim_player PRIVATE cosine_anim)
 
+add_executable(test_anim_serialize test_anim_serialize.cpp)
+target_link_libraries(test_anim_serialize PRIVATE cosine_anim)
+
+add_executable(test_anim_command test_anim_command.cpp)
+target_link_libraries(test_anim_command PRIVATE cosine_anim)
+
 add_executable(test_font_atlas_space test_font_atlas_space.cpp)
 target_link_libraries(test_font_atlas_space PRIVATE cosine_text)
 
@@ -183,6 +189,8 @@ set(COSINE_TEST_TARGETS
     test_anim_property
     test_anim_timeline
     test_anim_player
+    test_anim_serialize
+    test_anim_command
     test_font_atlas_space
     test_ui_label_measure
     test_font_atlas_metrics
@@ -237,6 +245,8 @@ add_test(NAME anim_scene COMMAND test_anim_scene)
 add_test(NAME anim_property COMMAND test_anim_property)
 add_test(NAME anim_timeline COMMAND test_anim_timeline)
 add_test(NAME anim_player COMMAND test_anim_player)
+add_test(NAME anim_serialize COMMAND test_anim_serialize)
+add_test(NAME anim_command COMMAND test_anim_command)
 add_test(NAME font_atlas_space COMMAND test_font_atlas_space)
 add_test(NAME ui_label_measure COMMAND test_ui_label_measure)
 add_test(NAME font_atlas_metrics COMMAND test_font_atlas_metrics)
