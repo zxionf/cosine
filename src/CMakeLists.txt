@@ -117,6 +117,10 @@ add_custom_target(copy_assets ALL
 )
 
 # find_package(OpenGl REQUIRED)
+# 最终产品（编辑器）默认构建；-DCOSINE_BUILD_EDITOR=OFF 可只构建库与测试。
+option(COSINE_BUILD_EDITOR "Build the cosine editor executable" ON)
+add_subdirectory(cosine)
+
 # add_executable(ex3 ex3.cpp)
 # target_link_libraries(ex3 PRIVATE glfw OpenGL::GL)
 

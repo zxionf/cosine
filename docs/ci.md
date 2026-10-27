@@ -26,6 +26,13 @@ cd build/examples
 COSINE_EXIT_AFTER=3 ./ui_gallery 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
 ```
 
+编辑器（产品）：
+
+```bash
+cd build/src/cosine
+COSINE_EXIT_AFTER=3 ./cosine 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
+```
+
 计数为 0 即通过。**不要用 `timeout` 强杀**——会跳过析构，掩盖资源释放问题。
 
 不接该变量的示例只有 `ui_demo`（手工关窗或用 `timeout` 兜底）。

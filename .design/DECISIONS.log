@@ -650,3 +650,8 @@ Change: 20261027-project-serialize
 Context: M6.1 需要项目存盘与可撤销编辑；Scene 构造自带 root(id=1)，Timeline::add_track 无条件新建
 Decision: 按 docs/project_format.md 实现二进制读写；读回先 clear 再 insert，用「无父且 id 最小」重建 root；轨道用 ensure_track 去重；撤销用 Command 接口 + 幂等 apply/revert（AddNode 记住首次 id，RemoveNode 首次拍子树快照）
 Consequences: 重复保存字节一致；非法文件可读报错；命令必须幂等；撤销不含 UI 状态
+## [131] 2026-10-27 11:28:01 UTC
+Change: 20261027-editor-skeleton
+Context: M6 需要产品级编辑器入口，examples 只是演示；用户要求默认 classic 样式与 smooth 滚动，圆角现代样式作为实验项
+Decision: 编辑器产品层放 src/cosine/（cosine_editor 静态库 + cosine 可执行，Application 不搬）；默认 Theme::dark().with_rounding(false).with_radius_scale(0).with_transition_ms(0)；实验性圆角经 View 菜单/Style 按钮切换；滚动沿用控件默认 Smooth
+Consequences: 产品与库同根、examples 保持演示语义；COSINE_BUILD_EDITOR 可关；实验样式只改外观不改布局；打包脚本待 M6.5 换成 cosine

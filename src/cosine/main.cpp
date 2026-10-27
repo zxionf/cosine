@@ -1,0 +1,50 @@
+// cosine 编辑器入口（M6.4a 骨架）。
+// 只做装配：Application + Editor + 主循环；所有界面逻辑在 src/cosine/editor.*。
+
+#include "editor.hpp"
+#include "xel_application.hpp"
+
+#include <algorithm>
+#include <cstdlib>
+#include <exception>
+#include <iostream>
+
+int main()
+{
+    try {
+        xel::Application app{1280, 840, "cosine"};
+
+        // Editor 在 Application 之后构造，保证 root/uisys 已就绪；
+        // 析构顺序相反，Editor 先销毁。
+        xel::editor::Editor editor{*app.uisys.root(), app.uisys};
+
+        const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER");
+        const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
+        float total_time = 0.0f;
+
+        while (!app.window_.should_close()) {
+            glfwPollEvents();
+
+            app.renderer_.set_clear_color(app.uisys.context()->theme.window_bg);
+            app.renderer_.begin();
+
+            const auto& stats = app.renderer_.frame_stats();
+            const float dt =
+                std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
+
+            editor.tick(dt);
+            app.uisys.tick(dt);
+            app.renderer_.draw(*app.uisys.root());
+            app.renderer_.end();
+
+            total_time += dt;
+            if (exit_after > 0.0f && total_time >= exit_after) {
+                glfwSetWindowShouldClose(app.window_.get_glfw_window(), GLFW_TRUE);
+            }
+        }
+        return 0;
+    } catch (const std::exception& error) {
+        std::cerr << "fatal: " << error.what() << '\n';
+        return 1;
+    }
+}

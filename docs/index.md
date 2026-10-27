@@ -41,6 +41,7 @@ src/
 ├── events/           InputEvent、KeyCode/Modifier
 ├── graphics/         DrawList/Drawable、图元、FontAtlas、FrameStats
 ├── ui/               Widget 树、布局、控件、UISystem、UIContext、SceneView、DebugOverlay
+├── cosine/           编辑器产品层（Editor + main）→ 可执行 `cosine`
 └── xel_application.* 窗口 + Vulkan + UI 的装配与事件桥接
 
 examples/ui_demo/           XEL Text Lab：文字排版实验台
@@ -63,6 +64,9 @@ assets/                     shader、字体与图集
 ./build/examples/ui_demo        # 文字实验台，F1–F5 切调试层
 ./build/examples/ui_gallery     # 控件展厅，F1 调试面板
 ./build/examples/ui_anim_demo   # 最小动画
+
+# 运行编辑器（最终产品）
+./build/src/cosine/cosine
 
 # 冒烟（正常退出）
 (cd build/examples && COSINE_EXIT_AFTER=3 ./ui_gallery)

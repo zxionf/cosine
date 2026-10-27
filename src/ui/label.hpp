@@ -34,34 +34,34 @@ public:
     {
         if (text_ == text) return;
         text_ = std::move(text);
-        invalidate_measure();
+        invalidate_measure_cache();
         mark_layout_dirty();
     }
     const std::string& text() const { return text_; }
     void set_text_size(float size)
     {
         size_ = size;
-        invalidate_measure();
+        invalidate_measure_cache();
         mark_layout_dirty();
     }
     void set_text_color(glm::vec4 color) { color_ = color; }
     void set_wrap(bool wrap)
     {
         wrap_ = wrap;
-        invalidate_measure();
+        invalidate_measure_cache();
         mark_layout_dirty();
     }
     bool wrap() const { return wrap_; }
     void set_max_lines(int max_lines)
     {
         max_lines_ = max_lines;
-        invalidate_measure();
+        invalidate_measure_cache();
         mark_layout_dirty();
     }
     void set_ellipsis(bool ellipsis)
     {
         ellipsis_ = ellipsis;
-        invalidate_measure();
+        invalidate_measure_cache();
         mark_layout_dirty();
     }
 
@@ -76,7 +76,7 @@ public:
     void set_line_spacing(float spacing)
     {
         line_spacing_ = std::max(0.0f, spacing);
-        invalidate_measure();
+        invalidate_measure_cache();
         mark_layout_dirty();
     }
     float line_spacing() const { return line_spacing_; }
@@ -192,7 +192,7 @@ private:
         glm::vec2 result{0.0f, 0.0f};
     };
 
-    void invalidate_measure() const { measure_cache_.valid = false; }
+    void invalidate_measure_cache() const { measure_cache_.valid = false; }
 
     bool cache_matches(const MeasureKey& key) const
     {
