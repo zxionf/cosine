@@ -148,6 +148,9 @@ target_link_libraries(test_ui_label_measure PRIVATE cosine_ui cosine_text)
 add_executable(test_ui_drag_float test_ui_drag_float.cpp)
 target_link_libraries(test_ui_drag_float PRIVATE cosine_ui cosine_text)
 
+add_executable(test_ui_color_input test_ui_color_input.cpp)
+target_link_libraries(test_ui_color_input PRIVATE cosine_ui cosine_text)
+
 add_executable(test_font_atlas_metrics test_font_atlas_metrics.cpp)
 target_link_libraries(test_font_atlas_metrics PRIVATE cosine_text)
 
@@ -197,6 +200,7 @@ set(COSINE_TEST_TARGETS
     test_font_atlas_space
     test_ui_label_measure
     test_ui_drag_float
+    test_ui_color_input
     test_font_atlas_metrics
     test_font_atlas_dpi
     test_ui_events
@@ -254,6 +258,7 @@ add_test(NAME anim_command COMMAND test_anim_command)
 add_test(NAME font_atlas_space COMMAND test_font_atlas_space)
 add_test(NAME ui_label_measure COMMAND test_ui_label_measure)
 add_test(NAME ui_drag_float COMMAND test_ui_drag_float)
+add_test(NAME ui_color_input COMMAND test_ui_color_input)
 add_test(NAME font_atlas_metrics COMMAND test_font_atlas_metrics)
 add_test(NAME font_atlas_dpi COMMAND test_font_atlas_dpi)
 add_test(NAME ui_events COMMAND test_ui_events)

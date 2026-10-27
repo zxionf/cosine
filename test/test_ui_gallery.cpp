@@ -23,8 +23,8 @@ int main()
     auto* root_ptr = ui.root();
     ui.tick();
 
-    assert(gallery.sections.size() == 8);
-    assert(gallery.nav_buttons.size() == 8);
+    assert(gallery.sections.size() == 9); // Overview..Style + Properties(M6.2)
+    assert(gallery.nav_buttons.size() == 9); // 与 section_names 同步
     assert(gallery.sections[0]->visible());
     assert(!gallery.sections[3]->visible());
 

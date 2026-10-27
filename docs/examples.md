@@ -95,6 +95,7 @@ COSINE_GALLERY_SECTION=7 ./build/examples/ui_gallery     # 直接打开 Style �
 | 5 | Menu | MenuBar 与多级子菜单 |
 | 6 | Layout | Grid 表单、Wrap 流式、百分比与宽高比、绝对定位与 z-index |
 | 7 | Style | 主题切换、经典样式、焦点策略、过渡时长、圆角 |
+| 8 | Properties | `DragFloat` 数值拖动（含键盘微调、禁用态）、`ColorInput` 预设色板与 hex（M6.2） |
 
 ### 按键
 
@@ -108,7 +109,7 @@ COSINE_GALLERY_SECTION=7 ./build/examples/ui_gallery     # 直接打开 Style �
 
 | 变量 | 取值 | 影响 |
 |---|---|---|
-| `COSINE_GALLERY_SECTION` | `0`–`7` | 启动即切到指定分区；越界忽略 |
+| `COSINE_GALLERY_SECTION` | `0`–`8` | 启动即切到指定分区；越界忽略 |
 | `COSINE_GALLERY_SCROLL` | 像素（浮点） | 与 `SECTION` 配合：首帧布局后把当前分区滚动到该偏移，用于覆盖"内容溢出视口"的路径 |
 | `COSINE_GALLERY_SCROLL_MODE` | `smooth` / `fast` / `line` | 全部滚动控件（ScrollView/TreeView/Table）的滚动模式，并同步状态标签 |
 | `COSINE_GALLERY_THEME` | `light` | 启动即切亮色主题；其他值保持暗色 |

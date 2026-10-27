@@ -247,12 +247,20 @@ void Editor::build_property_panel()
         [](anim::scene::Node& n, float v) { n.size.x = v; });
     add(size_h_, "Size H", 0.0f, kLimit, 1, "",
         [](anim::scene::Node& n, float v) { n.size.y = v; });
-    add(color_r_, "Color R", 0.0f, 1.0f, 2, "",
-        [](anim::scene::Node& n, float v) { n.color.r = v; });
-    add(color_g_, "Color G", 0.0f, 1.0f, 2, "",
-        [](anim::scene::Node& n, float v) { n.color.g = v; });
-    add(color_b_, "Color B", 0.0f, 1.0f, 2, "",
-        [](anim::scene::Node& n, float v) { n.color.b = v; });
+
+    // 颜色：一行预设色板（保留原 alpha）+ 独立的 alpha 行。
+    auto color = std::make_unique<ui::ColorInput>("Color", kPropertyWidth - 36.0f);
+    color_ = color.get();
+    color->set_enabled(false);
+    color->set_on_change([this](glm::vec4 value) {
+        if (selected_ == anim::scene::kInvalidNode) return;
+        if (auto* target = project_.scene.find(selected_)) {
+            target->color = glm::vec4{value.r, value.g, value.b, target->color.a};
+            if (preview_ != nullptr) preview_->mark_layout_dirty();
+        }
+    });
+    panel->add(std::move(color));
+
     add(color_a_, "Color A", 0.0f, 1.0f, 2, "",
         [](anim::scene::Node& n, float v) { n.color.a = v; });
 
@@ -290,12 +298,13 @@ void Editor::sync_property_panel()
     const anim::scene::Node* node =
         selected_ == anim::scene::kInvalidNode ? nullptr : project_.scene.find(selected_);
 
-    ui::DragFloat* const rows[] = {pos_x_,   pos_y_,   rotation_, scale_x_, scale_y_, size_w_,
-                                   size_h_,  color_r_, color_g_,  color_b_, color_a_};
+    ui::DragFloat* const rows[] = {pos_x_,  pos_y_, rotation_, scale_x_, scale_y_,
+                                   size_w_, size_h_, color_a_};
     if (node == nullptr) {
         for (ui::DragFloat* drag : rows) {
             if (drag != nullptr) drag->set_enabled(false);
         }
+        if (color_ != nullptr) color_->set_enabled(false);
         if (property_label_ != nullptr) property_label_->set_text("Properties — no selection");
         return;
     }
@@ -318,9 +327,10 @@ void Editor::sync_property_panel()
     set(scale_y_, node->transform.scale.y);
     set(size_w_, node->size.x);
     set(size_h_, node->size.y);
-    set(color_r_, node->color.r);
-    set(color_g_, node->color.g);
-    set(color_b_, node->color.b);
+    if (color_ != nullptr) {
+        color_->set_enabled(true);
+        color_->set_value(node->color);
+    }
     set(color_a_, node->color.a);
 }
 

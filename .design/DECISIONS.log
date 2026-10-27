@@ -660,3 +660,8 @@ Change: 20261027-property-widgets
 Context: 属性面板需要数值输入与旋转预览；拖拽比文本输入更快；用户要求焦点环始终显示
 Decision: 新增 DragFloat（拖动+键盘，无文本输入）；SceneView 用两三角形绕节点中心做 2D 旋转并累积父旋转，rotation≈0 走轴对齐快路径；属性面板 11 行逐值编辑，FocusPolicy::Always；颜色暂用 4 个 DragFloat 分量
 Consequences: 精确文本输入与色板留待后续；椭圆/文字不旋转；动画内核 rotation 字段（弧度）终于有渲染效果
+## [133] 2026-10-27 12:17:20 UTC
+Change: 20261027-color-input
+Context: 属性面板需要颜色输入；4 个 DragFloat 分量不直观
+Decision: ColorInput = 预设色板（6 色，可替换）+ 当前色高亮 + hex 只读显示 + 键盘 Left/Right 循环；点击色块即选；回调只取 RGB，alpha 保留节点原值；gallery 新增 Properties 分区（index 8）作独立验收
+Consequences: hex 文本输入待 TextInput 组合；gallery 分区数 8→9，测试断言需同步；取色器（HSV）不做

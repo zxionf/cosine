@@ -1,6 +1,7 @@
 #pragma once
 
 #include "anim/project.hpp"
+#include "ui/color_input.hpp"
 #include "ui/drag_float.hpp"
 #include "ui/label.hpp"
 #include "ui/menu_bar.hpp"
@@ -80,9 +81,7 @@ private:
     ui::DragFloat* scale_y_ = nullptr;
     ui::DragFloat* size_w_ = nullptr;
     ui::DragFloat* size_h_ = nullptr;
-    ui::DragFloat* color_r_ = nullptr;
-    ui::DragFloat* color_g_ = nullptr;
-    ui::DragFloat* color_b_ = nullptr;
+    ui::ColorInput* color_ = nullptr;
     ui::DragFloat* color_a_ = nullptr;
 
     scene::NodeId selected_ = scene::kInvalidNode;

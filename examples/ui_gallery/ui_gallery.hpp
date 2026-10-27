@@ -2,7 +2,9 @@
 
 #include "ui/button.hpp"
 #include "ui/checkbox.hpp"
+#include "ui/color_input.hpp"
 #include "ui/color_rect.hpp"
+#include "ui/drag_float.hpp"
 #include "ui/dropdown.hpp"
 #include "ui/debug_overlay.hpp"
 #include "ui/dialog.hpp"
@@ -36,6 +38,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <algorithm>
+#include <cmath>
 #include <format>
 #include <memory>
 #include <string>
@@ -327,7 +331,7 @@ inline UiGallery build(ui::UIRoot& root)
 {
     UiGallery gallery;
     gallery.root = &root;
-    gallery.section_names = {"Overview", "Text", "Inputs", "Containers", "Overlays", "Menu", "Layout", "Style"};
+    gallery.section_names = {"Overview", "Text", "Inputs", "Containers", "Overlays", "Menu", "Layout", "Style", "Properties"};
 
     // ---------- 左侧导航 ----------
     auto nav = std::make_unique<ui::Panel>(16.0f, 16.0f, UiGallery::kNavWidth, UiGallery::kContentHeight);
@@ -1146,6 +1150,64 @@ inline UiGallery build(ui::UIRoot& root)
         accent_slider->set_value(0.65f);
         accent_row->add(std::move(accent_slider));
         section->add(std::move(accent_row));
+
+        gallery.sections.push_back(section.get());
+        root.add(std::move(section));
+    }
+
+    // ---------- Properties 分区（M6.2）：属性编辑控件 ----------
+    {
+        std::unique_ptr<ui::ScrollPanel> section{detail::make_section("Properties")};
+
+        section->add(std::make_unique<ui::Label>(
+            "DragFloat: drag horizontally to change, arrow keys to fine-tune", 16.0f));
+
+        auto pos_x = std::make_unique<ui::DragFloat>("Pos X", 300.0f);
+        pos_x->set_range(-500.0f, 500.0f);
+        pos_x->set_precision(1);
+        pos_x->set_value(120.0f);
+        auto pos_state = std::make_unique<ui::Label>("Pos X = 120.0", 14.0f);
+        auto* pos_state_ptr = pos_state.get();
+        pos_x->set_on_change([pos_state_ptr](float value) {
+            pos_state_ptr->set_text(std::format("Pos X = {:.1f}", value));
+        });
+        section->add(std::move(pos_x));
+        section->add(std::move(pos_state));
+
+        auto rotation = std::make_unique<ui::DragFloat>("Rotation", 300.0f);
+        rotation->set_range(-360.0f, 360.0f);
+        rotation->set_precision(1);
+        rotation->set_suffix("deg");
+        rotation->set_step(0.5f);
+        section->add(std::move(rotation));
+
+        auto scale = std::make_unique<ui::DragFloat>("Scale", 300.0f);
+        scale->set_range(0.01f, 10.0f);
+        scale->set_precision(2);
+        scale->set_value(1.0f);
+        section->add(std::move(scale));
+
+        auto disabled = std::make_unique<ui::DragFloat>("Disabled", 300.0f);
+        disabled->set_range(0.0f, 100.0f);
+        disabled->set_value(40.0f);
+        disabled->set_enabled(false);
+        section->add(std::move(disabled));
+
+        section->add(std::make_unique<ui::Label>(
+            "ColorInput: click a swatch, or arrow keys to cycle", 16.0f));
+        auto color = std::make_unique<ui::ColorInput>("Color", 420.0f);
+        color->set_value({0.45f, 0.65f, 0.95f, 1.0f});
+        auto color_state = std::make_unique<ui::Label>("#73A6F2", 14.0f);
+        auto* color_state_ptr = color_state.get();
+        color->set_on_change([color_state_ptr](glm::vec4 value) {
+            const auto to_byte = [](float v) {
+                return static_cast<int>(std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f));
+            };
+            color_state_ptr->set_text(std::format("#{:02X}{:02X}{:02X}", to_byte(value.r),
+                                                 to_byte(value.g), to_byte(value.b)));
+        });
+        section->add(std::move(color));
+        section->add(std::move(color_state));
 
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
