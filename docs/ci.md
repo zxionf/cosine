@@ -16,6 +16,32 @@ COSINE_SANITIZE=address COSINE_BUILD_DIR=build-asan ./scripts/ci-linux.sh
 `COSINE_SANITIZE` 支持 `address`、`undefined`、`thread`（可用分号组合）。
 它只作用于本项目 target，不重新编译第三方依赖。
 
+## 冒烟（正常退出）
+
+示例都支持 `COSINE_EXIT_AFTER=<秒>`：到点后调 `glfwSetWindowShouldClose`，
+走正常退出路径（覆盖析构与 Vulkan 资源释放）。
+
+```bash
+cd build/examples
+COSINE_EXIT_AFTER=3 ./ui_gallery 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
+```
+
+计数为 0 即通过。**不要用 `timeout` 强杀**——会跳过析构，掩盖资源释放问题。
+
+不接该变量的示例只有 `ui_demo`（手工关窗或用 `timeout` 兜底）。
+各示例的按键与专属环境变量见 `examples.md`。
+
+高 DPI 冒烟：
+
+```bash
+COSINE_UI_SCALE=2 COSINE_EXIT_AFTER=3 ./ui_gallery
+```
+
+验证重点是界面整体放大、字形清晰（按 `字号×比例` 重新栅格化）、
+tooltip 与应用内命中位置不偏移。
+
+当前测试规模：`ctest` 共 **51** 个用例（含 ASAN 构建，同一份源码）。
+
 ## lavapipe 冒烟
 
 `scripts/smoke-lavapipe.sh` 用 Mesa 软件 Vulkan 驱动依次运行 `ui_demo` 与 `ui_gallery`，
@@ -80,6 +106,28 @@ the compiler does not provide a way to discover the import graph dependencies.
 以 `PUBLIC` 链接 `Vulkan::Headers`，把 Vulkan 头文件路径传递给所有消费者。
 Linux 上系统头文件默认可见，Windows 上必须由 `find_package(Vulkan)` 提供，
 否则 `cosine_text`（字体/文本库）会因为找不到 `vulkan/vulkan.hpp` 编译失败。
+
+## 测试分层与质量门
+
+### 测试分层
+
+- **纯逻辑测试**（不依赖 Vulkan/窗口）：布局（Vbox/Hbox/Grid/Wrap/百分比/绝对定位/z-index）、
+  命中测试、事件冒泡、文本测量与图集、时间轴求值与播放器事件、缓动、场景图、属性系统。
+- **解释器测试**：沿用手工用例（token、AST、求值），XEL 绑定后增加宿主 API 测试。
+- **渲染冒烟**：`COSINE_EXIT_AFTER` 正常退出 + validation 计数为 0（见上节）。
+- **Windows**：MSVC 构建 + 单元测试（窗口级冒烟待补）。
+
+### 质量门
+
+- `-Wall -Wextra -Wshadow` 无新增警告。
+- Linux 跑 ASAN 与 lavapipe 冒烟；Debug + `VK_LAYER_KHRONOS_validation` 无错误。
+- 资源缺失、shader 编译失败、初始化失败都有明确错误信息。
+- 每个阶段出口必须可运行、可验证；不接受“只写了代码但跑不起来”的交付。
+
+### 性能
+
+M1–M3 只做 instrumentation（frame time、draw call、顶点数），不设硬指标；
+M6 之后有了真实项目再定预算。
 
 ## 已知限制
 

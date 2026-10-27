@@ -1,9 +1,11 @@
 # 项目评估与改进清单
 
+> **历史归档**：本文结论停在 M3（版本 0.3.0）。M4 动画内核、M4.5 动画展厅与 M4.6 文本打磨
+> 已超出本文范围；当前状态以 `docs/index.md` 与 `.design/阶段计划.md` 为准。
 > 归档日期：2026-10-24（M3-G 更新：2026-10-25）
 > 代码基线：`0.3.0`（M3 完成）
 > 对照文档：`.design/阶段计划.md`、`docs/index.md`
-> 结论：GUI MVP 已成型并可打包；瓶颈转为 Windows 实测、动画内核与编辑器。
+> 当时结论：GUI MVP 已成型并可打包；瓶颈转为 Windows 实测、动画内核与编辑器。
 > 更新（2026-10-24）：R03 的 UTF-8/codepoint、C2 CJK 图集与 D3 动态字形更新已落地；R01/R02/R04/R16 的 DrawList、scissor 栈与 overlay 图层已落地；R05/R06 已随 examples/ui_demo 清理完成；E06 RenderTarget 抽象已完成。
 > 构建（2026-10-24）：`cosine_text` / `cosine_ui` 去重，共享源只编译一次；CI 默认 `-j2`，测试目标关闭 module scan。
 > M3（2026-10-25）：UIContext、KeyCode/Modifier、FrameStats/DebugOverlay、资源与 Vulkan 错误上下文、sanitizer + lavapipe 冒烟、0.3.0 打包与文档全部落地；14 个测试通过，ASAN 全绿。

@@ -8,7 +8,7 @@ MVP 的发布形态是**免安装的压缩包**：解压后直接运行，不需
 CMake 会生成 `xel/version.hpp`，`ui_demo --version` 输出：
 
 ```text
-cosine 0.3.0
+cosine 0.4.0
 ```
 
 打包脚本从 `CMakeCache.txt` 读取 `CMAKE_PROJECT_VERSION`，不在脚本里重复维护版本。
