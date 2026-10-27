@@ -45,6 +45,10 @@ public:
 
     using GlyphLoader = std::function<bool(FontAtlas&, char32_t, int pixel_size)>;
 
+    // 保证 line_height 至少覆盖 ascender 到 descender 的完整字形高度。
+    // descent_ratio 按 FreeType 约定为负值。
+    static Metrics normalize_metrics(Metrics metrics);
+
     void load(int tex_width, int tex_height, const unsigned char* rgba);
     void begin_generated(int tex_size, Metrics metrics, bool smooth, int base_pixel_size = 16);
 

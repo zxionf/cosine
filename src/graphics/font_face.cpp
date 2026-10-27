@@ -47,8 +47,7 @@ FontAtlas::Metrics FontFace::metrics() const
     metrics.ascent_ratio = static_cast<float>(face_->size->metrics.ascender) / 64.0f / pixel_size;
     metrics.descent_ratio = static_cast<float>(face_->size->metrics.descender) / 64.0f / pixel_size;
     metrics.line_height_ratio = static_cast<float>(face_->size->metrics.height) / 64.0f / pixel_size;
-    if (metrics.line_height_ratio < 1.0f) metrics.line_height_ratio = 1.0f;
-    return metrics;
+    return FontAtlas::normalize_metrics(metrics);
 }
 
 bool FontFace::add_glyph(FontAtlas& atlas, char32_t codepoint, int pixel_size) const

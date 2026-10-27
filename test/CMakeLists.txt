@@ -139,6 +139,9 @@ target_link_libraries(test_font_atlas_space PRIVATE cosine_text)
 add_executable(test_ui_label_measure test_ui_label_measure.cpp)
 target_link_libraries(test_ui_label_measure PRIVATE cosine_ui cosine_text)
 
+add_executable(test_font_atlas_metrics test_font_atlas_metrics.cpp)
+target_link_libraries(test_font_atlas_metrics PRIVATE cosine_text)
+
 add_executable(test_ui_events test_ui_events.cpp)
 target_link_libraries(test_ui_events PRIVATE cosine_ui)
 
@@ -179,6 +182,7 @@ set(COSINE_TEST_TARGETS
     test_anim_player
     test_font_atlas_space
     test_ui_label_measure
+    test_font_atlas_metrics
     test_ui_events
     test_ui_controls
     test_text
@@ -231,6 +235,7 @@ add_test(NAME anim_timeline COMMAND test_anim_timeline)
 add_test(NAME anim_player COMMAND test_anim_player)
 add_test(NAME font_atlas_space COMMAND test_font_atlas_space)
 add_test(NAME ui_label_measure COMMAND test_ui_label_measure)
+add_test(NAME font_atlas_metrics COMMAND test_font_atlas_metrics)
 add_test(NAME ui_events COMMAND test_ui_events)
 add_test(NAME interpreter_token COMMAND test_interpreter_token)
 add_test(NAME interpreter_tree_structure COMMAND test_intepreter_tree_structure)

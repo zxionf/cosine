@@ -12,6 +12,15 @@ xel::graphics::FontAtlas* g_active_font_atlas = nullptr;
 
 namespace xel::graphics
 {
+FontAtlas::Metrics FontAtlas::normalize_metrics(Metrics metrics)
+{
+    // descent_ratio 为负（FreeType 约定），字形实际纵向范围是 ascent - descent。
+    const float glyph_extent = metrics.ascent_ratio - metrics.descent_ratio;
+    if (metrics.line_height_ratio < glyph_extent) metrics.line_height_ratio = glyph_extent;
+    if (metrics.line_height_ratio < 1.0f) metrics.line_height_ratio = 1.0f;
+    return metrics;
+}
+
 void FontAtlas::load(int tex_width, int tex_height, const unsigned char* rgba)
 {
     tex_width_ = tex_width;
@@ -97,7 +106,7 @@ void FontAtlas::begin_generated(int tex_size, Metrics metrics, bool smooth, int 
     cell_px_ = 0;
     smooth_ = smooth;
     base_pixel_size_ = base_pixel_size > 0 ? base_pixel_size : 16;
-    metrics_ = metrics;
+    metrics_ = normalize_metrics(metrics);
     glyphs_.clear();
     missing_.clear();
     glyph_loader_ = nullptr;
