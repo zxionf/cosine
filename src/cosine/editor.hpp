@@ -1,6 +1,7 @@
 #pragma once
 
 #include "anim/project.hpp"
+#include "ui/drag_float.hpp"
 #include "ui/label.hpp"
 #include "ui/menu_bar.hpp"
 #include "ui/panel.hpp"
@@ -11,7 +12,9 @@
 #include "ui/widget.hpp"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -41,10 +44,13 @@ private:
     void build_menu();
     void build_toolbar();
     void build_panels();
+    void build_property_panel();
     void build_demo_content();
 
     void refresh_scene_tree();
-    void refresh_property_panel();
+    void on_scene_selected(const std::vector<int>& path);
+    std::optional<scene::NodeId> node_from_path(const std::vector<int>& path) const;
+    void sync_property_panel();
     void add_shape_node();
     void toggle_rounded_style();
 
@@ -65,6 +71,22 @@ private:
     ui::Label* property_label_ = nullptr;
     ui::Label* timeline_label_ = nullptr;
     ui::Label* status_ = nullptr;
+
+    // 属性面板行（M6.2）。
+    ui::DragFloat* pos_x_ = nullptr;
+    ui::DragFloat* pos_y_ = nullptr;
+    ui::DragFloat* rotation_ = nullptr;
+    ui::DragFloat* scale_x_ = nullptr;
+    ui::DragFloat* scale_y_ = nullptr;
+    ui::DragFloat* size_w_ = nullptr;
+    ui::DragFloat* size_h_ = nullptr;
+    ui::DragFloat* color_r_ = nullptr;
+    ui::DragFloat* color_g_ = nullptr;
+    ui::DragFloat* color_b_ = nullptr;
+    ui::DragFloat* color_a_ = nullptr;
+
+    scene::NodeId selected_ = scene::kInvalidNode;
+    scene::NodeId demo_card_ = scene::kInvalidNode;
 
     bool experimental_rounded_ = false;
     float last_w_ = 0.0f;

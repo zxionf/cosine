@@ -655,3 +655,8 @@ Change: 20261027-editor-skeleton
 Context: M6 需要产品级编辑器入口，examples 只是演示；用户要求默认 classic 样式与 smooth 滚动，圆角现代样式作为实验项
 Decision: 编辑器产品层放 src/cosine/（cosine_editor 静态库 + cosine 可执行，Application 不搬）；默认 Theme::dark().with_rounding(false).with_radius_scale(0).with_transition_ms(0)；实验性圆角经 View 菜单/Style 按钮切换；滚动沿用控件默认 Smooth
 Consequences: 产品与库同根、examples 保持演示语义；COSINE_BUILD_EDITOR 可关；实验样式只改外观不改布局；打包脚本待 M6.5 换成 cosine
+## [132] 2026-10-27 11:52:59 UTC
+Change: 20261027-property-widgets
+Context: 属性面板需要数值输入与旋转预览；拖拽比文本输入更快；用户要求焦点环始终显示
+Decision: 新增 DragFloat（拖动+键盘，无文本输入）；SceneView 用两三角形绕节点中心做 2D 旋转并累积父旋转，rotation≈0 走轴对齐快路径；属性面板 11 行逐值编辑，FocusPolicy::Always；颜色暂用 4 个 DragFloat 分量
+Consequences: 精确文本输入与色板留待后续；椭圆/文字不旋转；动画内核 rotation 字段（弧度）终于有渲染效果

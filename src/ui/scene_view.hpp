@@ -5,6 +5,7 @@
 #include "../graphics/rectangle.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 namespace xel::ui
 {
@@ -40,37 +41,81 @@ public:
     {
         if (scene_ == nullptr) return;
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
-        draw_node(list, scene_->root(), {0.0f, 0.0f}, {1.0f, 1.0f});
+        draw_node(list, scene_->root(), {0.0f, 0.0f}, {1.0f, 1.0f}, 0.0f);
         list.pop_clip();
     }
 
 private:
     // parent_pos / parent_scale 是场景坐标系下的父级累积变换。
+    // 绕节点中心旋转的矩形：两个三角形，与 Rectangle 同样的预乘 alpha 约定。
+    static void append_rotated_rect(graphics::DrawList& list, glm::vec2 top_left, glm::vec2 size,
+                                    float angle, glm::vec4 color)
+    {
+        list.set_texture(graphics::TextureSlot::Texture);
+        auto& batch = list.batch();
+        const glm::vec2 uv = graphics::active_font_atlas()
+                                 ? graphics::active_font_atlas()->white_uv()
+                                 : glm::vec2{0.0f};
+        const glm::vec4 premultiplied{color.r * color.a, color.g * color.a, color.b * color.a,
+                                      color.a};
+        const glm::vec2 center{top_left.x + size.x * 0.5f, top_left.y + size.y * 0.5f};
+        const float c = std::cos(angle);
+        const float s = std::sin(angle);
+        const glm::vec2 half{size.x * 0.5f, size.y * 0.5f};
+        auto corner = [&](float sx, float sy) {
+            const glm::vec2 v{sx * half.x, sy * half.y};
+            return glm::vec2{center.x + v.x * c - v.y * s, center.y + v.x * s + v.y * c};
+        };
+        const glm::vec2 p0 = corner(-1.0f, -1.0f);
+        const glm::vec2 p1 = corner(1.0f, -1.0f);
+        const glm::vec2 p2 = corner(1.0f, 1.0f);
+        const glm::vec2 p3 = corner(-1.0f, 1.0f);
+
+        const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
+        batch.vertices.push_back({p0, premultiplied, uv});
+        batch.vertices.push_back({p1, premultiplied, uv});
+        batch.vertices.push_back({p2, premultiplied, uv});
+        batch.vertices.push_back({p3, premultiplied, uv});
+        batch.indices.insert(batch.indices.end(), {
+            base, base + 1, base + 2, base + 2, base + 3, base
+        });
+    }
+
     void draw_node(graphics::DrawList& list, scene::NodeId id,
-                   glm::vec2 parent_pos, glm::vec2 parent_scale) const
+                   glm::vec2 parent_pos, glm::vec2 parent_scale, float parent_rotation) const
     {
         const scene::Node* node = scene_->find(id);
         if (node == nullptr || !node->visible) return;
 
         const glm::vec2 scale = parent_scale * node->transform.scale;
-        const glm::vec2 pos = parent_pos + node->transform.position * parent_scale;
+        const glm::vec2 local = node->transform.position * parent_scale;
+        // 父空间旋转：子节点偏移按父旋转后的坐标系定位。
+        const float pc = std::cos(parent_rotation);
+        const float ps = std::sin(parent_rotation);
+        const glm::vec2 pos{parent_pos.x + local.x * pc - local.y * ps,
+                            parent_pos.y + local.x * ps + local.y * pc};
+        const float rotation = parent_rotation + node->transform.rotation;
         const glm::vec2 screen{global_.pos.x + pos.x, global_.pos.y + pos.y};
 
         switch (node->type) {
             case scene::NodeType::Shape: {
                 const glm::vec2 size{node->size.x * scale.x, node->size.y * scale.y};
                 if (node->ellipse) {
+                    // 椭圆暂不参与旋转（位图圆角不支旋转，M6.2 只保证矩形）。
                     graphics::append_rounded_rect(
                         list, {screen.x, screen.y, size.x, size.y},
                         std::min(size.x, size.y) * 0.5f, node->color);
-                } else {
+                } else if (std::fabs(rotation) < 1.0e-4f) {
                     graphics::Rectangle{screen.x, screen.y, size.x, size.y, node->color}
                         .append_to(list);
+                } else {
+                    append_rotated_rect(list, screen, size, rotation, node->color);
                 }
                 break;
             }
             case scene::NodeType::Text: {
                 if (auto* atlas = font_atlas(); atlas != nullptr && !node->text.empty()) {
+                    // 字形不旋转：只跟着旋转后的锚点定位。
                     atlas->append_text(
                         list, screen.x, screen.y, node->text_size * scale.y, node->text,
                         node->color,
@@ -81,8 +126,12 @@ private:
             }
             case scene::NodeType::Image: {
                 const glm::vec2 size{node->size.x * scale.x, node->size.y * scale.y};
-                graphics::Rectangle{screen.x, screen.y, size.x, size.y, node->color}
-                    .append_to(list);
+                if (std::fabs(rotation) < 1.0e-4f) {
+                    graphics::Rectangle{screen.x, screen.y, size.x, size.y, node->color}
+                        .append_to(list);
+                } else {
+                    append_rotated_rect(list, screen, size, rotation, node->color);
+                }
                 break;
             }
             case scene::NodeType::Camera:
@@ -91,7 +140,7 @@ private:
         }
 
         for (scene::NodeId child : node->children) {
-            draw_node(list, child, pos, scale);
+            draw_node(list, child, pos, scale, rotation);
         }
     }
 
