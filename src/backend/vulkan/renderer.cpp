@@ -313,31 +313,50 @@ void Renderer::create_texture_image()
 void Renderer::update_font_atlas_texture()
 {
     if (font_atlas_revision_ == font_atlas_.revision()) return;
+    font_atlas_revision_ = font_atlas_.revision();
 
-    const uint32_t width = static_cast<uint32_t>(font_atlas_.width());
-    const uint32_t height = static_cast<uint32_t>(font_atlas_.height());
-    if (width == 0 || height == 0) {
-        font_atlas_revision_ = font_atlas_.revision();
-        return;
-    }
+    // 只上传自上次同步以来变化的矩形。新增字形只改局部区域，不再整张重传。
+    int dx = 0;
+    int dy = 0;
+    int dw = 0;
+    int dh = 0;
+    if (!font_atlas_.take_dirty_rect(dx, dy, dw, dh)) return; // 只新增了无像素字形
 
-    const vk::DeviceSize image_size = static_cast<vk::DeviceSize>(width) * height * 4;
+    const auto width = static_cast<uint32_t>(font_atlas_.width());
+    const auto row_bytes = static_cast<vk::DeviceSize>(dw) * 4;
+    const vk::DeviceSize image_size = row_bytes * static_cast<vk::DeviceSize>(dh);
+
     auto [staging_buffer, staging_memory] = create_buffer(
         image_size,
         vk::BufferUsageFlagBits::eTransferSrc,
         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 
-    void* data = staging_memory.mapMemory(0, image_size);
-    memcpy(data, font_atlas_.pixels().data(), static_cast<std::size_t>(image_size));
+    auto* data = static_cast<unsigned char*>(staging_memory.mapMemory(0, image_size));
+    const auto& pixels = font_atlas_.pixels();
+    for (int row = 0; row < dh; ++row) {
+        const auto offset = (static_cast<std::size_t>(dy + row) * width + static_cast<std::size_t>(dx)) * 4;
+        memcpy(data + static_cast<std::size_t>(row) * static_cast<std::size_t>(row_bytes),
+               pixels.data() + offset,
+               static_cast<std::size_t>(row_bytes));
+    }
     staging_memory.unmapMemory();
 
     vk::raii::CommandBuffer command_buffer = begin_single_time_commands();
     transition_image_layout(command_buffer, texture_image_, vk::ImageLayout::eShaderReadOnlyOptimal, vk::ImageLayout::eTransferDstOptimal);
-    copy_buffer_to_image(command_buffer, staging_buffer, texture_image_, width, height);
+
+    const vk::BufferImageCopy region{
+        .bufferOffset = 0,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+        .imageOffset = {dx, dy, 0},
+        .imageExtent = {static_cast<uint32_t>(dw), static_cast<uint32_t>(dh), 1},
+    };
+    command_buffer.copyBufferToImage(staging_buffer, texture_image_,
+                                     vk::ImageLayout::eTransferDstOptimal, region);
+
     transition_image_layout(command_buffer, texture_image_, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
     end_single_time_commands(std::move(command_buffer));
-
-    font_atlas_revision_ = font_atlas_.revision();
 }
 
 void Renderer::create_texture_sampler()

@@ -83,6 +83,10 @@ void FontAtlas::load(int tex_width, int tex_height, const unsigned char* rgba)
         }
     }
 
+    dirty_min_x_ = std::numeric_limits<int>::max();
+    dirty_min_y_ = std::numeric_limits<int>::max();
+    dirty_max_x_ = -1;
+    dirty_max_y_ = -1;
     mark_revision();
 }
 
@@ -109,6 +113,10 @@ void FontAtlas::begin_generated(int tex_size, Metrics metrics, bool smooth, int 
     pack_x_ = 1;
     pack_y_ = 1;
     pack_row_height_ = 0;
+    dirty_min_x_ = std::numeric_limits<int>::max();
+    dirty_min_y_ = std::numeric_limits<int>::max();
+    dirty_max_x_ = -1;
+    dirty_max_y_ = -1;
     mark_revision();
 }
 
@@ -161,6 +169,11 @@ bool FontAtlas::add_glyph(char32_t codepoint,
     g.bearing_y_ratio = bearing_y_ratio;
     glyphs_[glyph_key(codepoint, quantize_size(pixel_size))] = g;
 
+    dirty_min_x_ = std::min(dirty_min_x_, dst_x);
+    dirty_min_y_ = std::min(dirty_min_y_, dst_y);
+    dirty_max_x_ = std::max(dirty_max_x_, dst_x + width - 1);
+    dirty_max_y_ = std::max(dirty_max_y_, dst_y + height - 1);
+
     pack_x_ += width + 2;
     pack_row_height_ = std::max(pack_row_height_, height);
     mark_revision();
@@ -184,6 +197,22 @@ float FontAtlas::used_ratio() const
     if (tex_height_ <= 0) return 0.0f;
     const float used = static_cast<float>(pack_y_ + pack_row_height_);
     return std::clamp(used / static_cast<float>(tex_height_), 0.0f, 1.0f);
+}
+
+bool FontAtlas::take_dirty_rect(int& x, int& y, int& w, int& h)
+{
+    if (dirty_min_x_ > dirty_max_x_ || dirty_min_y_ > dirty_max_y_) return false;
+
+    x = dirty_min_x_;
+    y = dirty_min_y_;
+    w = dirty_max_x_ - dirty_min_x_ + 1;
+    h = dirty_max_y_ - dirty_min_y_ + 1;
+
+    dirty_min_x_ = std::numeric_limits<int>::max();
+    dirty_min_y_ = std::numeric_limits<int>::max();
+    dirty_max_x_ = -1;
+    dirty_max_y_ = -1;
+    return true;
 }
 
 void FontAtlas::add_empty_glyph(char32_t codepoint, float advance_ratio, float pixel_size)

@@ -76,6 +76,48 @@ void test_missing_glyph_is_cached()
     assert(calls == 1);
 }
 
+void test_dirty_rect_tracks_new_glyphs()
+{
+    graphics::FontAtlas atlas;
+    graphics::FontAtlas::Metrics metrics;
+    atlas.begin_generated(64, metrics, false);
+
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+    assert(!atlas.take_dirty_rect(x, y, w, h)); // 初始无脏区
+
+    std::vector<unsigned char> bitmap = make_bitmap(8);
+    assert(atlas.add_glyph(U'A', bitmap.data(), 8, 8, 8, 0.5f, 0.0f, 0.5f, 16.0f));
+    assert(atlas.take_dirty_rect(x, y, w, h));
+    assert(w == 8 && h == 8);
+
+    // 取出后清零。
+    assert(!atlas.take_dirty_rect(x, y, w, h));
+
+    // 连续新增多个字形合并成一个包围盒。
+    assert(atlas.add_glyph(U'B', bitmap.data(), 8, 8, 8, 0.5f, 0.0f, 0.5f, 16.0f));
+    assert(atlas.add_glyph(U'C', bitmap.data(), 8, 8, 8, 0.5f, 0.0f, 0.5f, 16.0f));
+    assert(atlas.take_dirty_rect(x, y, w, h));
+    assert(w >= 8 && h == 8);
+}
+
+void test_empty_glyph_has_no_dirty_rect()
+{
+    graphics::FontAtlas atlas;
+    graphics::FontAtlas::Metrics metrics;
+    atlas.begin_generated(64, metrics, false);
+
+    // 空白字形没有像素，不应产生脏区。
+    atlas.add_empty_glyph(U' ', 0.5f, 16.0f);
+    int x = 0;
+    int y = 0;
+    int w = 0;
+    int h = 0;
+    assert(!atlas.take_dirty_rect(x, y, w, h));
+}
+
 void test_add_glyph_resets_space_flag()
 {
     graphics::FontAtlas atlas;
@@ -102,6 +144,8 @@ int main()
     test_out_of_space_is_retryable();
     test_missing_glyph_is_cached();
     test_add_glyph_resets_space_flag();
+    test_dirty_rect_tracks_new_glyphs();
+    test_empty_glyph_has_no_dirty_rect();
     std::printf("test_font_atlas_space: all passed\n");
     return 0;
 }

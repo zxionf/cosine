@@ -605,3 +605,8 @@ Change: 20261026-atlas-space
 Context: 多字号挤满图集后，空间不足被 ensure_glyph 永久记入 missing，字形不可恢复
 Decision: add_glyph 用 last_add_out_of_space 区分空间不足；ensure_glyph 仅对真缺字写入 missing；新增 used_ratio 监控水位
 Consequences: 图集腾出空间后字形可重试；缺字仍缓存；淘汰/重建与多纹理槽留待 T2/M6
+## [122] 2026-10-27 01:44:21 UTC
+Change: 20261027-atlas-dirty-upload
+Context: 动态加载单个字形会重传整张 2048² 纹理（16MB），造成加载卡顿
+Decision: FontAtlas 维护脏矩形（add_glyph 扩展、take_dirty_rect 读后清零）；渲染层按脏矩形做紧凑 staging + VkBufferImageCopy 区域上传；无像素变化时跳过上传
+Consequences: 单字形上传量降到几十 KB；多字形分散时合并为包围盒可能偏大；未做多矩形合并与分页图集

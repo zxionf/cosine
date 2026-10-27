@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
@@ -77,6 +78,9 @@ public:
     // 最近一次 add_glyph 是否因图集空间不足失败（区别于「字符不存在」）。
     bool last_add_out_of_space() const { return last_add_out_of_space_; }
 
+    // 取出自上次调用以来的脏矩形（含端点）；无像素变化返回 false 并清零。
+    bool take_dirty_rect(int& x, int& y, int& w, int& h);
+
     float line_height(float size) const { return metrics_.line_height_ratio * size; }
     float line_step(float size, float line_spacing) const { return line_height(size) + line_spacing; }
 
@@ -119,6 +123,10 @@ private:
     GlyphLoader glyph_loader_;
     uint64_t revision_ = 0;
     bool last_add_out_of_space_ = false;
+    int dirty_min_x_ = std::numeric_limits<int>::max();
+    int dirty_min_y_ = std::numeric_limits<int>::max();
+    int dirty_max_x_ = -1;
+    int dirty_max_y_ = -1;
 
     int pack_x_ = 1;
     int pack_y_ = 1;
