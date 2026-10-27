@@ -83,4 +83,4 @@ assets/                     shader、字体与图集
   `SceneView` 渲染；`ui_anim_demo` 与 `ui_anim_showcase` 覆盖最小演示与能力全景。
 - **工程化**：静态库分层、51 个 CTest 用例、ASAN、lavapipe 冒烟、Linux/Windows 打包脚本。
 - **未完成**：Windows 实测、IME 与文字 shaping、SDF/MSDF、序列化；
-  XEL 绑定（M5）与编辑器（M6）尚未开始。
+  下一步是 M6.0（离屏渲染与 PNG 导出），XEL 绑定（M5）排在编辑器之后。

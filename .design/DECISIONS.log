@@ -630,3 +630,13 @@ Change: 20261027-tooltip-dpi-fix
 Context: T8 改坐标系后，gallery 仍把 framebuffer 像素当逻辑坐标交给 tooltip，非 1 倍缩放下偏移 ui_scale 倍
 Decision: gallery 光标改为 cursor_to_framebuffer(...) / ui_scale；各 example 的坐标转换仍分散，后续收敛为 Application::cursor_position()
 Consequences: 非 1 倍缩放下 tooltip 跟随正确；坐标系切换处需逐一自查
+## [127] 2026-10-27 06:23:16 UTC
+Change: none
+Context: M6 需要项目文件格式；候选为 JSON、自定义文本、二进制
+Decision: 项目文件采用二进制格式，带魔术头与版本字段；具体字段表、端序与对齐在 M6.1 开工前确定
+Consequences: 读写快、体积小、不利于 diff；魔术头与版本号保证向后兼容；格式细节决策延后
+## [128] 2026-10-27 06:38:54 UTC
+Change: 20261027-offscreen-export
+Context: M6 需要把 UI 场景导出为图片，但仓库无离屏 target、无图像读回、无 PNG 写盘
+Decision: 离屏渲染复用 RenderTarget（final_layout=eTransferSrcOptimal）+ 单次命令 + copyImageToBuffer；格式用 B8G8R8A8_SRGB 与管线一致，读回后转 RGBA 写 PNG；导出入口 COSINE_EXPORT_PNG
+Consequences: 导出同步阻塞、只用于导出；字形必须在 append 之后再同步纹理，否则新字号不可见；M6.6 帧序列与视频复用同一路径

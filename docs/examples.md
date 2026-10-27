@@ -186,6 +186,7 @@ COSINE_EXIT_AFTER=3 ./build/examples/ui_anim_showcase
 | 变量 | 取值 | 影响 |
 |---|---|---|
 | `COSINE_EXIT_AFTER` | 秒 | 到点正常退出；用于冒烟与截图 |
+| `COSINE_EXPORT_PNG` | 输出路径 | 完成一次布局后，把整棵 UI 树离屏渲染为 1200×800 的 PNG 并退出；用于导出与回归（M6.0） |
 
 ---
 

@@ -12,6 +12,8 @@
 #include <glm/glm.hpp>
 
 #include <chrono>
+#include <string>
+#include <vector>
 
 namespace xel::backend::vulkan
 {
@@ -59,6 +61,15 @@ public:
     float ui_scale() const { return ui_scale_; }
     void set_font_pixel_ratio(float ratio) { font_atlas_.set_pixel_ratio(ratio); }
 
+    // 离屏渲染一帧到 RGBA8（sRGB 编码），返回像素（行优先，从顶部开始）。
+    // ui_scale 为 1 时逻辑坐标与像素一一对应；目标不参与 swapchain 生命周期。
+    std::vector<unsigned char> render_offscreen(const graphics::Drawable& drawable,
+                                               uint32_t width, uint32_t height,
+                                               float ui_scale = 1.0f);
+    // 把 RGBA8 像素写成 PNG（stb_image_write）。
+    static bool write_png(const std::string& path, uint32_t width, uint32_t height,
+                          const std::vector<unsigned char>& rgba);
+
     void draw_line(float x1, float y1, float x2, float y2, float width, glm::vec4 color);
     void draw_triangle(float x1, float y1, float x2, float y2, float x3, float y3, glm::vec4 color);
     void draw_rect(float x, float y, float width, float height, glm::vec4 color);
@@ -91,7 +102,9 @@ private:
     void update_uniform_buffer();
     void update_push_constants();
 
-    void upload_vertex_data();
+    void upload_vertex_data(vk::raii::CommandBuffer& command_buffer);
+    void record_batches(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target,
+                        float scale);
 
     void begin_frame();
     void end_frame();
@@ -118,6 +131,7 @@ private:
     std::vector<char> read_file(const std::string& filename);
     vk::raii::ShaderModule create_shader_module(const std::vector<char>& code) const;
     void transition_image_layout(
+        vk::raii::CommandBuffer& command_buffer,
         const RenderTarget&     target,
         vk::ImageLayout         old_layout,
         vk::ImageLayout         new_layout,

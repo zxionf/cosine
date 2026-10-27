@@ -12,7 +12,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image.h>
+#include <stb_image_write.h>
 
 namespace xel::backend::vulkan
 {
@@ -883,7 +885,7 @@ void Renderer::end()
     auto& command_buffer = command_buffers_[frame_index_];
     command_buffer.begin({});
     update_push_constants();
-    upload_vertex_data();
+    upload_vertex_data(command_buffer);
     begin_rendering(command_buffer, target);
     // command_buffer.bindVertexBuffers(0, *vertex_buffer_, {0});
     // command_buffer.bindIndexBuffer(*index_buffer_, 0, vk::IndexType::eUint16);
@@ -893,36 +895,7 @@ void Renderer::end()
     //     command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], 0, vk::IndexTypeValue<decltype(draw_list_.batch().indices)::value_type>::value);
     //     command_buffer.drawIndexed(static_cast<uint32_t>(draw_list_.batch().indices.size()), 1, 0, 0, 0);
     // }
-    for (const auto& batch : draw_list_.batches()) {
-        if (batch.indices.empty()) continue;
-        // UI 层已把裁剪矩形对齐到像素网格，这里取最近整数即可：
-        // 向外取整（floor/ceil）会让 scissor 比控件大最多 1px，
-        // 表现在屏幕上就是控件顶部/底部多出一条像素。
-        const float sx0 = batch.scissor.x;
-        const float sy0 = batch.scissor.y;
-        const float sx1 = sx0 + std::max(0.0f, batch.scissor.z);
-        const float sy1 = sy0 + std::max(0.0f, batch.scissor.w);
-        const int x0 = std::max(0, static_cast<int>(std::lround(sx0 * ui_scale_)));
-        const int y0 = std::max(0, static_cast<int>(std::lround(sy0 * ui_scale_)));
-        const int x1 = std::min(static_cast<int>(target.extent.width), static_cast<int>(std::lround(sx1 * ui_scale_)));
-        const int y1 = std::min(static_cast<int>(target.extent.height), static_cast<int>(std::lround(sy1 * ui_scale_)));
-        const uint32_t scissor_w = static_cast<uint32_t>(std::max(0, x1 - x0));
-        const uint32_t scissor_h = static_cast<uint32_t>(std::max(0, y1 - y0));
-        // 空裁剪区不提交绘制：某些驱动对 extent=0 的 scissor 行为不一致，
-        // 可能沿用上一个 scissor 而导致已滚出视区的内容露出。
-        if (scissor_w == 0 || scissor_h == 0) continue;
-
-        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
-            *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
-        vk::Rect2D scissor{
-            .offset = {x0, y0},
-            .extent = {scissor_w, scissor_h}
-        };
-        command_buffer.setScissor(0, scissor);
-        command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {batch.vertex_offset});
-        command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], batch.index_offset, vk::IndexType::eUint32);
-        command_buffer.drawIndexed(static_cast<uint32_t>(batch.indices.size()), 1, 0, 0, 0);
-    }
+    record_batches(command_buffer, target, ui_scale_);
 
     end_rendering(command_buffer, target);
     command_buffer.end();
@@ -1026,6 +999,7 @@ void Renderer::end_rendering(vk::raii::CommandBuffer& command_buffer, const Rend
     }
 
     transition_image_layout(
+        command_buffer,
         target,
         vk::ImageLayout::eColorAttachmentOptimal,
         target.final_layout,
@@ -1039,6 +1013,7 @@ void Renderer::end_rendering(vk::raii::CommandBuffer& command_buffer, const Rend
 void Renderer::begin_rendering(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target)
 {
     transition_image_layout(
+        command_buffer,
         target,
         target.initial_layout,
         vk::ImageLayout::eColorAttachmentOptimal,
@@ -1100,7 +1075,138 @@ void Renderer::create_dynamic_buffers()
     }
 }
 
-void Renderer::upload_vertex_data()
+std::vector<unsigned char> Renderer::render_offscreen(const graphics::Drawable& drawable,
+                                                      uint32_t width, uint32_t height,
+                                                      float ui_scale)
+{
+    if (width == 0 || height == 0) return {};
+    if (!(ui_scale > 0.0f)) ui_scale = 1.0f;
+
+    // 导出不是每帧操作：先等设备空闲，避免与在飞的帧共用 staging 缓冲。
+    context_.graphics_queue().waitIdle();
+
+    // 只在导出时同步一次，且必须在 append_to 之后：
+    // append_to 会按需加载新字号字形（revision 变化），提前同步会用到旧纹理。
+    draw_list_.clear();
+    reset_scissor();
+    draw_list_.set_texture(drawable.texture_slot());
+    drawable.append_to(draw_list_);
+
+    update_font_atlas_texture();
+
+    // 离屏目标必须与管线创建时的 color attachment 格式一致（swapchain 为 BGRA）。
+    const vk::Format format = vk::Format::eB8G8R8A8Srgb;
+    auto [image, image_memory] = create_image(
+        width, height, format, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eDeviceLocal);
+    vk::raii::ImageView view = create_image_view(*image, format);
+
+    RenderTarget target;
+    target.image = *image;
+    target.view = *view;
+    target.extent = vk::Extent2D{width, height};
+    target.format = format;
+    target.initial_layout = vk::ImageLayout::eUndefined;
+    target.final_layout = vk::ImageLayout::eTransferSrcOptimal;
+    target.is_swapchain = false;
+
+    const vk::DeviceSize image_size = static_cast<vk::DeviceSize>(width) * height * 4;
+    auto [staging_buffer, staging_memory] = create_buffer(
+        image_size, vk::BufferUsageFlagBits::eTransferDst,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+    vk::raii::CommandBuffer command_buffer = begin_single_time_commands();
+    upload_vertex_data(command_buffer);
+
+    const float logical_w = static_cast<float>(width) / ui_scale;
+    const float logical_h = static_cast<float>(height) / ui_scale;
+    const PushConstant push_constant{
+        .scale = glm::vec2(2.0f / logical_w, 2.0f / logical_h),
+        .translate = glm::vec2(-1.0f, -1.0f),
+        .time = static_cast<float>(glfwGetTime())};
+    command_buffer.pushConstants<PushConstant>(
+        pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0,
+        push_constant);
+
+    begin_rendering(command_buffer, target);
+    record_batches(command_buffer, target, ui_scale);
+    end_rendering(command_buffer, target);
+
+    const vk::BufferImageCopy region{
+        .bufferOffset = 0,
+        .bufferRowLength = 0,
+        .bufferImageHeight = 0,
+        .imageSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+        .imageOffset = {0, 0, 0},
+        .imageExtent = {width, height, 1},
+    };
+    command_buffer.copyImageToBuffer(*image, vk::ImageLayout::eTransferSrcOptimal, *staging_buffer, region);
+
+    end_single_time_commands(std::move(command_buffer));
+
+    std::vector<unsigned char> pixels(static_cast<std::size_t>(image_size));
+    void* mapped = staging_memory.mapMemory(0, image_size);
+    memcpy(pixels.data(), mapped, static_cast<std::size_t>(image_size));
+    staging_memory.unmapMemory();
+
+    // BGRA → RGBA，供 PNG 写出。
+    for (std::size_t i = 0; i + 3 < pixels.size(); i += 4) {
+        std::swap(pixels[i], pixels[i + 2]);
+    }
+
+    draw_list_.clear();
+    reset_scissor();
+    return pixels;
+}
+
+bool Renderer::write_png(const std::string& path, uint32_t width, uint32_t height,
+                         const std::vector<unsigned char>& rgba)
+{
+    if (width == 0 || height == 0) return false;
+    const auto expected = static_cast<std::size_t>(width) * height * 4;
+    if (rgba.size() < expected) return false;
+
+    return stbi_write_png(path.c_str(), static_cast<int>(width), static_cast<int>(height), 4,
+                          rgba.data(), static_cast<int>(width) * 4) != 0;
+}
+
+void Renderer::record_batches(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target,
+                              float scale)
+{
+    for (const auto& batch : draw_list_.batches()) {
+        if (batch.indices.empty()) continue;
+        // UI 层已把裁剪矩形对齐到像素网格，这里取最近整数即可：
+        // 向外取整（floor/ceil）会让 scissor 比控件大最多 1px，
+        // 表现在屏幕上就是控件顶部/底部多出一条像素。
+        const float sx0 = batch.scissor.x;
+        const float sy0 = batch.scissor.y;
+        const float sx1 = sx0 + std::max(0.0f, batch.scissor.z);
+        const float sy1 = sy0 + std::max(0.0f, batch.scissor.w);
+        const int x0 = std::max(0, static_cast<int>(std::lround(sx0 * scale)));
+        const int y0 = std::max(0, static_cast<int>(std::lround(sy0 * scale)));
+        const int x1 = std::min(static_cast<int>(target.extent.width), static_cast<int>(std::lround(sx1 * scale)));
+        const int y1 = std::min(static_cast<int>(target.extent.height), static_cast<int>(std::lround(sy1 * scale)));
+        const uint32_t scissor_w = static_cast<uint32_t>(std::max(0, x1 - x0));
+        const uint32_t scissor_h = static_cast<uint32_t>(std::max(0, y1 - y0));
+        // 空裁剪区不提交绘制：某些驱动对 extent=0 的 scissor 行为不一致，
+        // 可能沿用上一个 scissor 而导致已滚出视区的内容露出。
+        if (scissor_w == 0 || scissor_h == 0) continue;
+
+        command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
+            *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
+        vk::Rect2D scissor{
+            .offset = {x0, y0},
+            .extent = {scissor_w, scissor_h}
+        };
+        command_buffer.setScissor(0, scissor);
+        command_buffer.bindVertexBuffers(0, *device_vertex_buffers_[frame_index_], {batch.vertex_offset});
+        command_buffer.bindIndexBuffer(*device_index_buffers_[frame_index_], batch.index_offset, vk::IndexType::eUint32);
+        command_buffer.drawIndexed(static_cast<uint32_t>(batch.indices.size()), 1, 0, 0, 0);
+    }
+}
+
+void Renderer::upload_vertex_data(vk::raii::CommandBuffer& command_buffer)
 {
     if (draw_list_.batches().empty()) return;
     vk::DeviceSize total_vertex_bytes = 0;
@@ -1122,8 +1228,8 @@ void Renderer::upload_vertex_data()
         memcpy(idx_dst + batch.index_offset,  batch.indices.data(),  idx_size);
     }
 
-    command_buffers_[frame_index_].copyBuffer(*staging_vertex_buffers_[frame_index_], *device_vertex_buffers_[frame_index_], vk::BufferCopy{.size = total_vertex_bytes});
-    command_buffers_[frame_index_].copyBuffer(*staging_index_buffers_[frame_index_], *device_index_buffers_[frame_index_], vk::BufferCopy{.size = total_index_bytes});
+    command_buffer.copyBuffer(*staging_vertex_buffers_[frame_index_], *device_vertex_buffers_[frame_index_], vk::BufferCopy{.size = total_vertex_bytes});
+    command_buffer.copyBuffer(*staging_index_buffers_[frame_index_], *device_index_buffers_[frame_index_], vk::BufferCopy{.size = total_index_bytes});
 
     vk::BufferMemoryBarrier2 barriers[2] = {
         {
@@ -1150,10 +1256,11 @@ void Renderer::upload_vertex_data()
         }
     };
     vk::DependencyInfo dep_info = {.bufferMemoryBarrierCount = 2, .pBufferMemoryBarriers = barriers};
-    command_buffers_[frame_index_].pipelineBarrier2(dep_info);
+    command_buffer.pipelineBarrier2(dep_info);
 }
 
 void Renderer::transition_image_layout(
+        vk::raii::CommandBuffer& command_buffer,
         const RenderTarget&     target,
         vk::ImageLayout         old_layout,
         vk::ImageLayout         new_layout,
@@ -1182,7 +1289,7 @@ void Renderer::transition_image_layout(
             .dependencyFlags         = {},
             .imageMemoryBarrierCount = 1,
             .pImageMemoryBarriers    = &barrier};
-    command_buffers_[frame_index_].pipelineBarrier2(dependency_info);
+    command_buffer.pipelineBarrier2(dependency_info);
 }
 
 vk::raii::ShaderModule Renderer::create_shader_module(const std::vector<char>& code) const {
