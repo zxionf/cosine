@@ -41,7 +41,8 @@ int run()
 
         const auto& stats = app.renderer_.frame_stats();
 
-        const glm::vec2 cursor = cursor_to_framebuffer(app.window_);
+        // 光标：窗口坐标 → framebuffer → UI 逻辑坐标（root 与命中测试都用后者）。
+        const glm::vec2 cursor = cursor_to_framebuffer(app.window_) / app.ui_scale();
         gallery.update_tooltip(cursor, static_cast<float>(stats.frame_time_ms) / 1000.0f);
 
         gallery.stats->set_text(std::format(

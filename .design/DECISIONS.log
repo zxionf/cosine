@@ -625,3 +625,8 @@ Change: 20261027-ui-dpi-scale
 Context: UI 坐标直接等于 framebuffer 像素，DPR>1 时 UI 过小；字形按逻辑字号栅格化在放大后会模糊
 Decision: 引入 ui_scale（默认 1.0）：root 尺寸与输入除以它，push constant 用逻辑尺寸，scissor 乘它；字形按 size*ratio 栅格化（上限 256）；COSINE_UI_SCALE=auto|数值 启用
 Consequences: 默认行为不变；高 DPI 下 UI 放大且字形清晰；运行中 DPI 变化需重启
+## [126] 2026-10-27 03:05:55 UTC
+Change: 20261027-tooltip-dpi-fix
+Context: T8 改坐标系后，gallery 仍把 framebuffer 像素当逻辑坐标交给 tooltip，非 1 倍缩放下偏移 ui_scale 倍
+Decision: gallery 光标改为 cursor_to_framebuffer(...) / ui_scale；各 example 的坐标转换仍分散，后续收敛为 Application::cursor_position()
+Consequences: 非 1 倍缩放下 tooltip 跟随正确；坐标系切换处需逐一自查
