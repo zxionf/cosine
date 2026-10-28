@@ -44,11 +44,20 @@ public:
     bool enabled() const { return enabled_; }
 
     void set_on_change(std::function<void(glm::vec4)> handler) { handler_ = std::move(handler); }
+    // 选中色块：上报 (before, after)，供编辑器生成一条撤销命令。
+    void set_on_commit(std::function<void(glm::vec4, glm::vec4)> handler)
+    {
+        commit_ = std::move(handler);
+    }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        (void)constraints;
-        return {preferred_width_, ui_theme().control_height};
+        // 面板变窄时跟随可用宽度。
+        const float available = constraints.x;
+        const float width = (available > 0.0f && available < 1.0e8f)
+                                ? std::min(preferred_width_, available)
+                                : preferred_width_;
+        return {width, ui_theme().control_height};
     }
 
     void arrange(Rect slot) override
@@ -119,8 +128,11 @@ public:
         if (!enabled_) return false;
         const int index = swatch_hit(pos);
         if (index < 0) return false;
+
+        const glm::vec4 before = color_;
         set_value(palette_[static_cast<std::size_t>(index)]);
         notify();
+        if (commit_ && !same_color(before, color_)) commit_(before, color_);
         return true;
     }
 
@@ -139,13 +151,17 @@ public:
 
         const int count = static_cast<int>(palette_.size());
         if (key == event::KeyCode::Left) {
+            const glm::vec4 before = color_;
             set_value(palette_[static_cast<std::size_t>((current + count - 1) % count)]);
             notify();
+            if (commit_ && !same_color(before, color_)) commit_(before, color_);
             return true;
         }
         if (key == event::KeyCode::Right) {
+            const glm::vec4 before = color_;
             set_value(palette_[static_cast<std::size_t>((current + 1) % count)]);
             notify();
+            if (commit_ && !same_color(before, color_)) commit_(before, color_);
             return true;
         }
         return false;
@@ -222,5 +238,6 @@ private:
     float preferred_width_ = 250.0f;
     bool enabled_ = true;
     std::function<void(glm::vec4)> handler_;
+    std::function<void(glm::vec4, glm::vec4)> commit_;
 };
 } // namespace xel::ui

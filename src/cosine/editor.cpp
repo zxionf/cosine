@@ -1,5 +1,7 @@
 #include "editor.hpp"
 
+#include "preview_pane.hpp"
+
 // Scene 类型位于 `xel::scene`（不是 `xel::anim::scene`）。
 // 这里在本 TU 内提供 `anim::scene` 别名，避免编辑器代码逐处写长名字。
 namespace xel::anim { namespace scene = ::xel::scene; }
@@ -80,6 +82,47 @@ void Editor::toggle_playback()
     set_status(player_->playing() ? "playing" : "paused");
 }
 
+void Editor::step_frame(int direction)
+{
+    if (player_ == nullptr) return;
+    constexpr float kFrameStep = 1.0f / 30.0f;
+    const float duration = std::max(project_.timeline.duration(), kFrameStep);
+
+    // 逐帧先暂停，否则下一轮 tick 又会用播放时间覆盖。
+    player_->pause();
+    if (play_button_ != nullptr) play_button_->set_label("Play");
+
+    const float target = std::clamp(time_ + static_cast<float>(direction) * kFrameStep, 0.0f,
+                                    duration);
+    player_->seek(target);
+    time_ = target;
+    if (timeline_view_ != nullptr) timeline_view_->set_time(target);
+    if (preview_ruler_ != nullptr) preview_ruler_->set_time(target);
+    set_status(std::format("frame {:.2f}s", target));
+}
+
+void Editor::undo()
+{
+    if (!stack_.undo(project_)) {
+        set_status("nothing to undo");
+        return;
+    }
+    sync_property_panel();
+    if (preview_ != nullptr) preview_->mark_layout_dirty();
+    set_status("undo");
+}
+
+void Editor::redo()
+{
+    if (!stack_.redo(project_)) {
+        set_status("nothing to redo");
+        return;
+    }
+    sync_property_panel();
+    if (preview_ != nullptr) preview_->mark_layout_dirty();
+    set_status("redo");
+}
+
 void Editor::build_backdrop()
 {
     // 菜单栗 / 工具栏的底色条：先 add，保证绘制在内容之下。
@@ -106,8 +149,8 @@ void Editor::build_menu()
     });
 
     menu->add_menu("Edit", {
-        ui::MenuItem::make("Undo", [this] { set_status("undo: pending M6.4b"); }, "Ctrl+Z"),
-        ui::MenuItem::make("Redo", [this] { set_status("redo: pending M6.4b"); }, "Ctrl+Y"),
+        ui::MenuItem::make("Undo", [this] { undo(); }, "Ctrl+Z"),
+        ui::MenuItem::make("Redo", [this] { redo(); }, "Ctrl+Y"),
     });
 
     menu->add_menu("View", {
@@ -140,6 +183,8 @@ void Editor::build_toolbar()
     play_button_ = play.get();
     toolbar->add(std::move(play));
 
+    add("◀ Frame", [this] { step_frame(-1); });
+    add("Frame ▶", [this] { step_frame(1); });
     add("Reset", [this] {
         if (player_ == nullptr) return;
         player_->seek(0.0f);
@@ -158,14 +203,26 @@ void Editor::build_panels()
     auto tree = std::make_unique<ui::TreeView>(kTreeWidth, 300.0f);
     scene_tree_ = tree.get();
     tree->set_row_height(38.0f); // 字号放大后行高要跟上，否则文字被裁
+    tree->set_min_size({160.0f, 160.0f});
+    tree->set_max_size({1.0e6f, 1.0e6f});
     tree->set_on_select([this](const std::vector<int>& path) { on_scene_selected(path); });
-    root_->add(std::move(tree));
 
     auto preview = std::make_unique<ui::SceneView>(&project_.scene);
     preview_ = preview.get();
-    root_->add(std::move(preview));
+    preview->set_min_size({200.0f, 150.0f});
 
-    build_property_panel();
+    // 预览底部的时间标尺：显示进度，点击 / 拖动即 seek。
+    auto ruler = std::make_unique<ui::PreviewRuler>();
+    preview_ruler_ = ruler.get();
+    ruler->set_duration(project_.timeline.duration());
+    ruler->set_on_seek([this](float seconds) {
+        if (player_ != nullptr) player_->seek(seconds);
+        time_ = seconds;
+        if (timeline_view_ != nullptr) timeline_view_->set_time(seconds);
+    });
+    auto preview_pane = std::make_unique<PreviewPane>(std::move(preview), std::move(ruler), 28.0f);
+
+    auto property = build_property_panel();
 
     // 时间轴：标尺 + 轨道 + 关键帧（M6.3）。
     auto timeline = std::make_unique<ui::TimelineView>(&project_.timeline);
@@ -184,7 +241,66 @@ void Editor::build_panels()
         if (preview_ != nullptr) preview_->mark_layout_dirty();
         set_status("timeline edited");
     });
-    root_->add(std::move(timeline));
+
+    // 时间轴编辑上报 → 命令栈（可撤销）。多选拖动合成一条复合命令。
+    timeline->set_on_move_end([this](const std::vector<ui::KeyMove>& moves) {
+        const auto& tracks = project_.timeline.tracks();
+        std::vector<std::unique_ptr<anim::Command>> children;
+        for (const ui::KeyMove& move : moves) {
+            if (move.track < 0 || move.track >= static_cast<int>(tracks.size())) continue;
+            const auto& entry = tracks[static_cast<std::size_t>(move.track)];
+            children.push_back(std::make_unique<anim::MoveKeyCommand>(
+                entry.node(), entry.property(), move.from, move.to));
+        }
+        if (children.empty()) return;
+        if (children.size() == 1) {
+            stack_.push(std::move(children.front()), project_);
+        } else {
+            stack_.push(std::make_unique<anim::CompoundCommand>(std::move(children)), project_);
+        }
+        set_status("keyframe moved");
+    });
+    timeline->set_on_remove_key([this](int track, float time) {
+        const auto& tracks = project_.timeline.tracks();
+        if (track < 0 || track >= static_cast<int>(tracks.size())) return;
+        const auto& entry = tracks[static_cast<std::size_t>(track)];
+        stack_.push(
+            std::make_unique<anim::RemoveKeyCommand>(entry.node(), entry.property(), time), project_);
+        set_status("keyframe removed");
+    });
+    timeline->set_on_cycle_easing(
+        [this](int track, float time, anim::Easing from, anim::Easing to) {
+            const auto& tracks = project_.timeline.tracks();
+            if (track < 0 || track >= static_cast<int>(tracks.size())) return;
+            const auto& entry = tracks[static_cast<std::size_t>(track)];
+            stack_.push(std::make_unique<anim::SetKeyEasingCommand>(
+                            entry.node(), entry.property(), time, from, to),
+                        project_);
+            set_status("easing changed");
+        });
+    timeline->set_min_size({400.0f, 120.0f});
+
+    // 嵌套三份 Splitter：预览|属性 → 树|右区 → 工作区|时间轴。
+    // 这样拖「属性」分割条只影响预览与属性，树宽不变。
+    auto right = std::make_unique<ui::Splitter>(0.0f, 0.0f, ui::Splitter::Orientation::Horizontal);
+    right->set_fixed_second(kPropertyWidth); // 属性固定宽，预览弹性
+    right->set_panes(std::move(preview_pane), std::move(property));
+    right_splitter_ = right.get();
+
+    auto outer = std::make_unique<ui::Splitter>(0.0f, 0.0f, ui::Splitter::Orientation::Horizontal);
+    outer->set_fixed_first(kTreeWidth); // 树固定宽，右区弹性
+    outer->set_panes(std::move(tree), std::move(right));
+    outer_splitter_ = outer.get();
+
+    auto root_split =
+        std::make_unique<ui::Splitter>(0.0f, 0.0f, ui::Splitter::Orientation::Vertical);
+    root_split->set_ratio(1.0f - kTimelineRatio);
+    root_split->set_panes(std::move(outer), std::move(timeline));
+    // 首帧 root 尺寸可能还是 0（Editor::layout 会 early return）：
+    // 给一个非零下限，避免 clamp_size 得到 0 尺寸后 ScrollView 轨道长度为 0。
+    root_split->set_min_size({400.0f, 300.0f});
+    root_splitter_ = root_split.get();
+    root_->add(std::move(root_split));
 
     auto status = std::make_unique<ui::Label>("ready", 18.0f);
     status_ = status.get();
@@ -256,7 +372,7 @@ void Editor::refresh_scene_tree()
     scene_tree_->set_roots(std::move(roots));
 }
 
-void Editor::build_property_panel()
+std::unique_ptr<ui::Widget> Editor::build_property_panel()
 {
     // 属性行数多于可用高度，用可滚动面板。
     auto panel = std::make_unique<ui::ScrollPanel>(0.0f, 0.0f, kPropertyWidth, 400.0f);
@@ -268,37 +384,70 @@ void Editor::build_property_panel()
 
     auto add = [this, &panel](ui::DragFloat*& slot, std::string label, float lo, float hi,
                               int precision, std::string suffix,
-                              std::function<void(anim::scene::Node&, float)> apply) {
+                              std::function<float(const anim::scene::Node&)> read,
+                              std::function<void(anim::scene::Node&, float)> write) {
+        const std::string row_label = label;
         auto drag = std::make_unique<ui::DragFloat>(std::move(label), kPropertyWidth - 36.0f);
         drag->set_range(lo, hi);
         drag->set_precision(precision);
         drag->set_suffix(std::move(suffix));
         drag->set_enabled(false);
-        drag->set_on_change([this, apply = std::move(apply)](float value) {
+
+        // 拖动开始记 before，结束后把整次拖动合成一条命令。
+        drag->set_on_drag_begin([this, read] {
+            if (selected_ == anim::scene::kInvalidNode) return;
+            if (const auto* node = project_.scene.find(selected_)) pending_before_ = read(*node);
+        });
+        drag->set_on_change([this, write](float value) {
             if (selected_ == anim::scene::kInvalidNode) return;
             if (auto* target = project_.scene.find(selected_)) {
-                apply(*target, value);
+                write(*target, value);
                 if (preview_ != nullptr) preview_->mark_layout_dirty();
             }
         });
+
         slot = drag.get();
+        ui::DragFloat* self = drag.get();
+        drag->set_on_drag_end([this, write, self, row_label] {
+            if (selected_ == anim::scene::kInvalidNode) return;
+            stack_.push(std::make_unique<anim::SetNodeFieldCommand>(
+                            selected_, row_label, write, pending_before_, self->value()),
+                        project_);
+            set_status("edited " + row_label);
+        });
+        // 键盘微调：每次按键一条命令。
+        drag->set_on_commit([this, write, row_label](float before, float after) {
+            if (selected_ == anim::scene::kInvalidNode) return;
+            stack_.push(std::make_unique<anim::SetNodeFieldCommand>(
+                            selected_, row_label, write, before, after),
+                        project_);
+            set_status("edited " + row_label);
+        });
+
         panel->add(std::move(drag));
     };
 
     constexpr float kLimit = 4000.0f;
     add(pos_x_, "Pos X", -kLimit, kLimit, 1, "",
+        [](const anim::scene::Node& n) { return n.transform.position.x; },
         [](anim::scene::Node& n, float v) { n.transform.position.x = v; });
     add(pos_y_, "Pos Y", -kLimit, kLimit, 1, "",
+        [](const anim::scene::Node& n) { return n.transform.position.y; },
         [](anim::scene::Node& n, float v) { n.transform.position.y = v; });
     add(rotation_, "Rotation", -360.0f, 360.0f, 1, "deg",
+        [](const anim::scene::Node& n) { return n.transform.rotation * kRadToDeg; },
         [](anim::scene::Node& n, float v) { n.transform.rotation = v * kDegToRad; });
     add(scale_x_, "Scale X", 0.01f, 100.0f, 2, "",
+        [](const anim::scene::Node& n) { return n.transform.scale.x; },
         [](anim::scene::Node& n, float v) { n.transform.scale.x = v; });
     add(scale_y_, "Scale Y", 0.01f, 100.0f, 2, "",
+        [](const anim::scene::Node& n) { return n.transform.scale.y; },
         [](anim::scene::Node& n, float v) { n.transform.scale.y = v; });
     add(size_w_, "Size W", 0.0f, kLimit, 1, "",
+        [](const anim::scene::Node& n) { return n.size.x; },
         [](anim::scene::Node& n, float v) { n.size.x = v; });
     add(size_h_, "Size H", 0.0f, kLimit, 1, "",
+        [](const anim::scene::Node& n) { return n.size.y; },
         [](anim::scene::Node& n, float v) { n.size.y = v; });
 
     // 颜色：一行预设色板（保留原 alpha）+ 独立的 alpha 行。
@@ -312,12 +461,25 @@ void Editor::build_property_panel()
             if (preview_ != nullptr) preview_->mark_layout_dirty();
         }
     });
+    color->set_on_commit([this](glm::vec4 before, glm::vec4 after) {
+        if (selected_ == anim::scene::kInvalidNode) return;
+        if (const auto* node = project_.scene.find(selected_)) {
+            // 色板不改 alpha，保留节点原值（before.a 即当前 alpha）。
+            before.a = node->color.a;
+            after.a = node->color.a;
+        }
+        stack_.push(std::make_unique<anim::SetNodeColorCommand>(selected_, before, after), project_);
+        set_status("edited Color");
+    });
     panel->add(std::move(color));
 
     add(color_a_, "Color A", 0.0f, 1.0f, 2, "",
+        [](const anim::scene::Node& n) { return n.color.a; },
         [](anim::scene::Node& n, float v) { n.color.a = v; });
 
-    root_->add(std::move(panel));
+    // 交给 Splitter 分配宽高，只限制下限。
+    panel->set_min_size({240.0f, 200.0f});
+    return panel;
 }
 
 std::optional<anim::scene::NodeId> Editor::node_from_path(const std::vector<int>& path) const
@@ -341,6 +503,7 @@ std::optional<anim::scene::NodeId> Editor::node_from_path(const std::vector<int>
 void Editor::on_scene_selected(const std::vector<int>& path)
 {
     selected_ = node_from_path(path).value_or(anim::scene::kInvalidNode);
+    if (timeline_view_ != nullptr) timeline_view_->set_selected_node(selected_);
     sync_property_panel();
     set_status(selected_ == anim::scene::kInvalidNode ? "scene: no selection"
                                                       : "scene: node " + std::to_string(selected_));
@@ -436,33 +599,13 @@ void Editor::layout()
 
     const float body_top = kMenuHeight + kToolbarHeight;
     const float status_y = height - kStatusHeight;
-    const float available = std::max(240.0f, status_y - body_top);
-
-    // 时间轴全宽横跨底部（2D 关键帧编辑需要横向空间）；
-    // 属性面板只占工作区高度，不再贯穿到底。
-    const float timeline_height = std::clamp(available * kTimelineRatio, 160.0f, 320.0f);
-    const float work_height = std::max(120.0f, available - timeline_height);
-
-    // 窄窗口下压缩侧栏，优先保证预览宽度。
-    constexpr float kMinPreview = 200.0f;
-    float tree_width = kTreeWidth;
-    float property_width = kPropertyWidth;
-    const float side_total = tree_width + property_width;
-    if (width - side_total < kMinPreview) {
-        const float shrink = std::max(0.0f, width - kMinPreview) / side_total;
-        tree_width = std::max(140.0f, tree_width * shrink);
-        property_width = std::max(200.0f, property_width * shrink);
-    }
-    const float preview_width = std::max(120.0f, width - tree_width - property_width);
 
     place(menu_bg_, 0.0f, 0.0f, width, kMenuHeight);
     place(menu_, 0.0f, 0.0f, width, kMenuHeight);
     place(toolbar_bg_, 0.0f, kMenuHeight, width, kToolbarHeight);
     place(toolbar_, 0.0f, kMenuHeight, width, kToolbarHeight);
-    place(scene_tree_, 0.0f, body_top, tree_width, work_height);
-    place(preview_, tree_width, body_top, preview_width, work_height);
-    place(property_panel_, tree_width + preview_width, body_top, property_width, work_height);
-    place(timeline_view_, 0.0f, body_top + work_height, width, timeline_height);
+    // 工作区与时间轴由 Splitter 分配，这里只给分割器整体定位。
+    place(root_splitter_, 0.0f, body_top, width, std::max(240.0f, status_y - body_top));
     place(status_, 0.0f, status_y, width, kStatusHeight);
 
     if (preview_ != nullptr) preview_->mark_layout_dirty();
@@ -474,6 +617,11 @@ void Editor::tick(float dt)
         player_->tick(dt);
         time_ = player_->time();
         if (timeline_view_ != nullptr) timeline_view_->set_time(time_);
+        if (preview_ruler_ != nullptr) {
+            const float duration = project_.timeline.duration();
+            if (preview_ruler_->duration() != duration) preview_ruler_->set_duration(duration);
+            preview_ruler_->set_time(time_);
+        }
     }
 
     const float width = root_->width();

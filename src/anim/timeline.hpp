@@ -33,6 +33,8 @@ public:
     bool remove_key(float time);
     // 修改关键帧时间并保持有序；返回是否找到。
     bool set_key_time(float old_time, float new_time);
+    // 按时间精确查找（供编辑命令改插值等字段）；找不到返回 nullptr。
+    Keyframe* find_key(float time);
     const std::vector<Keyframe>& keys() const { return keys_; }
 
     // 两端外推取端点；单帧轨道恒定。

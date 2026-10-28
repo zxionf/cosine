@@ -56,6 +56,14 @@ bool Track::set_key_time(float old_time, float new_time)
     return true;
 }
 
+Keyframe* Track::find_key(float time)
+{
+    for (Keyframe& key : keys_) {
+        if (key.time == time) return &key;
+    }
+    return nullptr;
+}
+
 PropertyValue Track::sample(float time) const
 {
     if (keys_.empty()) return PropertyValue{0.0f};

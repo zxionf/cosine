@@ -13,9 +13,19 @@
 #include <format>
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace xel::ui
 {
+// 拖动结束上报的一条关键帧位移。一次拖动可能带多个关键帧，
+// 编辑器据此合成一条复合命令（整组可撤销）。
+struct KeyMove
+{
+    int track = -1;
+    float from = 0.0f;
+    float to = 0.0f;
+};
+
 // 时间轴编辑视图（M6.3）：标尺 + 轨道行 + 关键帧菱形 + 播放头。
 // 只依赖 anim::Timeline；点击标尺 seek，拖动关键帧改时间。
 class TimelineView : public Widget
@@ -40,9 +50,28 @@ public:
     float selected_time() const { return selected_time_; }
     std::size_t selection_count() const { return selection_.size(); }
 
+    // 场景树选中的节点：其轨道行高亮，便于两侧对照。
+    void set_selected_node(scene::NodeId node) { selected_node_ = node; }
+    scene::NodeId selected_node() const { return selected_node_; }
+
     void set_on_seek(std::function<void(float)> handler) { on_seek_ = std::move(handler); }
     void set_on_key_moved(std::function<void()> handler) { on_key_moved_ = std::move(handler); }
     void set_on_changed(std::function<void()> handler) { on_changed_ = std::move(handler); }
+    // 编辑上报：由编辑器合成撤销命令（拖动结束 / 删除 / 切插值）。
+    // 拖动上报是批量形式：多选拖动只产生一条命令。
+    void set_on_move_end(std::function<void(const std::vector<KeyMove>&)> handler)
+    {
+        move_end_ = std::move(handler);
+    }
+    void set_on_remove_key(std::function<void(int, float)> handler)
+    {
+        remove_key_ = std::move(handler);
+    }
+    void set_on_cycle_easing(
+        std::function<void(int, float, anim::Easing, anim::Easing)> handler)
+    {
+        cycle_easing_ = std::move(handler);
+    }
 
     glm::vec2 measure(glm::vec2) override { return clamp_size(local_bounds().size); }
 
@@ -102,7 +131,10 @@ public:
                     global_.pos.y + ruler + static_cast<float>(i) * row_height();
                 if (row_y > global_.pos.y + global_.size.y) break;
 
-                const bool selected_row = static_cast<int>(i) == selected_track_;
+                const bool selected_by_node =
+                    selected_node_ != scene::kInvalidNode && tracks[i].node() == selected_node_;
+                const bool selected_row =
+                    selected_by_node || static_cast<int>(i) == selected_track_;
                 if (selected_row) {
                     graphics::Rectangle{global_.pos.x, row_y, global_.size.x, row_height(),
                                         glm::vec4{t.accent.r, t.accent.g, t.accent.b, 0.12f}}
@@ -160,8 +192,26 @@ public:
         if (button != 0) return false;
         if (pos.x < track_left()) return false;
 
+        const bool extend = modifiers_extend();
         const KeyHit hit = hit_key(pos);
         if (hit.valid()) {
+            if (extend) {
+                // Shift/Ctrl：切换该关键帧的选中状态，不开始拖动。
+                const auto it = std::find_if(selection_.begin(), selection_.end(),
+                                             [&](const KeyRef& ref) {
+                                                 return ref.track == hit.track &&
+                                                        std::fabs(ref.time - hit.time) < 1.0e-4f;
+                                             });
+                if (it != selection_.end()) {
+                    selection_.erase(it);
+                } else {
+                    selection_.push_back(KeyRef{hit.track, hit.time});
+                }
+                selected_track_ = hit.track;
+                selected_time_ = hit.time;
+                return true;
+            }
+
             // 命中已选中的关键帧则保留多选，否则重置为单选。
             if (!is_selected(hit.track, hit.time)) {
                 selection_.clear();
@@ -185,11 +235,11 @@ public:
             return true;
         }
 
-        // 轨道区空白：开始框选。
+        // 轨道区空白：开始框选（Shift/Ctrl 保留已有选择，追加）。
         box_selecting_ = true;
         box_start_ = pos;
         box_end_ = pos;
-        selection_.clear();
+        if (!extend) selection_.clear();
         selected_track_ = -1;
         return true;
     }
@@ -252,6 +302,17 @@ public:
         const bool handled = dragging_ || scrubbing_ || box_selecting_;
         if (box_selecting_) collect_box_selection();
 
+        // 拖动结束：上报所有真正位移过的关键帧，由编辑器合成一条复合命令。
+        if (dragging_ && move_end_) {
+            std::vector<KeyMove> moves;
+            for (const DragOrigin& entry : drag_origins_) {
+                if (std::fabs(entry.current - entry.origin) > 1.0e-4f) {
+                    moves.push_back(KeyMove{entry.track, entry.origin, entry.current});
+                }
+            }
+            if (!moves.empty()) move_end_(moves);
+        }
+
         dragging_ = false;
         scrubbing_ = false;
         box_selecting_ = false;
@@ -259,26 +320,21 @@ public:
         return handled;
     }
 
-    // 右键：删除命中的关键帧（空轨道一并移除）。
+    // 右键：上报删除，实际删除由编辑器走 RemoveKeyCommand（可撤销）。
     bool on_right_click(glm::vec2 pos) override
     {
         if (timeline_ == nullptr || pos.x < track_left()) return false;
         const KeyHit hit = hit_key(pos);
         if (!hit.valid()) return false;
 
-        auto& tracks = timeline_->tracks();
-        auto& track = tracks[static_cast<std::size_t>(hit.track)];
-        const scene::NodeId node = track.node();
-        const anim::PropertyId property = track.property();
-        if (!track.remove_key(hit.time)) return false;
-        if (track.keys().empty()) timeline_->remove_track(node, property);
-
+        if (remove_key_) remove_key_(hit.track, hit.time);
         selected_track_ = -1;
-        if (on_changed_) on_changed_();
+        selection_.clear();
         return true;
     }
 
     // 双击：循环切换插值（Linear → EaseIn → EaseOut → EaseInOut → CubicBezier）。
+    // 双击：上报插值切换（from → to），实际修改由编辑器走命令。
     bool on_double_click(glm::vec2 pos, int button) override
     {
         if (button != 0 || timeline_ == nullptr || pos.x < track_left()) return false;
@@ -288,21 +344,18 @@ public:
         auto& tracks = timeline_->tracks();
         auto& track = tracks[static_cast<std::size_t>(hit.track)];
 
-        anim::Keyframe updated{};
-        bool found = false;
+        const anim::Easing* current = nullptr;
         for (const anim::Keyframe& key : track.keys()) {
             if (key.time == hit.time) {
-                updated = key;
-                found = true;
+                current = &key.easing;
                 break;
             }
         }
-        if (!found) return false;
+        if (current == nullptr) return false;
 
-        updated.easing = next_easing(updated.easing);
-        track.remove_key(hit.time);
-        track.add_key(updated);
-        if (on_changed_) on_changed_();
+        const anim::Easing from = *current;
+        const anim::Easing to = next_easing(from);
+        if (cycle_easing_) cycle_easing_(hit.track, hit.time, from, to);
         return true;
     }
 
@@ -328,6 +381,15 @@ private:
         float origin = 0.0f;
         float current = 0.0f;
     };
+
+    // 鼠标回调里拿不到 mods，改从共享上下文读最近一次事件的修饰键。
+    bool modifiers_extend() const
+    {
+        const UIContext* ctx = context();
+        if (ctx == nullptr) return false;
+        return event::has_modifier(ctx->modifiers, event::Modifier::Shift) ||
+               event::has_modifier(ctx->modifiers, event::Modifier::Control);
+    }
 
     bool is_selected(int track, float time) const
     {
@@ -364,7 +426,10 @@ private:
                 const float x = x_at_time(key.time);
                 const float y = row_y + row_height() * 0.5f;
                 if (x >= x0 && x <= x1 && y >= y0 && y <= y1) {
-                    selection_.push_back(KeyRef{static_cast<int>(i), key.time});
+                    const int track = static_cast<int>(i);
+                    if (!is_selected(track, key.time)) {
+                        selection_.push_back(KeyRef{track, key.time});
+                    }
                 }
             }
         }
@@ -469,6 +534,7 @@ private:
     float pps_ = 120.0f;
     int selected_track_ = -1;
     float selected_time_ = 0.0f;
+    scene::NodeId selected_node_ = scene::kInvalidNode;
     bool dragging_ = false;
     bool scrubbing_ = false;
     bool box_selecting_ = false;
@@ -481,5 +547,8 @@ private:
     std::function<void(float)> on_seek_;
     std::function<void()> on_key_moved_;
     std::function<void()> on_changed_;
+    std::function<void(const std::vector<KeyMove>&)> move_end_;
+    std::function<void(int, float)> remove_key_;
+    std::function<void(int, float, anim::Easing, anim::Easing)> cycle_easing_;
 };
 } // namespace xel::ui

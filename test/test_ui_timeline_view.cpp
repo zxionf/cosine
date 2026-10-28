@@ -1,4 +1,5 @@
 #include "ui/timeline_view.hpp"
+#include "ui/uicontext.hpp"
 
 #include "anim/easing.hpp"
 #include "anim/property.hpp"
@@ -144,7 +145,7 @@ void test_click_label_column_ignored()
     assert(seeked < 0.0f);
 }
 
-// 右键删除命中的关键帧；轨道空后一并移除。
+// 右键只上报删除（实际删除由编辑器走 RemoveKeyCommand）。
 void test_right_click_removes_key()
 {
     Timeline timeline;
@@ -156,19 +157,27 @@ void test_right_click_removes_key()
     view.set_pixels_per_second(100.0f);
     view.arrange({{0.0f, 0.0f}, {800.0f, 300.0f}});
 
-    int changed = 0;
-    view.set_on_changed([&changed] { ++changed; });
+    int removed_track = -1;
+    float removed_time = -1.0f;
+    view.set_on_remove_key([&](int track_index, float time) {
+        removed_track = track_index;
+        removed_time = time;
+    });
 
     // x = 168 + 100 = 268；首行中心 y = 34 + 18 = 52。
     assert(view.on_right_click({268.0f, 52.0f}));
-    assert(changed == 1);
-    assert(timeline.tracks().empty());
+    assert(removed_track == 0);
+    assert(std::fabs(removed_time - 1.0f) < kEps);
+    // 右键不直接改数据，交给命令栈。
+    assert(timeline.tracks().size() == 1);
 
-    // 已无关键帧，右键不应再命中。
-    assert(!view.on_right_click({268.0f, 52.0f}));
+    // 点空白处不触发删除上报。
+    removed_track = -1;
+    assert(!view.on_right_click({600.0f, 200.0f}));
+    assert(removed_track == -1);
 }
 
-// 双击循环插值：Linear → EaseIn。
+// 双击只上报插值切换（from → to）。
 void test_double_click_cycles_easing()
 {
     Timeline timeline;
@@ -180,14 +189,25 @@ void test_double_click_cycles_easing()
     view.set_pixels_per_second(100.0f);
     view.arrange({{0.0f, 0.0f}, {800.0f, 300.0f}});
 
-    assert(view.on_double_click({268.0f, 52.0f}, 0));
-    assert(timeline.tracks()[0].keys()[0].easing == Easing::EaseIn);
+    int cycled_track = -1;
+    float cycled_time = -1.0f;
+    Easing from = Easing::CubicBezier;
+    Easing to = Easing::CubicBezier;
+    view.set_on_cycle_easing([&](int track_index, float time, Easing f, Easing t) {
+        cycled_track = track_index;
+        cycled_time = time;
+        from = f;
+        to = t;
+    });
 
     assert(view.on_double_click({268.0f, 52.0f}, 0));
-    assert(timeline.tracks()[0].keys()[0].easing == Easing::EaseOut);
+    assert(cycled_track == 0);
+    assert(std::fabs(cycled_time - 1.0f) < kEps);
+    assert(from == Easing::Linear);
+    assert(to == Easing::EaseIn);
 
-    // 值不受影响。
-    assert(std::fabs(std::get<glm::vec2>(timeline.tracks()[0].keys()[0].value).x) < kEps);
+    // 双击不改数据，也不改时间。
+    assert(timeline.tracks()[0].keys()[0].easing == Easing::Linear);
     assert(std::fabs(timeline.tracks()[0].keys()[0].time - 1.0f) < kEps);
 }
 
@@ -241,6 +261,79 @@ void test_drag_snaps_to_second()
 } // namespace
 
 // 编辑后存盘读回：时间轴内容一致。
+// 多选拖动只上报一次（批量），编辑器据此合成一条复合命令。
+void test_batch_move_report()
+{
+    Timeline timeline;
+    timeline.set_duration(5.0f);
+    auto& track = timeline.add_track(1, prop::Position);
+    track.add_key({1.0f, glm::vec2{0.0f, 0.0f}, Easing::Linear});
+    track.add_key({2.0f, glm::vec2{1.0f, 1.0f}, Easing::Linear});
+
+    TimelineView view(&timeline);
+    view.set_pixels_per_second(100.0f);
+    view.arrange({{0.0f, 0.0f}, {800.0f, 300.0f}});
+
+    int calls = 0;
+    std::size_t batch = 0;
+    view.set_on_move_end([&calls, &batch](const std::vector<xel::ui::KeyMove>& moves) {
+        ++calls;
+        batch = moves.size();
+    });
+
+    // 框选两个关键帧，然后拖动其中一个。
+    assert(view.on_mouse_down({200.0f, 40.0f}, 0));
+    assert(view.on_mouse_move({420.0f, 70.0f}));
+    assert(view.on_mouse_up({420.0f, 70.0f}, 0));
+    assert(view.selection_count() == 2);
+
+    assert(view.on_mouse_down({268.0f, 52.0f}, 0));
+    assert(view.on_mouse_move({368.0f, 52.0f}));
+    view.on_mouse_up({368.0f, 52.0f}, 0);
+
+    assert(calls == 1);
+    assert(batch == 2);
+}
+
+// Shift/Ctrl 点击切换单个关键帧的选中状态（追加 / 移除）。
+void test_shift_click_toggles_selection()
+{
+    Timeline timeline;
+    timeline.set_duration(5.0f);
+    auto& track = timeline.add_track(1, prop::Position);
+    track.add_key({1.0f, glm::vec2{0.0f, 0.0f}, Easing::Linear});
+    track.add_key({2.0f, glm::vec2{1.0f, 1.0f}, Easing::Linear});
+
+    TimelineView view(&timeline);
+    view.set_pixels_per_second(100.0f);
+    view.arrange({{0.0f, 0.0f}, {800.0f, 300.0f}});
+
+    xel::ui::UIContext ctx;
+    view.set_context(&ctx);
+
+    // 普通点击：单选第二个。
+    assert(view.on_mouse_down({368.0f, 52.0f}, 0));
+    view.on_mouse_up({368.0f, 52.0f}, 0);
+    assert(view.selection_count() == 1);
+
+    // Shift 点击第一个：追加成两个。
+    ctx.modifiers = xel::event::Modifier::Shift;
+    assert(view.on_mouse_down({268.0f, 52.0f}, 0));
+    view.on_mouse_up({268.0f, 52.0f}, 0);
+    assert(view.selection_count() == 2);
+
+    // Shift 再点一次第一个：取消，回到一个。
+    assert(view.on_mouse_down({268.0f, 52.0f}, 0));
+    view.on_mouse_up({268.0f, 52.0f}, 0);
+    assert(view.selection_count() == 1);
+
+    // Ctrl 同样算追加。
+    ctx.modifiers = xel::event::Modifier::Control;
+    assert(view.on_mouse_down({268.0f, 52.0f}, 0));
+    view.on_mouse_up({268.0f, 52.0f}, 0);
+    assert(view.selection_count() == 2);
+}
+
 void test_edit_then_round_trip()
 {
     Project project;
@@ -283,6 +376,8 @@ int main()
     test_drag_snaps_to_second();
     test_box_select_and_move();
     test_edit_then_round_trip();
+    test_batch_move_report();
+    test_shift_click_toggles_selection();
     std::printf("test_ui_timeline_view: all passed\n");
     return 0;
 }

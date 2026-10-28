@@ -680,3 +680,48 @@ Change: 20261027-timeline-interactions
 Context: 时间轴需要多选批量移动；单个 key 顺序移动会与已有 key 碰撞；M6.3 验收要求存盘往返
 Decision: 轨道区空白按下框选（标尺区仍是 scrub），选中集合用 track+time；批量移动按 delta 方向排序后再移（右移先移大的）；拖动中同步 selected_time 与 selection；新增 test_edit_then_round_trip 验收
 Consequences: 未接 CommandStack（M6.4b）；框选每次重置、不支持追加选择
+## [137] 2026-10-28 02:26:48 UTC
+Change: 20261028-editor-linking
+Context: 属性拖动是连续操作，每帧 push 会塞满撤销栈；命令不应依赖属性 id
+Decision: DragFloat 加 drag begin/end 回调；SetNodeFieldCommand 用 read/write 闭包 + 显式 before/after；Editor 拖动开始记 before、结束 push 一条命令；Undo/Redo 菜单接 CommandStack；场景树选中同步给时间轴高亮
+Consequences: 键盘微调与颜色选择暂不入栈；时间轴编辑仍直接改数据；Splitter 可拖分区未做
+## [138] 2026-10-28 02:46:12 UTC
+Change: 20261028-timeline-commands
+Context: 时间轴编辑（拖动/删除/切插值）直接改数据，无法 Undo；拖动是连续操作不能每帧入栈
+Decision: TimelineView 拖动中仍直接改（保即时预览），松开按每个关键帧上报 (track,from,to)，Editor push MoveKeyCommand（apply 幂等）；右键/双击只上报，Editor push RemoveKeyCommand / SetKeyEasingCommand；新增 Track::find_key
+Consequences: 三种编辑均可 Undo；批量拖动撤销为逐条回滚；颜色与键盘微调仍不入栈
+## [139] 2026-10-28 02:54:40 UTC
+Change: 20261028-value-commits
+Context: 键盘微调与颜色选择直接改值无法 Undo；颜色是 vec4 而 SetNodeFieldCommand 只处理 float
+Decision: DragFloat 加 set_on_commit（键盘每次按键一条命令，nudge 只在值真变时上报）；ColorInput 加 set_on_commit（点击/键盘）；新增 SetNodeColorCommand；颜色 commit 对齐 alpha
+Consequences: 属性与颜色改动均可 Undo；颜色撤销不改 alpha；批量拖动仍逐条命令
+## [140] 2026-10-28 03:05:42 UTC
+Change: 20261028-splitter-panes
+Context: 固定像素分区无法调整；嵌套 Splitter 依赖 pane 的 min_size；首帧 root 尺寸为 0 会让 splitter 得到 0 尺寸
+Decision: 三份嵌套 Splitter（上下/左右/左右），pane 只设 min_size 不再 place；splitter 初始 min {400,300} 防首帧 0 尺寸；layout 只定位分割器与顶栏
+Consequences: 三栏与时间轴可拖；TreeView 下半背景色不一致；预览标尺与逐帧仍待做
+## [141] 2026-10-28 03:29:55 UTC
+Change: 20261028-splitter-independence
+Context: 拖属性条会带动树宽；splitter 让属性面板变窄后数值被截断
+Decision: 嵌套改为「树 | (预览 | 属性)」，拖属性条只改内层比例；DragFloat/ColorInput 的 measure 跟随可用宽（min(preferred, constraints.x)）
+Consequences: 拖属性条时树宽独立；拖树条时属性仍会变；完全固定像素需给 Splitter 增加固定侧模式
+## [142] 2026-10-28 03:34:38 UTC
+Change: 20261028-splitter-fixed-panes
+Context: Splitter 只有比例模式，嵌套时拖一侧必然带动另一侧
+Decision: Splitter 增加 fixed_first/fixed_second（像素宽，互斥，-1 回比例）；resolved_first 统一算第一块尺寸（arrange 与手柄共用）；apply_drag 按模式改像素或 ratio；编辑器树固定 280、属性固定 380、预览弹性
+Consequences: 三栏互不影响，窗口 resize 只有预览变化；时间轴仍按比例；手柄位置也走 resolved_first
+## [143] 2026-10-28 03:41:21 UTC
+Change: 20261028-splitter-handle-hit
+Context: 固定像素模式下手柄绘制已用 resolved_first，但命中区仍用 ratio_，导致点在中间没反应
+Decision: handle_rect 改用 resolved_first，与 append_to/arrange 共用同一套尺寸计算；新增 test_ui_splitter 4 组（含「中间位置不命中」回归断言）
+Consequences: 三条分割条都可拖；命中区与绘制位置严格一致
+## [144] 2026-10-28 03:57:27 UTC
+Change: 20261028-preview-ruler
+Context: 预览区看不到时间，也无法单帧推进；Vbox 无弹性子项无法让预览跟随窗口拉伸
+Decision: 新增 ui::PreviewRuler（按 duration 比例映射、刻度 72px 自适应、右侧时间标签带底色并跳过重叠刻度文字）与 editor::PreviewPane（主体弹性 + 标尺固定 28px）；工具栏 ◀/▶ 按 1/30s 步进且先暂停再 seek
+Consequences: 预览可点击/拖动 seek；逐帧自动暂停；步长固定 1/30s，无帧率设置；ASAN 冒烟的第三方泄漏与本次无关
+## [145] 2026-10-28 04:05:09 UTC
+Change: 20261028-timeline-multiselect-batch
+Context: 鼠标事件缺修饰键；框选只能重选不能追加；多选拖动每个关键帧各占一个撤销位
+Decision: 修饰键走 InputEvent.mods → UIContext.modifiers 通到控件（不改 Widget 签名）；Shift/Ctrl 点击切换选中且不进入拖动、Shift/Ctrl 框选追加去重；新增 anim::CompoundCommand（正序 apply/逆序 revert），on_move_end 改批量上报，编辑器按数量包复合命令
+Consequences: 多选拖动一次撤销全部回滚；修饰键只在鼠标按下时读取；场景树背景色经取色核实已一致

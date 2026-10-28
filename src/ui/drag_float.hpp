@@ -46,11 +46,20 @@ public:
     float value() const { return value_; }
 
     void set_on_change(std::function<void(float)> handler) { handler_ = std::move(handler); }
+    // 键盘微调：每次改动上报 (before, after)，供编辑器生成一条撤销命令。
+    void set_on_commit(std::function<void(float, float)> handler) { commit_ = std::move(handler); }
+    // 拖动开始/结束：供编辑器把一次拖动合并成一条撤销命令。
+    void set_on_drag_begin(std::function<void()> handler) { drag_begin_ = std::move(handler); }
+    void set_on_drag_end(std::function<void()> handler) { drag_end_ = std::move(handler); }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        (void)constraints;
-        return {preferred_width_, ui_theme().control_height};
+        // 面板变窄时跟随可用宽度，避免数值被挤出可视区。
+        const float available = constraints.x;
+        const float width = (available > 0.0f && available < 1.0e8f)
+                                ? std::min(preferred_width_, available)
+                                : preferred_width_;
+        return {width, ui_theme().control_height};
     }
 
     void arrange(Rect slot) override
@@ -111,6 +120,7 @@ public:
         dragging_ = true;
         drag_start_x_ = pos.x;
         drag_start_value_ = value_;
+        if (drag_begin_) drag_begin_();
         return true;
     }
 
@@ -127,32 +137,29 @@ public:
     {
         const bool was_dragging = dragging_;
         dragging_ = false;
+        if (was_dragging && drag_end_) drag_end_();
         return was_dragging;
     }
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
         if (!enabled_) return false;
-        const float delta = step_ > 0.0f ? step_
-                                         : std::max(1.0e-4f, (max_value_ - min_value_) / 100.0f);
+        const float delta =
+            step_ > 0.0f ? step_ : std::max(1.0e-4f, (max_value_ - min_value_) / 100.0f);
         if (key == event::KeyCode::Left || key == event::KeyCode::Down) {
-            set_value(value_ - delta);
-            notify();
+            nudge(value_ - delta);
             return true;
         }
         if (key == event::KeyCode::Right || key == event::KeyCode::Up) {
-            set_value(value_ + delta);
-            notify();
+            nudge(value_ + delta);
             return true;
         }
         if (key == event::KeyCode::Home) {
-            set_value(min_value_);
-            notify();
+            nudge(min_value_);
             return true;
         }
         if (key == event::KeyCode::End) {
-            set_value(max_value_);
-            notify();
+            nudge(max_value_);
             return true;
         }
         return false;
@@ -169,6 +176,16 @@ private:
     {
         if (step_ > 0.0f) return step_;
         return std::max(1.0e-4f, (max_value_ - min_value_) / 200.0f);
+    }
+
+    // 键盘微调：只在值真的变化时通知并上报 commit。
+    void nudge(float target)
+    {
+        const float before = value_;
+        set_value(target);
+        if (std::fabs(before - value_) <= 1.0e-6f) return;
+        notify();
+        if (commit_) commit_(before, value_);
     }
 
     void notify()
@@ -189,5 +206,8 @@ private:
     float drag_start_x_ = 0.0f;
     float drag_start_value_ = 0.0f;
     std::function<void(float)> handler_;
+    std::function<void(float, float)> commit_;
+    std::function<void()> drag_begin_;
+    std::function<void()> drag_end_;
 };
 } // namespace xel::ui

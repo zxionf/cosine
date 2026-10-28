@@ -2237,3 +2237,354 @@ const glm::vec2 cursor = cursor_to_framebuffer(app.window_) / app.ui_scale();
 - **框选多选与批量移动**未做。
 - 时间轴编辑**未接 `CommandStack`**（拖动/删除/切插值都直接改 timeline，撤销留到 M6.4b 统一接入）。
 - 属性面板不随播放实时刷新（只在选中变化时同步）——播放时应显示被轨道驱动的值，留到 M6.4b。
+
+## M6.4b 第一阶段：选择联动与属性撤销
+### 交付
+
+| 文件 | 内容 |
+|---|---|
+| `src/ui/drag_float.hpp` | `set_on_drag_begin` / `set_on_drag_end`（把一次拖动合成一个撤销单元） |
+| `src/anim/command.hpp` | `SetNodeFieldCommand`：显式 before/after + writer，不依赖属性 id |
+| `src/ui/timeline_view.hpp` | `set_selected_node()`：场景树选中的节点对应轨道行高亮 |
+| `src/cosine/editor.*` | 命令栈、Undo/Redo 菜单、属性行接入、树→时间轴联动 |
+| `test/test_anim_command.cpp` | 新增 `test_set_node_field_command` |
+
+### 关键设计
+
+1. **拖动 → 一条命令**：`DragFloat` 在按下时触发 `on_drag_begin`（编辑器记 `pending_before_`），
+   松开时触发 `on_drag_end`（`stack_.push(SetNodeFieldCommand(before, self->value()))`）。
+   中间每帧只改节点字段、不入栈，避免撤销栈被拖动帧塞满。
+2. **`SetNodeFieldCommand` 不关心属性 id**：用调用方给的 `writer(node, value)` 写字段，
+   于是 Position.x、Rotation(deg↔rad)、Scale、Size、Color A 共用同一个命令类型。
+   读值也由 `read(node)` 提供，用于拖动开始时抓 before。
+3. **选择联动**：`on_scene_selected` 把 `selected_` 传给 `TimelineView::set_selected_node`，
+   时间轴按 `track.node() == selected_node` 高亮整行，和场景树形成对照。
+
+### 验证
+
+- `test_set_node_field_command`：apply 改 x、y 不变；undo 回 before；redo 再改。
+- `ctest` **56/56**。
+- `COSINE_EXIT_AFTER=3 ./cosine`：exit=0、validation=0。
+- `COSINE_EXPORT_PNG=/tmp/ed_link.png ./cosine`：界面正常，validation=0。
+
+### 边界
+
+- **`Splitter` 可拖分区**未做（当前仍固定像素分区）。
+- **时间轴编辑未入命令栈**（拖动/删除/切插值仍直接改数据）。
+- **颜色选择**与**键盘微调**不产生撤销单元（只有拖动数值框会）。
+- 预览时间标尺与逐帧未做。
+- 框选追加（Shift/Ctrl）未做。
+
+## M6.4b 第二阶段：时间轴编辑入命令栈
+### 交付
+
+| 文件 | 内容 |
+|---|---|
+| `src/anim/timeline.*` | `Track::find_key(time)`：按时间精确取可变指针，供命令改字段 |
+| `src/anim/command.*` | `MoveKeyCommand`（拖动）、`SetKeyEasingCommand`（切插值） |
+| `src/ui/timeline_view.hpp` | 上报回调：`on_move_end` / `on_remove_key` / `on_cycle_easing` |
+| `src/cosine/editor.cpp` | 三个回调 → `CommandStack`，状态栏提示 |
+| `test/test_ui_timeline_view.cpp` | 右键/双击改为验证「回调参数 + 数据未直接变」 |
+
+### 设计
+
+- **拖动**：拖动过程中 `TimelineView` 仍直接改 timeline（保证即时预览）；
+  松开时对**每个真正位移过**的关键帧上报 `(track, from, to)`，编辑器逐个 push `MoveKeyCommand`。
+  - push 会 apply，但此时 key 已在 `to`，`set_key_time(from, to)` 找不到 `from` → 返回 false，**幂等**；
+  - `revert` 用 `set_key_time(to, from)` 正确回滚。
+- **右键删除**：只上报，编辑器 push `RemoveKeyCommand`（apply 时删除、revert 时恢复）。
+- **双击切插值**：只上报 `(from, to)`，编辑器 push `SetKeyEasingCommand`
+  （apply 设 `to`、revert 设 `from`），因此双击后数据才真正改变。
+- **多选批量拖动**：每个关键帧一条命令，撤销时逐个回滚。
+
+### 验证
+
+- `test_ui_timeline_view`：右键/双击断言改为「回调被调用 + track/time 参数正确 + timeline 未被直接修改」。
+- `ctest` **56/56**。
+- `COSINE_EXIT_AFTER=3 ./cosine`：exit=0、validation=0。
+- `COSINE_EXPORT_PNG=/tmp/ed_tc.png ./cosine`：界面正常。
+
+### 边界
+
+- **`Splitter` 可拖分区**仍未做（固定像素分区）。
+- **颜色选择**与**键盘微调**不产生撤销单元。
+- 批量拖动的撤销是逐条回滚，不是「整组一次」。
+- 预览时间标尺与逐帧、框选追加（Shift/Ctrl）未做。
+
+## M6.4b 第三阶段：颜色与键盘微调入撤销栈
+### 交付
+
+| 文件 | 内容 |
+|---|---|
+| `src/ui/drag_float.hpp` | `set_on_commit(before, after)`；键盘微调改走 `nudge()` 并上报 |
+| `src/ui/color_input.hpp` | `set_on_commit(before, after)`；点击色块与键盘切色都上报 |
+| `src/anim/command.*` | `SetNodeColorCommand`（vec4 专用；`SetNodeFieldCommand` 只处理 float） |
+| `src/cosine/editor.cpp` | 属性行与颜色行接入 commit → `CommandStack` |
+| 测试 | `test_keyboard_commit`（DragFloat / ColorInput 各一）+ `test_set_node_color_command` |
+
+### 设计
+
+- **键盘微调 = 每次按键一条命令**（不是一次拖动）。`nudge()` 只在值真的变化时
+  `notify()` + `commit()`，到达边界后继续按键不会产生空命令。
+- **颜色的 alpha**：色板不改 alpha，commit 时把 `before.a` / `after.a` 都对齐到节点当前 alpha。
+  否则撤销会把半透明对象恢复成不透明（因为色板的 alpha 恒为 1.0）。
+
+### 验证
+
+- `test_keyboard_commit`（DragFloat）：右移上报 before=50/after=52；到 100 再按不上报。
+- `test_keyboard_commit`（ColorInput）：切色上报 before(橙) / after(黄)。
+- `test_set_node_color_command`：apply 改色、undo 回 before、redo 再改。
+- `ctest` **56/56**；冒烟 exit=0 / validation=0；导出正常。
+
+### 边界
+
+- **`Splitter` 可拖分区**未做（当前固定像素分区）。
+- 预览时间标尺与逐帧未做。
+- 框选追加（Shift/Ctrl）、批量拖动合成单条命令未做。
+
+## M6.4b 第四阶段：可拖分区
+### 交付
+
+| 文件 | 内容 |
+|---|---|
+| `src/cosine/editor.*` | 嵌套三份 `Splitter`；`build_property_panel` 改为返回指针；`layout()` 只给分割器与顶栏定位 |
+| 各 pane `min_size` | tree 160×160、preview 200×150、property 240×200、timeline 400×120 |
+
+结构：
+
+```
+root_splitter_ (Vertical, ratio 0.72)
+├── top_splitter_ (Horizontal, 0.70)
+│    ├── left_splitter_ (Horizontal, 0.31)
+│    │    ├── scene_tree_
+│    │    └── preview_
+│    └── property_panel_
+└── timeline_view_
+```
+
+`Splitter::arrange` 直接给 pane 设 `{pos, size}`，比例区间由 pane 的 `min_size` 推导，
+所以 pane 不再走 `place()`，只需给出合理下限。
+
+### 关键坑（启动崩溃）
+
+首帧 `Editor::layout()` 在 `root` 尺寸为 0 时 early return，`root_splitter_` 的 `min_size`
+仍是默认 0；随后 `uisys.tick` 设置 root 尺寸并 layout →
+`clamp_size(measure={0,0}, min={0,0})` 得到 0 尺寸 → 属性面板高 0 →
+`ScrollView::thumb_length` 里 `std::clamp(val, 20, 0)` 触发 `hi < lo` 断言 → SIGABRT（exit 134）。
+
+**修法**：组装时给 `root_splitter_` 一个非零下限 `{400, 300}`。
+
+### 验证
+
+- `ctest` **56/56**。
+- `COSINE_EXIT_AFTER=3 ./cosine`：exit=0、validation=0（修复前是 134）。
+- `COSINE_EXPORT_PNG=/tmp/ed_sp.png ./cosine`：三栏 + 底部全宽时间轴 + 可见分割条。
+
+### 边界
+
+- 预览时间标尺与逐帧未做。
+- 框选追加（Shift/Ctrl）、批量拖动合成单条命令未做。
+- 场景树下半部分背景与面板底色不一致（`TreeView` 只填充内容区）。
+
+## 面板尺寸独立：拖属性条不再带动场景树
+### 现象
+
+拖属性面板的分割条时，左侧场景树跟着变宽 / 变窄。
+
+### 根因
+
+嵌套顺序是「(树 | 预览) | 属性」：属性条调的是**外层** splitter 的比例，
+外层总宽一变，内层「树 | 预览」按自己的比例重新分配 → 树宽 = 外层宽 × 0.31，于是跟着变。
+
+### 修法
+
+改成「树 | (预览 | 属性)」：
+
+- 拖**属性条**只改内层比例 → 预览与属性互换宽度，**树宽不变**；
+- 拖**树条**才改外层比例（此时右区宽度变化、属性跟着变，符合「我在拖树的边界」的预期）。
+
+### 顺带修复：属性面板数值被截断
+
+splitter 让属性面板从固定 380 变成比例宽（约 297），而 `DragFloat` / `ColorInput` 仍用
+固定 `preferred_width_`（344 / 420），数值被挤出可视区。
+
+修法：两者 `measure` 改为 `min(preferred_width_, constraints.x)`，跟随可用宽度。
+
+### 验证
+
+- `ctest` **56/56**。
+- `COSINE_EXIT_AFTER=3 ./cosine`：exit=0、validation=0。
+- `COSINE_EXPORT_PNG=/tmp/ed_ind2.png ./cosine`：树 22%、属性 30%，九行属性数值完整。
+
+### 边界
+
+- 拖树条时属性宽仍会变（右区总宽变化）；若要求两侧完全固定像素，需要给 `Splitter`
+  增加「固定一侧宽度」模式。
+- 预览时间标尺与逐帧未做。
+
+## 三栏尺寸完全独立：固定一侧像素
+### 现象
+
+拖树条时属性宽度也变；拖属性条时树宽也变。上一轮只把嵌套顺序改成「树 | (预览 | 属性)」，
+解决了「拖属性条带动树」，但**拖树条仍会带动属性**（右区总宽变化，属性按比例跟着变）。
+
+### 根因
+
+`Splitter` 只有比例模式：外层总宽一变，内层按比例重新分配，另一侧必然跟着变。
+
+### 修法
+
+给 `Splitter` 增加「固定一侧像素宽度」：
+
+- `set_fixed_first(px)` / `set_fixed_second(px)`（互斥，`-1` 回到比例模式）；
+- `resolved_first()` 统一算第一块尺寸（固定优先，否则 `usable * ratio_`）；
+- `apply_drag()`：固定模式改像素、比例模式改 `ratio_`；
+- `append_to()` 的手柄位置也用 `resolved_first()`，否则手柄画在错误位置。
+
+编辑器组装：
+
+| splitter | 模式 | 效果 |
+|---|---|---|
+| `outer_splitter_`（树 \| 右区） | `set_fixed_first(kTreeWidth=280)` | 树宽固定，右区弹性 |
+| `right_splitter_`（预览 \| 属性） | `set_fixed_second(kPropertyWidth=380)` | 属性宽固定，预览弹性 |
+
+于是：拖树条只改树宽；拖属性条只改属性宽；窗口 resize 时**只有预览吸收**变化。
+
+### 验证
+
+- `ctest` **56/56**。
+- `COSINE_EXIT_AFTER=3 ./cosine`：exit=0、validation=0。
+- `COSINE_EXPORT_PNG=/tmp/ed_fix.png ./cosine`：树 280、属性 380、预览弹性，九行数值完整。
+
+### 边界
+
+- 时间轴仍按比例（`kTimelineRatio`），拖它不影响三栏。
+- 预览时间标尺与逐帧未做。
+
+## 固定像素模式下左右分割条拖不动
+### 现象
+
+上下（比例模式）分割条能拖；左右两条（固定像素模式）拖不动。
+
+### 根因
+
+上一轮给 `Splitter` 加固定像素时，只把**绘制**位置（`append_to`）改成了 `resolved_first()`，
+**命中区** `handle_rect()` 仍是 `(extent - handle) * ratio_`。
+固定模式下 `ratio_` 保持默认 0.5 → 命中区落在中间，而手柄画在 280 / 614 处 → 点不到。
+
+### 修法
+
+`handle_rect()` 改用 `resolved_first()`，与 `append_to`、`arrange` 共用同一套尺寸计算。
+三者用同一个函数是这次的关键——上一轮漏改一处就导致「看得见、拖不动」。
+
+### 验证
+
+新增 `test/test_ui_splitter.cpp`（4 组）：
+
+- 比例模式：命中位置与拖动改 `ratio`；
+- 固定首块：**断言中间位置不命中**（本 bug 的回归）、拖动改首块宽；
+- 固定尾块：手柄在 `usable - 380` 附近，拖动改尾块宽；
+- 垂直固定首块：同一套逻辑在 `Vertical` 下成立。
+
+`ctest` **57/57**；冒烟 exit=0 / validation=0；导出正常。
+
+### 边界
+
+- 手柄宽度固定 6px，未做「悬停加宽」。
+
+## 预览区时间标尺与逐帧
+### 背景
+
+M6.4b 收尾项。在此之前，时间只存在于底部时间轴：想在预览里「看着画面找时间点」
+必须来回看两个区域；也无法单帧推进，调试动画起点 / 关键帧边界很别扭。
+
+### 形状
+
+新增两个东西：
+
+1. `ui::PreviewRuler`（`src/ui/preview_ruler.hpp`）——预览底部 28px 的时间条。
+   横向按「占 duration 的比例」映射，所以窗口缩放自适应，不需要像素每秒。
+   刻度间隔从 `0.1/0.2/0.5/1/2/5/10/30/60` 秒中选第一个能拉开 72px 的档；
+   右侧用带底色的标签显示 `当前 / 总时长`，并跳过与之重叠的刻度文字。
+   点击与拖动都立即 seek（`scrubbing_` 状态），越界夹到 `[0, duration]`。
+
+2. `editor::PreviewPane`（`src/cosine/preview_pane.hpp`）——纵向两段容器。
+   `Vbox` 没有弹性子项，而预览必须跟随窗口拉伸，所以这里手写排布：
+   主体吃满剩余高度，标尺固定 28px 贴在底部。
+
+工具栏补 `◀ Frame` / `Frame ▶`：按 `1/30s` 步进，**先暂停再 seek**，
+否则下一轮 `tick` 会被播放时间覆盖。属性面板 / 时间轴 / 标尺三处同步刷新。
+
+### 验证
+
+- `test/test_ui_preview_ruler.cpp` 5 组：时间↔像素往返、点击 seek 与越界夹取、
+  未按下时移动不 seek、`duration = 0` 不除零、`measure` 高度固定。
+- `ctest` **58/58**。
+- 冒烟 exit=0 / validation=0；`COSINE_EXPORT_PNG` + `COSINE_EXPORT_TIME=1.35`
+  导出确认播放头与标签位置正确。
+
+### 边界
+
+- 步长固定 1/30s，未做「项目帧率」设置。
+- 逐帧未接键盘快捷键（避免与焦点控件的左右键冲突），只走工具栏。
+- 标尺只显示总进度，不能缩放时间范围（那是底部时间轴的职责）。
+- `build-asan` 冒烟会报 GLFW Wayland / fontconfig 的全局泄漏，`ui_gallery` 同样有，
+  属第三方噪声，与本次改动无关。
+
+## 时间轴多选：Shift/Ctrl 追加与整组撤销
+### 背景
+
+M6.4b 收尾。此前的框选只能「重新选一批」，无法把两次框选合并；多选拖动虽然
+能一起移动，但每个关键帧各 push 一条 `MoveKeyCommand`，撤销要按 N 次。
+
+### 修饰键从哪来
+
+`Widget::on_mouse_down(pos, button)` 没有 `mods` 参数，而 GLFW 的鼠标按键回调
+本来就带 `mods`。补一条最小通路：
+
+```
+GLFW glfwSetMouseButtonCallback(mods)
+  → InputEvent.mods = map_mods(mods)
+  → UISystem::dispatch_mouse_button 写入 UIContext::modifiers
+  → 控件读 context()->modifiers
+```
+
+只改了三处，没有给 Widget 接口加参数，避免所有控件签名变动。
+
+### 交互语义
+
+| 操作 | 行为 |
+|---|---|
+| 普通点击关键帧 | 单选（点在已选中的关键帧上保留多选，便于直接拖） |
+| **Shift / Ctrl 点击关键帧** | 切换该关键帧的选中状态，**不进入拖动** |
+| 空白处框选 | 清空后重新选 |
+| **Shift / Ctrl + 框选** | 保留已有选择，**追加**（按 track+time 去重） |
+
+Shift 点击不拖动的理由：切换后再拖，「主关键帧」可能已经不在选择集里，
+`primary_origin_` 与 `drag_origins_` 会失去对应关系，不如让操作分两步。
+
+### 整组撤销
+
+新增 `anim::CompoundCommand`：`apply` 正序、`revert` 逆序，`push` 一次只占
+**一个**撤销位。`TimelineView::on_move_end` 的签名随之变为
+`void(const std::vector<KeyMove>&)`，一次拖动只回调一次；编辑器按数量决定
+直接 push `MoveKeyCommand` 还是包一层 `CompoundCommand`（单条不必包）。
+
+### 顺带核实
+
+遗留风险里记着「场景树下半部分背景色与面板底色不一致」。用取色器实测当前导出图：
+树空区 `(101,105,111)`、属性面板 `(101,105,111)`，**完全一致**，该问题已不存在，
+不需要再改 `TreeView`。
+
+### 验证
+
+- `test_anim_command` 新增 `test_compound_command`：两条 `MoveKeyCommand` 包成
+  复合，push → 两处都生效；undo → 两处都回滚且只消耗一个撤销位；redo → 再生效。
+- `test_ui_timeline_view` 新增两组：批量上报（2 个关键帧拖一次只回调 1 次、批量大小 2）、
+  Shift/Ctrl 点击切换选择（单选 → 追加 → 移除 → Ctrl 追加）。
+- `ctest` **58/58**；编辑器与 `ui_gallery` 冒烟 exit=0 / validation=0。
+
+### 边界
+
+- 修饰键状态在鼠标按下时读取；拖动过程中松开 Shift 不影响已开始的拖动。
+- 框选不区分「从空处开始」与「从关键帧上开始」：点在关键帧上永远按点击处理。

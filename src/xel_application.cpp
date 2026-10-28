@@ -90,7 +90,6 @@ void Application::framebuffer_resize_callback(GLFWwindow* window, int width, int
 
 void Application::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-    (void)mods;
     auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
 
     event::InputEvent event;
@@ -98,6 +97,8 @@ void Application::mouse_button_callback(GLFWwindow* window, int button, int acti
         ? event::InputEvent::Type::MouseButtonDown
         : event::InputEvent::Type::MouseButtonUp;
     event.mouse_button = button;
+    // 鼠标事件也带修饰键：Shift/Ctrl 追加选择靠它。
+    event.mods = map_mods(mods);
 
     double mx, my;
     glfwGetCursorPos(window, &mx, &my);

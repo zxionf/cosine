@@ -55,6 +55,27 @@ void test_keyboard_cycles_palette()
     assert(input.value().b > 0.85f);
 }
 
+// 键盘切色上报 commit（before/after）。
+void test_keyboard_commit()
+{
+    ColorInput input("", 200.0f);
+    input.set_value({0.95f, 0.55f, 0.35f, 1.0f}); // 第 0 个
+
+    int commits = 0;
+    glm::vec4 last_before{};
+    glm::vec4 last_after{};
+    input.set_on_commit([&](glm::vec4 before, glm::vec4 after) {
+        ++commits;
+        last_before = before;
+        last_after = after;
+    });
+
+    assert(input.on_key_down(KeyCode::Right, Modifier::None));
+    assert(commits == 1);
+    assert(last_before.g < 0.7f);  // 橙
+    assert(last_after.g > 0.8f);   // 黄
+}
+
 void test_disabled_ignores_input()
 {
     ColorInput input("", 200.0f);
@@ -83,6 +104,7 @@ int main()
 {
     test_clamp();
     test_keyboard_cycles_palette();
+    test_keyboard_commit();
     test_disabled_ignores_input();
     test_custom_palette();
     std::printf("test_ui_color_input: all passed\n");

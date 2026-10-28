@@ -344,6 +344,9 @@ void UISystem::dispatch_mouse_button(const event::InputEvent& event)
     const bool is_down = event.type == event::InputEvent::Type::MouseButtonDown;
     const int button = event.mouse_button;
 
+    // 让控件能读到 Shift/Ctrl：鼠标回调本身不携带修饰键。
+    if (auto* ctx = context()) ctx->modifiers = event.mods;
+
     const auto path = hit_path(root_.get(), event.mouse_pos);
     Widget* target = path.empty() ? nullptr : path.back();
 

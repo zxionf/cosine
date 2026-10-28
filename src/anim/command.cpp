@@ -141,6 +141,44 @@ void RemoveNodeCommand::revert(Project& project)
     if (parent_ != scene::kInvalidNode) project.scene.set_parent(node_, parent_);
 }
 
+void SetNodeColorCommand::apply(Project& project)
+{
+    if (auto* node = project.scene.find(node_)) node->color = after_;
+}
+
+void SetNodeColorCommand::revert(Project& project)
+{
+    if (auto* node = project.scene.find(node_)) node->color = before_;
+}
+
+void MoveKeyCommand::apply(Project& project)
+{
+    if (auto* track = project.timeline.find_track(node_, property_)) {
+        track->set_key_time(from_, to_);
+    }
+}
+
+void MoveKeyCommand::revert(Project& project)
+{
+    if (auto* track = project.timeline.find_track(node_, property_)) {
+        track->set_key_time(to_, from_);
+    }
+}
+
+void SetKeyEasingCommand::apply(Project& project)
+{
+    if (auto* track = project.timeline.find_track(node_, property_)) {
+        if (auto* key = track->find_key(time_)) key->easing = to_;
+    }
+}
+
+void SetKeyEasingCommand::revert(Project& project)
+{
+    if (auto* track = project.timeline.find_track(node_, property_)) {
+        if (auto* key = track->find_key(time_)) key->easing = from_;
+    }
+}
+
 void AddKeyCommand::apply(Project& project)
 {
     project.timeline.ensure_track(node_, property_).add_key(key_);
@@ -177,5 +215,16 @@ void RemoveKeyCommand::revert(Project& project)
 {
     if (!has_captured_) return;
     project.timeline.ensure_track(node_, property_).add_key(captured_);
+}
+
+void CompoundCommand::apply(Project& project)
+{
+    for (auto& child : children_) child->apply(project);
+}
+
+void CompoundCommand::revert(Project& project)
+{
+    // 逆序回滚：后应用的要先撤销。
+    for (auto it = children_.rbegin(); it != children_.rend(); ++it) (*it)->revert(project);
 }
 } // namespace xel::anim

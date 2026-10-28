@@ -1,5 +1,6 @@
 #pragma once
 
+#include "anim/command.hpp"
 #include "anim/player.hpp"
 #include "anim/project.hpp"
 #include "ui/button.hpp"
@@ -8,8 +9,10 @@
 #include "ui/label.hpp"
 #include "ui/menu_bar.hpp"
 #include "ui/panel.hpp"
+#include "ui/preview_ruler.hpp"
 #include "ui/root.hpp"
 #include "ui/scene_view.hpp"
+#include "ui/splitter.hpp"
 #include "ui/timeline_view.hpp"
 #include "ui/tree_view.hpp"
 #include "ui/ui_system.hpp"
@@ -47,10 +50,12 @@ private:
     void build();
     void build_backdrop();
     void toggle_playback();
+    void undo();
+    void redo();
     void build_menu();
     void build_toolbar();
     void build_panels();
-    void build_property_panel();
+    std::unique_ptr<ui::Widget> build_property_panel();
     void build_demo_content();
 
     void refresh_scene_tree();
@@ -58,6 +63,7 @@ private:
     std::optional<scene::NodeId> node_from_path(const std::vector<int>& path) const;
     void sync_property_panel();
     void add_shape_node();
+    void step_frame(int direction);
     void toggle_rounded_style();
 
     void apply_theme();
@@ -68,16 +74,26 @@ private:
     ui::UISystem* uisys_ = nullptr;
     anim::Project project_;
     std::unique_ptr<anim::Player> player_;
+    anim::CommandStack stack_{256};
+    float pending_before_ = 0.0f;
 
     ui::MenuBar* menu_ = nullptr;
     ui::Panel* menu_bg_ = nullptr;
     ui::Panel* toolbar_bg_ = nullptr;
     ui::Widget* toolbar_ = nullptr;
     ui::Button* play_button_ = nullptr;
+
+    // 可拖分区：上下（工作区 / 时间轴）、左右（树 / 右区）、左右（预览 / 属性）。
+    // 嵌套顺序保证「拖属性条」只改预览与属性的宽度，树宽不变。
+    ui::Splitter* root_splitter_ = nullptr;
+    ui::Splitter* outer_splitter_ = nullptr;
+    ui::Splitter* right_splitter_ = nullptr;
     ui::TreeView* scene_tree_ = nullptr;
     ui::SceneView* preview_ = nullptr;
+    ui::PreviewRuler* preview_ruler_ = nullptr;
     ui::Panel* property_panel_ = nullptr;
-    ui::TimelineView* timeline_view_ = nullptr;    ui::Label* property_label_ = nullptr;
+    ui::TimelineView* timeline_view_ = nullptr;
+    ui::Label* property_label_ = nullptr;
     ui::Label* status_ = nullptr;
 
     // 属性面板行（M6.2）。

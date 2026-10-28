@@ -93,6 +93,34 @@ void test_keyboard()
     assert(!drag.on_key_down(KeyCode::Tab, Modifier::None));
 }
 
+// 键盘微调上报 commit（before/after）。
+void test_keyboard_commit()
+{
+    DragFloat drag("X", 100.0f);
+    drag.set_range(0.0f, 100.0f);
+    drag.set_value(50.0f);
+    drag.set_step(2.0f);
+
+    int commits = 0;
+    float last_before = 0.0f;
+    float last_after = 0.0f;
+    drag.set_on_commit([&](float before, float after) {
+        ++commits;
+        last_before = before;
+        last_after = after;
+    });
+
+    assert(drag.on_key_down(KeyCode::Right, Modifier::None));
+    assert(commits == 1);
+    assert(std::fabs(last_before - 50.0f) < kEps);
+    assert(std::fabs(last_after - 52.0f) < kEps);
+
+    // 到头后再按键：值不变，不应上报。
+    drag.set_value(100.0f);
+    assert(drag.on_key_down(KeyCode::Right, Modifier::None));
+    assert(commits == 1);
+}
+
 void test_disabled_ignores_input()
 {
     DragFloat drag("X", 100.0f);
@@ -123,6 +151,7 @@ int main()
     test_drag_changes_value();
     test_explicit_step();
     test_keyboard();
+    test_keyboard_commit();
     test_disabled_ignores_input();
     test_focus_lost_stops_drag();
     std::printf("test_ui_drag_float: all passed\n");

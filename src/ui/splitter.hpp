@@ -48,6 +48,22 @@ public:
         ratio_ = std::clamp(ratio, limits.first, limits.second);
         mark_layout_dirty();
     }
+
+    // 固定一侧的像素宽度（另一侧弹性）。传入非负值启用，-1 回到比例模式。
+    // 两者互斥：设一个会清掉另一个。
+    void set_fixed_first(float pixels)
+    {
+        fixed_first_ = pixels >= 0.0f ? pixels : -1.0f;
+        fixed_second_ = -1.0f;
+        mark_layout_dirty();
+    }
+    void set_fixed_second(float pixels)
+    {
+        fixed_second_ = pixels >= 0.0f ? pixels : -1.0f;
+        fixed_first_ = -1.0f;
+        mark_layout_dirty();
+    }
+    bool fixed_mode() const { return fixed_first_ >= 0.0f || fixed_second_ >= 0.0f; }
     float ratio() const { return ratio_; }
     // 当前尺寸下可用的比例区间（由两个子项的 min_size 推导）。
     std::pair<float, float> ratio_limits() const
@@ -90,13 +106,13 @@ public:
 
         if (orientation_ == Orientation::Horizontal) {
             const float usable = std::max(0.0f, slot.size.x - handle);
-            const float first_w = usable * ratio_;
+            const float first_w = resolved_first();
             children_[0]->arrange({{slot.pos.x, slot.pos.y}, {first_w, slot.size.y}});
             children_[1]->arrange({{slot.pos.x + first_w + handle, slot.pos.y},
                                    {usable - first_w, slot.size.y}});
         } else {
             const float usable = std::max(0.0f, slot.size.y - handle);
-            const float first_h = usable * ratio_;
+            const float first_h = resolved_first();
             children_[0]->arrange({{slot.pos.x, slot.pos.y}, {slot.size.x, first_h}});
             children_[1]->arrange({{slot.pos.x, slot.pos.y + first_h + handle},
                                    {slot.size.x, usable - first_h}});
@@ -108,11 +124,11 @@ public:
         const auto& t = ui_theme();
         const float handle = handle_size();
         const float x = orientation_ == Orientation::Horizontal
-            ? global_.pos.x + (global_.size.x - handle) * ratio_
+            ? global_.pos.x + resolved_first()
             : global_.pos.x;
         const float y = orientation_ == Orientation::Horizontal
             ? global_.pos.y
-            : global_.pos.y + (global_.size.y - handle) * ratio_;
+            : global_.pos.y + resolved_first();
         const float w = orientation_ == Orientation::Horizontal ? handle : global_.size.x;
         const float h = orientation_ == Orientation::Horizontal ? global_.size.y : handle;
 
@@ -155,10 +171,10 @@ public:
         const float handle = handle_size();
         if (orientation_ == Orientation::Horizontal) {
             const float usable = std::max(1.0f, global_.size.x - handle);
-            set_ratio((pos.x - global_.pos.x) / usable);
+            apply_drag(pos.x - global_.pos.x, usable);
         } else {
             const float usable = std::max(1.0f, global_.size.y - handle);
-            set_ratio((pos.y - global_.pos.y) / usable);
+            apply_drag(pos.y - global_.pos.y, usable);
         }
         return true;
     }
@@ -172,23 +188,51 @@ public:
 private:
     float handle_size() const { return 6.0f; }
 
+    // 第一块的像素尺寸：固定模式优先，否则按比例。
+    float resolved_first() const
+    {
+        const float handle = handle_size();
+        const bool horizontal = orientation_ == Orientation::Horizontal;
+        const float extent = horizontal ? global_.size.x : global_.size.y;
+        const float usable = std::max(0.0f, extent - handle);
+        if (fixed_first_ >= 0.0f) return std::min(fixed_first_, usable);
+        if (fixed_second_ >= 0.0f) return std::max(0.0f, usable - fixed_second_);
+        return usable * ratio_;
+    }
+
+    // 拖动：固定模式改像素，比例模式改 ratio。
+    void apply_drag(float first_px, float usable)
+    {
+        const float clamped = std::clamp(first_px, 0.0f, usable);
+        if (fixed_first_ >= 0.0f) {
+            fixed_first_ = clamped;
+        } else if (fixed_second_ >= 0.0f) {
+            fixed_second_ = usable - clamped;
+        } else {
+            set_ratio(clamped / usable);
+        }
+        mark_layout_dirty();
+    }
+
     Rect handle_rect() const
     {
         const float handle = handle_size();
         if (orientation_ == Orientation::Horizontal) {
             return {
-                {global_.pos.x + (global_.size.x - handle) * ratio_, global_.pos.y},
+                {global_.pos.x + resolved_first(), global_.pos.y},
                 {handle, global_.size.y}
             };
         }
         return {
-            {global_.pos.x, global_.pos.y + (global_.size.y - handle) * ratio_},
+            {global_.pos.x, global_.pos.y + resolved_first()},
             {global_.size.x, handle}
         };
     }
 
     Orientation orientation_ = Orientation::Horizontal;
     float ratio_ = 0.5f;
+    float fixed_first_ = -1.0f;
+    float fixed_second_ = -1.0f;
     float preferred_width_ = 400.0f;
     float preferred_height_ = 300.0f;
     bool dragging_ = false;

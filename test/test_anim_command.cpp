@@ -16,12 +16,17 @@ namespace ns = xel::scene;
 namespace prop = xel::anim::prop;
 using xel::anim::AddKeyCommand;
 using xel::anim::AddNodeCommand;
+using xel::anim::Command;
 using xel::anim::CommandStack;
+using xel::anim::CompoundCommand;
 using xel::anim::Easing;
 using xel::anim::Keyframe;
+using xel::anim::MoveKeyCommand;
 using xel::anim::Project;
 using xel::anim::RemoveKeyCommand;
 using xel::anim::RemoveNodeCommand;
+using xel::anim::SetNodeColorCommand;
+using xel::anim::SetNodeFieldCommand;
 using xel::anim::SetPropertyCommand;
 using xel::anim::Track;
 
@@ -51,6 +56,48 @@ void test_set_property_undo_redo()
 
     assert(stack.redo(p));
     assert(std::fabs(position_of(p, node).x - 5.0f) < kEps);
+}
+
+// 显式 before/after 的字段修改（拖动数值框的撤销单元）。
+void test_set_node_field_command()
+{
+    Project p;
+    const auto node = p.scene.create(ns::NodeType::Shape, "s");
+    p.scene.find(node)->transform.position = {10.0f, 20.0f};
+
+    CommandStack stack;
+    auto command = std::make_unique<SetNodeFieldCommand>(
+        node, "Pos X", [](ns::Node& n, float v) { n.transform.position.x = v; }, 10.0f, 50.0f);
+    stack.push(std::move(command), p);
+    assert(std::fabs(p.scene.find(node)->transform.position.x - 50.0f) < kEps);
+    // y 不受影响。
+    assert(std::fabs(p.scene.find(node)->transform.position.y - 20.0f) < kEps);
+
+    assert(stack.undo(p));
+    assert(std::fabs(p.scene.find(node)->transform.position.x - 10.0f) < kEps);
+
+    assert(stack.redo(p));
+    assert(std::fabs(p.scene.find(node)->transform.position.x - 50.0f) < kEps);
+}
+
+// 颜色修改（vec4）单独一条命令。
+void test_set_node_color_command()
+{
+    Project p;
+    const auto node = p.scene.create(ns::NodeType::Shape, "s");
+    p.scene.find(node)->color = {0.1f, 0.2f, 0.3f, 1.0f};
+
+    CommandStack stack;
+    stack.push(std::make_unique<SetNodeColorCommand>(node, glm::vec4{0.1f, 0.2f, 0.3f, 1.0f},
+                                                     glm::vec4{0.9f, 0.8f, 0.7f, 1.0f}),
+               p);
+    assert(std::fabs(p.scene.find(node)->color.r - 0.9f) < kEps);
+
+    assert(stack.undo(p));
+    assert(std::fabs(p.scene.find(node)->color.r - 0.1f) < kEps);
+
+    assert(stack.redo(p));
+    assert(std::fabs(p.scene.find(node)->color.r - 0.9f) < kEps);
 }
 
 void test_add_node_undo_redo()
@@ -213,11 +260,46 @@ void test_empty_stack()
     stack.clear();
     assert(stack.undo_count() == 0);
 }
+// 复合命令：一次 apply 全部生效，一次 undo 全部回滚（逆序）。
+void test_compound_command()
+{
+    Project p;
+    const auto node = p.scene.create(ns::NodeType::Shape, "n");
+    p.timeline.add_track(node, prop::Position).add_key({1.0f, glm::vec2{0.0f, 0.0f}, Easing::Linear});
+    p.timeline.add_track(node, prop::Scale).add_key({1.0f, glm::vec2{1.0f, 1.0f}, Easing::Linear});
+
+    auto key_time = [&p, node](xel::anim::PropertyId property) {
+        const Track* track = p.timeline.find_track(node, property);
+        assert(track != nullptr && !track->keys().empty());
+        return track->keys().front().time;
+    };
+
+    CommandStack stack;
+    std::vector<std::unique_ptr<Command>> children;
+    children.push_back(std::make_unique<MoveKeyCommand>(node, prop::Position, 1.0f, 2.0f));
+    children.push_back(std::make_unique<MoveKeyCommand>(node, prop::Scale, 1.0f, 3.0f));
+    stack.push(std::make_unique<CompoundCommand>(std::move(children)), p);
+
+    assert(stack.undo_count() == 1);
+    assert(std::fabs(key_time(prop::Position) - 2.0f) < kEps);
+    assert(std::fabs(key_time(prop::Scale) - 3.0f) < kEps);
+
+    assert(stack.undo(p));
+    assert(stack.undo_count() == 0);
+    assert(std::fabs(key_time(prop::Position) - 1.0f) < kEps);
+    assert(std::fabs(key_time(prop::Scale) - 1.0f) < kEps);
+
+    assert(stack.redo(p));
+    assert(std::fabs(key_time(prop::Position) - 2.0f) < kEps);
+    assert(std::fabs(key_time(prop::Scale) - 3.0f) < kEps);
+}
 } // namespace
 
 int main()
 {
     test_set_property_undo_redo();
+    test_set_node_field_command();
+    test_set_node_color_command();
     test_add_node_undo_redo();
     test_add_node_with_explicit_id();
     test_remove_node_subtree();
@@ -225,6 +307,7 @@ int main()
     test_push_clears_redo();
     test_limit_drops_oldest();
     test_empty_stack();
+    test_compound_command();
     std::printf("test_anim_command: all passed\n");
     return 0;
 }
