@@ -5,12 +5,13 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 
 ## 阅读顺序
 
-1. `../.design/阶段计划.md` — 路线、阶段目标与出口条件（M1–M8）
-2. `../.design/SPEC.md` — 当前有效的设计事实（唯一真相源）
-3. `examples.md` — 四个示例的用途、按键与专属环境变量
-4. `project_format.md` — `.cosine` 项目文件格式（M6.1 开工前必读）
-5. `project_assessment.md` — 历史评估与改进清单（归档）
-6. 按需深入具体主题（见下表）
+1. `../.design/阶段计划.md` — 路线与**未完成**阶段的目标、出口条件
+2. `plan_archive.md` — 已完成阶段（M1–M6.4b）的计划原文归档
+3. `../.design/SPEC.md` — 当前有效的设计事实（唯一真相源）
+4. `examples.md` — 四个示例的用途、按键与专属环境变量
+5. `project_format.md` — `.cosine` 项目文件格式（M6.1 开工前必读）
+6. `project_assessment.md` — 历史评估与改进清单（归档）
+7. 按需深入具体主题（见下表）
 
 ## 文档地图
 
@@ -24,6 +25,7 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 | `project_format.md` | `.cosine` 项目文件格式：文件头、版本、payload 布局、确定性、错误处理 |
 | `font_atlas.md` | 字体图集格式、FreeType 生成、动态字形、行高、脏矩形上传、DPI |
 | `history.md` | 已完成基线（M0 之前的骨架阶段）与历史变更摘要 |
+| `plan_archive.md` | 已完成阶段（M1–M6.4b）的计划原文归档：目标、边界、逐条任务、验收标准 |
 | `interpreter.md` | XEL 解释器结构与实现笔记 |
 | `note1.md` | 开发过程笔记 |
 | `release_notes_template.md` | 发布说明模板 |
