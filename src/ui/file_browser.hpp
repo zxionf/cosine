@@ -107,6 +107,54 @@ public:
     void set_on_activate(std::function<void()> handler) { on_activate_ = std::move(handler); }
     // 单击选中（用于把名字同步到输入框），双击才是 activate。
     void set_on_select(std::function<void()> handler) { on_select_ = std::move(handler); }
+
+    // 键盘导航与外部选中（EX-4）：资源浏览器需要被外部驱动。
+    void select_index(int index)
+    {
+        if (index < 0 || index >= static_cast<int>(entries_.size())) {
+            selected_ = -1;
+        } else {
+            selected_ = index;
+            ensure_visible(index);
+        }
+        mark_layout_dirty();
+    }
+    int selected_index() const { return selected_; }
+    std::uintmax_t entry_size(std::size_t index) const
+    {
+        return index < entries_.size() ? entries_[index].size : 0;
+    }
+
+    bool focusable() const override { return true; }
+
+    bool on_key_down(event::KeyCode key, event::Modifier) override
+    {
+        switch (key) {
+            case event::KeyCode::Down:
+                select_index(std::min(static_cast<int>(entries_.size()) - 1, selected_ + 1));
+                return true;
+            case event::KeyCode::Up:
+                select_index(std::max(0, selected_ - 1));
+                return true;
+            case event::KeyCode::Enter:
+                if (selected_ >= 0) activate(selected_);
+                return true;
+            case event::KeyCode::Backspace: {
+                namespace fs = std::filesystem;
+                const fs::path current(directory_);
+                if (directory_.empty() || !current.has_parent_path() ||
+                    current.parent_path() == current) {
+                    return true;
+                }
+                directory_ = current.parent_path().string();
+                refresh();
+                if (on_directory_changed_) on_directory_changed_();
+                return true;
+            }
+            default:
+                return false;
+        }
+    }
     void set_on_directory_changed(std::function<void()> handler)
     {
         on_directory_changed_ = std::move(handler);
@@ -140,7 +188,9 @@ public:
             if (item.is_directory(entry_ec)) {
                 dirs.push_back(Entry{name, true});
             } else if (extension_.empty() || item.path().extension().string() == extension_) {
-                files.push_back(Entry{name, false});
+                std::error_code size_ec;
+                const auto bytes = fs::file_size(item.path(), size_ec);
+                files.push_back(Entry{name, false, size_ec ? 0 : static_cast<std::uintmax_t>(bytes)});
             }
         }
 
@@ -253,6 +303,7 @@ private:
     {
         std::string name;
         bool is_directory = false;
+        std::uintmax_t size = 0;
     };
 
     void clamp_scroll()
@@ -260,6 +311,20 @@ private:
         const float content = static_cast<float>(entries_.size()) * row_height_;
         const float max_scroll = std::max(0.0f, content - global_.size.y);
         scroll_ = std::clamp(scroll_, 0.0f, max_scroll);
+    }
+
+    // 键盘移动选择时把行滚进视口。
+    void ensure_visible(int index)
+    {
+        if (index < 0) return;
+        const float top = static_cast<float>(index) * row_height_;
+        const float bottom = top + row_height_;
+        if (top < scroll_) {
+            scroll_ = top;
+        } else if (bottom > scroll_ + global_.size.y) {
+            scroll_ = bottom - global_.size.y;
+        }
+        clamp_scroll();
     }
 
     int row_at(glm::vec2 pos) const

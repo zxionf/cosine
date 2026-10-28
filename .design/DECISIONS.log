@@ -740,3 +740,8 @@ Change: 20261028-texture-pipeline
 Context: 多槽基础设施已就绪但没有绘制路径：Image 节点仍画色块，节点也没有资源标识
 Decision: texture_id 语义定为「图片槽索引 + 1」（0=未绑定）；texture_path 是稳定标识、texture_id 只是运行时句柄，序列化只存路径并在读回后 rebind；新增 graphics::Sprite 与 append_rotated_quad；未绑定纹理的节点回退色块而非棋盘格；格式升到 1.1（节点表末尾加 texture_path，读 1.0 时跳过）
 Consequences: COSINE_EDITOR_IMAGE 可把图片显示在节点上；只做 Fill、无 LRU 淘汰、每次重载重新上传；1.0 兼容分支未单测
+## [149] 2026-10-28 13:54:18 UTC
+Change: 20261028-theme-tokens
+Context: Theme 颜色按线性值书写但按 sRGB 视觉判断，导致写 0.13 显示成 #65696F：界面偏灰、层次靠边框、accent 发白
+Decision: 颜色改为 sRGB 书写（srgb_hex）存储线性；重做令牌 shell #1B1D21 / surface #232629 / control #41474F / splitter #3F454D；拆 accent 与 accent_text（文字用 #6FB0F2）；Accent 填充文字改深色；时间轴选中行 0.12→0.08
+Consequences: 显示值等于写入的十六进制；浅色主题已同步但未逐一目视核对；elevated 令牌尚未独立；分割条宽度未改

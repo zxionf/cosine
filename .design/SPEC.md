@@ -469,11 +469,26 @@ struct BoxStyle {
 - 焦点由基类持有：`Widget` 增加 `focused_` 与 `set_focused()`，`on_focus_gained/lost` 默认维护它；控件删除自己的 `focused_` 字段，改读 `is_focused()`。`hovered_` 已在基类，沿用。
 - `pressed_` 只在少数控件有意义（Button/Checkbox/Dropdown/Radio/Slider/TabBar/MenuItem），保留在控件内部，但要通过 `control_state()` 参与解析。
 
+### 颜色空间与令牌（UI-3）
+
+- **约定**：`Theme` 里的颜色按 **sRGB 直觉值**书写（`srgb_hex(0xRRGGBB)`），存储为**线性值**。
+  渲染目标是 `*_SRGB` 格式，硬件在写出时做线性 → sRGB 编码，所以着色器必须拿到线性色；
+  反过来说，写 `0x232629` 就应该显示成 `#232629`。
+  **不要**再直接写 `{0.13f, 0.14f, 0.16f}` 这类线性小数 —— 那会显示成 `#65696F`（这是一个实际踩过的坑）。
+- **令牌层级**（dark）：`shell #1B1D21` < `surface #232629` < `control #41474F`；
+  分隔条 `splitter #3F454D`；文字 `#E4E7EB` / `#9BA3AD` / `#5F666E`；边框 `#3A4048`。
+- **强调色拆两个**：`accent #3D8EE8` 只用于填充/边框/焦点环；`accent_text #6FB0F2`
+  用于「强调色当文字」（目录名、选中关键帧、拖动中数值）。后者在面板底上 6.8:1，
+  前者只有 4.1:1，不适合当文字。`StyleRole::Accent` 的填充文字用深色 `#0F1419`。
+- **light**：`shell #EDEFF2`、`surface #DEE1E5`、`control #C8CCD2`、`accent #1F6FD0`、
+  `accent_text #1A5FB4`、`splitter #C3C7CD`。
+- **验证方式**：导出 PNG 后抽样像素，确认显示值等于写入的十六进制值。
+
 ### Theme 扩展
 
 - 圆角档位：`radius_small = 3`、`radius_medium = 6`、`radius_large = 10`；`radius`（控件默认，取 `radius_medium`）与 `radius_panel`（面板）。
 - 胶囊圆角：`radius_pill = 1000`（故意取大，绘制时 clamp 到短边一半）。Slider 轨道/手柄、Progress、Radio 用它，因此「圆形控件」也跟随圆角开关；classic 样式归零后它们是直角。
-- 强调色：新增 `accent`（dark `#3399FF` / light `#1F73F2`）。`focus_ring`、`checkbox_fill`、`slider_fill`、进度填充统一由 `accent` 派生，旧字段保留为别名值。
+- 强调色：`accent`（dark `#3D8EE8` / light `#1F6FD0`）。`focus_ring`、`checkbox_fill`、`slider_fill`、进度填充统一由 `accent` 派生，旧字段保留为别名值。
 - 密度：`enum class Density { Compact, Normal, Spacious }`，`Theme::with_density(Density)` 返回缩放后的副本（Compact ×0.85、Normal ×1.0、Spacious ×1.15），作用于 `padding`/`spacing`/`control_height`/`row_height`/`checkbox_size`/`slider_handle_radius`/`scrollbar_width`；字号与圆角按 ×0.9 / ×1.0 / ×1.1 缩放。
 - 字号档位：`text_size`（Body）、`small_text_size`（Caption）、`heading_text_size`（Heading）；`typography.hpp` 的比例角色保持不变，只把基础档位对齐到这三个字段。
 - 内阴影：`inset_shadow`（颜色，alpha 低）+ `inset_shadow_size`（默认 6）。`append_inset_shadow()` 用 3–4 层递减 alpha 的圆角条模拟，只用于 `Surface` 顶部与 `Tooltip` 内缘；classic 样式下 `inset_shadow_size` 归零。
@@ -2740,3 +2755,51 @@ CO-2 要让编辑器显示导入的 png。动手前先弄清现有槽的用途�
 - 槽满即失败返回，没有 LRU 淘汰；`rebind_textures` 每次重载都重新上传全部图片。
 - 1.0 文件兼容分支（`minor >= 1`）没有单独的单测，只保证代码路径存在。
 - `upload_texture` 在 UI 回调里同步执行（内部 `waitIdle`），批量导入需要改成帧间队列。
+
+## 主体配色：颜色空间与令牌重做
+### 核心问题（实测证据）
+
+`Theme` 里的颜色一直按**线性值**写，但视觉判断是按 sRGB 的。结果是写的和看的差一大截：
+
+| 写入（线性小数） | 实际显示（导出像素） |
+|---|---|
+| `window_bg {0.08, 0.09, 0.10}` | `(80, 85, 89)` = `#505559` 中灰 |
+| `panel_bg {0.13, 0.14, 0.16}` | `(101, 105, 111)` = `#65696F` |
+| `accent {0.20, 0.60, 1.00}` | `≈#7CCBFF` 发白的浅蓝 |
+
+于是界面整体偏灰、层次靠 1px 边框硬撑、强调色没有分量。**这不是审美问题，是数值意图与显示不一致。**
+
+### 改法
+
+1. **约定**：颜色按 sRGB 书写（`srgb_hex(0xRRGGBB)`），存储时转线性。渲染目标是
+   `*_SRGB`，硬件做线性 → sRGB 编码。写 `0x232629` 就显示 `#232629`。
+2. **令牌层级**：`shell #1B1D21` < `surface #232629` < `control #41474F`，
+   分隔条 `splitter #3F454D`，文字三档 `#E4E7EB` / `#9BA3AD` / `#5F666E`，边框 `#3A4048`。
+3. **强调色拆两个**：`accent #3D8EE8`（填充/边框/焦点环）与
+   `accent_text #6FB0F2`（强调色当文字：目录名、选中关键帧、拖动中数值）。
+   后者 6.8:1 达标，前者当文字只有 4.1:1。
+4. **`StyleRole::Accent` 的填充文字改深色** `#0F1419` —— 蓝底写蓝字是最差组合。
+5. **浅色主题同步**：`#EDEFF2` / `#DEE1E5` / `#C8CCD2` / accent `#1F6FD0`。
+
+### 四处的细节改动
+
+| 项 | 改动 |
+|---|---|
+| 分割条 | 新增 `splitter` 令牌；手柄常态不再等同面板底色 |
+| 时间轴选中行 | accent 叠加 `0.12 → 0.08` |
+| 按钮对比 | `button_bg #3A3F45 → #41474F`，hover/pressed/disabled 同比例 |
+| accent 当文字 | 目录名 / 选中关键帧 / 拖动数值改用 `accent_text` |
+
+### 验证
+
+- 抽样像素：工具栏按钮 `(65,71,79)` = `#41474F`、面板 `(35,38,41)` = `#232629`、
+  预览底 `(27,29,33)` = `#1B1D21` —— **显示值等于写入值**。
+- `ctest` **59/59**；构建无 error。
+- 编辑器与 FileBrowser 导出截图目视确认：三栏有可辨边界、按钮有实体感、
+  FileBrowser 的目录/文件靠颜色区分。
+
+### 边界
+
+- 浅色主题按同一令牌重写，但只在代码里同步了，没有逐一目视核对。
+- 「浮层」还没有独立令牌：`tooltip_bg` 充当 elevated，dropdown / dialog 仍用 `panel_bg`。
+- 分割条只改了颜色，手柄宽度仍是 6px（改宽度会连带 `resolved_first` 与既有测试坐标）。
