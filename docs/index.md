@@ -5,20 +5,25 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 
 ## 阅读顺序
 
-1. `../.design/阶段计划.md` — 路线与**未完成**阶段的目标、出口条件
+1. `../.design/阶段计划.md` — 工作线视图、任务结构与跨线接口
+   （各线任务队列在 `../.design/lines/<线>.md`）
 2. `plan_archive.md` — 已完成阶段（M1–M6.4b）的计划原文归档
 3. `../.design/SPEC.md` — 当前有效的设计事实（唯一真相源）
-4. `examples.md` — 四个示例的用途、按键与专属环境变量
-5. `project_format.md` — `.cosine` 项目文件格式（M6.1 开工前必读）
-6. `project_assessment.md` — 历史评估与改进清单（归档）
-7. 按需深入具体主题（见下表）
+4. `tech_debt.md` — 欠账清单（知道欠、暂时不还）
+5. `risks.md` — 风险与未决问题
+6. `examples.md` — 五个示例的用途、按键与专属环境变量
+7. `project_format.md` — `.cosine` 项目文件格式（CO-2 开工前必读）
+8. `project_assessment.md` — 历史评估与改进清单（归档）
+9. 按需深入具体主题（见下表）
 
 ## 文档地图
 
 | 文档 | 内容 |
 |---|---|
 | `index.md` | 本页：入口与索引 |
-| `examples.md` | 四个示例的用途、按键、环境变量影响 |
+| `examples.md` | 五个示例的用途、按键、环境变量影响（含 `ui_lab` 实验室） |
+| `tech_debt.md` | 欠账清单：M1 原始 R01–R18 + M3.5 之后新增的 D01–D10 |
+| `risks.md` | 风险与未决问题 |
 | `dependencies.md` | 第三方依赖、版本锁定、升级方式 |
 | `ci.md` | 构建命令、sanitizer、冒烟、测试分层与质量门、远端 CI 现状 |
 | `packaging.md` | 版本号、Linux/Windows 打包、资源与字体策略、运行依赖 |

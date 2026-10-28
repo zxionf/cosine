@@ -50,7 +50,21 @@ if(COSINE_CXX_MODULE_SCAN)
 endif()
 add_dependencies(ui_anim_showcase shaders copy_assets)
 
+# 高级 UI 实验室（EX-2）：探索未定 API 的组合控件，不参与正式验收。
+add_executable(ui_lab
+    ui_lab/main.cpp
+)
+target_link_libraries(ui_lab PRIVATE cosine_app)
+target_include_directories(ui_lab PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui_lab
+)
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(ui_lab PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
+add_dependencies(ui_lab shaders copy_assets)
+
 cosine_apply_sanitizers(ui_demo)
 cosine_apply_sanitizers(ui_gallery)
 cosine_apply_sanitizers(ui_anim_demo)
 cosine_apply_sanitizers(ui_anim_showcase)
+cosine_apply_sanitizers(ui_lab)

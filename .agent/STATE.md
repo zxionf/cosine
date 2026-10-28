@@ -1,6 +1,6 @@
 # Agent State
 
 Active Change: 无
-Phase: M6.5 进行中（打开/保存已完成；资源与纹理待做）
+Phase: CO-2（M6.5 收尾）进行中；计划为五线视图，任务队列在 `.design/lines/<线>.md`
 Blocked: 无
-Next: M6.5 资源浏览器与 Image 真实纹理（多纹理槽 + 纹理引用序列化）
+Next: CO-2 资源浏览器 + `Image` 真实纹理；EX-2 `ui_lab` 骨架已落地（2 实现 + 4 待做）

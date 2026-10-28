@@ -191,6 +191,38 @@ COSINE_EXIT_AFTER=3 ./build/examples/ui_anim_showcase
 
 ---
 
+## ui_lab — 高级 UI 实验室
+
+定位与 `ui_gallery` 相反：gallery 展示**已定 API**（有单测、进 SPEC），lab 探索
+**未定 API** 的组合控件。产出不是控件，而是「假设 / 观测 / 结论」，写进
+`examples/ui_lab/README.md` 的实验表。
+
+### 已实现实验
+
+| 序号 | 实验 | 用途 |
+|---|---|---|
+| E1 | 命令面板 | 输入过滤 + 列表直选；观察「过滤即重建列表」的代价与手感 |
+| E2 | 主题密度矩阵 | 四个标量（text size / control height / padding / spacing）实时改主题，观察既有布局如何反应 |
+
+### 未实现实验
+
+E3 时间轴非线性缩放、E4 多选批量编辑、E5 拖拽排序、E6 内联重命名 —— 列表里显示 `(todo)`。
+
+### 本示例专属环境变量
+
+| 变量 | 取值 | 影响 |
+|---|---|---|
+| `COSINE_EXIT_AFTER` | 秒 | 到点正常退出；用于冒烟 |
+| `COSINE_EXPORT_PNG` | 输出路径 | 导出 1200×800 PNG 后退出 |
+| `COSINE_LAB_EXPERIMENT` | 1–6 | 启动时直接打开某个实验（默认 1） |
+
+### 约束
+
+产品代码（`src/cosine`、`src/ui`、`src/anim`）**不得**依赖本目录；lab 不进 ctest 断言，
+只有冒烟门禁（exit=0 且 validation=0）。实验转正时走 ui 线的质量门：单测 + gallery 分区。
+
+---
+
 ## 构建与冒烟速查
 
 ```bash
@@ -198,7 +230,7 @@ COSINE_EXIT_AFTER=3 ./build/examples/ui_anim_showcase
 cmake --build build -j
 
 # 逐个冒烟（正常退出 + 校验错误计数）
-for ex in ui_gallery ui_anim_demo ui_anim_showcase; do
+for ex in ui_gallery ui_anim_demo ui_anim_showcase ui_lab; do
   (cd build/examples && COSINE_EXIT_AFTER=2 ./$ex 2>&1 \
      | grep -Ei 'VUID-|validation (error|warning)' && echo "$ex: 有校验问题" || echo "$ex: ok")
 done
