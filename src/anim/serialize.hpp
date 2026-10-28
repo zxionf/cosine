@@ -13,7 +13,7 @@ namespace xel::anim
 {
 // 文件格式版本，见 docs/project_format.md。
 inline constexpr std::uint8_t kFormatMajor = 1;
-inline constexpr std::uint8_t kFormatMinor = 0;
+inline constexpr std::uint8_t kFormatMinor = 1;
 
 // 序列化为二进制。输出是确定性的：节点按 id 升序、轨道按 (node, property) 升序、
 // 关键帧按 time 升序。

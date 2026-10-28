@@ -61,6 +61,15 @@ public:
     float ui_scale() const { return ui_scale_; }
     void set_font_pixel_ratio(float ratio) { font_atlas_.set_pixel_ratio(ratio); }
 
+    // 图片槽（CO-2）：RGBA8 上传到第 index 个图片槽（0 基，最多 kMaxImageSlots 张）。
+    // 槽位重建 image/view 后，会把它写回所有帧的 descriptor set，下一帧生效。
+    // 返回 false 表示 index 越界、尺寸为 0 或像素为空。
+    bool upload_texture(uint32_t image_index, uint32_t width, uint32_t height,
+                        const unsigned char* rgba);
+    // 把槽恢复为占位纹理（棋盘格），不释放槽位。
+    void clear_texture(uint32_t image_index);
+    static constexpr uint32_t max_image_slots() { return graphics::kMaxImageSlots; }
+
     // 离屏渲染一帧到 RGBA8（sRGB 编码），返回像素（行优先，从顶部开始）。
     // ui_scale 为 1 时逻辑坐标与像素一一对应；目标不参与 swapchain 生命周期。
     std::vector<unsigned char> render_offscreen(const graphics::Drawable& drawable,
@@ -86,6 +95,7 @@ private:
     void create_pipeline();
     void create_command_pool();
     void create_white_texture();
+    void create_placeholder_texture();
     void create_texture_image();
     void create_texture_image_view();
     void create_texture_sampler();
@@ -112,7 +122,21 @@ private:
     void begin_rendering(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target);
     void end_rendering(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target);
 
-    vk::raii::DescriptorSet& descriptor_set(uint32_t index, graphics::TextureSlot slot) { return descriptor_sets_[index * 2 + static_cast<uint32_t>(slot)]; }
+    // 图片槽的 GPU 资源。尺寸可变，重建时整个替换。
+    struct ImageSlot
+    {
+        vk::raii::Image image = nullptr;
+        vk::raii::DeviceMemory memory = nullptr;
+        vk::raii::ImageView view = nullptr;
+        bool valid = false;
+    };
+
+    void update_image_slot_descriptors(uint32_t image_index);
+
+    vk::raii::DescriptorSet& descriptor_set(uint32_t index, uint32_t slot)
+    {
+        return descriptor_sets_[index * graphics::kMaxTextureSlots + slot];
+    }
 
     std::pair<vk::raii::Image, vk::raii::DeviceMemory> create_image(uint32_t width, uint32_t height,  vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties);
     vk::raii::ImageView create_image_view(const vk::Image& image, vk::Format format);
@@ -174,6 +198,11 @@ private:
     vk::raii::Image        white_image_        = nullptr;
     vk::raii::DeviceMemory white_image_memory_ = nullptr;
     vk::raii::ImageView    white_image_view_   = nullptr;
+    // 未加载的图片槽共用的占位视图（棋盘格），避免显示成纯白或字体片段。
+    vk::raii::Image        placeholder_image_  = nullptr;
+    vk::raii::DeviceMemory placeholder_memory_ = nullptr;
+    vk::raii::ImageView    placeholder_view_   = nullptr;
+    std::vector<ImageSlot> image_slots_;
 
     vk::raii::DescriptorPool descriptor_pool_ = nullptr;
     std::vector<vk::raii::DescriptorSet> descriptor_sets_;

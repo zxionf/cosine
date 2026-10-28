@@ -12,17 +12,29 @@
 - **验收**：导入 png → 出现在节点上 → 保存 → 重载后仍指向同一资源；
   `ctest` 全绿、冒烟 exit=0 / validation=0、导出 PNG 人工核对
 - **依赖**：ui 线（`TextureSlot` 扩展）、backend（纹理上传路径）
-- **步骤**：
+- **步骤**（三段：先纵深，再横向，最后界面）：
+
+  **完成的前置**
   - [x] 打开/保存对话框（`ui::FileBrowser` + `ui::Dialog`，File 菜单接 New/Open/Save/Save As）
-  - [ ] `TextureSlot` 从 2 槽（font atlas + texture）扩到多槽
-  - [ ] `Renderer` 提供「从 RGBA 创建纹理」入口，返回槽 id
-  - [ ] `SceneView` 的 `NodeType::Image` 分支真正采样纹理（含 fit 三种模式）
-  - [ ] 节点存**资源路径**而非运行时句柄；加载时解析为槽
-  - [ ] 资源浏览器：png 导入（进节点）、字体列表、脚本占位
-  - [ ] 缺失资源的占位策略（缺图时不崩、给出可见提示）
-  - [ ] 测试：纹理槽分配、路径 round-trip、缺失资源
-  - [ ] File 菜单的 Ctrl+N/O/S 键盘路由 + 覆盖保存确认
-  - [ ] 冒烟 + 导出核对 + 更新 `docs/`（含 `project_format.md` 的资源节）
+
+  **第一段 · 单图闭环（已完成）**
+  - [x] 纹理槽扩展：`0=White`、`1=字体图集`、`2–15=图片`（descriptor set 从 2 扩到 16）
+  - [x] `Renderer::upload_texture(index, w, h, rgba)`：按需重建该槽 image/view 并更新所有帧的 descriptor set
+  - [x] 槽位占位图（棋盘格，区分「未加载」与纯白）
+  - [x] `graphics::Sprite`（带 uv + 槽号图元）+ `append_rotated_quad`（图片可旋转）
+  - [x] `SceneView` 的 `NodeType::Image` 分支采样纹理（Fill）；未绑定回退色块
+  - [x] `Node::texture_path` + `TextureCache` 按路径上传并去重
+  - [x] 序列化 1.1：存路径、重载时 `rebind_textures` 解析回句柄
+
+  **第二段 · 多图**
+  - [ ] 槽分配与回收（同路径去重，超出 14 张时淘汰最久未用）
+  - [ ] 图片宽高比与 fit（Contain / Cover）
+
+  **第三段 · 界面**
+  - [ ] 资源浏览器：png 导入进节点、字体列表、脚本占位
+  - [ ] Ctrl+N/O/S 键盘路由 + 覆盖保存确认
+  - [ ] 测试：槽映射、Sprite 顶点/UV、路径 round-trip、缺失资源
+  - [ ] 冒烟 + 导出核对
 
 ## 待开始
 

@@ -54,7 +54,8 @@ void place(ui::Widget* widget, float x, float y, float width, float height)
 }
 } // namespace
 
-Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys) : root_(&root), uisys_(&uisys)
+Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys, backend::vulkan::Renderer& renderer)
+    : root_(&root), uisys_(&uisys), renderer_(&renderer)
 {
     // 验证用：COSINE_EDITOR_ROUNDED=1 启动即启用实验性圆角样式。
     if (std::getenv("COSINE_EDITOR_ROUNDED") != nullptr) experimental_rounded_ = true;
@@ -69,6 +70,9 @@ Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys) : root_(&root), uisys_(&ui
 
     // 验证用：COSINE_EDITOR_OPEN=1 启动即打开项目对话框（便于离屏截图检查布局）。
     if (std::getenv("COSINE_EDITOR_OPEN") != nullptr) open_project_dialog();
+
+    // 验证用：COSINE_EDITOR_IMAGE=<png> 启动时导入一张图（CO-2 第一段的自测入口）。
+    if (const char* image = std::getenv("COSINE_EDITOR_IMAGE")) import_image(image);
 }
 
 void Editor::build()
@@ -667,6 +671,7 @@ void Editor::load_project(const std::string& path)
     if (player_ != nullptr) player_->seek(0.0f);
     if (timeline_view_ != nullptr) timeline_view_->set_time(0.0f);
     if (preview_ruler_ != nullptr) preview_ruler_->set_duration(project_.timeline.duration());
+    rebind_textures();
     refresh_scene_tree();
     if (scene_tree_ != nullptr) scene_tree_->set_selected_path({});
     sync_property_panel();
@@ -692,6 +697,56 @@ void Editor::write_project(const std::string& path)
     }
     project_path_ = path;
     set_status("saved " + path);
+}
+
+bool Editor::import_image(const std::string& path)
+{
+    if (renderer_ == nullptr || path.empty()) {
+        set_status("import failed: no renderer or empty path");
+        return false;
+    }
+
+    const std::uint32_t handle = texture_cache_.load(path, *renderer_);
+    if (handle == 0) {
+        set_status("import failed: " + path);
+        return false;
+    }
+
+    // 没有选中时退回 demo 卡片，这样 COSINE_EDITOR_IMAGE 能直接看到效果。
+    scene::NodeId target = selected_;
+    if (target == scene::kInvalidNode) target = demo_card_;
+    auto* node = project_.scene.find(target);
+    if (node == nullptr) {
+        set_status("imported " + path + " (no node to bind)");
+        return false;
+    }
+
+    node->type = scene::NodeType::Image;
+    node->texture_path = path;
+    node->texture_id = handle;
+    // 图片默认不叠色，否则默认 color 会把画面压暗。
+    node->color = glm::vec4{1.0f, 1.0f, 1.0f, 1.0f};
+
+    if (preview_ != nullptr) preview_->mark_layout_dirty();
+    refresh_scene_tree();
+    sync_property_panel();
+    set_status("imported " + path);
+    return true;
+}
+
+void Editor::rebind_textures()
+{
+    if (renderer_ == nullptr) return;
+
+    // 旧槽可能属于上一个项目，先清映射再按新项目的路径重新上传。
+    texture_cache_.clear();
+    for (const auto& [id, source] : project_.scene.nodes()) {
+        if (source.type != scene::NodeType::Image || source.texture_path.empty()) continue;
+        const std::uint32_t handle = texture_cache_.load(source.texture_path, *renderer_);
+        if (auto* target = project_.scene.find(id)) target->texture_id = handle;
+    }
+
+    if (preview_ != nullptr) preview_->mark_layout_dirty();
 }
 
 void Editor::save_project_as_dialog()

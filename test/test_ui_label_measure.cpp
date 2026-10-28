@@ -33,7 +33,7 @@ float glyph_x(const DrawList& list)
 {
     float min_x = 1.0e9f;
     for (const auto& batch : list.batches()) {
-        if (batch.texture_slot != TextureSlot::Texture) continue;
+        if (batch.texture_slot != static_cast<uint32_t>(TextureSlot::Texture)) continue;
         for (const auto& v : batch.vertices) min_x = std::min(min_x, v.pos.x);
     }
     return min_x;

@@ -2642,3 +2642,101 @@ M6.5 第一项。此前 File 菜单三项都是占位（`pending M6.5`），项�
 - 不记忆上次打开的目录，每次从进程当前目录开始。
 - 覆盖已有文件不二次确认。
 - 资源浏览器、`Image` 真实纹理、纹理引用的序列化属于 M6.5 后续条目。
+
+## 多纹理槽：0=White、1=字体图集、2–15=图片
+### 背景
+
+CO-2 要让编辑器显示导入的 png。动手前先弄清现有槽的用途：`TextureSlot::Texture`
+（槽 1）装的**是字体图集**（`create_texture_image` 构建并上传 CJK 图集），
+不是「通用纹理」。所以图片必须从槽 2 开始，槽 1 不能动。
+
+### 两条路线的选择
+
+| 方案 | 做法 | 代价 |
+|---|---|---|
+| 多 descriptor set + 多 draw | 每张图一个 set，切批时换绑定 | draw call 随纹理数线性增长 |
+| 改顶点格式 + 纹理数组 | 顶点带层号，一次画完 | 顶点变宽；`sampler2DArray` 要求同尺寸，与「用户导入任意 png」冲突 |
+
+选前者：**不改顶点格式、不改 shader、不改管线**，与现有 2 槽机制同源。
+编辑器预览里图片数量是个位数，多几次 draw 完全不可感。
+
+### 实现
+
+- `drawable.hpp`：`kMaxTextureSlots = 16`、`kFirstImageSlot = 2`、`kMaxImageSlots = 14`、
+  `image_slot(index)`、`is_image_slot(slot)`；`DrawBatch::texture_slot` 与
+  `DrawList` 的槽状态从 `TextureSlot` 改成 `uint32_t`（保留 `set_texture(TextureSlot)`
+  重载，调用点不动）。
+- `Renderer`：
+  - descriptor pool 与 sets 从 `帧数 × 2` 扩到 `帧数 × 16`；
+  - `create_descriptor_sets` 循环所有槽：0 = white、1 = 字体图集、2..15 = 占位视图；
+  - `create_placeholder_texture`：8×8 棋盘格，未加载的槽显示它（与「纯白」区分）；
+  - `upload_texture(index, w, h, rgba)`：按需重建该槽 image/view（尺寸可变）并把
+    所有帧的该槽 descriptor set 写回；失败返回 false；`clear_texture` 恢复占位；
+  - `record_batches` 的 set 索引改成 `frame × kMaxTextureSlots + slot`。
+
+### 验证
+
+- `ctest` **59/59**。
+- `ui_gallery` / `ui_anim_showcase` / `ui_lab` / `cosine` 四个程序冒烟：exit=0、validation=0。
+- **关键回归检查**：`ui_lab` 导出图与改造前 `compare -metric AE` = **0**（逐像素一致），
+  说明槽索引、字体槽绑定、纯色槽都没有被破坏。
+
+### 边界
+
+- 槽上限 14 张同时在屏；超出需要第二段的槽分配与淘汰策略。
+- 纹理格式固定 `R8G8B8A8Srgb`，与字体图集一致；暂不支持线性空间或其它格式。
+- `upload_texture` 在 UI 回调里同步上传（内部 `waitIdle`），低频操作可接受；
+  若将来导入批量图片，需要改成帧间队列。
+- 本次**没有**绘制路径：`Sprite` 图元、`SceneView` 的 Image 分支、节点资源路径与序列化
+  都还没做，属于 CO-2 第一段的后续步骤。
+
+## 图片链路：Sprite 图元 + 节点资源路径 + 编辑器导入
+### 接上一批
+
+多槽基础设施（`20261028-texture-slots`）已经让 16 个槽可用，但没有任何绘制路径。
+这批把「导入 png → 显示在节点上 → 存盘 → 重载仍指向同一资源」的第一段闭环打通。
+
+### 三处语义决定
+
+1. **`texture_id` = 图片槽索引 + 1，0 = 未绑定**
+   保持「0 表示没有」的旧语义，旧文件读回行为不变；换槽号时不需要额外哨兵值。
+
+2. **`texture_path` 是稳定标识，`texture_id` 只是运行时句柄**
+   句柄随进程、上传顺序变化；只有路径能跨进程保持一致。序列化只保证路径，
+   读回后由 `rebind_textures()` 重新上传并把句柄补回节点。
+
+3. **未绑定纹理的 Image 节点回退成**色块**，不显示占位棋盘格**
+   占位棋盘格留给「槽位空着」的 GPU 资源层；节点层面若显示棋盘格，
+   会让人误以为图片加载失败。旧文件里的 Image 节点读回后应保持原样（色块）。
+
+### 实现
+
+- `graphics::Sprite`（`src/graphics/sprite.hpp`）：带 UV + 槽号的矩形图元，
+  沿用 `Rectangle` 的预乘 alpha 约定。
+- `SceneView`：新增 `append_rotated_quad`（槽 + UV 可指定的旋转四边形），
+  `append_rotated_rect` 改为它的薄封装；`Image` 分支按 `texture_id` 选择 Sprite
+  或色块，旋转时走 `append_rotated_quad`（图片也能转）。
+- `scene::Node`：新增 `texture_path`。
+- 序列化：`kFormatMinor` 0 → 1；节点表在 `text` 之后写 `texture_path`；
+  读 1.0 文件时跳过该字段（`minor >= 1` 才读）。`docs/project_format.md` 补节点字段
+  与版本变更表。
+- `TextureCache`（`src/cosine/texture_cache.{hpp,cpp}`）：路径 → 槽，去重；
+  槽满（14）返回 0；`clear()` 只清映射，GPU 资源由 renderer 持有。
+- 编辑器：构造增加 `Renderer&`；`import_image()` 上传并把选中节点（无选中时用 demo 卡片）
+  切成 Image 类型；`load_project()` 末尾调 `rebind_textures()` 重建所有路径 →
+  句柄的映射。`COSINE_EDITOR_IMAGE=<png>` 作为自测入口。
+
+### 验证
+
+- `ctest` **59/59**（`test_anim_serialize` 的样例新增一个带路径的 Image 节点，
+  断言 `texture_path` 与 `texture_id` 原样回来；节点数、children 顺序断言同步更新）。
+- 编辑器冒烟 exit=0 / validation=0。
+- `COSINE_EDITOR_IMAGE=/tmp/lab_img.png COSINE_EXPORT_PNG=...` 导出：卡片节点显示渐变图，
+  状态栏显示 `imported /tmp/lab_img.png`。
+
+### 边界
+
+- 只做 **Fill**（拉伸填满）。`Contain` / `Cover` 需要图片宽高比，节点上还没有该字段。
+- 槽满即失败返回，没有 LRU 淘汰；`rebind_textures` 每次重载都重新上传全部图片。
+- 1.0 文件兼容分支（`minor >= 1`）没有单独的单测，只保证代码路径存在。
+- `upload_texture` 在 UI 回调里同步执行（内部 `waitIdle`），批量导入需要改成帧间队列。

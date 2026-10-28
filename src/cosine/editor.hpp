@@ -3,6 +3,8 @@
 #include "anim/command.hpp"
 #include "anim/player.hpp"
 #include "anim/project.hpp"
+#include "backend/vulkan/renderer.hpp"
+#include "texture_cache.hpp"
 #include "ui/button.hpp"
 #include "ui/color_input.hpp"
 #include "ui/dialog.hpp"
@@ -38,7 +40,7 @@ namespace xel::editor
 class Editor
 {
 public:
-    Editor(ui::UIRoot& root, ui::UISystem& uisys);
+    Editor(ui::UIRoot& root, ui::UISystem& uisys, backend::vulkan::Renderer& renderer);
 
     // 每帧调用：跟踪窗口尺寸变化并重排。
     void tick(float dt);
@@ -75,6 +77,11 @@ private:
     void save_project_as_dialog();
     void write_project(const std::string& path);
 
+    // 图片导入（CO-2）：上传到图片槽并绑定到选中节点（无选中时用 demo 节点）。
+    bool import_image(const std::string& path);
+    // 把所有带 texture_path 的 Image 节点重新绑定到纹理槽（重载项目后调用）。
+    void rebind_textures();
+
     void apply_theme();
     void layout();
     void set_status(std::string text);
@@ -85,6 +92,8 @@ private:
     std::string project_path_;
     std::unique_ptr<anim::Player> player_;
     ui::DialogHost* file_dialog_ = nullptr;
+    backend::vulkan::Renderer* renderer_ = nullptr;
+    TextureCache texture_cache_;
     anim::CommandStack stack_{256};
     float pending_before_ = 0.0f;
 

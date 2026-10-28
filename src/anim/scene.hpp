@@ -56,6 +56,9 @@ struct Node
     float text_size = 16.0f;
 
     // Image
+    // texture_path：资源路径，落盘用；texture_id：运行时图片槽索引 + 1，0 = 未绑定。
+    // 拆开的原因：句柄随进程/上传顺序变化，路径才是稳定标识。
+    std::string texture_path;
     std::uint32_t texture_id = 0;
 
     // Camera

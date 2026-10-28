@@ -26,6 +26,7 @@ Renderer::Renderer(VulkanContext& context, SwapChain& swap_chain) : context_{con
     create_white_texture();
     create_texture_image();
     create_texture_image_view();
+    create_placeholder_texture();
     create_texture_sampler();
     create_dynamic_buffers();
     create_uniform_buffers();
@@ -234,6 +235,130 @@ void Renderer::create_white_texture()
     transition_image_layout(cmd, white_image_, vk::ImageLayout::eTransferDstOptimal, vk::ImageLayout::eShaderReadOnlyOptimal);
     end_single_time_commands(std::move(cmd));
     white_image_view_ = create_image_view(*white_image_, vk::Format::eR8G8B8A8Unorm);
+}
+
+void Renderer::create_placeholder_texture()
+{
+    // 8×8 棋盘格：未加载的图片槽显示它，与「纯白纯色」区分开。
+    constexpr uint32_t kSize = 8;
+    std::array<uint8_t, kSize * kSize * 4> pixels{};
+    for (uint32_t y = 0; y < kSize; ++y) {
+        for (uint32_t x = 0; x < kSize; ++x) {
+            const bool light = ((x / 2) + (y / 2)) % 2 == 0;
+            const uint8_t value = light ? 90 : 60;
+            const std::size_t i = (static_cast<std::size_t>(y) * kSize + x) * 4;
+            pixels[i + 0] = value;
+            pixels[i + 1] = value;
+            pixels[i + 2] = value;
+            pixels[i + 3] = 255;
+        }
+    }
+
+    const vk::DeviceSize image_size = static_cast<vk::DeviceSize>(pixels.size());
+    auto [staging_buffer, staging_memory] = create_buffer(
+        image_size, vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    void* data = staging_memory.mapMemory(0, image_size);
+    memcpy(data, pixels.data(), static_cast<std::size_t>(image_size));
+    staging_memory.unmapMemory();
+
+    std::tie(placeholder_image_, placeholder_memory_) = create_image(
+        kSize, kSize, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    vk::raii::CommandBuffer cmd = begin_single_time_commands();
+    transition_image_layout(cmd, placeholder_image_, vk::ImageLayout::eUndefined,
+                            vk::ImageLayout::eTransferDstOptimal);
+    copy_buffer_to_image(cmd, staging_buffer, placeholder_image_, kSize, kSize);
+    transition_image_layout(cmd, placeholder_image_, vk::ImageLayout::eTransferDstOptimal,
+                            vk::ImageLayout::eShaderReadOnlyOptimal);
+    end_single_time_commands(std::move(cmd));
+
+    placeholder_view_ = create_image_view(*placeholder_image_, vk::Format::eR8G8B8A8Srgb);
+}
+
+bool Renderer::upload_texture(uint32_t image_index, uint32_t width, uint32_t height,
+                              const unsigned char* rgba)
+{
+    if (image_index >= graphics::kMaxImageSlots || width == 0 || height == 0 || rgba == nullptr) {
+        return false;
+    }
+    if (image_slots_.size() < graphics::kMaxImageSlots) {
+        image_slots_.resize(graphics::kMaxImageSlots);
+    }
+
+    const vk::DeviceSize image_size = static_cast<vk::DeviceSize>(width) * height * 4;
+    auto [staging_buffer, staging_memory] = create_buffer(
+        image_size, vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+    void* data = staging_memory.mapMemory(0, image_size);
+    memcpy(data, rgba, static_cast<std::size_t>(image_size));
+    staging_memory.unmapMemory();
+
+    ImageSlot& slot = image_slots_[image_index];
+    // 尺寸可变：先丢掉旧的 view/image，再重建（Vulkan 不支持原地改尺寸）。
+    slot.view.clear();
+    slot.image.clear();
+    slot.memory.clear();
+
+    std::tie(slot.image, slot.memory) = create_image(
+        width, height, vk::Format::eR8G8B8A8Srgb, vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        vk::MemoryPropertyFlagBits::eDeviceLocal);
+
+    vk::raii::CommandBuffer cmd = begin_single_time_commands();
+    transition_image_layout(cmd, slot.image, vk::ImageLayout::eUndefined,
+                            vk::ImageLayout::eTransferDstOptimal);
+    copy_buffer_to_image(cmd, staging_buffer, slot.image, width, height);
+    transition_image_layout(cmd, slot.image, vk::ImageLayout::eTransferDstOptimal,
+                            vk::ImageLayout::eShaderReadOnlyOptimal);
+    end_single_time_commands(std::move(cmd));
+
+    slot.view = create_image_view(*slot.image, vk::Format::eR8G8B8A8Srgb);
+    slot.valid = true;
+    update_image_slot_descriptors(image_index);
+    return true;
+}
+
+void Renderer::clear_texture(uint32_t image_index)
+{
+    if (image_index >= graphics::kMaxImageSlots || image_slots_.size() <= image_index) return;
+    ImageSlot& slot = image_slots_[image_index];
+    slot.view.clear();
+    slot.image.clear();
+    slot.memory.clear();
+    slot.valid = false;
+    update_image_slot_descriptors(image_index);
+}
+
+void Renderer::update_image_slot_descriptors(uint32_t image_index)
+{
+    if (image_index >= graphics::kMaxImageSlots) return;
+    if (image_slots_.size() <= image_index) return;
+
+    const uint32_t slot = graphics::image_slot(image_index);
+    const ImageSlot& entry = image_slots_[image_index];
+
+    vk::DescriptorImageInfo image_info{
+        .sampler = texture_sampler_,
+        .imageView = entry.valid ? *entry.view : *placeholder_view_,
+        .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+    };
+
+    std::vector<vk::WriteDescriptorSet> writes;
+    writes.reserve(MAX_FRAMES_IN_FLIGHT);
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        writes.push_back({
+            .dstSet          = descriptor_sets_[i * graphics::kMaxTextureSlots + slot],
+            .dstBinding      = 1,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
+            .pImageInfo      = &image_info
+        });
+    }
+    context_.device().updateDescriptorSets(writes, {});
 }
 
 void Renderer::create_texture_image()
@@ -577,15 +702,15 @@ void Renderer::create_descriptor_pool()
     std::array<vk::DescriptorPoolSize, 2> pool_size{{
         {
             .type = vk::DescriptorType::eUniformBuffer,
-            .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2
+            .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * graphics::kMaxTextureSlots
         },{
             .type = vk::DescriptorType::eCombinedImageSampler,
-            .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2
+            .descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * graphics::kMaxTextureSlots
         }
     }};
     vk::DescriptorPoolCreateInfo pool_info{
         .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
-        .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * 2,
+        .maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT) * graphics::kMaxTextureSlots,
         .poolSizeCount = static_cast<uint32_t>(pool_size.size()),
         .pPoolSizes = pool_size.data()
     };
@@ -594,66 +719,57 @@ void Renderer::create_descriptor_pool()
 
 void Renderer::create_descriptor_sets()
 {
-    std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT * 2, *descriptor_set_layout_);
+    const uint32_t slots = graphics::kMaxTextureSlots;
+    std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT * slots, *descriptor_set_layout_);
     vk::DescriptorSetAllocateInfo alloc_info{
         .descriptorPool = descriptor_pool_,
         .descriptorSetCount = static_cast<uint32_t>(layouts.size()),
         .pSetLayouts = layouts.data()
     };
-    // descriptor_sets_ = context_.device().allocateDescriptorSets(alloc_info);
     descriptor_sets_ = context_.device().allocateDescriptorSets(alloc_info);
 
+    // 槽 0 = White，槽 1 = 字体图集，槽 2.. = 图片（未加载时用占位棋盘格）。
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vk::DescriptorBufferInfo buffer_info{
             .buffer = uniform_buffers_[i],
             .offset = 0,
             .range = sizeof(UniformBufferObject)
         };
-        vk::DescriptorImageInfo white_info{
-            .sampler = texture_sampler_,
-            .imageView = white_image_view_,
-            .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-        };
-        vk::DescriptorImageInfo image_info{
-            .sampler = texture_sampler_,
-            .imageView = texture_image_view_,
-            .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
-        };
 
-        auto& white_set = descriptor_sets_[i * 2 + static_cast<uint32_t>(graphics::TextureSlot::White)];
-        auto& texture_set = descriptor_sets_[i * 2 + static_cast<uint32_t>(graphics::TextureSlot::Texture)];
-        std::array<vk::WriteDescriptorSet, 4> descriptor_write{{
-            {
-                .dstSet          = texture_set,
-                .dstBinding      = 0,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType  = vk::DescriptorType::eUniformBuffer,
-                .pBufferInfo     = &buffer_info
-            },{
-                .dstSet          = texture_set,
-                .dstBinding      = 1,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
-                .pImageInfo      = &image_info
-            },{
-                .dstSet          = white_set,
-                .dstBinding      = 0,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType  = vk::DescriptorType::eUniformBuffer,
-                .pBufferInfo     = &buffer_info
-            },{
-                .dstSet          = white_set,
-                .dstBinding      = 1,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
-                .pImageInfo      = &white_info
+        for (uint32_t slot = 0; slot < slots; ++slot) {
+            vk::ImageView view = *white_image_view_;
+            if (slot == static_cast<uint32_t>(graphics::TextureSlot::Texture)) {
+                view = *texture_image_view_;
+            } else if (slot >= graphics::kFirstImageSlot) {
+                view = *placeholder_view_;
             }
-        }};
-        context_.device().updateDescriptorSets(descriptor_write, {});
+
+            vk::DescriptorImageInfo image_info{
+                .sampler = texture_sampler_,
+                .imageView = view,
+                .imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
+            };
+
+            auto& set = descriptor_sets_[i * slots + slot];
+            std::array<vk::WriteDescriptorSet, 2> descriptor_write{{
+                {
+                    .dstSet          = set,
+                    .dstBinding      = 0,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType  = vk::DescriptorType::eUniformBuffer,
+                    .pBufferInfo     = &buffer_info
+                },{
+                    .dstSet          = set,
+                    .dstBinding      = 1,
+                    .dstArrayElement = 0,
+                    .descriptorCount = 1,
+                    .descriptorType  = vk::DescriptorType::eCombinedImageSampler,
+                    .pImageInfo      = &image_info
+                }
+            }};
+            context_.device().updateDescriptorSets(descriptor_write, {});
+        }
     }
 }
 
@@ -1194,7 +1310,7 @@ void Renderer::record_batches(vk::raii::CommandBuffer& command_buffer, const Ren
         if (scissor_w == 0 || scissor_h == 0) continue;
 
         command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipeline_layout_, 0,
-            *descriptor_sets_[frame_index_ * 2 + static_cast<uint32_t>(batch.texture_slot)], nullptr);
+            *descriptor_sets_[frame_index_ * graphics::kMaxTextureSlots + batch.texture_slot], nullptr);
         vk::Rect2D scissor{
             .offset = {x0, y0},
             .extent = {scissor_w, scissor_h}

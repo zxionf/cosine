@@ -9,9 +9,29 @@ namespace xel::graphics
 {
 enum class TextureSlot : uint32_t
 {
-    White = 0,
-    Texture = 1,
+    White = 0,   // 1×1 白，纯色图元用它
+    Texture = 1, // 字体图集（历史命名，保留以免改动调用点）
 };
+
+// 多纹理槽（CO-2）：
+//   0        White（1×1 白）
+//   1        字体图集
+//   2..15    用户图片，最多 14 张同时在屏
+// 槽号是绘制时的离散维度：同一槽 + 同一裁剪 → 同一批。
+constexpr uint32_t kMaxTextureSlots = 16;
+constexpr uint32_t kFirstImageSlot = 2;
+constexpr uint32_t kMaxImageSlots = kMaxTextureSlots - kFirstImageSlot;
+
+// 图片索引（0 基）→ 纹理槽号。
+constexpr uint32_t image_slot(uint32_t index)
+{
+    return kFirstImageSlot + (index < kMaxImageSlots ? index : kMaxImageSlots - 1);
+}
+
+constexpr bool is_image_slot(uint32_t slot)
+{
+    return slot >= kFirstImageSlot && slot < kMaxTextureSlots;
+}
 
 struct DrawBatch
 {
@@ -19,7 +39,7 @@ struct DrawBatch
     std::vector<uint32_t> indices;
     uint32_t vertex_offset = 0;
     uint32_t index_offset = 0;
-    TextureSlot texture_slot = TextureSlot::White;
+    uint32_t texture_slot = static_cast<uint32_t>(TextureSlot::White);
     glm::vec4 scissor{0.0f, 0.0f, 0.0f, 0.0f};
 };
 
@@ -31,7 +51,7 @@ public:
         batches_.clear();
         clips_.clear();
         clips_.push_back(full_clip_);
-        texture_slot_ = TextureSlot::White;
+        texture_slot_ = static_cast<uint32_t>(TextureSlot::White);
         needs_new_batch_ = true;
     }
 
@@ -75,13 +95,18 @@ public:
         return clips_.empty() ? full_clip_ : clips_.back();
     }
 
-    void set_texture(TextureSlot slot)
+    void set_texture(TextureSlot slot) { set_texture_slot(static_cast<uint32_t>(slot)); }
+
+    // 图片槽用槽号直接指定（见 kFirstImageSlot）。
+    void set_texture_slot(uint32_t slot)
     {
         if (texture_slot_ != slot) {
             texture_slot_ = slot;
             needs_new_batch_ = true;
         }
     }
+
+    uint32_t texture_slot() const { return texture_slot_; }
 
     DrawBatch& batch()
     {
@@ -116,7 +141,7 @@ private:
     std::vector<DrawBatch> batches_;
     std::vector<glm::vec4> clips_;
     glm::vec4 full_clip_{0.0f, 0.0f, 0.0f, 0.0f};
-    TextureSlot texture_slot_ = TextureSlot::White;
+    uint32_t texture_slot_ = static_cast<uint32_t>(TextureSlot::White);
     bool needs_new_batch_ = true;
 };
 

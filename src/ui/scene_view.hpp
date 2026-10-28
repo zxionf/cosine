@@ -3,6 +3,7 @@
 #include "widget.hpp"
 #include "../anim/scene.hpp"
 #include "../graphics/rectangle.hpp"
+#include "../graphics/sprite.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -10,8 +11,8 @@
 namespace xel::ui
 {
 // 把 scene::Scene 渲染成 DrawList 指令的控件。
-// 目前支持：Group（仅 transform）、Shape（矩形 / 椭圆）、Text、Image（占位色块）。
-// rotation 暂不参与（M4 后续）；Image 的真实纹理等 M6 资源管线。
+// 目前支持：Group（仅 transform）、Shape（矩形 / 椭圆）、Text、Image（纹理 / 色块回退）。
+// rotation 作用于矩形、旋转四边形；椭圆与文字暂不参与旋转。
 class SceneView : public Widget
 {
 public:
@@ -51,11 +52,20 @@ private:
     static void append_rotated_rect(graphics::DrawList& list, glm::vec2 top_left, glm::vec2 size,
                                     float angle, glm::vec4 color)
     {
-        list.set_texture(graphics::TextureSlot::Texture);
+        const glm::vec2 white = graphics::active_font_atlas()
+                                    ? graphics::active_font_atlas()->white_uv()
+                                    : glm::vec2{0.0f};
+        append_rotated_quad(list, top_left, size, angle, color,
+                            static_cast<uint32_t>(graphics::TextureSlot::Texture),
+                            glm::vec4{white.x, white.y, white.x, white.y});
+    }
+
+    // 旋转四边形：槽与 UV 可指定，图片用它；纯色传字体图集的白 uv。
+    static void append_rotated_quad(graphics::DrawList& list, glm::vec2 top_left, glm::vec2 size,
+                                    float angle, glm::vec4 color, uint32_t slot, glm::vec4 uv)
+    {
+        list.set_texture_slot(slot);
         auto& batch = list.batch();
-        const glm::vec2 uv = graphics::active_font_atlas()
-                                 ? graphics::active_font_atlas()->white_uv()
-                                 : glm::vec2{0.0f};
         const glm::vec4 premultiplied{color.r * color.a, color.g * color.a, color.b * color.a,
                                       color.a};
         const glm::vec2 center{top_left.x + size.x * 0.5f, top_left.y + size.y * 0.5f};
@@ -72,10 +82,10 @@ private:
         const glm::vec2 p3 = corner(-1.0f, 1.0f);
 
         const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-        batch.vertices.push_back({p0, premultiplied, uv});
-        batch.vertices.push_back({p1, premultiplied, uv});
-        batch.vertices.push_back({p2, premultiplied, uv});
-        batch.vertices.push_back({p3, premultiplied, uv});
+        batch.vertices.push_back({p0, premultiplied, {uv.x, uv.y}});
+        batch.vertices.push_back({p1, premultiplied, {uv.z, uv.y}});
+        batch.vertices.push_back({p2, premultiplied, {uv.z, uv.w}});
+        batch.vertices.push_back({p3, premultiplied, {uv.x, uv.w}});
         batch.indices.insert(batch.indices.end(), {
             base, base + 1, base + 2, base + 2, base + 3, base
         });
@@ -126,11 +136,26 @@ private:
             }
             case scene::NodeType::Image: {
                 const glm::vec2 size{node->size.x * scale.x, node->size.y * scale.y};
-                if (std::fabs(rotation) < 1.0e-4f) {
-                    graphics::Rectangle{screen.x, screen.y, size.x, size.y, node->color}
-                        .append_to(list);
+                const bool rotated = std::fabs(rotation) >= 1.0e-4f;
+                if (node->texture_id == 0) {
+                    // 未绑定纹理：回退成色块，与旧行为一致（不显示占位图，避免误认）。
+                    if (rotated) {
+                        append_rotated_rect(list, screen, size, rotation, node->color);
+                    } else {
+                        graphics::Rectangle{screen.x, screen.y, size.x, size.y, node->color}
+                            .append_to(list);
+                    }
+                    break;
+                }
+
+                // texture_id 是「图片槽索引 + 1」，换回槽号。
+                const uint32_t slot = graphics::image_slot(node->texture_id - 1);
+                const glm::vec4 uv{0.0f, 0.0f, 1.0f, 1.0f};
+                if (rotated) {
+                    append_rotated_quad(list, screen, size, rotation, node->color, slot, uv);
                 } else {
-                    append_rotated_rect(list, screen, size, rotation, node->color);
+                    graphics::Sprite{screen.x, screen.y, size.x, size.y, slot, node->color, uv}
+                        .append_to(list);
                 }
                 break;
             }

@@ -31,7 +31,7 @@ Bounds vertex_bounds(const DrawList& list, TextureSlot slot, bool any_slot = fal
 {
     Bounds bounds;
     for (const auto& batch : list.batches()) {
-        if (!any_slot && batch.texture_slot != slot) continue;
+        if (!any_slot && batch.texture_slot != static_cast<uint32_t>(slot)) continue;
         for (const auto& v : batch.vertices) {
             bounds.min_x = std::min(bounds.min_x, v.pos.x);
             bounds.min_y = std::min(bounds.min_y, v.pos.y);

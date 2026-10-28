@@ -297,6 +297,8 @@ std::vector<std::uint8_t> serialize(const Project& project)
         put_f32(out, node->zoom);
         put_str(out, node->name);
         put_str(out, node->text);
+        // 1.1 新增：图片资源路径（稳定标识，texture_id 只是运行时槽号）。
+        put_str(out, node->texture_path);
 
         put_u32(out, static_cast<std::uint32_t>(node->children.size()));
         for (const scene::NodeId child : node->children) put_u64(out, child);
@@ -411,6 +413,8 @@ bool deserialize(std::span<const std::uint8_t> bytes, Project& out, std::string*
             || !reader.str(node.name) || !reader.str(node.text)) {
             return finish(false);
         }
+        // 1.1 起有 texture_path；读 1.0 文件时留空，重载后由编辑器按需重新解析。
+        if (minor >= 1 && !reader.str(node.texture_path)) return finish(false);
 
         if (!is_known_node_type(type)) {
             reader.error = "unknown node type " + std::to_string(type);

@@ -1,5 +1,6 @@
 add_library(cosine_editor STATIC
     editor.cpp
+    texture_cache.cpp
 )
 target_include_directories(cosine_editor PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

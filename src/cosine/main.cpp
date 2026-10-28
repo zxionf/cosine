@@ -16,7 +16,7 @@ int main()
 
         // Editor 在 Application 之后构造，保证 root/uisys 已就绪；
         // 析构顺序相反，Editor 先销毁。
-        xel::editor::Editor editor{*app.uisys.root(), app.uisys};
+        xel::editor::Editor editor{*app.uisys.root(), app.uisys, app.renderer_};
 
         // 离屏导出（与 ui_anim_showcase 同一机制）：完成一次布局后渲染到 PNG 并退出。
         if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {

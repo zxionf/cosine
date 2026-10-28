@@ -50,6 +50,14 @@ Project make_sample()
     tnode->text_size = 22.0f;
     tnode->visible = false;
 
+    // 1.1 新增的图片字段：路径是稳定标识，texture_id 是运行时槽号。
+    const auto cover = p.scene.create(ns::NodeType::Image, "cover");
+    p.scene.set_parent(cover, group);
+    auto* cnode = p.scene.find(cover);
+    cnode->size = {64.0f, 48.0f};
+    cnode->texture_path = "assets/images/cover.png";
+    cnode->texture_id = 3;
+
     p.timeline.set_duration(3.5f);
     p.timeline.set_fps(30.0f);
     p.timeline.set_loop(false);
@@ -77,16 +85,28 @@ void test_round_trip()
     const std::vector<std::uint8_t> bytes = serialize(source);
     assert(bytes.size() > 16);
     assert(std::memcmp(bytes.data(), "CSNP", 4) == 0);
-    assert(bytes[8] == 1 && bytes[9] == 0); // major.minor
+    assert(bytes[8] == xel::anim::kFormatMajor && bytes[9] == xel::anim::kFormatMinor);
 
     Project restored;
     std::string error;
     const bool ok = deserialize(bytes, restored, &error);
     if (!ok) std::fprintf(stderr, "round-trip failed: %s\n", error.c_str());
     assert(ok);
+
+    // 图片路径与槽句柄必须原样回来。
+    const ns::Node* cover_node = nullptr;
+    ns::NodeId cover_id = ns::kInvalidNode;
+    for (const auto& entry : restored.scene.nodes()) {
+        if (entry.second.name != "cover") continue;
+        cover_node = &entry.second;
+        cover_id = entry.first;
+    }
+    assert(cover_node != nullptr);
+    assert(cover_node->texture_path == "assets/images/cover.png");
+    assert(cover_node->texture_id == 3);
     assert(error.empty());
 
-    assert(restored.scene.size() == 4); // root + group + shape + text
+    assert(restored.scene.size() == 5); // root + group + shape + text + cover
 
     const auto root = static_cast<ns::NodeId>(1);
     const auto group = static_cast<ns::NodeId>(2);
@@ -120,7 +140,7 @@ void test_round_trip()
 
     // 父子关系与顺序（group 挂在 root 下）。
     assert(r->children.size() == 1 && r->children[0] == group);
-    assert(g->children.size() == 1 && g->children[0] == shape);
+    assert(g->children.size() == 2 && g->children[0] == shape && g->children[1] == cover_id);
     assert(s->children.size() == 1 && s->children[0] == text);
 
     // 时间轴元数据。
@@ -284,13 +304,14 @@ void test_error_paths()
     {
         auto bytes = valid;
         bytes[8] = 2;
+        bytes[9] = 0; // 断言的是 "2.0"，次版本也要对齐
         EXPECT_FAIL(bytes, "unsupported project version 2.0");
     }
 
     // 次版本比当前新。
     {
         auto bytes = valid;
-        bytes[9] = 1;
+        bytes[9] = static_cast<std::uint8_t>(xel::anim::kFormatMinor + 1);
         EXPECT_FAIL(bytes, "newer than this build");
     }
 
