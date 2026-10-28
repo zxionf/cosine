@@ -9,6 +9,9 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -327,6 +330,55 @@ void test_hierarchy_rebuild()
     assert(out.scene.find(3)->parent == 2);
     assert(out.scene.find(1)->children.size() == 1);
 }
+// 文件级读写：round-trip 一致，且落盘内容与 serialize() 字节相同。
+void test_file_round_trip()
+{
+    Project source;
+    const auto node = source.scene.create(ns::NodeType::Shape, "Card");
+    source.scene.set_parent(node, source.scene.root());
+    if (auto* n = source.scene.find(node)) {
+        n->transform.position = {12.0f, 34.0f};
+        n->size = {80.0f, 40.0f};
+    }
+    source.timeline.set_duration(3.0f);
+    auto& track = source.timeline.add_track(node, prop::Position);
+    track.add_key({0.0f, glm::vec2{0.0f, 0.0f}, Easing::Linear});
+    track.add_key({1.5f, glm::vec2{100.0f, 0.0f}, Easing::EaseInOut});
+
+    const std::filesystem::path path =
+        std::filesystem::temp_directory_path() / "cosine_serialize_test.cos";
+    std::string error;
+    assert(xel::anim::save_project_file(path.string(), source, &error));
+    assert(error.empty());
+
+    Project loaded;
+    assert(xel::anim::load_project_file(path.string(), loaded, &error));
+    assert(error.empty());
+    assert(loaded.scene.size() == source.scene.size());
+    const auto* restored = loaded.timeline.find_track(node, prop::Position);
+    assert(restored != nullptr && restored->keys().size() == 2);
+    assert(std::fabs(restored->keys()[1].time - 1.5f) < 1.0e-6f);
+
+    std::ifstream in(path, std::ios::binary);
+    const std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(in)),
+                                          std::istreambuf_iterator<char>());
+    assert(bytes == xel::anim::serialize(source));
+
+    std::filesystem::remove(path);
+}
+
+// 打不开的文件要给可读原因，而不是静默失败。
+void test_file_error_paths()
+{
+    Project p;
+    std::string error;
+    assert(!xel::anim::save_project_file("/nonexistent-dir-xyz/a.cos", p, &error));
+    assert(!error.empty());
+
+    error.clear();
+    assert(!xel::anim::load_project_file("/nonexistent-file-xyz.cos", p, &error));
+    assert(!error.empty());
+}
 } // namespace
 
 int main()
@@ -336,6 +388,8 @@ int main()
     test_empty_round_trip();
     test_error_paths();
     test_hierarchy_rebuild();
+    test_file_round_trip();
+    test_file_error_paths();
     std::printf("test_anim_serialize: all passed\n");
     return 0;
 }

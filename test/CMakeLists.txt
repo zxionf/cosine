@@ -160,6 +160,9 @@ target_link_libraries(test_ui_splitter PRIVATE cosine_ui cosine_text)
 add_executable(test_ui_preview_ruler test_ui_preview_ruler.cpp)
 target_link_libraries(test_ui_preview_ruler PRIVATE cosine_ui cosine_text)
 
+add_executable(test_ui_file_browser test_ui_file_browser.cpp)
+target_link_libraries(test_ui_file_browser PRIVATE cosine_ui cosine_text)
+
 add_executable(test_font_atlas_metrics test_font_atlas_metrics.cpp)
 target_link_libraries(test_font_atlas_metrics PRIVATE cosine_text)
 
@@ -213,6 +216,7 @@ set(COSINE_TEST_TARGETS
     test_ui_timeline_view
     test_ui_splitter
     test_ui_preview_ruler
+    test_ui_file_browser
     test_font_atlas_metrics
     test_font_atlas_dpi
     test_ui_events
@@ -274,6 +278,7 @@ add_test(NAME ui_color_input COMMAND test_ui_color_input)
 add_test(NAME ui_timeline_view COMMAND test_ui_timeline_view)
 add_test(NAME ui_splitter COMMAND test_ui_splitter)
 add_test(NAME ui_preview_ruler COMMAND test_ui_preview_ruler)
+add_test(NAME ui_file_browser COMMAND test_ui_file_browser)
 add_test(NAME font_atlas_metrics COMMAND test_font_atlas_metrics)
 add_test(NAME font_atlas_dpi COMMAND test_font_atlas_dpi)
 add_test(NAME ui_events COMMAND test_ui_events)

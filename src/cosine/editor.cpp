@@ -8,14 +8,18 @@ namespace xel::anim { namespace scene = ::xel::scene; }
 
 #include "anim/easing.hpp"
 #include "anim/property.hpp"
+#include "anim/serialize.hpp"
 #include "ui/button.hpp"
+#include "ui/file_browser.hpp"
 #include "ui/hbox.hpp"
 #include "ui/scroll_panel.hpp"
+#include "ui/text_input.hpp"
 #include "ui/theme.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <format>
 #include <functional>
 #include <string>
@@ -62,6 +66,9 @@ Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys) : root_(&root), uisys_(&ui
     build();
     apply_theme();
     layout();
+
+    // 验证用：COSINE_EDITOR_OPEN=1 启动即打开项目对话框（便于离屏截图检查布局）。
+    if (std::getenv("COSINE_EDITOR_OPEN") != nullptr) open_project_dialog();
 }
 
 void Editor::build()
@@ -141,9 +148,10 @@ void Editor::build_menu()
     menu_ = menu.get();
 
     menu->add_menu("File", {
-        ui::MenuItem::make("New", [this] { set_status("new project: pending M6.4b"); }, "Ctrl+N"),
-        ui::MenuItem::make("Open...", [this] { set_status("open: pending M6.5"); }, "Ctrl+O"),
-        ui::MenuItem::make("Save...", [this] { set_status("save: pending M6.5"); }, "Ctrl+S"),
+        ui::MenuItem::make("New", [this] { new_project(); }, "Ctrl+N"),
+        ui::MenuItem::make("Open...", [this] { open_project_dialog(); }, "Ctrl+O"),
+        ui::MenuItem::make("Save", [this] { save_project(); }, "Ctrl+S"),
+        ui::MenuItem::make("Save As...", [this] { save_project_as_dialog(); }),
         ui::MenuItem::separator_item(),
         ui::MenuItem::make("Exit", [this] { set_status("close the window to exit"); }, "Ctrl+Q"),
     });
@@ -562,6 +570,180 @@ void Editor::add_shape_node()
     }
     refresh_scene_tree();
     set_status("added node " + std::to_string(id));
+}
+
+void Editor::new_project()
+{
+    project_ = anim::Project{};
+    stack_.clear();
+    project_path_.clear();
+    selected_ = scene::kInvalidNode;
+    demo_card_ = scene::kInvalidNode;
+    time_ = 0.0f;
+
+    if (player_ != nullptr) {
+        player_->seek(0.0f);
+        player_->play();
+    }
+    if (timeline_view_ != nullptr) timeline_view_->set_time(0.0f);
+    if (preview_ruler_ != nullptr) preview_ruler_->set_duration(project_.timeline.duration());
+    refresh_scene_tree();
+    if (scene_tree_ != nullptr) scene_tree_->set_selected_path({});
+    sync_property_panel();
+    if (preview_ != nullptr) preview_->mark_layout_dirty();
+    set_status("new project");
+}
+
+void Editor::open_project_dialog()
+{
+    if (root_ == nullptr || file_dialog_ != nullptr) return;
+
+    auto dialog = std::make_unique<ui::Dialog>("Open project", 640.0f);
+    ui::Dialog* dialog_ptr = dialog.get();
+
+    auto browser = std::make_unique<ui::FileBrowser>(glm::vec2{600.0f, 260.0f});
+    ui::FileBrowser* browser_ptr = browser.get();
+    std::error_code dir_ec;
+    const std::filesystem::path cwd = std::filesystem::current_path(dir_ec);
+    browser->set_directory(dir_ec ? std::string{"."} : cwd.string());
+    browser->set_extension_filter(".cos");
+
+    auto name = std::make_unique<ui::TextInput>("", 400.0f);
+    ui::TextInput* name_ptr = name.get();
+
+    browser->set_on_select([browser_ptr, name_ptr] {
+        const std::string& picked = browser_ptr->selected_name();
+        if (picked.empty() || picked == "..") return;
+        name_ptr->set_text(picked);
+    });
+    browser->set_on_activate([this, dialog_ptr, browser_ptr, name_ptr] {
+        const std::string picked = browser_ptr->selected_name();
+        if (picked.empty()) return;
+        name_ptr->set_text(picked);
+        const std::string path = browser_ptr->resolve(picked);
+        dialog_ptr->dismiss();
+        load_project(path);
+    });
+
+    dialog->add(std::move(browser));
+
+    auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 600.0f, 40.0f);
+    row->set_spacing(8.0f);
+    row->set_cross_align(ui::Align::center_left());
+    row->add(std::make_unique<ui::Label>("File", 18.0f));
+    row->add(std::move(name));
+    dialog->add(std::move(row));
+
+    dialog->add_action("Open", [this, dialog_ptr, browser_ptr, name_ptr] {
+        const std::string path = browser_ptr->resolve(std::string{name_ptr->text()});
+        dialog_ptr->dismiss();
+        if (path.empty()) {
+            set_status("open: no file selected");
+            return;
+        }
+        load_project(path);
+    }, true);
+    dialog->add_action("Cancel", [dialog_ptr] { dialog_ptr->dismiss(); });
+
+    file_dialog_ = ui::show_dialog(*root_, std::move(dialog), [this] { file_dialog_ = nullptr; });
+}
+
+void Editor::load_project(const std::string& path)
+{
+    anim::Project loaded;
+    std::string error;
+    if (!anim::load_project_file(path, loaded, &error)) {
+        set_status("open failed: " + error);
+        return;
+    }
+
+    project_ = std::move(loaded);
+    project_path_ = path;
+    stack_.clear();
+    selected_ = scene::kInvalidNode;
+    demo_card_ = scene::kInvalidNode;
+    time_ = 0.0f;
+
+    if (player_ != nullptr) player_->seek(0.0f);
+    if (timeline_view_ != nullptr) timeline_view_->set_time(0.0f);
+    if (preview_ruler_ != nullptr) preview_ruler_->set_duration(project_.timeline.duration());
+    refresh_scene_tree();
+    if (scene_tree_ != nullptr) scene_tree_->set_selected_path({});
+    sync_property_panel();
+    if (preview_ != nullptr) preview_->mark_layout_dirty();
+    set_status("opened " + path);
+}
+
+void Editor::save_project()
+{
+    if (project_path_.empty()) {
+        save_project_as_dialog();
+        return;
+    }
+    write_project(project_path_);
+}
+
+void Editor::write_project(const std::string& path)
+{
+    std::string error;
+    if (!anim::save_project_file(path, project_, &error)) {
+        set_status("save failed: " + error);
+        return;
+    }
+    project_path_ = path;
+    set_status("saved " + path);
+}
+
+void Editor::save_project_as_dialog()
+{
+    if (root_ == nullptr || file_dialog_ != nullptr) return;
+
+    auto dialog = std::make_unique<ui::Dialog>("Save project", 640.0f);
+    ui::Dialog* dialog_ptr = dialog.get();
+
+    auto browser = std::make_unique<ui::FileBrowser>(glm::vec2{600.0f, 240.0f});
+    ui::FileBrowser* browser_ptr = browser.get();
+    const std::string start_dir = project_path_.empty()
+        ? std::filesystem::current_path().string()
+        : std::filesystem::path(project_path_).parent_path().string();
+    browser->set_directory(start_dir);
+    browser->set_extension_filter(".cos");
+
+    const std::string initial_name = project_path_.empty()
+        ? std::string{"untitled.cos"}
+        : std::filesystem::path(project_path_).filename().string();
+    auto name = std::make_unique<ui::TextInput>(initial_name, 400.0f);
+    ui::TextInput* name_ptr = name.get();
+
+    browser->set_on_select([browser_ptr, name_ptr] {
+        const std::string& picked = browser_ptr->selected_name();
+        if (picked.empty() || picked == "..") return;
+        name_ptr->set_text(picked);
+    });
+
+    dialog->add(std::move(browser));
+
+    auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 600.0f, 40.0f);
+    row->set_spacing(8.0f);
+    row->set_cross_align(ui::Align::center_left());
+    row->add(std::make_unique<ui::Label>("Name", 18.0f));
+    row->add(std::move(name));
+    dialog->add(std::move(row));
+
+    dialog->add_action("Save", [this, dialog_ptr, browser_ptr, name_ptr] {
+        std::string name_text{name_ptr->text()};
+        if (name_text.empty()) {
+            set_status("save: empty file name");
+            return;
+        }
+        if (std::filesystem::path(name_text).extension().empty()) name_text += ".cos";
+        const std::string path = browser_ptr->resolve(name_text);
+        dialog_ptr->dismiss();
+        write_project(path);
+    }, true);
+    dialog->add_action("Cancel", [dialog_ptr] { dialog_ptr->dismiss(); });
+
+    file_dialog_ = ui::show_dialog(*root_, std::move(dialog), [this] { file_dialog_ = nullptr; });
 }
 
 void Editor::toggle_rounded_style()

@@ -725,3 +725,8 @@ Change: 20261028-timeline-multiselect-batch
 Context: 鼠标事件缺修饰键；框选只能重选不能追加；多选拖动每个关键帧各占一个撤销位
 Decision: 修饰键走 InputEvent.mods → UIContext.modifiers 通到控件（不改 Widget 签名）；Shift/Ctrl 点击切换选中且不进入拖动、Shift/Ctrl 框选追加去重；新增 anim::CompoundCommand（正序 apply/逆序 revert），on_move_end 改批量上报，编辑器按数量包复合命令
 Consequences: 多选拖动一次撤销全部回滚；修饰键只在鼠标按下时读取；场景树背景色经取色核实已一致
+## [146] 2026-10-28 04:56:17 UTC
+Change: 20261028-file-dialog
+Context: File 菜单是占位，项目无法落盘；且不能依赖系统文件对话框
+Decision: anim 层加 save_project_file/load_project_file（落盘字节与 serialize() 相同，错误走可读原因）；新增 ui::FileBrowser（目录优先、扩展名只过滤文件、单击选中双击激活、滚轮滚动）；编辑器用 Dialog+show_dialog overlay 接 File 菜单 New/Open/Save/Save As
+Consequences: 项目可保存/重开；无快捷键与覆盖确认；不记忆上次目录；真实纹理与资源浏览器仍在 M6.5 后续

@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <fstream>
 #include <iterator>
 #include <type_traits>
 #include <unordered_map>
@@ -572,6 +573,42 @@ bool deserialize(std::span<const std::uint8_t> bytes, Project& out, std::string*
     }
 
     out = std::move(project);
+    if (error != nullptr) error->clear();
+    return true;
+}
+
+bool save_project_file(const std::string& path, const Project& project, std::string* error)
+{
+    const std::vector<std::uint8_t> bytes = serialize(project);
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    if (!out) {
+        if (error != nullptr) *error = "cannot open for writing: " + path;
+        return false;
+    }
+    out.write(reinterpret_cast<const char*>(bytes.data()),
+              static_cast<std::streamsize>(bytes.size()));
+    if (!out) {
+        if (error != nullptr) *error = "write failed: " + path;
+        return false;
+    }
+    if (error != nullptr) error->clear();
+    return true;
+}
+
+bool load_project_file(const std::string& path, Project& out, std::string* error)
+{
+    std::ifstream in(path, std::ios::binary);
+    if (!in) {
+        if (error != nullptr) *error = "cannot open: " + path;
+        return false;
+    }
+    std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(in)),
+                                    std::istreambuf_iterator<char>());
+    std::string reason;
+    if (!deserialize(bytes, out, &reason)) {
+        if (error != nullptr) *error = reason;
+        return false;
+    }
     if (error != nullptr) error->clear();
     return true;
 }

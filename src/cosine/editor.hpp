@@ -5,6 +5,7 @@
 #include "anim/project.hpp"
 #include "ui/button.hpp"
 #include "ui/color_input.hpp"
+#include "ui/dialog.hpp"
 #include "ui/drag_float.hpp"
 #include "ui/label.hpp"
 #include "ui/menu_bar.hpp"
@@ -66,6 +67,14 @@ private:
     void step_frame(int direction);
     void toggle_rounded_style();
 
+    // 项目文件（M6.5）。
+    void new_project();
+    void open_project_dialog();
+    void load_project(const std::string& path);
+    void save_project();
+    void save_project_as_dialog();
+    void write_project(const std::string& path);
+
     void apply_theme();
     void layout();
     void set_status(std::string text);
@@ -73,7 +82,9 @@ private:
     ui::UIRoot* root_ = nullptr;
     ui::UISystem* uisys_ = nullptr;
     anim::Project project_;
+    std::string project_path_;
     std::unique_ptr<anim::Player> player_;
+    ui::DialogHost* file_dialog_ = nullptr;
     anim::CommandStack stack_{256};
     float pending_before_ = 0.0f;
 

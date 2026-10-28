@@ -22,4 +22,8 @@ std::vector<std::uint8_t> serialize(const Project& project);
 // 从二进制还原。失败时返回 false，并在 error 非空时写入可读原因。
 // 失败时 out 的内容未定义（调用方应丢弃）。
 bool deserialize(std::span<const std::uint8_t> bytes, Project& out, std::string* error);
+
+// 读写项目文件（M6.5）。错误同样通过 error 返回可读原因。
+bool save_project_file(const std::string& path, const Project& project, std::string* error);
+bool load_project_file(const std::string& path, Project& out, std::string* error);
 } // namespace xel::anim
