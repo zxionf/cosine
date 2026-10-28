@@ -4,6 +4,7 @@
 #include "style.hpp"
 #include "widget.hpp"
 #include "../graphics/font_atlas.hpp"
+#include "../graphics/text_debug.hpp"
 #include "../graphics/box.hpp"
 
 #include <algorithm>
@@ -67,6 +68,10 @@ public:
             const float tx = global_.pos.x + (global_.size.x - text_size.x) * 0.5f;
             const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
             atlas->append_text(list, tx, ty, style.text_size, label_, style.text);
+            // debug 是叠加层，不能替代字形本身（否则只剩框子）。
+            if (debug_.any()) {
+                graphics::append_text_debug(list, *atlas, tx, ty, style.text_size, label_, debug_);
+            }
         }
     }
 
@@ -99,10 +104,14 @@ public:
         return false;
     }
 
+    void set_text_debug(graphics::TextDebugOptions options) { debug_ = options; }
+    const graphics::TextDebugOptions& text_debug() const { return debug_; }
+
 private:
     std::string label_;
     std::function<void()> handler_;
     bool enabled_ = true;
     bool pressed_ = false;
+    graphics::TextDebugOptions debug_{};
 };
 } // namespace xel::ui

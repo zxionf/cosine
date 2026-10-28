@@ -1,7 +1,8 @@
 #pragma once
 
-#include "scroll_panel.hpp"
+#include "vbox.hpp"
 #include "style.hpp"
+#include "../graphics/text_debug.hpp"
 #include "theme.hpp"
 #include "widget.hpp"
 #include "../graphics/box.hpp"
@@ -37,7 +38,7 @@ public:
         set_pos(pos);
         set_absolute_pos(pos);
 
-        auto body = std::make_unique<ScrollPanel>(glm::vec2{size.x, size.y - kTitleHeight});
+        auto body = std::make_unique<Vbox>(0.0f, 0.0f, size.x, size.y - kTitleHeight);
         body_ = body.get();
         children_.push_back(std::move(body));
     }
@@ -48,6 +49,28 @@ public:
         mark_layout_dirty();
     }
     const std::string& title() const { return title_; }
+
+    // 无标题栏窗口：整块区域都是拖动带（内容里的控件仍然优先接收点击）。
+    void set_title_bar_visible(bool visible)
+    {
+        title_bar_visible_ = visible;
+        mark_layout_dirty();
+    }
+    bool title_bar_visible() const { return title_bar_visible_; }
+
+    // 始终置顶：raise() 之后强制最高 z（全局参数面板这类窗口用）。
+    void set_always_on_top(bool on)
+    {
+        always_on_top_ = on;
+        if (on) set_z_index(kOnTopZ);
+    }
+    bool always_on_top() const { return always_on_top_; }
+
+    float title_height() const { return title_bar_visible_ ? kTitleHeight : 0.0f; }
+
+    // 字体 debug：标题文字与内容区边框都跟着画（Label、Button 各自也支持）。
+    void set_text_debug(graphics::TextDebugOptions options) { debug_ = options; }
+    const graphics::TextDebugOptions& text_debug() const { return debug_; }
 
     void set_collapsed(bool collapsed)
     {
@@ -94,6 +117,8 @@ public:
         set_z_index(max_z + 1);
         int next = 1;
         for (Widget* widget : p->paint_order()) widget->set_z_index(next++);
+        // 归一化会把自己的 z 也改成 1..N，置顶窗口在这里重新拉高。
+        if (always_on_top_) set_z_index(kOnTopZ);
     }
 
     void add(std::unique_ptr<Widget> child) override
@@ -122,10 +147,13 @@ public:
     void layout() override
     {
         if (body_ == nullptr) return;
-        const float body_h = collapsed_ ? 0.0f : std::max(0.0f, height() - kTitleHeight);
+        const float title = title_height();
+        const float body_h = collapsed_ ? 0.0f : std::max(0.0f, height() - title);
         body_->set_visible(!collapsed_);
-        body_->arrange({{global_.pos.x, global_.pos.y + kTitleHeight},
-                        {global_.size.x, body_h}});
+        // 右侧与下侧留出 resize 抓取带：否则边缘点击会被内容区吞掉，resize 永远轮不到窗口。
+        body_->arrange({{global_.pos.x, global_.pos.y + title},
+                        {std::max(0.0f, global_.size.x - kGripEdge),
+                         std::max(0.0f, body_h - kGripEdge)}});
     }
 
     void append_to(graphics::DrawList& list) const override
@@ -138,45 +166,68 @@ public:
 
         // 窗口底 + 边框：用比面板更亮的一档，否则窗口会与父面板融成一片。
         // （真正的 elevated 令牌待补，这里先复用 control 色阶。）
-        graphics::append_rounded_rect(list, bounds, radius, t.button_bg);
+        graphics::append_rounded_rect(list, bounds, radius, t.panel_bg);
+        // 标题栏用 button_bg：窗口体已经用 surface，否则窗口和里面的按钮一个颜色。
         graphics::append_rounded_ring(list, bounds, radius, active ? 2.0f : 1.0f,
                                       active ? t.accent : t.panel_border);
 
-        // 标题栏。
-        const glm::vec4 bar{bounds.x, bounds.y, bounds.z, kTitleHeight};
-        graphics::append_rounded_rect(list, bar, radius, t.button_hover);
-
+        // 标题栏（无标题栏窗口跳过）。
+        const float title = title_height();
         auto* atlas = font_atlas();
-        if (atlas != nullptr) {
-            const float text_y = bar.y + (kTitleHeight - t.text_size) * 0.5f;
-            atlas->append_text(list, bar.x + kGlyphZone, text_y, t.text_size, title_, t.text);
-        }
+        if (title > 0.0f) {
+            const glm::vec4 bar{bounds.x, bounds.y, bounds.z, title};
+            graphics::append_rounded_rect(list, bar, radius, t.button_hover);
 
-        // 折叠三角（左）与关闭叉（右）。
-        const glm::vec4 glyph_color = t.text_muted;
-        const float cy = bar.y + kTitleHeight * 0.5f;
-        if (collapsed_) {
-            graphics::Line{bar.x + 8.0f, cy - 4.0f, bar.x + 16.0f, cy, 1.5f, glyph_color}
+            if (atlas != nullptr) {
+                // 用字体行高而不是字号：行框通常比字号高，按字号算文字会整体偏下。
+                const float line_h = atlas->line_height(t.text_size);
+                const float text_y = bar.y + (title - line_h) * 0.5f;
+                atlas->append_text(list, bar.x + kGlyphZone, text_y, t.text_size, title_, t.text);
+                // debug 是叠加层，不能替代字形本身。
+                if (debug_.any()) {
+                    graphics::append_text_debug(list, *atlas, bar.x + kGlyphZone, text_y,
+                                                t.text_size, title_, debug_);
+                }
+            }
+
+            // 折叠三角（左）与关闭叉（右）。
+            const glm::vec4 glyph_color = t.text_muted;
+            const float cy = bar.y + title * 0.5f;
+            if (collapsed_) {
+                graphics::Line{bar.x + 8.0f, cy - 4.0f, bar.x + 16.0f, cy, 1.5f, glyph_color}
+                    .append_to(list);
+                graphics::Line{bar.x + 16.0f, cy, bar.x + 8.0f, cy + 4.0f, 1.5f, glyph_color}
+                    .append_to(list);
+            } else {
+                graphics::Line{bar.x + 8.0f, cy + 3.0f, bar.x + 16.0f, cy - 4.0f, 1.5f, glyph_color}
+                    .append_to(list);
+                graphics::Line{bar.x + 16.0f, cy - 4.0f, bar.x + 24.0f, cy + 3.0f, 1.5f, glyph_color}
+                    .append_to(list);
+            }
+            const float cx = bar.x + bar.z - 16.0f;
+            graphics::Line{cx - 5.0f, cy - 5.0f, cx + 5.0f, cy + 5.0f, 1.5f, glyph_color}
                 .append_to(list);
-            graphics::Line{bar.x + 16.0f, cy, bar.x + 8.0f, cy + 4.0f, 1.5f, glyph_color}
-                .append_to(list);
-        } else {
-            graphics::Line{bar.x + 8.0f, cy + 3.0f, bar.x + 16.0f, cy - 4.0f, 1.5f, glyph_color}
-                .append_to(list);
-            graphics::Line{bar.x + 16.0f, cy - 4.0f, bar.x + 24.0f, cy + 3.0f, 1.5f, glyph_color}
+            graphics::Line{cx + 5.0f, cy - 5.0f, cx - 5.0f, cy + 5.0f, 1.5f, glyph_color}
                 .append_to(list);
         }
-        const float cx = bar.x + bar.z - 16.0f;
-        graphics::Line{cx - 5.0f, cy - 5.0f, cx + 5.0f, cy + 5.0f, 1.5f, glyph_color}
-            .append_to(list);
-        graphics::Line{cx + 5.0f, cy - 5.0f, cx - 5.0f, cy + 5.0f, 1.5f, glyph_color}
-            .append_to(list);
 
         // 内容区。
         if (!collapsed_ && body_ != nullptr) {
-            list.push_clip({bounds.x, bounds.y + kTitleHeight, bounds.z,
-                            std::max(0.0f, bounds.w - kTitleHeight)});
+            list.push_clip({bounds.x, bounds.y + title_height(), bounds.z,
+                            std::max(0.0f, bounds.w - title_height())});
             body_->append_to(list);
+            // debug 时把内容区（Vbox）的布局框也画出来。
+            if (debug_.any()) {
+                const Rect& box = body_->global_bounds();
+                const glm::vec4 c = debug_.color;
+                const float th = debug_.thickness;
+                graphics::Rectangle{box.pos.x, box.pos.y, box.size.x, th, c}.append_to(list);
+                graphics::Rectangle{box.pos.x, box.pos.y + box.size.y - th, box.size.x, th, c}
+                    .append_to(list);
+                graphics::Rectangle{box.pos.x, box.pos.y, th, box.size.y, c}.append_to(list);
+                graphics::Rectangle{box.pos.x + box.size.x - th, box.pos.y, th, box.size.y, c}
+                    .append_to(list);
+            }
             list.pop_clip();
         }
     }
@@ -204,9 +255,14 @@ public:
                 return true;
             }
         }
-        if (hit_title(pos)) {
+        if (title_bar_visible_ && hit_title(pos)) {
             mode_ = Mode::Drag;
-            // 用 absolute_pos 空间记抓取偏移：父容器有 padding 时屏幕坐标会差一个偏移。
+            grab_ = pos - absolute_pos();
+            return true;
+        }
+        if (!title_bar_visible_ && global_bounds().contains(pos)) {
+            // 无标题栏：拖动本体（内容里的控件会先接收点击，到不了这里）。
+            mode_ = Mode::Drag;
             grab_ = pos - absolute_pos();
             return true;
         }
@@ -230,7 +286,7 @@ public:
             if ((edges_ & kEdgeRight) != 0) next.x = want.x;
             if ((edges_ & kEdgeBottom) != 0) next.y = want.y;
             set_size(std::max(next.x, 160.0f),
-                     std::max(next.y, collapsed_ ? kTitleHeight : kTitleHeight + 48.0f));
+                     std::max(next.y, collapsed_ ? title_height() : title_height() + 48.0f));
             global_.size = {width(), height()};
         }
 
@@ -259,6 +315,8 @@ private:
     static constexpr float kGlyphZone = 32.0f; // 折叠三角占位，标题文字从这里开始
     static constexpr float kKeepVisible = 48.0f;
     static constexpr float kGripSize = 12.0f;
+    static constexpr float kGripEdge = 6.0f;
+    static constexpr int kOnTopZ = 10000;
     static constexpr int kEdgeRight = 1;
     static constexpr int kEdgeBottom = 2;
 
@@ -272,15 +330,19 @@ private:
     }
     Rect title_rect() const
     {
-        return {{global_.pos.x, global_.pos.y}, {global_.size.x, kTitleHeight}};
+        return {{global_.pos.x, global_.pos.y}, {global_.size.x, title_height()}};
     }
 
     bool hit_close(glm::vec2 pos) const
     {
-        if (collapsed_) return false;
+        if (collapsed_ || !title_bar_visible_) return false;
         return close_rect().contains(pos);
     }
-    bool hit_collapse(glm::vec2 pos) const { return collapse_rect().contains(pos); }
+    bool hit_collapse(glm::vec2 pos) const
+    {
+        if (!title_bar_visible_) return false;
+        return collapse_rect().contains(pos);
+    }
     bool hit_title(glm::vec2 pos) const { return title_rect().contains(pos); }
 
     // 右下角优先，然后右边、下边。
@@ -291,7 +353,7 @@ private:
         const bool in_corner = pos.x >= right - kGripSize && pos.y >= bottom - kGripSize;
         if (in_corner) return kEdgeRight | kEdgeBottom;
 
-        const bool below_title = pos.y >= global_.pos.y + kTitleHeight;
+        const bool below_title = pos.y >= global_.pos.y + title_height();
         if (pos.x >= right - 6.0f && below_title) return kEdgeRight;
         if (pos.y >= bottom - 6.0f && pos.x >= global_.pos.x + kGripSize) return kEdgeBottom;
         return 0;
@@ -303,18 +365,21 @@ private:
                                                    : glm::vec2{1280.0f, 800.0f};
         const float max_x = std::max(0.0f, area.x - kKeepVisible);
         const float min_x = kKeepVisible - std::max(kKeepVisible, global_.size.x);
-        const float max_y = std::max(0.0f, area.y - kTitleHeight);
+        const float max_y = std::max(0.0f, area.y - (title_height() > 0.0f ? title_height() : kKeepVisible));
         return {std::clamp(pos.x, min_x, max_x), std::clamp(pos.y, 0.0f, max_y)};
     }
 
     std::string title_;
     std::vector<std::unique_ptr<Widget>> children_;
-    ScrollPanel* body_ = nullptr;
+    Vbox* body_ = nullptr;
     Mode mode_ = Mode::None;
     int edges_ = 0;
     glm::vec2 grab_{0.0f, 0.0f};
     bool collapsed_ = false;
     bool resizable_ = true;
+    bool title_bar_visible_ = true;
+    bool always_on_top_ = false;
+    graphics::TextDebugOptions debug_{};
     float expanded_height_ = 0.0f;
     std::function<void()> on_destroy_;
 };

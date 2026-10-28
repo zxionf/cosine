@@ -122,7 +122,7 @@ struct Palette
                     }
                 }));
         }
-        if (shown == 0) list->add(std::make_unique<Label>("no matching command", 13.0f));
+        if (shown == 0) list->add(std::make_unique<Label>("no matching command", 18.0f));
     }
 };
 
@@ -180,6 +180,9 @@ struct Lab
     Resource resource;
     // E8 的窗口常驻挂在 root 上（不在 stage 里，否则被面板裁剪）。
     std::vector<xel::ui::Window*> windows;
+    // 全局参数窗口（无标题栏、始终置顶）。
+    xel::ui::Window* settings = nullptr;
+    bool labels_debug = false;
     xel::ui::Theme theme;
     int current = -1;
 
@@ -207,7 +210,7 @@ void build_resource(Lab& lab, Vbox* stage)
     auto filter_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 820.0f, 32.0f);
     filter_row->set_spacing(6.0f);
     filter_row->set_cross_align(xel::ui::Align::center_left());
-    filter_row->add(std::make_unique<Label>("Filter:", 13.0f));
+    filter_row->add(std::make_unique<Label>("Filter:", 18.0f));
     for (int i = 0; i < 4; ++i) {
         filter_row->add(std::make_unique<Button>(kResourceFilters[i], [&lab, i] {
             lab.resource.filter = i;
@@ -235,14 +238,14 @@ void build_resource(Lab& lab, Vbox* stage)
     auto detail = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 240.0f, 372.0f);
     detail->set_spacing(4.0f);
     detail->set_cross_align(xel::ui::Align::top_left());
-    detail->add(std::make_unique<Label>("Details", 15.0f));
-    auto name = std::make_unique<Label>("-", 13.0f);
+    detail->add(std::make_unique<Label>("Details", 18.0f));
+    auto name = std::make_unique<Label>("-", 18.0f);
     res.info_name = name.get();
     detail->add(std::move(name));
-    auto size = std::make_unique<Label>("", 13.0f);
+    auto size = std::make_unique<Label>("", 18.0f);
     res.info_size = size.get();
     detail->add(std::move(size));
-    auto extra = std::make_unique<Label>("", 13.0f);
+    auto extra = std::make_unique<Label>("", 18.0f);
     res.info_extra = extra.get();
     detail->add(std::move(extra));
 
@@ -370,13 +373,13 @@ void Lab::select(int index)
     }
 
     if (!kExperiments[index].implemented) {
-        stage->add(std::make_unique<Label>("该实验尚未实现（见 README 的实验清单）", 14.0f));
+        stage->add(std::make_unique<Label>("该实验尚未实现（见 README 的实验清单）", 18.0f));
         set_status(kExperiments[index].title);
         return;
     }
 
     if (index == 0) {
-        stage->add(std::make_unique<Label>("输入过滤命令，点击执行：", 14.0f));
+        stage->add(std::make_unique<Label>("输入过滤命令，点击执行：", 18.0f));
 
         auto input = std::make_unique<TextInput>("", 560.0f);
         palette.input = input.get();
@@ -387,7 +390,7 @@ void Lab::select(int index)
         palette.list = list.get();
         stage->add(std::move(list));
 
-        auto result = std::make_unique<Label>("尚未执行任何命令", 14.0f);
+        auto result = std::make_unique<Label>("尚未执行任何命令", 18.0f);
         palette.result = result.get();
         stage->add(std::move(result));
 
@@ -408,30 +411,30 @@ void Lab::select(int index)
     // E8 可拖动窗口：窗口已在 build() 里挂到 root，这里只控制显隐。
     if (index == 7) {
         stage->add(std::make_unique<Label>(
-            "窗口在整个 lab 区域可拖动（不受面板裁剪）：", 13.0f));
+            "窗口在整个 lab 区域可拖动（不受面板裁剪）：", 18.0f));
         stage->add(std::make_unique<Label>(
-            "拖标题栏移动、拖右下角改大小、点左侧三角折叠、点右侧叉关闭", 13.0f));
+            "拖标题栏移动、拖右下角改大小、点左侧三角折叠、点右侧叉关闭", 18.0f));
         stage->add(std::make_unique<Label>(
-            "三个窗口叠放在右侧，点哪个哪个置顶（z 归一化）", 13.0f));
+            "三个窗口叠放在右侧，点哪个哪个置顶（z 归一化）", 18.0f));
         set_status("E8 可拖动窗口：三个叠放，验证置顶与 z 归一化");
         return;
     }
 
-    stage->add(std::make_unique<Label>("拖动后点 Apply，观察既有布局如何反应：", 14.0f));
+    stage->add(std::make_unique<Label>("拖动后点 Apply，观察既有布局如何反应：", 18.0f));
 
     auto add_row = [this](const char* name, float lo, float hi, float initial,
                           Slider** slider_out, Label** value_out) {
         auto row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 640.0f, 34.0f);
         row->set_spacing(10.0f);
         row->set_cross_align(xel::ui::Align::center_left());
-        row->add(std::make_unique<Label>(name, 14.0f));
+        row->add(std::make_unique<Label>(name, 18.0f));
 
         auto slider = std::make_unique<Slider>(300.0f);
         slider->set_range(lo, hi);
         slider->set_value(initial);
         *slider_out = slider.get();
 
-        auto value = std::make_unique<Label>(std::format("{:.0f}", initial), 13.0f);
+        auto value = std::make_unique<Label>(std::format("{:.0f}", initial), 18.0f);
         *value_out = value.get();
 
         Label* value_ptr = value.get();
@@ -455,13 +458,25 @@ void Lab::select(int index)
     set_status("E2 密度矩阵：调好后点 Apply");
 }
 
+// 字体 debug 是每个 Label 自己的选项，没有全局开关：遍历控件树统一设置。
+void apply_label_debug(xel::ui::Widget* widget, const xel::graphics::TextDebugOptions& options)
+{
+    if (widget == nullptr) return;
+    if (auto* label = dynamic_cast<Label*>(widget)) label->set_text_debug(options);
+    else if (auto* button = dynamic_cast<Button*>(widget)) button->set_text_debug(options);
+    else if (auto* window = dynamic_cast<xel::ui::Window*>(widget)) window->set_text_debug(options);
+    for (const auto& child : widget->children()) apply_label_debug(child.get(), options);
+    for (const auto& overlay : widget->overlays()) apply_label_debug(overlay.get(), options);
+}
+
 void build(Lab& lab, xel::ui::UIRoot& root)
 {
     lab.root = &root;
     lab.theme = xel::ui::Theme::dark();
-    lab.theme.text_size = 16.0f;
-    lab.theme.small_text_size = 13.0f;
-    lab.theme.heading_text_size = 22.0f;
+    // 最小字号 20：lab 是近距离阅读，字太小看不清。
+    lab.theme.text_size = 20.0f;
+    lab.theme.small_text_size = 20.0f;
+    lab.theme.heading_text_size = 28.0f;
     lab.theme.control_height = 32.0f;
     root.set_theme(lab.theme);
 
@@ -470,13 +485,13 @@ void build(Lab& lab, xel::ui::UIRoot& root)
     root.add(std::move(heading));
 
     auto note = std::make_unique<Label>("实验代码，产品不依赖；结论回填 examples/ui_lab/README.md",
-                                        13.0f);
+                                        18.0f);
     note->set_pos(16.0f, 38.0f);
     root.add(std::move(note));
 
     auto left = std::make_unique<Panel>(kLeftX, kColumnY, kLeftW, kColumnH);
     left->set_cross_align(xel::ui::Align::h_stretch());
-    left->add(std::make_unique<Label>("Experiments", 15.0f));
+    left->add(std::make_unique<Label>("Experiments", 18.0f));
     for (int i = 0; i < kExperimentCount; ++i) {
         std::string title = kExperiments[i].title;
         if (!kExperiments[i].implemented) title += "  (todo)";
@@ -490,7 +505,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
     lab.title = title.get();
     right->add(std::move(title));
 
-    auto hypothesis = std::make_unique<Label>("", 13.0f);
+    auto hypothesis = std::make_unique<Label>("", 18.0f);
     lab.hypothesis = hypothesis.get();
     right->add(std::move(hypothesis));
 
@@ -501,7 +516,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
     right->add(std::move(stage));
     root.add(std::move(right));
 
-    auto status = std::make_unique<Label>("ready", 13.0f);
+    auto status = std::make_unique<Label>("ready", 18.0f);
     status->set_pos(16.0f, kH - 26.0f);
     lab.status = status.get();
     root.add(std::move(status));
@@ -512,14 +527,43 @@ void build(Lab& lab, xel::ui::UIRoot& root)
     for (int i = 0; i < 3; ++i) {
         auto window = std::make_unique<xel::ui::Window>(titles[i], offsets[i],
                                                         glm::vec2{300.0f, 200.0f});
-        window->add(std::make_unique<Label>(std::string{"window "} + std::to_string(i + 1), 14.0f));
-        window->add(std::make_unique<Label>("drag the title bar", 13.0f));
+        window->add(std::make_unique<Label>(std::string{"window "} + std::to_string(i + 1), 18.0f));
+        window->add(std::make_unique<Label>("drag the title bar", 18.0f));
         window->set_visible(false);
         lab.windows.push_back(window.get());
         root.add(std::move(window));
     }
 
     lab.select(0);
+
+    // 全局参数窗口：无标题栏、始终置顶，拖窗口本体移动。
+    auto settings = std::make_unique<xel::ui::Window>("settings", glm::vec2{874.0f, 12.0f},
+                                                      glm::vec2{310.0f, 96.0f});
+    settings->set_title_bar_visible(false);
+    settings->set_always_on_top(true);
+    settings->add(std::make_unique<Button>("Toggle font debug", [&lab] {
+        lab.labels_debug = !lab.labels_debug;
+        xel::graphics::TextDebugOptions options;
+        options.glyph_boxes = lab.labels_debug;
+        options.line_box = lab.labels_debug;
+        options.baseline = lab.labels_debug;
+        apply_label_debug(lab.root, options);
+        lab.set_status(lab.labels_debug ? "font debug: on" : "font debug: off");
+    }));
+    lab.settings = settings.get();
+    root.add(std::move(settings));
+
+    // 离屏导出时用环境变量直接开启，省得手动点按钮。
+    if (const char* debug = std::getenv("COSINE_LAB_FONT_DEBUG");
+        debug != nullptr && debug[0] == '1') {
+        lab.labels_debug = true;
+        xel::graphics::TextDebugOptions options;
+        options.glyph_boxes = true;
+        options.line_box = true;
+        options.baseline = true;
+        apply_label_debug(lab.root, options);
+        lab.set_status("font debug: on");
+    }
     if (const char* env = std::getenv("COSINE_LAB_EXPERIMENT")) {
         lab.select(std::atoi(env) - 1);
     }
