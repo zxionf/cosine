@@ -41,6 +41,8 @@ public:
         auto body = std::make_unique<Vbox>(0.0f, 0.0f, size.x, size.y - kTitleHeight);
         body_ = body.get();
         children_.push_back(std::move(body));
+        // 必须手动设 parent：冒泡链是 Section → body_ → Window，断了就只能在标题栏拖。
+        body_->set_parent(this);
     }
 
     void set_title(std::string title)

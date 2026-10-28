@@ -12,6 +12,8 @@
 #include "ui/text_input.hpp"
 #include "ui/theme.hpp"
 #include "ui/vbox.hpp"
+#include "ui/section.hpp"
+#include "ui/tab_bar.hpp"
 #include "ui/window.hpp"
 #include "xel_application.hpp"
 
@@ -537,19 +539,98 @@ void build(Lab& lab, xel::ui::UIRoot& root)
     lab.select(0);
 
     // 全局参数窗口：无标题栏、始终置顶，拖窗口本体移动。
-    auto settings = std::make_unique<xel::ui::Window>("settings", glm::vec2{874.0f, 12.0f},
-                                                      glm::vec2{310.0f, 96.0f});
+    // 分区结构：TabBar 选类目 → 状态行 → Section 折叠分组。
+    auto settings = std::make_unique<xel::ui::Window>("settings", glm::vec2{760.0f, 12.0f},
+                                                      glm::vec2{440.0f, 320.0f});
     settings->set_title_bar_visible(false);
     settings->set_always_on_top(true);
-    settings->add(std::make_unique<Button>("Toggle font debug", [&lab] {
-        lab.labels_debug = !lab.labels_debug;
-        xel::graphics::TextDebugOptions options;
-        options.glyph_boxes = lab.labels_debug;
-        options.line_box = lab.labels_debug;
-        options.baseline = lab.labels_debug;
-        apply_label_debug(lab.root, options);
-        lab.set_status(lab.labels_debug ? "font debug: on" : "font debug: off");
-    }));
+
+    auto tabs = std::make_unique<xel::ui::TabBar>();
+    tabs->add_tab("Font");
+    tabs->add_tab("Theme");
+    tabs->add_tab("Scene");
+    tabs->set_size(426.0f, 36.0f);
+    auto* tabs_ptr = tabs.get();
+    settings->add(std::move(tabs));
+
+    auto settings_status = std::make_unique<Label>("font debug: off", 18.0f);
+    auto* settings_status_ptr = settings_status.get();
+    settings->add(std::move(settings_status));
+
+    auto section = std::make_unique<xel::ui::Section>("Font");
+    auto* section_ptr = section.get();
+    settings->add(std::move(section));
+
+    // 三页内容切换时重建（Section::clear + add），避免隐藏页仍参与排布。
+    auto fill_font = [&lab, section_ptr, settings_status_ptr] {
+        section_ptr->set_title("Font · 文字与调试绘制");
+        section_ptr->clear();
+        section_ptr->add(std::make_unique<Button>("Toggle font debug", [&lab, settings_status_ptr] {
+            lab.labels_debug = !lab.labels_debug;
+            xel::graphics::TextDebugOptions options;
+            options.glyph_boxes = lab.labels_debug;
+            options.line_box = lab.labels_debug;
+            options.baseline = lab.labels_debug;
+            apply_label_debug(lab.root, options);
+            if (settings_status_ptr != nullptr) {
+                settings_status_ptr->set_text(lab.labels_debug ? "font debug: on" : "font debug: off");
+            }
+            lab.set_status(lab.labels_debug ? "font debug: on" : "font debug: off");
+        }));
+        section_ptr->add(std::make_unique<Button>("Glyph boxes only", [&lab] {
+            xel::graphics::TextDebugOptions options;
+            options.glyph_boxes = true;
+            apply_label_debug(lab.root, options);
+            lab.set_status("font debug: glyph boxes");
+        }));
+        section_ptr->add(std::make_unique<Label>(
+            "调试绘制作用于现有控件，新建控件需再点一次", 18.0f));
+    };
+
+    auto fill_theme = [&lab, section_ptr] {
+        section_ptr->set_title("Theme · 主题与密度");
+        section_ptr->clear();
+        section_ptr->add(std::make_unique<Label>(
+            "text " + std::format("{:.0f}", lab.theme.text_size) + "    control " +
+                std::format("{:.0f}", lab.theme.control_height) + "    padding " +
+                std::format("{:.0f}", lab.theme.padding) + "    spacing " +
+                std::format("{:.0f}", lab.theme.spacing),
+            18.0f));
+        section_ptr->add(std::make_unique<Label>("密度实时调参：见 E2 主题密度矩阵", 18.0f));
+        section_ptr->add(std::make_unique<Label>("令牌色板编辑：待 UI-3 后续", 18.0f));
+    };
+
+    auto fill_scene = [&lab, section_ptr] {
+        section_ptr->set_title("Scene · 场景与导出");
+        section_ptr->clear();
+        section_ptr->add(std::make_unique<Label>(
+            std::string{"current: "} + kExperiments[lab.current < 0 ? 0 : lab.current].title,
+            18.0f));
+        section_ptr->add(std::make_unique<Button>("Next experiment", [&lab] {
+            lab.select((lab.current + 1) % kExperimentCount);
+        }));
+        section_ptr->add(std::make_unique<Label>("离屏导出：见 E1 的 Export PNG", 18.0f));
+    };
+
+    std::vector<std::function<void()>> fills{fill_font, fill_theme, fill_scene};
+    tabs_ptr->set_on_change([fills, &lab](int index) {
+        if (index >= 0 && index < static_cast<int>(fills.size())) {
+            fills[static_cast<std::size_t>(index)]();
+        }
+        // 内容重建后立刻重排：只标 dirty 要等下一帧，且父容器持有旧的测量缓存。
+        if (lab.root != nullptr) {
+            lab.root->invalidate_measure();
+            lab.root->layout();
+        }
+    });
+    tabs_ptr->set_selected(0, false);
+    fill_font();
+
+    // 导出验证用：直接切到指定页，走一遍「重建 + 重排」的路径。
+    if (const char* tab = std::getenv("COSINE_LAB_SETTINGS_TAB")) {
+        tabs_ptr->set_selected(std::atoi(tab), true);
+    }
+
     lab.settings = settings.get();
     root.add(std::move(settings));
 
