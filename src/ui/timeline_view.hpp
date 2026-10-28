@@ -137,7 +137,7 @@ public:
                     selected_by_node || static_cast<int>(i) == selected_track_;
                 if (selected_row) {
                     graphics::Rectangle{global_.pos.x, row_y, global_.size.x, row_height(),
-                                        glm::vec4{t.accent.r, t.accent.g, t.accent.b, 0.12f}}
+                                        glm::vec4{t.accent.r, t.accent.g, t.accent.b, 0.08f}}
                         .append_to(list);
                 }
 
@@ -153,7 +153,7 @@ public:
                     if (x < left - 8.0f || x > left + area + 8.0f) continue;
                     const bool selected = is_selected(static_cast<int>(i), key.time);
                     append_diamond(list, {x, row_y + row_height() * 0.5f}, 6.0f,
-                                   selected ? t.accent : t.text);
+                                   selected ? t.accent_text : t.text);
                 }
             }
         }

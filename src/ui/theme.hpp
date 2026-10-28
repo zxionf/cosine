@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 
 #include <glm/glm.hpp>
@@ -67,42 +68,66 @@ struct BoxStyle
     glm::vec4 focus_ring{1.0f, 1.0f, 1.0f, 1.0f};
 };
 
+// 颜色书写约定（UI-3）：
+//   主题里的颜色一律按 **sRGB 直觉值**书写（十六进制），存储为**线性值**。
+//   渲染目标是 *_SRGB 格式，硬件在写出时做线性 → sRGB 编码，
+//   所以着色器必须拿到线性色，反过来说：写 #232629 就应该显示成 #232629。
+inline float srgb_to_linear(float channel)
+{
+    if (channel <= 0.04045f) return channel / 12.92f;
+    return std::pow((channel + 0.055f) / 1.055f, 2.4f);
+}
+
+inline glm::vec4 srgb_hex(std::uint32_t rgb, float alpha = 1.0f)
+{
+    const float r = static_cast<float>((rgb >> 16) & 0xFFu) / 255.0f;
+    const float g = static_cast<float>((rgb >> 8) & 0xFFu) / 255.0f;
+    const float b = static_cast<float>(rgb & 0xFFu) / 255.0f;
+    return {srgb_to_linear(r), srgb_to_linear(g), srgb_to_linear(b), alpha};
+}
+
 struct Theme
 {
-    glm::vec4 window_bg{0.08f, 0.09f, 0.10f, 1.0f};
-    glm::vec4 panel_bg{0.13f, 0.14f, 0.16f, 1.0f};
-    glm::vec4 panel_border{0.25f, 0.27f, 0.30f, 1.0f};
-    glm::vec4 text{0.90f, 0.92f, 0.95f, 1.0f};
-    glm::vec4 text_disabled{0.50f, 0.52f, 0.55f, 1.0f};
-    glm::vec4 text_muted{0.66f, 0.69f, 0.73f, 1.0f};
+    // 令牌：shell（窗口底）< surface（面板）< control（控件）< 文字。
+    // 强调色 accent 是所有选中/焦点填充的唯一来源。
+    glm::vec4 window_bg{srgb_hex(0x1B1D21)};
+    glm::vec4 panel_bg{srgb_hex(0x232629)};
+    glm::vec4 panel_border{srgb_hex(0x3A4048)};
+    // 分割条常态色：比表面亮一档，让三栅之间能看到可抓的边界。
+    glm::vec4 splitter{srgb_hex(0x3F454D)};
+    glm::vec4 text{srgb_hex(0xE4E7EB)};
+    glm::vec4 text_disabled{srgb_hex(0x5F666E)};
+    glm::vec4 text_muted{srgb_hex(0x9BA3AD)};
 
-    glm::vec4 button_bg{0.20f, 0.22f, 0.25f, 1.0f};
-    glm::vec4 button_hover{0.26f, 0.29f, 0.33f, 1.0f};
-    glm::vec4 button_pressed{0.16f, 0.18f, 0.21f, 1.0f};
-    glm::vec4 button_disabled{0.15f, 0.16f, 0.18f, 1.0f};
-    glm::vec4 focus_ring{0.20f, 0.60f, 1.00f, 1.0f};
+    glm::vec4 button_bg{srgb_hex(0x41474F)};
+    glm::vec4 button_hover{srgb_hex(0x4C525A)};
+    glm::vec4 button_pressed{srgb_hex(0x363B42)};
+    glm::vec4 button_disabled{srgb_hex(0x30343A)};
+    glm::vec4 focus_ring{srgb_hex(0x3D8EE8)};
     // 强调色：焦点环、勾选、滑动填充、进度填充的唯一来源。
-    glm::vec4 accent{0.20f, 0.60f, 1.00f, 1.0f};
+    glm::vec4 accent{srgb_hex(0x3D8EE8)};
+    // 强调色当**文字**时用更亮的一档：蓝底上写蓝色文字只有 4.1:1，不够读。
+    glm::vec4 accent_text{srgb_hex(0x6FB0F2)};
 
-    glm::vec4 checkbox_bg{0.18f, 0.20f, 0.23f, 1.0f};
-    glm::vec4 checkbox_border{0.35f, 0.38f, 0.42f, 1.0f};
-    glm::vec4 checkbox_fill{0.20f, 0.60f, 1.00f, 1.0f};
+    glm::vec4 checkbox_bg{srgb_hex(0x2F343A)};
+    glm::vec4 checkbox_border{srgb_hex(0x4A5058)};
+    glm::vec4 checkbox_fill{srgb_hex(0x3D8EE8)};
 
-    glm::vec4 slider_track{0.22f, 0.24f, 0.27f, 1.0f};
-    glm::vec4 slider_fill{0.20f, 0.60f, 1.00f, 1.0f};
-    glm::vec4 slider_handle{0.85f, 0.88f, 0.92f, 1.0f};
+    glm::vec4 slider_track{srgb_hex(0x3A3F45)};
+    glm::vec4 slider_fill{srgb_hex(0x3D8EE8)};
+    glm::vec4 slider_handle{srgb_hex(0xD8DDE3)};
     // 滑轨 hover 态底色（轨道是 Track 角色，hover 只提亮一档，不用按钮色）。
-    glm::vec4 track_hover{0.30f, 0.33f, 0.37f, 1.0f};
+    glm::vec4 track_hover{srgb_hex(0x4A5058)};
 
-    glm::vec4 text_input_bg{0.10f, 0.11f, 0.13f, 1.0f};
-    glm::vec4 text_input_border{0.30f, 0.33f, 0.37f, 1.0f};
-    glm::vec4 text_input_selection{0.20f, 0.60f, 1.00f, 0.35f};
-    glm::vec4 text_input_cursor{0.90f, 0.92f, 0.95f, 1.0f};
-    glm::vec4 text_input_border_hover{0.45f, 0.48f, 0.52f, 1.0f};
+    glm::vec4 text_input_bg{srgb_hex(0x1E2125)};
+    glm::vec4 text_input_border{srgb_hex(0x41474F)};
+    glm::vec4 text_input_selection{srgb_hex(0x3D8EE8, 0.35f)};
+    glm::vec4 text_input_cursor{srgb_hex(0xE4E7EB)};
+    glm::vec4 text_input_border_hover{srgb_hex(0x5A6169)};
 
-    glm::vec4 tooltip_bg{0.10f, 0.11f, 0.13f, 0.95f};
-    glm::vec4 scrollbar_track{0.18f, 0.19f, 0.22f, 1.0f};
-    glm::vec4 scrollbar_thumb{0.42f, 0.45f, 0.50f, 1.0f};
+    glm::vec4 tooltip_bg{srgb_hex(0x2C3034, 0.97f)};
+    glm::vec4 scrollbar_track{srgb_hex(0x2E3238)};
+    glm::vec4 scrollbar_thumb{srgb_hex(0x5A6169)};
 
     // 内阴影：只用于 Surface 上缘与 Tooltip 内缘，多层半透明条模拟。
     glm::vec4 inset_shadow{0.0f, 0.0f, 0.0f, 0.06f};
@@ -267,38 +292,40 @@ inline Theme Theme::light()
     Theme t;
     t.name = "light";
 
-    t.window_bg       = {0.93f, 0.94f, 0.95f, 1.0f};
-    t.panel_bg        = {0.87f, 0.88f, 0.90f, 1.0f};
-    t.panel_border    = {0.70f, 0.72f, 0.75f, 1.0f};
-    t.text            = {0.03f, 0.035f, 0.04f, 1.0f};
-    t.text_disabled   = {0.42f, 0.44f, 0.47f, 1.0f};
-    t.text_muted      = {0.36f, 0.38f, 0.41f, 1.0f};
+    t.window_bg       = srgb_hex(0xEDEFF2);
+    t.panel_bg        = srgb_hex(0xDEE1E5);
+    t.panel_border    = srgb_hex(0xB3B8BF);
+    t.splitter        = srgb_hex(0xC3C7CD);
+    t.text            = srgb_hex(0x1A1D21);
+    t.text_disabled   = srgb_hex(0x6B7178);
+    t.text_muted      = srgb_hex(0x5C6269);
 
-    t.button_bg       = {0.82f, 0.84f, 0.87f, 1.0f};
-    t.button_hover    = {0.89f, 0.91f, 0.94f, 1.0f};
-    t.button_pressed  = {0.74f, 0.76f, 0.79f, 1.0f};
-    t.button_disabled = {0.90f, 0.91f, 0.92f, 1.0f};
-    t.focus_ring      = {0.12f, 0.45f, 0.95f, 1.0f};
-    t.accent          = {0.12f, 0.45f, 0.95f, 1.0f};
+    t.button_bg       = srgb_hex(0xC8CCD2);
+    t.button_hover    = srgb_hex(0xDCE0E5);
+    t.button_pressed  = srgb_hex(0xB4B9C0);
+    t.button_disabled = srgb_hex(0xE0E3E7);
+    t.focus_ring      = srgb_hex(0x1F6FD0);
+    t.accent          = srgb_hex(0x1F6FD0);
+    t.accent_text     = srgb_hex(0x1A5FB4);
 
-    t.checkbox_bg     = {0.97f, 0.98f, 0.99f, 1.0f};
-    t.checkbox_border = {0.62f, 0.65f, 0.68f, 1.0f};
-    t.checkbox_fill   = {0.12f, 0.45f, 0.95f, 1.0f};
+    t.checkbox_bg     = srgb_hex(0xF7F8FA);
+    t.checkbox_border = srgb_hex(0x9EA3AA);
+    t.checkbox_fill   = srgb_hex(0x1F6FD0);
 
-    t.slider_track    = {0.78f, 0.80f, 0.83f, 1.0f};
-    t.slider_fill     = {0.12f, 0.45f, 0.95f, 1.0f};
-    t.slider_handle   = {0.16f, 0.17f, 0.19f, 1.0f};
-    t.track_hover     = {0.68f, 0.71f, 0.75f, 1.0f};
+    t.slider_track    = srgb_hex(0xC7CBD1);
+    t.slider_fill     = srgb_hex(0x1F6FD0);
+    t.slider_handle   = srgb_hex(0x292D33);
+    t.track_hover     = srgb_hex(0xADB2B9);
 
-    t.text_input_bg           = {0.98f, 0.98f, 0.99f, 1.0f};
-    t.text_input_border       = {0.68f, 0.70f, 0.73f, 1.0f};
-    t.text_input_selection    = {0.12f, 0.45f, 0.95f, 0.30f};
-    t.text_input_cursor       = {0.05f, 0.055f, 0.06f, 1.0f};
-    t.text_input_border_hover = {0.45f, 0.47f, 0.50f, 1.0f};
+    t.text_input_bg           = srgb_hex(0xFAFBFC);
+    t.text_input_border       = srgb_hex(0xADB2B9);
+    t.text_input_selection    = srgb_hex(0x1F6FD0, 0.30f);
+    t.text_input_cursor       = srgb_hex(0x0D0F11);
+    t.text_input_border_hover = srgb_hex(0x727880);
 
-    t.tooltip_bg      = {0.97f, 0.97f, 0.98f, 0.98f};
-    t.scrollbar_track = {0.80f, 0.82f, 0.85f, 1.0f};
-    t.scrollbar_thumb = {0.55f, 0.58f, 0.62f, 1.0f};
+    t.tooltip_bg      = srgb_hex(0xF7F8FA, 0.98f);
+    t.scrollbar_track = srgb_hex(0xCCD0D5);
+    t.scrollbar_thumb = srgb_hex(0x8C9299);
     t.inset_shadow    = {0.0f, 0.0f, 0.0f, 0.05f};
     return t;
 }

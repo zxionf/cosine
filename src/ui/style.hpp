@@ -106,6 +106,8 @@ inline BoxStyle Theme::style(StyleRole role, ControlState state) const
 
         case StyleRole::Accent:
             s.fill = state == ControlState::Disabled ? text_disabled : accent;
+            // 蓝底上用深色字：比蓝字清晰，也把 accent_text 留给「底色上的蓝字」。
+            s.text = srgb_hex(0x0F1419);
             s.radius = radius_small;
             break;
 

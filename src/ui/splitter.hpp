@@ -132,10 +132,10 @@ public:
         const float w = orientation_ == Orientation::Horizontal ? handle : global_.size.x;
         const float h = orientation_ == Orientation::Horizontal ? global_.size.y : handle;
 
-        // 手柄：颜色沿用 panel_border，圆角随主题（classic 为直角）。
+        // 手柄：常态用主题的 splitter 色（比面板亮一档），hover 提亮，拖动变强调色。
         const BoxStyle bar_style = visual_style(StyleRole::Control,
                                                 is_hovered() ? ControlState::Hovered : ControlState::Normal);
-        glm::vec4 bar_color = t.panel_border;
+        glm::vec4 bar_color = t.splitter;
         if (dragging_) {
             bar_color = with_alpha(t.accent, 0.28f);
         } else if (is_hovered()) {

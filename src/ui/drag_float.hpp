@@ -98,7 +98,7 @@ public:
         const float pad = std::max(4.0f, t.padding * 0.5f);
         const glm::vec4 label_color = enabled_ ? t.text : t.text_disabled;
         const glm::vec4 value_color = !enabled_ ? t.text_disabled
-                                     : (dragging_ ? t.accent : t.text);
+                                     : (dragging_ ? t.accent_text : t.text);
 
         float x = global_.pos.x + pad;
         if (!label_.empty()) {

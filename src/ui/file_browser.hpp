@@ -229,7 +229,7 @@ public:
             const std::string label = entry.is_directory ? (entry.name + "/") : entry.name;
             atlas->append_text(list, global_.pos.x + 10.0f, y + (row_height_ - t.small_text_size) * 0.5f,
                                t.small_text_size, label,
-                               entry.is_directory ? t.accent : t.text);
+                               entry.is_directory ? t.accent_text : t.text);
         }
 
         // 内容超出时在右下角提示还有多少项，避免「以为到底了」。
