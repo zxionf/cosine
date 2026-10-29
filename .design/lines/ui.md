@@ -62,7 +62,8 @@
     - [x] `Table` 接入 `ScrollState`（13 处引用一次替换，指数衰减/Fast/snap 手感不变）
     - [x] ~~`ScrollView` 接入~~（不迁：二维 `glm::vec2 offset_` + 自带 `scroll_speed`/`line_step`，`ScrollState` 保持一维）
     - [x] ~~`TextInput` 接入~~（不迁：只有一条 `clamp_scroll`、无 `ScrollMode`/平滑，收益为零）
-    - [ ] 抽 `ListView`（Table 先接，FileBrowser 自动受益）
+    - [x] 抽 `ListView` 基类（`src/ui/list_view.hpp`：滚动/选中/键盘/可见行，6 项单测）
+    - [ ] `Table` 接入 `ListView`（挂钩 append_to / draw_row / 表头，较大重构）
     - [x] 抽 `CollapsibleHeader`（`src/ui/collapsible_header.hpp`），`Section` 已接入
     - [x] ~~`Window` 标题栏复用~~（不迁：标题栏还要拖动/关闭叉/双击最大化，套进去反而更绕）
   - [x] ~~**阶段 6 Widget 瘦身**~~：默认不做，阶段 5 后再评估
