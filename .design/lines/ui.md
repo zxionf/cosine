@@ -58,6 +58,11 @@
   - [x] **阶段 3 布局契约**：`measure` 契约注释 + `Widget::fixed_size()`；`Table`/`FileBrowser` 标记为 fixed（缓存传播已由阶段 1 验证正常）
   - [x] **阶段 4 层模型**：`Widget::fills_parent()` + `Layer{Content,Floating,Modal}`；`UIRoot::layout_child` 去掉 `dynamic_cast<Scrim*>`
   - [ ] **阶段 5 行为基元**：`ScrollState` → `ListView`（Table/FileBrowser）→ `CollapsibleHeader`
+    - [x] `ScrollState`（`src/ui/scroll_state.hpp`）：clamp / 目标 / 平滑逼近 / range 收敛到一处，6 项单测
+    - [ ] `Table` 接入 `ScrollState`（替掉 `scroll_` / `scroll_target_` / `smoothing_`）
+    - [ ] `ScrollView` / `TextInput` 接入
+    - [ ] 抽 `ListView`（Table 先接，FileBrowser 自动受益）
+    - [ ] 抽 `CollapsibleHeader`（Section 与 Window 标题栏复用）
   - [x] ~~**阶段 6 Widget 瘦身**~~：默认不做，阶段 5 后再评估
 - **明确不做**：不重写布局引擎、不引入 ECS、不拆 `Widget`、不动 `menu_bar.hpp`（857 行是菜单语义的合理复杂度）
 - **记录为后续优化项**（不在本轮）：
