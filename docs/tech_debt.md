@@ -42,3 +42,19 @@
 | D08 | cosine | 属性面板只反映静态值，不显示动画求值结果 | 播放时看到的值与画面不一致 | 需要「轨道覆盖显示」设计 |
 | D09 | examples | `ui_lab` 不进 ctest 断言 | 实验代码回归靠肉眼 | 刻意如此（实验期不设门禁） |
 | D10 | ui | 逐组件单测不完整（如 `Splitter` 直到 2026-10-28 才有测试） | 回归靠 gallery 冒烟发现 | 某组件反复出问题时补 |
+
+## 三、有意为之的取舍（不是欠账）
+
+以下决定是权衡后**主动选择不做**，记在这里避免下次评估重新纠结：
+
+| 编号 | 内容 | 为什么不做 |
+|---|---|---|
+| T01 | `ListView::draw_row` 留空，`Table::append_to` 仍自己画行 | 搬到 `draw_row` 是纯视觉重构，但当前无像素级测试；且 `snap`（像素对齐）与 `first_visible_row()`（逻辑行号）取整口径不同，合并有抖动风险。见 UI-10 |
+| T02 | `ScrollView` 保留独立的二维滚动，不接 `ScrollState` | `ScrollState` 是一维的（`float offset_`）；扩成二维会让它变成什么都装的对象 |
+| T03 | `Window` 标题栏不复用 `CollapsibleHeader` | 标题栏还要拖动、关闭叉、双击最大化、无标题栏整块拖动，套进去要回传事件，比各自写更绕 |
+| T04 | `Layer` 已声明但未驱动命中排序 | 现有「overlay 优先 + z 降序」已工作且被 5 个测试覆盖，重写属于为一致性冒回归风险 |
+| T05 | `Widget` 不拆分（406 行 / 12 种职责） | 4 个显式契约（`adopt` / `fixed_size` / `fills_parent` / `Layer` / `viewport_height`）已缓解最痛处；拆分回归面覆盖全部控件 |
+| T06 | `menu_bar.hpp`（857 行）不拆 | 菜单语义（弹出、子菜单、快捷键）的合理复杂度 |
+| T07 | `ui_lab` 不进 ctest | 实验代码，进 ctest 会锁死迭代速度（D09 的另一面） |
+| T08 | 性能优化暂缓 | 无实测数据。先加「每帧测量次数 / batch 数 / 帧时间」统计再决定（UI-15） |
+| T09 | `TextInput` 不接 `ScrollState` | 它只有一条 `clamp_scroll`，无 `ScrollMode`/平滑，收益为零 |
