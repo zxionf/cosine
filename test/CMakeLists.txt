@@ -169,6 +169,9 @@ target_link_libraries(test_ui_window PRIVATE cosine_ui cosine_text)
 add_executable(test_font_atlas_metrics test_font_atlas_metrics.cpp)
 target_link_libraries(test_font_atlas_metrics PRIVATE cosine_text)
 
+add_executable(test_graphics_opacity test_graphics_opacity.cpp)
+target_link_libraries(test_graphics_opacity PRIVATE cosine_text)
+
 add_executable(test_font_atlas_dpi test_font_atlas_dpi.cpp)
 target_link_libraries(test_font_atlas_dpi PRIVATE cosine_text)
 
@@ -222,6 +225,7 @@ set(COSINE_TEST_TARGETS
     test_ui_file_browser
     test_ui_window
     test_font_atlas_metrics
+    test_graphics_opacity
     test_font_atlas_dpi
     test_ui_events
     test_ui_controls
@@ -285,6 +289,7 @@ add_test(NAME ui_preview_ruler COMMAND test_ui_preview_ruler)
 add_test(NAME ui_file_browser COMMAND test_ui_file_browser)
 add_test(NAME ui_window COMMAND test_ui_window)
 add_test(NAME font_atlas_metrics COMMAND test_font_atlas_metrics)
+add_test(NAME graphics_opacity COMMAND test_graphics_opacity)
 add_test(NAME font_atlas_dpi COMMAND test_font_atlas_dpi)
 add_test(NAME ui_events COMMAND test_ui_events)
 add_test(NAME interpreter_token COMMAND test_interpreter_token)

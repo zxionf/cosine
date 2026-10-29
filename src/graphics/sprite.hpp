@@ -29,10 +29,10 @@ public:
                               color_.b * color_.a, color_.a};
 
         const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-        batch.vertices.push_back({{x_,      y_     }, color, {uv_.x, uv_.y}});
-        batch.vertices.push_back({{x_ + w_, y_     }, color, {uv_.z, uv_.y}});
-        batch.vertices.push_back({{x_ + w_, y_ + h_}, color, {uv_.z, uv_.w}});
-        batch.vertices.push_back({{x_,      y_ + h_}, color, {uv_.x, uv_.w}});
+        batch.add_vertex({x_,      y_     }, color, {uv_.x, uv_.y});
+        batch.add_vertex({x_ + w_, y_     }, color, {uv_.z, uv_.y});
+        batch.add_vertex({x_ + w_, y_ + h_}, color, {uv_.z, uv_.w});
+        batch.add_vertex({x_,      y_ + h_}, color, {uv_.x, uv_.w});
 
         batch.indices.insert(batch.indices.end(), {
             base,

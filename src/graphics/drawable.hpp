@@ -41,6 +41,16 @@ struct DrawBatch
     uint32_t index_offset = 0;
     uint32_t texture_slot = static_cast<uint32_t>(TextureSlot::White);
     glm::vec4 scissor{0.0f, 0.0f, 0.0f, 0.0f};
+    // 建立时的累积透明度。预乘 alpha 下四个通道同乘，就是整棵子树淡出的正确结果。
+    float opacity = 1.0f;
+
+    void add_vertex(glm::vec2 pos, glm::vec4 color, glm::vec2 uv = {0.0f, 0.0f})
+    {
+        if (opacity < 1.0f) {
+            color = {color.r * opacity, color.g * opacity, color.b * opacity, color.a * opacity};
+        }
+        vertices.push_back(Vertex{pos, color, uv});
+    }
 };
 
 class DrawList
@@ -52,6 +62,8 @@ public:
         clips_.clear();
         clips_.push_back(full_clip_);
         texture_slot_ = static_cast<uint32_t>(TextureSlot::White);
+        opacity_ = 1.0f;
+        opacity_stack_.clear();
         needs_new_batch_ = true;
     }
 
@@ -90,6 +102,23 @@ public:
         needs_new_batch_ = true;
     }
 
+    // 透明度乘子：影响此后写入的所有顶点（文字、色块、贴图、线段都走顶点色）。
+    // 支持嵌套，内层与外层相乘。
+    void push_opacity(float value)
+    {
+        opacity_stack_.push_back(opacity_);
+        opacity_ *= std::clamp(value, 0.0f, 1.0f);
+        needs_new_batch_ = true;
+    }
+    void pop_opacity()
+    {
+        if (opacity_stack_.empty()) return;
+        opacity_ = opacity_stack_.back();
+        opacity_stack_.pop_back();
+        needs_new_batch_ = true;
+    }
+    float opacity() const { return opacity_; }
+
     glm::vec4 current_clip() const
     {
         return clips_.empty() ? full_clip_ : clips_.back();
@@ -114,10 +143,12 @@ public:
             if (!batches_.empty() && batches_.back().vertices.empty()) {
                 batches_.back().texture_slot = texture_slot_;
                 batches_.back().scissor = current_clip();
+                batches_.back().opacity = opacity_;
             } else {
                 DrawBatch batch;
                 batch.texture_slot = texture_slot_;
                 batch.scissor = current_clip();
+                batch.opacity = opacity_;
                 batches_.push_back(std::move(batch));
             }
             needs_new_batch_ = false;
@@ -143,6 +174,8 @@ private:
     glm::vec4 full_clip_{0.0f, 0.0f, 0.0f, 0.0f};
     uint32_t texture_slot_ = static_cast<uint32_t>(TextureSlot::White);
     bool needs_new_batch_ = true;
+    float opacity_ = 1.0f;
+    std::vector<float> opacity_stack_;
 };
 
 class Drawable

@@ -26,10 +26,10 @@ public:
         const glm::vec4 color{color_.r * color_.a, color_.g * color_.a,
                               color_.b * color_.a, color_.a};
         const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-        batch.vertices.push_back({{x_,      y_     }, color, uv});
-        batch.vertices.push_back({{x_ + w_, y_     }, color, uv});
-        batch.vertices.push_back({{x_ + w_, y_ + h_}, color, uv});
-        batch.vertices.push_back({{x_,      y_ + h_}, color, uv});
+        batch.add_vertex({x_,      y_     }, color, uv);
+        batch.add_vertex({x_ + w_, y_     }, color, uv);
+        batch.add_vertex({x_ + w_, y_ + h_}, color, uv);
+        batch.add_vertex({x_,      y_ + h_}, color, uv);
 
         batch.indices.insert(batch.indices.end(), {
             base,

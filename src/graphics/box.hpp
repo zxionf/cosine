@@ -37,10 +37,10 @@ inline void push_quad(DrawList& list, glm::vec2 a, glm::vec2 b, glm::vec2 c, glm
     auto& batch = list.batch();
     const glm::vec2 uv = white_uv();
     const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-    batch.vertices.push_back(Vertex{a, color, uv});
-    batch.vertices.push_back(Vertex{b, color, uv});
-    batch.vertices.push_back(Vertex{c, color, uv});
-    batch.vertices.push_back(Vertex{d, color, uv});
+    batch.add_vertex(a, color, uv);
+    batch.add_vertex(b, color, uv);
+    batch.add_vertex(c, color, uv);
+    batch.add_vertex(d, color, uv);
     batch.indices.insert(batch.indices.end(), {
         base, base + 1, base + 2,
         base + 2, base + 3, base
@@ -65,12 +65,12 @@ inline void push_corner_fan(DrawList& list, glm::vec2 center, float radius,
     auto& batch = list.batch();
     const glm::vec2 uv = white_uv();
     const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-    batch.vertices.push_back(Vertex{center, color, uv});
+    batch.add_vertex(center, color, uv);
     for (int i = 0; i <= seg; ++i) {
         const float t = static_cast<float>(i) / static_cast<float>(seg);
         const float angle = start_angle + (end_angle - start_angle) * t;
         const glm::vec2 p{center.x + radius * std::cos(angle), center.y + radius * std::sin(angle)};
-        batch.vertices.push_back(Vertex{p, color, uv});
+        batch.add_vertex(p, color, uv);
     }
     for (int i = 0; i < seg; ++i) {
         batch.indices.insert(batch.indices.end(), {
@@ -91,8 +91,8 @@ inline void push_corner_band(DrawList& list, glm::vec2 center, float outer_radiu
         const float angle = start_angle + (end_angle - start_angle) * t;
         const float cos_a = std::cos(angle);
         const float sin_a = std::sin(angle);
-        batch.vertices.push_back(Vertex{{center.x + outer_radius * cos_a, center.y + outer_radius * sin_a}, color, uv});
-        batch.vertices.push_back(Vertex{{center.x + inner_radius * cos_a, center.y + inner_radius * sin_a}, color, uv});
+        batch.add_vertex({center.x + outer_radius * cos_a, center.y + outer_radius * sin_a}, color, uv);
+        batch.add_vertex({center.x + inner_radius * cos_a, center.y + inner_radius * sin_a}, color, uv);
     }
     for (int i = 0; i < seg; ++i) {
         const uint32_t o0 = base + static_cast<uint32_t>(i) * 2;

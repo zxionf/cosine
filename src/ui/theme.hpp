@@ -93,6 +93,9 @@ struct Theme
     glm::vec4 window_bg{srgb_hex(0x1B1D21)};
     glm::vec4 panel_bg{srgb_hex(0x232629)};
     glm::vec4 panel_border{srgb_hex(0x3A4048)};
+    // 浮层（窗口）专用：比 panel_bg 亮一档，压在其他面板之上时能看出层次。
+    glm::vec4 elevated{srgb_hex(0x2A2E33)};
+    glm::vec4 elevated_border{srgb_hex(0x454B54)};
     // 分割条常态色：比表面亮一档，让三栅之间能看到可抓的边界。
     glm::vec4 splitter{srgb_hex(0x3F454D)};
     glm::vec4 text{srgb_hex(0xE4E7EB)};
@@ -295,6 +298,8 @@ inline Theme Theme::light()
     t.window_bg       = srgb_hex(0xEDEFF2);
     t.panel_bg        = srgb_hex(0xDEE1E5);
     t.panel_border    = srgb_hex(0xB3B8BF);
+    t.elevated        = srgb_hex(0xFAFBFC);
+    t.elevated_border = srgb_hex(0xA8AEB6);
     t.splitter        = srgb_hex(0xC3C7CD);
     t.text            = srgb_hex(0x1A1D21);
     t.text_disabled   = srgb_hex(0x6B7178);

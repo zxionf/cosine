@@ -40,10 +40,10 @@ public:
         const glm::vec2 uv = active_font_atlas() ? active_font_atlas()->white_uv() : glm::vec2{0.0f};
 
         // 4 个顶点，UV 随便填（用白纹理采样恒为 1）
-        batch.vertices.push_back({{a.x, a.y}, color_, uv});
-        batch.vertices.push_back({{b.x, b.y}, color_, uv});
-        batch.vertices.push_back({{c.x, c.y}, color_, uv});
-        batch.vertices.push_back({{d.x, d.y}, color_, uv});
+        batch.add_vertex({a.x, a.y}, color_, uv);
+        batch.add_vertex({b.x, b.y}, color_, uv);
+        batch.add_vertex({c.x, c.y}, color_, uv);
+        batch.add_vertex({d.x, d.y}, color_, uv);
 
         // 两个三角形
         batch.indices.insert(batch.indices.end(), {

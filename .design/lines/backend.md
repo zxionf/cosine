@@ -3,8 +3,8 @@
 > 定位：Vulkan 设备、交换链、管线、离屏渲染与读回、shader 构建。
 > 目录：`src/backend/`、`src/shaders/`。编号前缀 `BE`。
 >
-> **本线处于占位状态：暂不设任务。**当前后端改动都由 ui / cosine 按需发起
-> （例如 CO-2 的多纹理槽、M6.0 的离屏读回），没有独立排期。
+> **本线仍按需发起**：BE-2（绘制列表透明度乘子）是第一个由 UI 需求驱动的渲染能力；
+> 其余改动（CO-2 的多纹理槽、M6.0 的离屏读回）仍由 ui / cosine 直接发起。
 
 ## 进行中
 
@@ -29,3 +29,4 @@
 |---|---|---|---|
 | BE-0 | M3 工程化：CI/ASAN、调试面板指标、错误处理、打包 | 2026-10-25 | `docs/plan_archive.md` → M3 |
 | BE-1 | M6.0 离屏渲染 + PNG 导出（`render_offscreen` / `write_png`） | 2026-10-27 | `docs/plan_archive.md` → M6.0 |
+| BE-2 | 绘制列表透明度乘子：`DrawList::push_opacity/pop_opacity`，预乘 alpha 下四通道同乘 | 2026-10-28 | `src/graphics/drawable.hpp`、`test/test_graphics_opacity.cpp` |

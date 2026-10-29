@@ -130,6 +130,43 @@ public:
     void set_resizable(bool resizable) { resizable_ = resizable; }
     bool resizable() const { return resizable_; }
 
+    // 关闭前确认：返回 false 则拒绝关闭（Esc 与点叉都走这里）。
+    void set_on_close(std::function<bool()> handler) { on_close_ = std::move(handler); }
+    bool request_close()
+    {
+        if (on_close_ && !on_close_()) return false;
+        // 保持原语义：点叉是外部销毁（未注册回调时退化为隐藏）。
+        destroy();
+        return true;
+    }
+
+    // 最大化：铺满父容器（无父容器时用自身尺寸），再次调用则还原。
+    void set_maximized(bool on)
+    {
+        if (maximized_ == on) return;
+        maximized_ = on;
+        if (on) {
+            restore_pos_ = absolute_pos();
+            restore_size_ = {width(), height()};
+            const glm::vec2 area = parent() != nullptr
+                                       ? glm::vec2{parent()->width(), parent()->height()}
+                                       : restore_size_;
+            set_absolute_pos({0.0f, 0.0f});
+            set_pos({0.0f, 0.0f});
+            set_size(area);
+            global_ = {{0.0f, 0.0f}, area};
+        } else {
+            set_absolute_pos(restore_pos_);
+            set_pos(restore_pos_);
+            set_size(restore_size_);
+            global_ = {restore_pos_, restore_size_};
+        }
+        layout();
+        mark_layout_dirty();
+        if (Widget* p = parent()) p->mark_layout_dirty();
+    }
+    bool maximized() const { return maximized_; }
+
     bool dragging() const { return mode_ == Mode::Drag; }
     bool resizing() const { return mode_ == Mode::Resize; }
 
@@ -195,7 +232,18 @@ public:
 
         // 窗口底 + 边框：用比面板更亮的一档，否则窗口会与父面板融成一片。
         // （真正的 elevated 令牌待补，这里先复用 control 色阶。）
-        graphics::append_rounded_rect(list, bounds, radius, t.panel_bg);
+        graphics::append_rounded_rect(list, bounds, radius, t.elevated);
+        // 浮层边框：拿到焦点时用强调色，否则用 elevated_border。
+        {
+            const glm::vec4 border_color = has_focus_ ? t.accent : t.elevated_border;
+            const float bw = has_focus_ ? 2.0f : 1.0f;
+            graphics::Rectangle{bounds.x, bounds.y, bounds.z, bw, border_color}.append_to(list);
+            graphics::Rectangle{bounds.x, bounds.y + bounds.w - bw, bounds.z, bw, border_color}
+                .append_to(list);
+            graphics::Rectangle{bounds.x, bounds.y, bw, bounds.w, border_color}.append_to(list);
+            graphics::Rectangle{bounds.x + bounds.z - bw, bounds.y, bw, bounds.w, border_color}
+                .append_to(list);
+        }
         // 标题栏用 button_bg：窗口体已经用 surface，否则窗口和里面的按钮一个颜色。
         graphics::append_rounded_ring(list, bounds, radius, active ? 2.0f : 1.0f,
                                       active ? t.accent : t.panel_border);
@@ -266,7 +314,30 @@ public:
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
         if (key != event::KeyCode::Escape) return false;
-        close();
+        request_close();
+        return true;
+    }
+
+    void on_focus_gained() override
+    {
+        Widget::on_focus_gained();
+        has_focus_ = true;
+        mark_layout_dirty();
+    }
+    void on_focus_lost() override
+    {
+        Widget::on_focus_lost();
+        has_focus_ = false;
+        mark_layout_dirty();
+    }
+
+    // 双击标题栏最大化/还原（点在关闭/折叠图标上不算）。
+    bool on_double_click(glm::vec2 pos, int) override
+    {
+        if (!title_bar_visible_ || !hit_title(pos) || hit_close(pos) || hit_collapse(pos)) {
+            return false;
+        }
+        set_maximized(!maximized_);
         return true;
     }
 
@@ -276,7 +347,7 @@ public:
         raise();
 
         if (hit_close(pos)) {
-            destroy();
+            request_close();
             return true;
         }
         if (hit_collapse(pos)) {
@@ -288,8 +359,10 @@ public:
             if (edges != 0) {
                 mode_ = Mode::Resize;
                 edges_ = edges;
-                // 用 absolute_pos + size 记偏移：global_ 要等父容器重排才刷新。
-                grab_ = pos - (absolute_pos() + glm::vec2{width(), height()});
+                // 记起始矩形 + 起始鼠标点：8 个方向共用同一套增量算法。
+                resize_start_pos_ = absolute_pos();
+                resize_start_size_ = {width(), height()};
+                grab_ = pos;
                 return true;
             }
         }
@@ -319,13 +392,37 @@ public:
             set_pos(next);
             global_.pos = next;
         } else {
-            const glm::vec2 want = pos - grab_ - absolute_pos();
-            glm::vec2 next{width(), height()};
-            if ((edges_ & kEdgeRight) != 0) next.x = want.x;
-            if ((edges_ & kEdgeBottom) != 0) next.y = want.y;
-            set_size(std::max(next.x, 160.0f),
-                     std::max(next.y, collapsed_ ? title_height() : title_height() + 48.0f));
-            global_.size = {width(), height()};
+            const glm::vec2 delta = pos - grab_;
+            glm::vec2 next_pos = resize_start_pos_;
+            glm::vec2 next_size = resize_start_size_;
+            if ((edges_ & kEdgeLeft) != 0) {
+                next_pos.x += delta.x;
+                next_size.x -= delta.x;
+            }
+            if ((edges_ & kEdgeTop) != 0) {
+                next_pos.y += delta.y;
+                next_size.y -= delta.y;
+            }
+            if ((edges_ & kEdgeRight) != 0) next_size.x += delta.x;
+            if ((edges_ & kEdgeBottom) != 0) next_size.y += delta.y;
+
+            // 夹到最小尺寸：把左/上边被推回的那部分偿还给位置，避免窗口向右下飘。
+            const float min_w = 160.0f;
+            const float min_h = collapsed_ ? title_height() : title_height() + 48.0f;
+            if (next_size.x < min_w) {
+                if ((edges_ & kEdgeLeft) != 0) next_pos.x -= min_w - next_size.x;
+                next_size.x = min_w;
+            }
+            if (next_size.y < min_h) {
+                if ((edges_ & kEdgeTop) != 0) next_pos.y -= min_h - next_size.y;
+                next_size.y = min_h;
+            }
+
+            set_absolute_pos(next_pos);
+            set_pos(next_pos);
+            global_.pos = next_pos;
+            set_size(next_size);
+            global_.size = next_size;
         }
 
         layout(); // body_ 跟着新的 global_ 重新排
@@ -374,6 +471,8 @@ private:
     static constexpr int kOnTopZ = 10000;
     static constexpr int kEdgeRight = 1;
     static constexpr int kEdgeBottom = 2;
+    static constexpr int kEdgeLeft = 4;
+    static constexpr int kEdgeTop = 8;
 
     Rect close_rect() const
     {
@@ -400,18 +499,26 @@ private:
     }
     bool hit_title(glm::vec2 pos) const { return title_rect().contains(pos); }
 
-    // 右下角优先，然后右边、下边。
+    // 四边 + 四角，角比边优先（8px 抓取带）。
     int resize_edges(glm::vec2 pos) const
     {
-        const float right = global_.pos.x + global_.size.x;
-        const float bottom = global_.pos.y + global_.size.y;
-        const bool in_corner = pos.x >= right - kGripSize && pos.y >= bottom - kGripSize;
-        if (in_corner) return kEdgeRight | kEdgeBottom;
+        const float left = global_.pos.x;
+        const float top = global_.pos.y;
+        const float right = left + global_.size.x;
+        const float bottom = top + global_.size.y;
 
-        const bool below_title = pos.y >= global_.pos.y + title_height();
-        if (pos.x >= right - 6.0f && below_title) return kEdgeRight;
-        if (pos.y >= bottom - 6.0f && pos.x >= global_.pos.x + kGripSize) return kEdgeBottom;
-        return 0;
+        const bool in_left = pos.x <= left + kGripEdge;
+        const bool in_right = pos.x >= right - kGripEdge;
+        // 顶边只留 6px：再宽就会把标题栏的拖动区一起吃进去。
+        const bool in_top = pos.y <= top + kGripEdge;
+        const bool in_bottom = pos.y >= bottom - kGripEdge;
+
+        int edges = 0;
+        if (in_left) edges |= kEdgeLeft;
+        if (in_right) edges |= kEdgeRight;
+        if (in_top) edges |= kEdgeTop;
+        if (in_bottom) edges |= kEdgeBottom;
+        return edges;
     }
 
     glm::vec2 clamp_position(glm::vec2 pos) const
@@ -436,8 +543,15 @@ private:
     bool always_on_top_ = false;
     bool modal_ = false;
     bool collapsible_ = true;
+    bool maximized_ = false;
+    bool has_focus_ = false;
     graphics::TextDebugOptions debug_{};
     float expanded_height_ = 0.0f;
+    glm::vec2 resize_start_pos_{0.0f, 0.0f};
+    glm::vec2 resize_start_size_{0.0f, 0.0f};
+    glm::vec2 restore_pos_{0.0f, 0.0f};
+    glm::vec2 restore_size_{0.0f, 0.0f};
     std::function<void()> on_destroy_;
+    std::function<bool()> on_close_;
 };
 } // namespace xel::ui

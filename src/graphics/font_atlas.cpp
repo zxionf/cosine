@@ -378,10 +378,10 @@ void FontAtlas::append_glyph(DrawBatch& batch, float& pen_x, float& pen_y, float
         const float v1 = g->v0 + (cy1 - y0) * inv_h * (g->v1 - g->v0);
 
         const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-        batch.vertices.push_back({{cx0, cy0}, color, {u0, v0}});
-        batch.vertices.push_back({{cx1, cy0}, color, {u1, v0}});
-        batch.vertices.push_back({{cx1, cy1}, color, {u1, v1}});
-        batch.vertices.push_back({{cx0, cy1}, color, {u0, v1}});
+        batch.add_vertex({cx0, cy0}, color, {u0, v0});
+        batch.add_vertex({cx1, cy0}, color, {u1, v0});
+        batch.add_vertex({cx1, cy1}, color, {u1, v1});
+        batch.add_vertex({cx0, cy1}, color, {u0, v1});
         batch.indices.insert(batch.indices.end(), {
             base, base + 1, base + 2,
             base + 2, base + 3, base

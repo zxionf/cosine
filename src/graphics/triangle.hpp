@@ -20,9 +20,9 @@ public:
         auto& batch = list.batch();
         const glm::vec2 uv = active_font_atlas() ? active_font_atlas()->white_uv() : glm::vec2{0.0f};
         const uint32_t base = static_cast<uint32_t>(batch.vertices.size());
-        batch.vertices.push_back({p0_, color_, uv});
-        batch.vertices.push_back({p1_, color_, uv});
-        batch.vertices.push_back({p2_, color_, uv});
+        batch.add_vertex(p0_, color_, uv);
+        batch.add_vertex(p1_, color_, uv);
+        batch.add_vertex(p2_, color_, uv);
 
         batch.indices.push_back(base);
         batch.indices.push_back(base + 1);

@@ -21,9 +21,24 @@
   - [x] 内部滚动（内容区用 `ScrollPanel`）
   - [x] 测试 `test_ui_window`（6 组：拖动跟手、clamp、置顶、resize、折叠、关闭）
   - [x] `ui_lab` E8 验证：三个窗口叠放，不受面板裁剪
-  - [ ] `elevated` 令牌（现在借用 `button_bg` / `button_hover`）
+  - [x] `elevated` / `elevated_border` 令牌（深色 `#2A2E33`/`#454B54`，浅色 `#FAFBFC`/`#A8AEB6`）
   - [ ] `ui_gallery` 分区与 `docs/` 更新
-  - [ ] 双击标题栏最大化、8 边 resize（V2）
+  - [x] 双击标题栏最大化/还原（记 `restore_pos_` / `restore_size_`）
+  - [x] 8 边 resize（四边 + 四角；顶部抓取带只能 6px，否则吃掉标题栏拖动区）
+  - [x] 关闭前确认（`set_on_close` 返回 false 拒绝；Esc 与点叉共用 `request_close`）
+  - [x] 焦点环（`has_focus_` → 边框转 `accent` 加粗 2px）
+  - [x] 模态（`Scrim` + `UIRoot` 模态栈 + Tab 焦点限制，支持嵌套）
+
+**遗留**（未做，需单独拍板）：
+
+| 项 | 现状 | 前置条件 |
+|---|---|---|
+| 内容区滚动 | `body_` 是 `Vbox`，超出被 `push_clip` 裁掉；不能直接换回 `ScrollPanel`（它会吞掉按下事件，窗口就不能拖内容区） | 三选一：顶部 24px 专用拖动条 / 仅边缘 8px 可拖 / 内容超高时才启用 |
+| 打开/关闭过渡 | 无 | **依赖 BE-2**（`DrawList::push_opacity` 已就位），UI 侧还没接 |
+| resize 保留滚动位置 | 无对象可保留 | 依赖「内容区滚动」 |
+| 圆角无抗锯齿 | 硬边 | D01（渲染层） |
+| 外阴影 | 无 | 渲染层 |
+| 边缘吸附 / 多窗口级联 | 无 | 需要窗口管理器概念 |
 
 ### UI-3 主体颜色精调
 
