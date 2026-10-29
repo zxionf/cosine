@@ -1,7 +1,7 @@
 #include "graphics/drawable.hpp"
-#include "ui/color_rect.hpp"
-#include "ui/slider.hpp"
-#include "ui/splitter.hpp"
+#include "ui/core/color_rect.hpp"
+#include "ui/core/slider.hpp"
+#include "ui/core/splitter.hpp"
 
 #include <cassert>
 #include <cmath>

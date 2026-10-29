@@ -1,9 +1,9 @@
 #include "ui/align.hpp"
-#include "ui/color_rect.hpp"
-#include "ui/grid.hpp"
-#include "ui/hbox.hpp"
-#include "ui/vbox.hpp"
-#include "ui/wrap.hpp"
+#include "ui/core/color_rect.hpp"
+#include "ui/containers/grid.hpp"
+#include "ui/containers/hbox.hpp"
+#include "ui/containers/vbox.hpp"
+#include "ui/containers/wrap.hpp"
 
 #include <cassert>
 #include <cmath>

@@ -1,4 +1,4 @@
-#include "ui/text_input.hpp"
+#include "ui/core/text_input.hpp"
 
 #include "graphics/font_atlas.hpp"
 

@@ -1,7 +1,7 @@
-#include "ui/color_rect.hpp"
-#include "ui/scroll_view.hpp"
-#include "ui/table.hpp"
-#include "ui/vbox.hpp"
+#include "ui/core/color_rect.hpp"
+#include "ui/containers/scroll_view.hpp"
+#include "ui/views/table.hpp"
+#include "ui/containers/vbox.hpp"
 
 #include <cassert>
 #include <cmath>

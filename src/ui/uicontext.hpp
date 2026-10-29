@@ -1,7 +1,7 @@
 #pragma once
 
-#include "theme.hpp"
-#include "../events/key_code.hpp"
+#include "ui/theme.hpp"
+#include "events/key_code.hpp"
 
 namespace xel::graphics
 {

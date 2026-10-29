@@ -1,6 +1,6 @@
 #pragma once
 
-#include "widget.hpp"
+#include "ui/widget.hpp"
 
 #include <memory>
 

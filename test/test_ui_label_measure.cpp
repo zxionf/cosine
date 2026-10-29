@@ -1,5 +1,5 @@
 #include "graphics/font_atlas.hpp"
-#include "ui/label.hpp"
+#include "ui/core/label.hpp"
 
 #include <cassert>
 #include <cmath>

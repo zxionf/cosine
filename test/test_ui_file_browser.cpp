@@ -1,4 +1,4 @@
-#include "ui/file_browser.hpp"
+#include "ui/views/file_browser.hpp"
 
 #include <cassert>
 #include <cmath>

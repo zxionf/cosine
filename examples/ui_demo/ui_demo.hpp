@@ -1,15 +1,15 @@
 #pragma once
 
 #include "graphics/text_debug.hpp"
-#include "ui/color_rect.hpp"
-#include "ui/debug_overlay.hpp"
-#include "ui/hbox.hpp"
-#include "ui/label.hpp"
-#include "ui/panel.hpp"
+#include "ui/core/color_rect.hpp"
+#include "ui/composites/debug_overlay.hpp"
+#include "ui/containers/hbox.hpp"
+#include "ui/core/label.hpp"
+#include "ui/containers/panel.hpp"
 #include "ui/root.hpp"
-#include "ui/scroll_view.hpp"
-#include "ui/typography.hpp"
-#include "ui/vbox.hpp"
+#include "ui/containers/scroll_view.hpp"
+#include "ui/core/typography.hpp"
+#include "ui/containers/vbox.hpp"
 
 #include <cstdlib>
 #include <format>

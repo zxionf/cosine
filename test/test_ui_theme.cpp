@@ -1,5 +1,5 @@
-#include "ui/label.hpp"
-#include "ui/panel.hpp"
+#include "ui/core/label.hpp"
+#include "ui/containers/panel.hpp"
 #include "ui/root.hpp"
 #include "ui/theme.hpp"
 #include "ui/ui_system.hpp"

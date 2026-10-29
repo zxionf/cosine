@@ -1,5 +1,5 @@
-#include "ui_system.hpp"
-#include "../backend/window.hpp"
+#include "ui/ui_system.hpp"
+#include "backend/window.hpp"
 
 #include <algorithm>
 

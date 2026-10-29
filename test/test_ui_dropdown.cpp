@@ -1,8 +1,8 @@
-#include "ui/dropdown.hpp"
-#include "ui/color_rect.hpp"
+#include "ui/composites/dropdown.hpp"
+#include "ui/core/color_rect.hpp"
 #include "ui/root.hpp"
 #include "ui/ui_system.hpp"
-#include "ui/vbox.hpp"
+#include "ui/containers/vbox.hpp"
 
 #include <cassert>
 #include <cmath>

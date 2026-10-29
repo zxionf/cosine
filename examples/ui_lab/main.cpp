@@ -2,19 +2,19 @@
 // 与 ui_gallery 的分工、纪律与结论表见同目录 README.md。
 // 硬约束：产品代码不得依赖本目录；lab 不进 ctest 断言，只有冒烟门禁。
 
-#include "ui/button.hpp"
-#include "ui/file_browser.hpp"
-#include "ui/hbox.hpp"
-#include "ui/label.hpp"
-#include "ui/panel.hpp"
+#include "ui/core/button.hpp"
+#include "ui/views/file_browser.hpp"
+#include "ui/containers/hbox.hpp"
+#include "ui/core/label.hpp"
+#include "ui/containers/panel.hpp"
 #include "ui/root.hpp"
-#include "ui/slider.hpp"
-#include "ui/text_input.hpp"
+#include "ui/core/slider.hpp"
+#include "ui/core/text_input.hpp"
 #include "ui/theme.hpp"
-#include "ui/vbox.hpp"
-#include "ui/section.hpp"
-#include "ui/tab_bar.hpp"
-#include "ui/window.hpp"
+#include "ui/containers/vbox.hpp"
+#include "ui/composites/section.hpp"
+#include "ui/core/tab_bar.hpp"
+#include "ui/composites/window.hpp"
 #include "xel_application.hpp"
 
 #include <stb_image.h>

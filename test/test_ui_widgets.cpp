@@ -1,8 +1,8 @@
-#include "ui/progress.hpp"
-#include "ui/radio.hpp"
-#include "ui/radio_group.hpp"
+#include "ui/core/progress.hpp"
+#include "ui/core/radio.hpp"
+#include "ui/composites/radio_group.hpp"
 #include "ui/root.hpp"
-#include "ui/tab_bar.hpp"
+#include "ui/core/tab_bar.hpp"
 #include "ui/ui_system.hpp"
 
 #include <cassert>

@@ -2,10 +2,10 @@
 // 当前实现里有些行为尚未统一（FileBrowser 忽略 constraints、缓存不向上传播），
 // 这些用 [KNOWN] 报告而不 assert；阶段 3 落地后改成 assert。
 #include "graphics/drawable.hpp"
-#include "ui/file_browser.hpp"
-#include "ui/label.hpp"
-#include "ui/section.hpp"
-#include "ui/vbox.hpp"
+#include "ui/views/file_browser.hpp"
+#include "ui/core/label.hpp"
+#include "ui/composites/section.hpp"
+#include "ui/containers/vbox.hpp"
 #include "ui/widget.hpp"
 
 #include <cmath>

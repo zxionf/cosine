@@ -1,6 +1,6 @@
 #include "events/key_code.hpp"
-#include "ui/button.hpp"
-#include "ui/radio_group.hpp"
+#include "ui/core/button.hpp"
+#include "ui/composites/radio_group.hpp"
 #include "ui/root.hpp"
 #include "ui/ui_system.hpp"
 

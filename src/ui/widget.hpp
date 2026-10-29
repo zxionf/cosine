@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../graphics/drawable.hpp"
-#include "../graphics/box.hpp"
-#include "../graphics/line.hpp"
-#include "rect.hpp"
-#include "align.hpp"
-#include "uicontext.hpp"
-#include "style.hpp"
-#include "../events/key_code.hpp"
+#include "graphics/drawable.hpp"
+#include "graphics/box.hpp"
+#include "graphics/line.hpp"
+#include "ui/rect.hpp"
+#include "ui/align.hpp"
+#include "ui/uicontext.hpp"
+#include "ui/style.hpp"
+#include "events/key_code.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -305,6 +305,12 @@ public:
     virtual float margin_top()     const { return margin_.top; }
     virtual float margin_bottom()  const { return margin_.bottom; }
 
+    // 三个布尔决定交互行为，组合语义（clips_children 见上方）：
+    //   hit_testable=true   命中到此为止，path 末端是它自己（可接点击、可拖）
+    //   hit_testable=false  继续向下找子项；子项都没命中时它也不接
+    //                       （Vbox 用这个让点击冒泡到父级，例如窗口内容区拖动）
+    //   clips_children=true 子项绘制/命中裁剪到自身 bounds（Panel / ScrollView / Table）
+    //   focusable=true      参与 Tab 顺序，可被 set_focus 获得键盘事件
     virtual bool hit_testable() const { return true; }
     virtual bool focusable() const { return false; }
 

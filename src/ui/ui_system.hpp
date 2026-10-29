@@ -1,7 +1,7 @@
 #pragma once
 
-#include "root.hpp"
-#include "../events/event.hpp"
+#include "ui/root.hpp"
+#include "events/event.hpp"
 
 namespace xel::backend { class Window; }
 

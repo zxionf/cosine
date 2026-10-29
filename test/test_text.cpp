@@ -2,8 +2,8 @@
 #include "graphics/font_atlas_builder.hpp"
 #include "graphics/font_face.hpp"
 #include "graphics/utf8.hpp"
-#include "ui/label.hpp"
-#include "ui/text_input.hpp"
+#include "ui/core/label.hpp"
+#include "ui/core/text_input.hpp"
 
 #include <cassert>
 #include <cmath>

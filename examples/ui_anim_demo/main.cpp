@@ -5,12 +5,12 @@
 #include "anim/player.hpp"
 #include "anim/scene.hpp"
 #include "anim/timeline.hpp"
-#include "ui/button.hpp"
-#include "ui/hbox.hpp"
-#include "ui/label.hpp"
-#include "ui/progress.hpp"
+#include "ui/core/button.hpp"
+#include "ui/containers/hbox.hpp"
+#include "ui/core/label.hpp"
+#include "ui/core/progress.hpp"
 #include "ui/root.hpp"
-#include "ui/scene_view.hpp"
+#include "ui/views/scene_view.hpp"
 #include "xel_application.hpp"
 
 #include <algorithm>

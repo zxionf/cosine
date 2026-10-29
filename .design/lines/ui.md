@@ -68,9 +68,77 @@
     - [x] ~~`Window` 标题栏复用~~（不迁：标题栏还要拖动/关闭叉/双击最大化，套进去反而更绕）
   - [x] ~~**阶段 6 Widget 瘦身**~~：默认不做，阶段 5 后再评估
 - **明确不做**：不重写布局引擎、不引入 ECS、不拆 `Widget`、不动 `menu_bar.hpp`（857 行是菜单语义的合理复杂度）
-- **记录为后续优化项**（不在本轮）：
-  - **constraint 布局（Flutter 式）**：现有「父测量子、子返回尺寸」模型够用；若出现自适应/流式布局的硬需求再立任务
-  - **声明式 / 响应式层**：retained-mode + 命令回调是当前产品定位；若 XEL 绑定的方向变成声明式再评估
+- **后续优化项**：已独立为 UI-8（constraint 布局）与 UI-9（声明式层）
+
+### UI-8 constraint 布局（Flutter 式）
+
+- **状态**：`todo`（不立即开始，以后做）
+- **背景**：现在 `measure(constraints)` 只传「可用宽度」，高度靠子项自报，没有「最小/最大约束 + 子项在约束内收敛」的模型
+- **目标**：引入 `BoxConstraints{min_w, max_w, min_h, max_h}`，容器可沿树向下传递
+- **触发条件**：出现自适应/流式布局的硬需求（面板任意嵌套、内容驱动宽度）
+- **影响面**：`Widget::measure` 契约 + 所有 `measure` 实现
+- **验收**：65 项测试全绿 + 一个真实场景（如 ui_lab 自适应列）验证
+
+### UI-9 声明式 / 响应式层
+
+- **状态**：`todo`（不立即开始，以后做）
+- **背景**：现在是 retained-mode + 命令回调，控件由命令式代码构造与更新
+- **目标**：评估「状态 → UI」的声明式描述（SwiftUI / React 式）是否值得
+- **触发条件**：XEL 绑定方向确定后；或界面状态同步代码成为主要 bug 来源
+- **风险**：与现有 retained-mode 模型冲突，属于推翻性设计
+- **验收**：先出设计文档，不写实现
+
+### UI-10 `draw_row` 接管 + TreeView 迁移
+
+- **状态**：`todo`（不立即开始，以后做）
+- **背景**：`ListView::draw_row` 已预留契约，但 `Table::append_to` 仍自己画行；`TreeView` 尚未接入 `ListView`
+- **目标**：行绘制搬进 `draw_row`；`TreeView` 继承 `ListView`（缩进/展开自己管）
+- **障碍**：`append_to` 的 `snap`（像素对齐）与 `first_visible_row()`（逻辑行号）取整口径不同，合并需统一，且当前无像素级测试
+- **前提**：先补「渲染快照对比」手段，否则视觉回归不可见
+- **验收**：`Table` 与 `TreeView` 离屏导出对比无差异，65 项测试全绿
+
+### UI-11 主题令牌对照表
+
+- **状态**：`todo`（不立即开始，以后做）
+- **背景**：`Theme` 有 30+ 颜色字段，同时存在 `StyleRole` + `ControlState`；控件里两者混用
+- **目标**：补一份「令牌 → 控件」对照表，明确每个字段的唯一职责
+- **触发条件**：主题需要第三方定制，或出现「改了令牌却不生效」的排查成本
+- **验收**：文档层，不动代码
+
+### UI-12 隐式依赖清理
+
+- **状态**：`done`（2026-10-29）
+- **背景**：`CollapsibleHeader` 是 `Section` 的普通成员、不在 `children_` 里，`set_context()` 从未被调用，只靠 `Widget::font_atlas()` 的 fallback 兜底；`hit_testable`/`focusable`/`clips_children` 三布尔组合语义全靠约定
+- **目标**：消除隐式依赖 + 补行为矩阵文档
+- **步骤**：
+  - [x] `Section::arrange` 里补 `header_.set_context(context())`
+  - [x] `widget.hpp` 注释里补「布尔组合 → 行为」矩阵
+- **验收**：`ctest` 全绿；无新增 fallback 依赖
+
+### UI-13 技术债与取舍文档同步
+
+- **状态**：`done`（2026-10-29）
+- **背景**：`docs/tech_debt.md` 的 D01–D10 未反映本轮变化（多纹理槽、`centered_text_y`、`draw_row` 空实现等）
+- **目标**：同步技术债，并新增「有意为之的取舍」一节，避免下次评估重新纠结
+- **步骤**：
+  - [x] 更新 D 列表（关闭已解决的、补充新增的）
+  - [x] 新增「有意为之」小节（T01–T09）
+- **验收**：文档层，不动代码
+
+### UI-14 代码整洁度
+
+- **状态**：`done`（2026-10-29）
+- **背景**：`Window` 的 `title_bar_visible_` 有两套分支（`append_to` / `on_mouse_down` / `clamp_position` / `resize_edges` 各一处）；`Table::on_key_down` 与 `ListView` 部分重复
+- **目标**：标题栏高度为 0 时自然退化，减少 `if`；`Table::on_key_down` 改成「覆写 + 调基类」
+- **验收**：行为不变，`ctest` 全绿
+
+### UI-15 性能观测与候选优化
+
+- **状态**：`todo`
+- **背景**：`Table::column_widths` 每帧重算；`Button`/`Table` 单元格每次 `atlas->measure()`；`invalidate_measure()` 一路传播到 root；batch 切分频率未知
+- **目标**：先加帧时间 / 测量次数统计，再决定优化哪一项
+- **前置**：**先有测量手段**，不做凭感觉的优化
+- **验收**：能读出「每帧测量次数」「每帧 batch 数」「帧时间分布」
 
 ### UI-3 主体颜色精调
 

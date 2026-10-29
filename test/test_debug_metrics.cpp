@@ -1,5 +1,5 @@
 #include "graphics/frame_stats.hpp"
-#include "ui/debug_overlay.hpp"
+#include "ui/composites/debug_overlay.hpp"
 
 #include <cassert>
 #include <iostream>

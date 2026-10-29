@@ -9,11 +9,11 @@ namespace xel::anim { namespace scene = ::xel::scene; }
 #include "anim/easing.hpp"
 #include "anim/property.hpp"
 #include "anim/serialize.hpp"
-#include "ui/button.hpp"
-#include "ui/file_browser.hpp"
-#include "ui/hbox.hpp"
-#include "ui/scroll_panel.hpp"
-#include "ui/text_input.hpp"
+#include "ui/core/button.hpp"
+#include "ui/views/file_browser.hpp"
+#include "ui/containers/hbox.hpp"
+#include "ui/composites/scroll_panel.hpp"
+#include "ui/core/text_input.hpp"
 #include "ui/theme.hpp"
 
 #include <algorithm>

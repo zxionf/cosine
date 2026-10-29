@@ -1,5 +1,5 @@
 #include "events/key_code.hpp"
-#include "ui/menu_bar.hpp"
+#include "ui/composites/menu_bar.hpp"
 #include "ui/root.hpp"
 #include "ui/ui_system.hpp"
 

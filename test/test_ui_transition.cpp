@@ -1,5 +1,5 @@
 #include "graphics/drawable.hpp"
-#include "ui/button.hpp"
+#include "ui/core/button.hpp"
 #include "ui/root.hpp"
 #include "ui/style.hpp"
 #include "ui/theme.hpp"

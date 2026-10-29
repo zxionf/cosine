@@ -1,6 +1,6 @@
-#include "ui/label.hpp"
-#include "ui/panel.hpp"
-#include "ui/tab_view.hpp"
+#include "ui/core/label.hpp"
+#include "ui/containers/panel.hpp"
+#include "ui/composites/tab_view.hpp"
 #include "ui/ui_system.hpp"
 
 #include <cassert>

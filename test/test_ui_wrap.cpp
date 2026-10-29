@@ -1,6 +1,6 @@
 #include "ui/align.hpp"
-#include "ui/color_rect.hpp"
-#include "ui/wrap.hpp"
+#include "ui/core/color_rect.hpp"
+#include "ui/containers/wrap.hpp"
 
 #include <cassert>
 #include <cmath>

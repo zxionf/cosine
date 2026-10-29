@@ -1,5 +1,5 @@
-#include "ui/label.hpp"
-#include "ui/menu_bar.hpp"
+#include "ui/core/label.hpp"
+#include "ui/composites/menu_bar.hpp"
 #include "ui/ui_system.hpp"
 
 #include <cassert>

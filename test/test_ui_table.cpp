@@ -1,4 +1,4 @@
-#include "ui/table.hpp"
+#include "ui/views/table.hpp"
 #include "ui/ui_system.hpp"
 
 #include <cassert>

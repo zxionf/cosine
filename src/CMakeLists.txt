@@ -29,13 +29,13 @@ target_link_libraries(cosine_anim PUBLIC glm::glm)
 
 # UI 库：布局、控件、事件、DrawList 消费端；测试和 ex4 不再各自重复编译。
 add_library(cosine_ui STATIC
-    ui/vbox.cpp
-    ui/hbox.cpp
-    ui/grid.cpp
-    ui/wrap.cpp
     ui/root.cpp
     ui/ui_system.cpp
-    ui/scroll_view.cpp
+    ui/containers/vbox.cpp
+    ui/containers/hbox.cpp
+    ui/containers/grid.cpp
+    ui/containers/wrap.cpp
+    ui/containers/scroll_view.cpp
 )
 target_include_directories(cosine_ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

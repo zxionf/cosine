@@ -1,4 +1,4 @@
-#include "ui/timeline_view.hpp"
+#include "ui/views/timeline_view.hpp"
 #include "ui/uicontext.hpp"
 
 #include "anim/easing.hpp"

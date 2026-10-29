@@ -2,12 +2,12 @@
 // 与 test_ui_window 互补：那边直接调 on_mouse_*，绕过了派发链。
 #include "events/event.hpp"
 #include "graphics/drawable.hpp"
-#include "ui/button.hpp"
-#include "ui/label.hpp"
+#include "ui/core/button.hpp"
+#include "ui/core/label.hpp"
 #include "ui/root.hpp"
-#include "ui/section.hpp"
+#include "ui/composites/section.hpp"
 #include "ui/ui_system.hpp"
-#include "ui/window.hpp"
+#include "ui/composites/window.hpp"
 
 #include <cassert>
 #include <cmath>

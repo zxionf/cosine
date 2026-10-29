@@ -1,6 +1,6 @@
 #include "anim/scene.hpp"
 #include "graphics/drawable.hpp"
-#include "ui/scene_view.hpp"
+#include "ui/views/scene_view.hpp"
 
 #include <cassert>
 #include <cmath>

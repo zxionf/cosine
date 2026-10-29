@@ -1,5 +1,5 @@
 #include "graphics/drawable.hpp"
-#include "ui/progress.hpp"
+#include "ui/core/progress.hpp"
 
 #include <cassert>
 #include <cmath>

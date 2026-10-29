@@ -1,4 +1,4 @@
-#include "ui/dialog.hpp"
+#include "ui/composites/dialog.hpp"
 #include "ui/ui_system.hpp"
 
 #include <cassert>

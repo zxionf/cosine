@@ -1,7 +1,7 @@
 #include "graphics/font_atlas.hpp"
 #include "graphics/text_debug.hpp"
-#include "ui/label.hpp"
-#include "ui/typography.hpp"
+#include "ui/core/label.hpp"
+#include "ui/core/typography.hpp"
 
 #include <cassert>
 #include <cmath>

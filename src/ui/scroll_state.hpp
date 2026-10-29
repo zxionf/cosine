@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scroll_mode.hpp"
+#include "ui/scroll_mode.hpp"
 
 #include <algorithm>
 #include <cmath>

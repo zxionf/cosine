@@ -1,5 +1,5 @@
-#include "ui/image.hpp"
-#include "ui/vbox.hpp"
+#include "ui/core/image.hpp"
+#include "ui/containers/vbox.hpp"
 
 #include <cassert>
 #include <cmath>

@@ -1,5 +1,5 @@
-#include "root.hpp"
-#include "scrim.hpp"
+#include "ui/root.hpp"
+#include "ui/core/scrim.hpp"
 
 #include <algorithm>
 

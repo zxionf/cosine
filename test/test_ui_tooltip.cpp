@@ -1,4 +1,4 @@
-#include "ui/tooltip.hpp"
+#include "ui/core/tooltip.hpp"
 #include "ui/root.hpp"
 
 #include <cassert>

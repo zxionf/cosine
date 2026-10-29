@@ -1,4 +1,4 @@
-#include "ui/preview_ruler.hpp"
+#include "ui/core/preview_ruler.hpp"
 
 #include <cassert>
 #include <cmath>

@@ -1,10 +1,10 @@
 #include "ui/align.hpp"
-#include "ui/color_rect.hpp"
-#include "ui/hbox.hpp"
+#include "ui/core/color_rect.hpp"
+#include "ui/containers/hbox.hpp"
 #include "ui/root.hpp"
-#include "ui/scroll_view.hpp"
-#include "ui/spacer.hpp"
-#include "ui/vbox.hpp"
+#include "ui/containers/scroll_view.hpp"
+#include "ui/core/spacer.hpp"
+#include "ui/containers/vbox.hpp"
 
 #include <cassert>
 #include <cmath>
