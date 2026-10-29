@@ -66,8 +66,8 @@ void UIRoot::append_to(graphics::DrawList& list) const
 
 void UIRoot::layout_child(Widget& child)
 {
-    // 模态遮罩永远铺满整个 root，不参与测量协商。
-    if (dynamic_cast<Scrim*>(&child) != nullptr) {
+    // 铺满父容器的控件（如模态遮罩）不做测量协商。
+    if (child.fills_parent()) {
         child.arrange({local_.pos, local_.size});
         return;
     }

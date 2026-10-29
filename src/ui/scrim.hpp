@@ -26,6 +26,8 @@ public:
 
     bool hit_testable() const override { return true; }
     bool focusable() const override { return false; }
+    bool fills_parent() const override { return true; }
+    Layer layer() const override { return Layer::Floating; }
 
     // 尺寸由 UIRoot::layout_child 特判成全屏，这里不参与协商。
     glm::vec2 measure(glm::vec2 constraints) override

@@ -56,7 +56,7 @@
   - [x] **阶段 2b 清理**：所有 `add()`/挂载点改走 `adopt()`，`grep children_.push_back` 只剩基类内部
   - [x] **阶段 2c 微清理**：删 10 处冗余 `children()` 重写，全项目只剩 `section.hpp`（转发 `content_`）
   - [x] **阶段 3 布局契约**：`measure` 契约注释 + `Widget::fixed_size()`；`Table`/`FileBrowser` 标记为 fixed（缓存传播已由阶段 1 验证正常）
-  - [ ] **阶段 4 层模型**：`Layer` 枚举替代 overlay/z 约定
+  - [x] **阶段 4 层模型**：`Widget::fills_parent()` + `Layer{Content,Floating,Modal}`；`UIRoot::layout_child` 去掉 `dynamic_cast<Scrim*>`
   - [ ] **阶段 5 行为基元**：`ScrollState` → `ListView`（Table/FileBrowser）→ `CollapsibleHeader`
   - [x] ~~**阶段 6 Widget 瘦身**~~：默认不做，阶段 5 后再评估
 - **明确不做**：不重写布局引擎、不引入 ECS、不拆 `Widget`、不动 `menu_bar.hpp`（857 行是菜单语义的合理复杂度）

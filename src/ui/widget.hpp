@@ -187,6 +187,19 @@ public:
     // 固定尺寸控件：忽略 constraints，尺寸由 min_size/max_size 决定。
     // 目的是把「Table/FileBrowser 这类吃满父宽」的行为从隐式约定变成显式声明。
     virtual bool fixed_size() const { return false; }
+
+    // 铺满父容器：不参与测量协商（模态遮罩这类）。
+    virtual bool fills_parent() const { return false; }
+
+    // 绘制/命中层次：高层的先命中、后绘制。overlay 机制处理了大部分场景，
+    // 这里只把「浮层/模态」这层语义显式化，便于后续窗口管理。
+    enum class Layer
+    {
+        Content,
+        Floating,
+        Modal,
+    };
+    virtual Layer layer() const { return Layer::Content; }
     void set_align(Align a) { align_self_ = a; has_align_ = true; mark_layout_dirty(); }
     std::optional<Align> align_self() const { return has_align_ ? std::optional<Align>(align_self_) : std::nullopt; }
 
