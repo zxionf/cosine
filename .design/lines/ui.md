@@ -57,13 +57,13 @@
   - [x] **阶段 2c 微清理**：删 10 处冗余 `children()` 重写，全项目只剩 `section.hpp`（转发 `content_`）
   - [x] **阶段 3 布局契约**：`measure` 契约注释 + `Widget::fixed_size()`；`Table`/`FileBrowser` 标记为 fixed（缓存传播已由阶段 1 验证正常）
   - [x] **阶段 4 层模型**：`Widget::fills_parent()` + `Layer{Content,Floating,Modal}`；`UIRoot::layout_child` 去掉 `dynamic_cast<Scrim*>`
-  - [ ] **阶段 5 行为基元**：`ScrollState` → `ListView`（Table/FileBrowser）→ `CollapsibleHeader`
+  - [x] **阶段 5 行为基元**：`ScrollState` + `ListView` + `CollapsibleHeader` 均已落地
     - [x] `ScrollState`（`src/ui/scroll_state.hpp`）：clamp / 目标 / 平滑逼近 / range 收敛到一处，6 项单测
     - [x] `Table` 接入 `ScrollState`（13 处引用一次替换，指数衰减/Fast/snap 手感不变）
     - [x] ~~`ScrollView` 接入~~（不迁：二维 `glm::vec2 offset_` + 自带 `scroll_speed`/`line_step`，`ScrollState` 保持一维）
     - [x] ~~`TextInput` 接入~~（不迁：只有一条 `clamp_scroll`、无 `ScrollMode`/平滑，收益为零）
     - [x] 抽 `ListView` 基类（`src/ui/list_view.hpp`：滚动/选中/键盘/可见行，6 项单测）
-    - [ ] `Table` 接入 `ListView`（挂钩 append_to / draw_row / 表头，较大重构）
+    - [x] `Table` 接入 `ListView`（继承 + `viewport_height()` 扣表头；`append_to` 不动，行绘制仍自查）
     - [x] 抽 `CollapsibleHeader`（`src/ui/collapsible_header.hpp`），`Section` 已接入
     - [x] ~~`Window` 标题栏复用~~（不迁：标题栏还要拖动/关闭叉/双击最大化，套进去反而更绕）
   - [x] ~~**阶段 6 Widget 瘦身**~~：默认不做，阶段 5 后再评估

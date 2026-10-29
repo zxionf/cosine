@@ -51,6 +51,9 @@ public:
 
     bool focusable() const override { return true; }
 
+    // 视口高度：默认整块控件高度；带表头的子类（Table）覆写为内容区高度。
+    virtual float viewport_height() const { return global_.size.y; }
+
     // 基类不直接绘制：子类在 append_to 里用 draw_row 画自己的行。
     // （Widget 继承自 Drawable，append_to 是纯虚，这里必须给一个空实现）
     void append_to(graphics::DrawList&) const override {}
@@ -106,9 +109,9 @@ protected:
     {
         return static_cast<float>(item_count()) * row_height_;
     }
-    bool scrollable() const { return content_height() > global_.size.y; }
+    bool scrollable() const { return content_height() > viewport_height(); }
 
-    void sync_scroll_range() { scroll_.set_range(global_.size.y, content_height()); }
+    void sync_scroll_range() { scroll_.set_range(viewport_height(), content_height()); }
 
     // 第一行可见行号（按当前滚动偏移）。
     std::size_t first_visible_row() const
@@ -121,13 +124,13 @@ protected:
     std::size_t visible_row_count() const
     {
         if (row_height_ <= 0.0f) return 0;
-        return static_cast<std::size_t>(global_.size.y / row_height_) + 1;
+        return static_cast<std::size_t>(viewport_height() / row_height_) + 1;
     }
 
     void ensure_selected_visible()
     {
         if (selected_ < 0) return;
-        if (global_.size.y <= 0.0f) {
+        if (viewport_height() <= 0.0f) {
             scroll_.jump_to(0.0f);
             return;
         }
@@ -136,7 +139,7 @@ protected:
         const float bottom = top + row_height_;
         float target = scroll_.offset();
         if (top < target) target = top;
-        else if (bottom > target + global_.size.y) target = bottom - global_.size.y;
+        else if (bottom > target + viewport_height()) target = bottom - viewport_height();
         scroll_.jump_to(target);
     }
 

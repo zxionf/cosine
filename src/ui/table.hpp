@@ -3,7 +3,7 @@
 #include "theme.hpp"
 #include "style.hpp"
 #include "widget.hpp"
-#include "scroll_state.hpp"
+#include "list_view.hpp"
 #include "../graphics/font_atlas.hpp"
 #include "../graphics/box.hpp"
 #include "../graphics/rectangle.hpp"
@@ -27,7 +27,7 @@ struct TableColumn
 };
 
 // 表格：固定表头 + 可滚动的内容区，行可选中。
-class Table : public Widget
+class Table : public ListView
 {
 public:
     Table(float width = 480.0f, float height = 240.0f)
@@ -66,24 +66,14 @@ public:
     std::size_t row_count() const { return rows_.size(); }
     const std::vector<std::vector<std::string>>& rows() const { return rows_; }
 
-    int selected() const { return selected_; }
-    void set_selected(int index, bool notify = true)
-    {
-        if (rows_.empty()) return;
-        const int clamped = std::clamp(index, 0, static_cast<int>(rows_.size()) - 1);
-        if (clamped == selected_) return;
-        selected_ = clamped;
-        ensure_selected_visible();
-        if (notify && on_select_) on_select_(selected_);
-    }
-    void set_on_select(std::function<void(int)> handler) { on_select_ = std::move(handler); }
+    // 选中/行高/滚动/回调均继承自 ListView。
 
-    void set_row_height(float height)
-    {
-        row_height_ = std::max(12.0f, height);
-        mark_layout_dirty();
-    }
-    float row_height() const { return row_height_; }
+    // 选中/行高/滚动均来自 ListView；Table 只额外拥有表头与多列。
+    std::size_t item_count() const override { return rows_.size(); }
+    // 视口要去掉表头高度（ListView 默认用 global_.size.y）。
+    float viewport_height() const override { return body_height(); }
+    // 目前行绘制仍在 append_to 里（带表头/列宽/斑马纹），这里留空以满纯虚契约。
+    void draw_row(graphics::DrawList&, std::size_t, Rect, bool) const override {}
     void set_header_height(float height)
     {
         header_height_ = std::max(0.0f, height);
@@ -242,17 +232,6 @@ public:
         return true;
     }
 
-    bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
-    {
-        if (!global_.contains(pos)) return false;
-        if (content_height() <= body_height()) return false;
-        scroll_.set_range(body_height(), content_height());
-        scroll_.scroll_by(-delta.y * row_height_ * 1.5f, scroll_.mode() == ScrollMode::Line);
-        return true;
-    }
-
-    void on_update(float dt) override { scroll_.update(dt); }
-
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
         if (rows_.empty()) return false;
@@ -288,22 +267,6 @@ private:
 
     float body_height() const { return std::max(0.0f, global_.size.y - header_height_); }
     float content_height() const { return static_cast<float>(rows_.size()) * row_height_; }
-
-    void ensure_selected_visible()
-    {
-        if (selected_ < 0) return;
-        // 还没布局（视口高度为 0）时不滚动，避免把初始 offset 推离 0。
-        if (body_height() <= 0.0f) {
-            set_scroll_value(0.0f);
-            return;
-        }
-        const float top = static_cast<float>(selected_) * row_height_;
-        const float bottom = top + row_height_;
-        float target = scroll_.offset();
-        if (top < target) target = top;
-        else if (bottom > target + body_height()) target = bottom - body_height();
-        scroll_.jump_to(target);
-    }
 
     std::vector<float> column_widths(float available_width) const
     {
@@ -402,14 +365,10 @@ private:
     std::vector<TableColumn> columns_;
     std::vector<std::vector<std::string>> rows_;
     std::string empty_;
-    int selected_ = -1;
     int hovered_ = -1;
     glm::vec2 last_mouse_{-1.0f, -1.0f};
-    float row_height_ = 28.0f;
     float header_height_ = 30.0f;
-    ScrollState scroll_;
     bool striped_ = true;
     float text_size_ = 0.0f;
-    std::function<void(int)> on_select_;
 };
 } // namespace xel::ui
