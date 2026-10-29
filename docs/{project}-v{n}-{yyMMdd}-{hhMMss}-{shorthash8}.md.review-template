@@ -1,6 +1,6 @@
 # {project} #{n} 评估简介（{yyyy}-{mm}-{dd} {HH}:{MM} CST）
 
-> 基线：{branch}@{fullhash}
-> 短哈希：{shorthash8}{dirty_suffix}
-> 工作区：{clean|dirty}
-> 快照文件：{project}-#{n}-{yyMMdd}-{hhMMss}-{shorthash8}.md
+> 基线：{branch}@{fullhash}  
+> 短哈希：{shorthash8}{dirty_suffix}  
+> 工作区：{clean|dirty}  
+> 快照文件：{project}-#{n}-{yyMMdd}-{hhMMss}-{shorthash8}.md  

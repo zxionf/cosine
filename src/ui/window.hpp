@@ -76,11 +76,12 @@ public:
     void set_modal(bool on)
     {
         if (modal_ == on) return;
-        modal_ = on;
         if (on) {
+            modal_ = true;
             set_always_on_top(true);
             if (auto* root = find_root_widget()) root->push_modal(this);
         } else {
+            // 不能先置 modal_ = false：release_modal() 靠这个标记判断要不要 pop。
             release_modal();
         }
     }

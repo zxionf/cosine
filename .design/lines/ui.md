@@ -40,6 +40,28 @@
 | 外阴影 | 无 | 渲染层 |
 | 边缘吸附 / 多窗口级联 | 无 | 需要窗口管理器概念 |
 
+### UI-7 架构升级（六阶段）
+
+- **状态**：`doing`（阶段 1 进行中）
+- **背景**：M6.x 累计暴露四类结构性缺陷——子项所有权无唯一入口、`measure` 契约不明确、文字排版无公共函数、派发链零测试
+- **目标**：把「能力靠某个类里再写一遍」改为「能力靠行为基元」
+- **验收**：每个阶段独立可交付，进入 ctest 后不得回退
+- **已定架构决策**：
+  - 子项存储直接放 `Widget`（`children_storage_`），不新增 `ContainerWidget`
+  - 层模型用 `enum class Layer { Content, Floating, Modal }`，删掉 `dynamic_cast<Scrim*>`
+  - `Theme` 令牌与 `StyleRole` 保留双轨，先补「令牌 → 控件」对照表
+- **步骤**：
+  - [x] **阶段 1 安全网**：`test_ui_dispatch`（5 用例）+ `test_ui_layout_contract`（6 项），不改任何结构
+  - [ ] **阶段 2 所有权统一**：`Widget::children_storage_` + `adopt()`，容器删自持 `children_`
+  - [ ] **阶段 3 布局契约**：`measure` 契约文档化 + `fixed_size()` 显式化（缓存失效传播已由阶段 1 验证为正常）
+  - [ ] **阶段 4 层模型**：`Layer` 枚举替代 overlay/z 约定
+  - [ ] **阶段 5 行为基元**：`ScrollState` → `ListView`（Table/FileBrowser）→ `CollapsibleHeader`
+  - [x] ~~**阶段 6 Widget 瘦身**~~：默认不做，阶段 5 后再评估
+- **明确不做**：不重写布局引擎、不引入 ECS、不拆 `Widget`、不动 `menu_bar.hpp`（857 行是菜单语义的合理复杂度）
+- **记录为后续优化项**（不在本轮）：
+  - **constraint 布局（Flutter 式）**：现有「父测量子、子返回尺寸」模型够用；若出现自适应/流式布局的硬需求再立任务
+  - **声明式 / 响应式层**：retained-mode + 命令回调是当前产品定位；若 XEL 绑定的方向变成声明式再评估
+
 ### UI-3 主体颜色精调
 
 - **状态**：`done`（2026-10-28，见 `.agent/work/20261028-theme-tokens/`）
