@@ -64,11 +64,21 @@ public:
         (void)child;
         throw std::logic_error("Widget::add is not supported by this widget");
     }
-    virtual const std::vector<std::unique_ptr<Widget>>& children() const { static const std::vector<std::unique_ptr<Widget>> empty; return empty; }
+    virtual const std::vector<std::unique_ptr<Widget>>& children() const { return children_; }
     // overlay 是顶层绘制/命中层：root 先绘制普通子项，再绘制 overlay；命中测试反向进行。
     virtual const std::vector<std::unique_ptr<Widget>>& overlays() const { static const std::vector<std::unique_ptr<Widget>> empty; return empty; }
     virtual Widget* parent() const { return parent_; }
     void set_parent(Widget* parent) { parent_ = parent; }
+
+    // 唯一合法的子项挂载入口：设 parent / context 并加入 children_。
+    // 派生类不要再直接 children_.push_back —— 漏设 parent 会让事件冒泡链断掉。
+    void adopt(std::unique_ptr<Widget> child)
+    {
+        child->set_parent(this);
+        child->set_context(context());
+        children_.push_back(std::move(child));
+        mark_layout_dirty();
+    }
 
     // 生命周期令牌：容器可能直接销毁子控件（如 clear_children），
     // UISystem 用 weak_ptr 判断保存的指针是否仍然有效，避免悬垂解引用。
@@ -319,6 +329,8 @@ protected:
     Align align_self_ = Align::top_left();
     bool has_align_ = false;
     Widget* parent_ = nullptr;
+    // 子项存储统一放基类，派生类通过 adopt() 挂入（不要自持一份）。
+    std::vector<std::unique_ptr<Widget>> children_;
     UIContext* context_ = nullptr;
     std::shared_ptr<const bool> alive_token_ = std::make_shared<const bool>(true);
     Edges padding_{};

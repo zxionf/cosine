@@ -25,16 +25,8 @@ public:
     void set_panes(std::unique_ptr<Widget> first, std::unique_ptr<Widget> second)
     {
         children_.clear();
-        if (first) {
-            first->set_parent(this);
-            first->set_context(context());
-            children_.push_back(std::move(first));
-        }
-        if (second) {
-            second->set_parent(this);
-            second->set_context(context());
-            children_.push_back(std::move(second));
-        }
+        if (first) adopt(std::move(first));
+        if (second) adopt(std::move(second));
         mark_layout_dirty();
     }
 
@@ -236,6 +228,5 @@ private:
     float preferred_width_ = 400.0f;
     float preferred_height_ = 300.0f;
     bool dragging_ = false;
-    std::vector<std::unique_ptr<Widget>> children_;
 };
 } // namespace xel::ui

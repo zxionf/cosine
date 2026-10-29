@@ -52,7 +52,9 @@
   - `Theme` 令牌与 `StyleRole` 保留双轨，先补「令牌 → 控件」对照表
 - **步骤**：
   - [x] **阶段 1 安全网**：`test_ui_dispatch`（5 用例）+ `test_ui_layout_contract`（6 项），不改任何结构
-  - [ ] **阶段 2 所有权统一**：`Widget::children_storage_` + `adopt()`，容器删自持 `children_`
+  - [x] **阶段 2 所有权统一**：`Widget::children_`（protected）+ `adopt()`；11 个容器删自持 `children_`，全项目只剩基类一处
+  - [x] **阶段 2b 清理**：所有 `add()`/挂载点改走 `adopt()`，`grep children_.push_back` 只剩基类内部
+  - [ ] **阶段 2c 微清理**：删各容器冗余的 `children() const override { return children_; }`（行为已正确，纯清理）
   - [ ] **阶段 3 布局契约**：`measure` 契约文档化 + `fixed_size()` 显式化（缓存失效传播已由阶段 1 验证为正常）
   - [ ] **阶段 4 层模型**：`Layer` 枚举替代 overlay/z 约定
   - [ ] **阶段 5 行为基元**：`ScrollState` → `ListView`（Table/FileBrowser）→ `CollapsibleHeader`

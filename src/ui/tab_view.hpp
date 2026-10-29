@@ -27,7 +27,7 @@ public:
             apply_selection(index);
             if (on_change_) on_change_(index);
         });
-        children_.push_back(std::move(bar));
+        adopt(std::move(bar));
     }
 
     TabBar& tab_bar() { return *static_cast<TabBar*>(children_.front().get()); }
@@ -38,9 +38,7 @@ public:
     {
         if (!page) return -1;
         const int index = static_cast<int>(page_count());
-        page->set_parent(this);
-        page->set_context(context());
-        children_.push_back(std::move(page));
+        adopt(std::move(page));
         tab_bar().add_tab(std::move(label));
 
         // 新增页面默认隐藏，除非它是唯一页面。
@@ -202,7 +200,6 @@ private:
         mark_layout_dirty();
     }
 
-    std::vector<std::unique_ptr<Widget>> children_;
     std::function<void(int)> on_change_;
     glm::vec2 cached_constraints_{};
     glm::vec2 cached_measure_{};

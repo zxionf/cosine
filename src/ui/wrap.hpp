@@ -77,6 +77,5 @@ private:
     mutable glm::vec2 cached_constraints_{-1.0f, -1.0f};
     mutable bool measure_valid_ = false;
 
-    std::vector<std::unique_ptr<Widget>> children_;
 };
 } // namespace xel::ui

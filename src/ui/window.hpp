@@ -30,7 +30,7 @@ class Window : public Widget
 {
 public:
     Window(std::string title, glm::vec2 pos, glm::vec2 size)
-        : title_(std::move(title)), children_()
+        : title_(std::move(title))
     {
         set_size(size);
         set_min_size({160.0f, kTitleHeight + 48.0f});
@@ -41,9 +41,8 @@ public:
 
         auto body = std::make_unique<Vbox>(0.0f, 0.0f, size.x, size.y - kTitleHeight);
         body_ = body.get();
-        children_.push_back(std::move(body));
-        // 必须手动设 parent：冒泡链是 Section → body_ → Window，断了就只能在标题栏拖。
-        body_->set_parent(this);
+        // 走 adopt()：这里漏设 parent 会让冒泡链断在 body_，只能拖标题栏。
+        adopt(std::move(body));
     }
 
     void set_title(std::string title)
@@ -533,7 +532,6 @@ private:
     }
 
     std::string title_;
-    std::vector<std::unique_ptr<Widget>> children_;
     Vbox* body_ = nullptr;
     Mode mode_ = Mode::None;
     int edges_ = 0;

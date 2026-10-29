@@ -138,9 +138,8 @@ public:
     explicit DialogHost(std::unique_ptr<Dialog> dialog)
     {
         dialog_ = dialog.get();
-        dialog->set_parent(this);
         dialog->set_on_dismiss([this] { close(); });
-        children_.push_back(std::move(dialog));
+        adopt(std::move(dialog));
     }
 
     Dialog* dialog() const { return dialog_; }
@@ -238,7 +237,6 @@ private:
         return nullptr;
     }
 
-    std::vector<std::unique_ptr<Widget>> children_;
     Dialog* dialog_ = nullptr;
     std::function<void()> on_close_;
     bool closed_ = false;

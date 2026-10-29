@@ -44,7 +44,6 @@ private:
     void purge_trash();
 
     UIContext context_storage_;
-    std::vector<std::unique_ptr<Widget>> children_;
     std::vector<std::unique_ptr<Widget>> overlays_;
     // 与 modals_ 一一对应；scrim 同时也在 children_ 里（参与命中与绘制）。
     std::vector<Widget*> modals_;

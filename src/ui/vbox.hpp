@@ -16,7 +16,6 @@ public:
 
     void add(std::unique_ptr<Widget> child) override;
     void clear_children() { children_.clear(); mark_layout_dirty(); }
-    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
     void append_to(graphics::DrawList& list) const override;
 
     void layout() override;
@@ -38,7 +37,5 @@ private:
     mutable glm::vec2 cached_measure_{0.0f, 0.0f};
     mutable glm::vec2 cached_constraints_{-1.0f, -1.0f};
     mutable bool measure_valid_ = false;
-
-    std::vector<std::unique_ptr<Widget>> children_;
 };
 } // namespace xel::ui

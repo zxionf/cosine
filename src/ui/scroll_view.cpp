@@ -14,10 +14,8 @@ void ScrollView::set_content(std::unique_ptr<Widget> c)
     children_.clear();
     content_ = nullptr;
     if (c) {
-        c->set_parent(this);
-        c->set_context(context());
         content_ = c.get();
-        children_.push_back(std::move(c));
+        adopt(std::move(c));
     }
     mark_layout_dirty();
 }

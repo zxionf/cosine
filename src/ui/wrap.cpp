@@ -29,10 +29,7 @@ Wrap::~Wrap() = default;
 
 void Wrap::add(std::unique_ptr<Widget> child)
 {
-    child->set_parent(this);
-    child->set_context(context());
-    children_.push_back(std::move(child));
-    mark_layout_dirty();
+    adopt(std::move(child));
 }
 
 void Wrap::layout()

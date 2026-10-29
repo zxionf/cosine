@@ -75,7 +75,6 @@ private:
     void place_content();
 
     // children_ 持有内容，content_ 是非拥有别名，供布局与绘制使用。
-    std::vector<std::unique_ptr<Widget>> children_;
     Widget*   content_ = nullptr;
     glm::vec2 content_size_{};
     glm::vec2 viewport_{};

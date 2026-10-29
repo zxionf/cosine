@@ -53,8 +53,7 @@ public:
             if (on_select_) on_select_();
         });
         table_ = table.get();
-        table_->set_parent(this);
-        children_.push_back(std::move(table));
+        adopt(std::move(table));
     }
 
     void set_directory(std::string path)
@@ -329,7 +328,6 @@ private:
     int selected_ = -1;
     float preferred_height_ = 372.0f;
     Table* table_ = nullptr;
-    std::vector<std::unique_ptr<Widget>> children_;
 
     std::function<void()> on_select_;
     std::function<void()> on_activate_;
