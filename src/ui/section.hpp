@@ -113,8 +113,8 @@ public:
         }
 
         if (auto* atlas = font_atlas()) {
-            const float line_h = atlas->line_height(t.text_size);
-            atlas->append_text(list, global_.pos.x + 30.0f, global_.pos.y + (hh - line_h) * 0.5f,
+            const float text_y = atlas->centered_text_y(t.text_size, global_.pos.y, hh);
+            atlas->append_text(list, global_.pos.x + 30.0f, text_y,
                                t.text_size, title_, t.text);
         }
         if (expanded_) content_->append_to(list);

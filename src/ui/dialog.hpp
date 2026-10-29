@@ -5,6 +5,7 @@
 #include "label.hpp"
 #include "panel.hpp"
 #include "root.hpp"
+#include "scrim.hpp"
 #include "theme.hpp"
 #include "vbox.hpp"
 #include "../graphics/rectangle.hpp"
@@ -193,9 +194,8 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const glm::vec4 scrim{0.0f, 0.0f, 0.0f, 0.55f};
-        graphics::Rectangle backdrop{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y, scrim};
-        backdrop.append_to(list);
+        // 遮罩绘制与 Scrim 共用一份实现。
+        append_scrim(list, global_, 0.55f);
 
         if (!dialog_) return;
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});

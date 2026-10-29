@@ -91,6 +91,13 @@ public:
     bool take_dirty_rect(int& x, int& y, int& w, int& h);
 
     float line_height(float size) const { return metrics_.line_height_ratio * size; }
+
+    // 行框在 [top, top + box_height) 内垂直居中时的文字顶部 y。
+    // 多处自绘文字（标题、表格行、列表条目）都要做这件事，抽成一处。
+    float centered_text_y(float size, float top, float box_height) const
+    {
+        return top + std::max(0.0f, (box_height - line_height(size)) * 0.5f);
+    }
     float line_step(float size, float line_spacing) const { return line_height(size) + line_spacing; }
 
     bool has_glyph(char32_t codepoint, int pixel_size) const;

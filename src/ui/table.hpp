@@ -93,6 +93,14 @@ public:
     void set_striped(bool striped) { striped_ = striped; }
     bool striped() const { return striped_; }
 
+    // 0（默认）= 跟随主题字号；FileBrowser 这类列表会显式指定。
+    void set_text_size(float size)
+    {
+        text_size_ = size > 0.0f ? size : 0.0f;
+        mark_layout_dirty();
+    }
+    float text_size() const { return text_size_; }
+
     float scroll_offset() const { return scroll_; }
 
     // 滚动模式：Smooth = 滚轮只改目标、位置平滑逼近；Line = 立即到位（按行）。
@@ -299,6 +307,12 @@ public:
     }
 
 private:
+    float font_size() const
+    {
+        const auto& t = ui_theme();
+        return text_size_ > 0.0f ? text_size_ : t.text_size;
+    }
+
     float body_height() const { return std::max(0.0f, global_.size.y - header_height_); }
     float content_height() const { return static_cast<float>(rows_.size()) * row_height_; }
 
@@ -351,8 +365,8 @@ private:
     float text_advance(const std::string& text) const
     {
         const auto& t = ui_theme();
-        if (auto* atlas = font_atlas()) return atlas->measure(text, t.text_size).x;
-        return static_cast<float>(text.size()) * t.text_size * 0.5f;
+        if (auto* atlas = font_atlas()) return atlas->measure(text, font_size()).x;
+        return static_cast<float>(text.size()) * font_size() * 0.5f;
     }
 
     void draw_cell(graphics::DrawList& list, const std::string& text,
@@ -375,11 +389,11 @@ private:
         }
         if (text_x < x + pad) text_x = x + pad;
         // 行高居中：用行高而不是字号。
-        const float text_y = y + std::max(0.0f, (height - atlas->line_height(t.text_size)) * 0.5f);
+        const float text_y = atlas->centered_text_y(font_size(), y, height);
 
         list.push_clip({std::max(x + pad * 0.5f, clip_left), y,
                         std::min(available + pad, std::max(0.0f, clip_right - x)), height});
-        atlas->append_text(list, text_x, text_y, t.text_size, text, color);
+        atlas->append_text(list, text_x, text_y, font_size(), text, color);
         list.pop_clip();
     }
 
@@ -431,6 +445,7 @@ private:
     float smoothing_ = 0.12f;
     float idle_ = 0.0f;
     bool striped_ = true;
+    float text_size_ = 0.0f;
     std::function<void(int)> on_select_;
 };
 } // namespace xel::ui

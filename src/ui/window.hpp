@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vbox.hpp"
+#include "root.hpp"
 #include "style.hpp"
 #include "../graphics/text_debug.hpp"
 #include "theme.hpp"
@@ -52,6 +53,9 @@ public:
     }
     const std::string& title() const { return title_; }
 
+    // 内容区容器：外部往窗口里塞一整块界面时用（资源浏览器等）。
+    Vbox* content() const { return body_; }
+
     // 无标题栏窗口：整块区域都是拖动带（内容里的控件仍然优先接收点击）。
     void set_title_bar_visible(bool visible)
     {
@@ -67,6 +71,24 @@ public:
         if (on) set_z_index(kOnTopZ);
     }
     bool always_on_top() const { return always_on_top_; }
+
+    // 模态：窗口外被全屏遮罩挡住（点不动），Esc / 关闭才解除。
+    void set_modal(bool on)
+    {
+        if (modal_ == on) return;
+        modal_ = on;
+        if (on) {
+            set_always_on_top(true);
+            if (auto* root = find_root_widget()) root->push_modal(this);
+        } else {
+            release_modal();
+        }
+    }
+    bool modal() const { return modal_; }
+
+    // 不可收起的窗口：不画折叠三角，点击也不响应。
+    void set_collapsible(bool on) { collapsible_ = on; }
+    bool collapsible() const { return collapsible_; }
 
     float title_height() const { return title_bar_visible_ ? kTitleHeight : 0.0f; }
 
@@ -89,9 +111,14 @@ public:
     bool collapsed() const { return collapsed_; }
 
     // 两种关闭：close() 只隐藏；destroy() 交给外部销毁（未注册回调则退化为隐藏）。
-    void close() { set_visible(false); }
+    void close()
+    {
+        release_modal();
+        set_visible(false);
+    }
     void destroy()
     {
+        release_modal();
         if (on_destroy_) {
             on_destroy_();
         } else {
@@ -182,8 +209,7 @@ public:
 
             if (atlas != nullptr) {
                 // 用字体行高而不是字号：行框通常比字号高，按字号算文字会整体偏下。
-                const float line_h = atlas->line_height(t.text_size);
-                const float text_y = bar.y + (title - line_h) * 0.5f;
+                const float text_y = atlas->centered_text_y(t.text_size, bar.y, title);
                 atlas->append_text(list, bar.x + kGlyphZone, text_y, t.text_size, title_, t.text);
                 // debug 是叠加层，不能替代字形本身。
                 if (debug_.any()) {
@@ -195,16 +221,19 @@ public:
             // 折叠三角（左）与关闭叉（右）。
             const glm::vec4 glyph_color = t.text_muted;
             const float cy = bar.y + title * 0.5f;
-            if (collapsed_) {
-                graphics::Line{bar.x + 8.0f, cy - 4.0f, bar.x + 16.0f, cy, 1.5f, glyph_color}
-                    .append_to(list);
-                graphics::Line{bar.x + 16.0f, cy, bar.x + 8.0f, cy + 4.0f, 1.5f, glyph_color}
-                    .append_to(list);
-            } else {
-                graphics::Line{bar.x + 8.0f, cy + 3.0f, bar.x + 16.0f, cy - 4.0f, 1.5f, glyph_color}
-                    .append_to(list);
-                graphics::Line{bar.x + 16.0f, cy - 4.0f, bar.x + 24.0f, cy + 3.0f, 1.5f, glyph_color}
-                    .append_to(list);
+            // 不可收起的窗口不画折叠三角（标题仍可拖动）。
+            if (collapsible_) {
+                if (collapsed_) {
+                    graphics::Line{bar.x + 8.0f, cy - 4.0f, bar.x + 16.0f, cy, 1.5f, glyph_color}
+                        .append_to(list);
+                    graphics::Line{bar.x + 16.0f, cy, bar.x + 8.0f, cy + 4.0f, 1.5f, glyph_color}
+                        .append_to(list);
+                } else {
+                    graphics::Line{bar.x + 8.0f, cy + 3.0f, bar.x + 16.0f, cy - 4.0f, 1.5f, glyph_color}
+                        .append_to(list);
+                    graphics::Line{bar.x + 16.0f, cy - 4.0f, bar.x + 24.0f, cy + 3.0f, 1.5f, glyph_color}
+                        .append_to(list);
+                }
             }
             const float cx = bar.x + bar.z - 16.0f;
             graphics::Line{cx - 5.0f, cy - 5.0f, cx + 5.0f, cy + 5.0f, 1.5f, glyph_color}
@@ -232,6 +261,13 @@ public:
             }
             list.pop_clip();
         }
+    }
+
+    bool on_key_down(event::KeyCode key, event::Modifier) override
+    {
+        if (key != event::KeyCode::Escape) return false;
+        close();
+        return true;
     }
 
     bool on_mouse_down(glm::vec2 pos, int button) override
@@ -316,6 +352,23 @@ private:
     static constexpr float kTitleHeight = 32.0f;
     static constexpr float kGlyphZone = 32.0f; // 折叠三角占位，标题文字从这里开始
     static constexpr float kKeepVisible = 48.0f;
+    UIRoot* find_root_widget() const
+    {
+        Widget* node = const_cast<Window*>(this);
+        while (node != nullptr) {
+            if (auto* root = dynamic_cast<UIRoot*>(node)) return root;
+            node = node->parent();
+        }
+        return nullptr;
+    }
+
+    void release_modal()
+    {
+        if (!modal_) return;
+        modal_ = false;
+        if (auto* root = find_root_widget()) root->pop_modal(this);
+    }
+
     static constexpr float kGripSize = 12.0f;
     static constexpr float kGripEdge = 6.0f;
     static constexpr int kOnTopZ = 10000;
@@ -342,7 +395,7 @@ private:
     }
     bool hit_collapse(glm::vec2 pos) const
     {
-        if (!title_bar_visible_) return false;
+        if (!title_bar_visible_ || !collapsible_) return false;
         return collapse_rect().contains(pos);
     }
     bool hit_title(glm::vec2 pos) const { return title_rect().contains(pos); }
@@ -381,6 +434,8 @@ private:
     bool resizable_ = true;
     bool title_bar_visible_ = true;
     bool always_on_top_ = false;
+    bool modal_ = false;
+    bool collapsible_ = true;
     graphics::TextDebugOptions debug_{};
     float expanded_height_ = 0.0f;
     std::function<void()> on_destroy_;

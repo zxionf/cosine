@@ -184,6 +184,8 @@ struct Lab
     std::vector<xel::ui::Window*> windows;
     // 全局参数窗口（无标题栏、始终置顶）。
     xel::ui::Window* settings = nullptr;
+    // E7 资源浏览器常驻窗口（不可收起）。
+    xel::ui::Window* resource_window = nullptr;
     bool labels_debug = false;
     xel::ui::Theme theme;
     int current = -1;
@@ -363,6 +365,7 @@ void Lab::select(int index)
     for (auto* window : windows) {
         if (window != nullptr) window->set_visible(index == 7);
     }
+    if (resource_window != nullptr) resource_window->set_visible(false);
 
     if (stage == nullptr) return;
     stage->clear_children();
@@ -403,10 +406,18 @@ void Lab::select(int index)
     }
 
     // E2：四个标量 + 应用按钮。
-    // E7 资源浏览器：从 cosine 搬来的骨架 + 面包屑 / 过滤 / 详情 / 键盘。
+    // E7 资源浏览器：装进不可收起的窗口（模态是可选项，默认关）。
     if (index == 6) {
-        build_resource(*this, stage);
-        set_status("E7 资源浏览器：面包屑、类型过滤、条目信息、键盘导航");
+        if (resource_window == nullptr) {
+            auto window = std::make_unique<xel::ui::Window>("Assets", glm::vec2{300.0f, 24.0f},
+                                                            glm::vec2{880.0f, 520.0f});
+            window->set_collapsible(false);
+            resource_window = window.get();
+            if (root != nullptr) root->add(std::move(window));
+            build_resource(*this, resource_window->content());
+        }
+        resource_window->set_visible(true);
+        set_status("E7 资源浏览器：窗口内渲染、不可收起（set_modal 可切换模态）");
         return;
     }
 

@@ -1,4 +1,7 @@
 #include "root.hpp"
+#include "scrim.hpp"
+
+#include <algorithm>
 
 namespace xel::ui
 {
@@ -66,6 +69,11 @@ void UIRoot::append_to(graphics::DrawList& list) const
 
 void UIRoot::layout_child(Widget& child)
 {
+    // 模态遮罩永远铺满整个 root，不参与测量协商。
+    if (dynamic_cast<Scrim*>(&child) != nullptr) {
+        child.arrange({local_.pos, local_.size});
+        return;
+    }
     const glm::vec2 child_size = child.clamp_size(child.measure(local_.size));
     child.arrange({
         {local_.pos.x + child.x(), local_.pos.y + child.y()},
@@ -76,8 +84,47 @@ void UIRoot::layout_child(Widget& child)
 void UIRoot::layout()
 {
     purge_trash();
+    // 遮罩始终贴在对应窗口下方：窗口 raise 归一化过 z 也不会失配。
+    for (std::size_t i = 0; i < modals_.size(); ++i) {
+        if (modal_scrims_[i] != nullptr && modals_[i] != nullptr) {
+            modal_scrims_[i]->set_z_index(modals_[i]->z_index() - 1);
+        }
+    }
     for (auto& child : children_) layout_child(*child);
     for (auto& overlay : overlays_) layout_child(*overlay);
+}
+
+void UIRoot::push_modal(Widget* window)
+{
+    if (window == nullptr || is_modal(window)) return;
+    auto scrim = std::make_unique<Scrim>();
+    Widget* raw = scrim.get();
+    raw->set_z_index(window->z_index() - 1);
+    add(std::move(scrim));
+    modals_.push_back(window);
+    modal_scrims_.push_back(raw);
+    mark_layout_dirty();
+}
+
+void UIRoot::pop_modal(Widget* window)
+{
+    const auto it = std::find(modals_.begin(), modals_.end(), window);
+    if (it == modals_.end()) return;
+    const auto index = static_cast<std::size_t>(it - modals_.begin());
+    Widget* scrim = modal_scrims_[index];
+    modals_.erase(it);
+    modal_scrims_.erase(modal_scrims_.begin() + static_cast<std::ptrdiff_t>(index));
+    if (scrim != nullptr) {
+        std::erase_if(children_, [scrim](const std::unique_ptr<Widget>& child) {
+            return child.get() == scrim;
+        });
+    }
+    mark_layout_dirty();
+}
+
+bool UIRoot::is_modal(Widget* window) const
+{
+    return std::find(modals_.begin(), modals_.end(), window) != modals_.end();
 }
 
 glm::vec2 UIRoot::measure(glm::vec2 constraints)

@@ -1,42 +1,66 @@
 #pragma once
 
-#include "style.hpp"
+#include "table.hpp"
 #include "theme.hpp"
 #include "widget.hpp"
-#include "../graphics/box.hpp"
-#include "../graphics/rectangle.hpp"
 
 #include <algorithm>
-#include <cmath>
+#include <cstdint>
 #include <filesystem>
+#include <format>
 #include <functional>
+#include <memory>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
 namespace xel::ui
 {
-// 自建文件浏览器（M6.5）：不依赖系统对话框。
-// 只负责「列目录 + 选文件」，路径输入与确认按钮由外层对话框承担。
-//
-// 行为约定：
-//   - 目录排在文件前，各自按名字升序，非根目录第一项恒为 ".."；
-//   - 扩展名过滤只作用于文件，目录永远可见；
-//   - 双击目录进入，双击文件触发 on_activate（外层据此确认选择）。
+inline std::string format_bytes(std::uintmax_t bytes)
+{
+    const char* units[] = {"B", "KB", "MB", "GB", "TB"};
+    double value = static_cast<double>(bytes);
+    int unit = 0;
+    while (value >= 1024.0 && unit < 4) {
+        value /= 1024.0;
+        ++unit;
+    }
+    if (unit == 0) return std::to_string(bytes) + " B";
+    return std::format("{:.1f} {}", value, units[unit]);
+}
+
+// 文件浏览器：目录列举 + 扩展名过滤 + 选中/双击，渲染、滚动、行选中全部交给 Table。
 class FileBrowser : public Widget
 {
 public:
-    explicit FileBrowser(glm::vec2 size = {560.0f, 260.0f})
+    explicit FileBrowser(glm::vec2 size = {560.0f, 372.0f})
     {
         set_size(size);
-        set_preferred_height(size.y);
+        set_min_size(size);
+        set_max_size(size);
+        preferred_height_ = size.y;
+
+        auto table = std::make_unique<Table>(size.x, size.y);
+        table->set_text_size(18.0f);
+        table->set_row_height(32.0f);
+        // FileBrowser 是纯列表：不要表头，否则行位置整体下移（
+        // 列宽仍然要定义，用来把尺寸列右对齐）。
+        table->set_header_height(0.0f);
+        table->set_columns({{"Name", 0.0f}, {"Size", 88.0f, TableColumn::Align::Right}});
+        table->set_on_select([this](int index) {
+            selected_ = index;
+            if (on_select_) on_select_();
+        });
+        table_ = table.get();
+        table_->set_parent(this);
+        children_.push_back(std::move(table));
     }
 
     void set_directory(std::string path)
     {
         directory_ = std::move(path);
         selected_ = -1;
-        scroll_ = 0.0f;
         refresh();
     }
     const std::string& directory() const { return directory_; }
@@ -50,18 +74,17 @@ public:
 
     void set_row_height(float height)
     {
-        row_height_ = std::max(18.0f, height);
+        if (table_ != nullptr) table_->set_row_height(height);
         mark_layout_dirty();
     }
-    float row_height() const { return row_height_; }
+    float row_height() const { return table_ != nullptr ? table_->row_height() : 32.0f; }
 
     void set_preferred_height(float height)
     {
-        preferred_height_ = std::max(row_height_, height);
+        preferred_height_ = std::max(row_height(), height);
         mark_layout_dirty();
     }
 
-    // 选中的文件名；未选中返回空串。目录也算选中（".." 除外）。
     const std::string& selected_name() const
     {
         static const std::string empty;
@@ -75,138 +98,131 @@ public:
         return entries_[static_cast<std::size_t>(selected_)].is_directory;
     }
 
-    // 选中项的绝对路径（".." 返回上级目录）。
     std::string selected_path() const
     {
         const std::string& name = selected_name();
         if (name.empty()) return {};
-        if (name == "..") return std::filesystem::path(directory_).parent_path().string();
-        return (std::filesystem::path(directory_) / name).string();
+        return resolve(name);
     }
 
-    // 当前目录下的完整路径（文件名来自外部输入框）。
     std::string resolve(const std::string& name) const
     {
         if (name.empty()) return {};
         const std::filesystem::path candidate(name);
-        if (candidate.is_absolute()) return candidate.string();
-        return (std::filesystem::path(directory_) / candidate).string();
+        if (candidate.is_absolute()) return candidate.lexically_normal().string();
+        return (std::filesystem::path(directory_) / candidate).lexically_normal().string();
     }
 
     std::size_t entry_count() const { return entries_.size(); }
-    // 供测试与展示：第 index 项名字（越界返回空串）。
+
     std::string entry_name(std::size_t index) const
     {
-        return index < entries_.size() ? entries_[index].name : std::string{};
+        if (index >= entries_.size()) return {};
+        return entries_[index].name;
     }
+
     bool entry_is_directory(std::size_t index) const
     {
         return index < entries_.size() && entries_[index].is_directory;
     }
 
-    void set_on_activate(std::function<void()> handler) { on_activate_ = std::move(handler); }
-    // 单击选中（用于把名字同步到输入框），双击才是 activate。
-    void set_on_select(std::function<void()> handler) { on_select_ = std::move(handler); }
-
-    // 键盘导航与外部选中（EX-4）：资源浏览器需要被外部驱动。
-    void select_index(int index)
-    {
-        if (index < 0 || index >= static_cast<int>(entries_.size())) {
-            selected_ = -1;
-        } else {
-            selected_ = index;
-            ensure_visible(index);
-        }
-        mark_layout_dirty();
-    }
-    int selected_index() const { return selected_; }
     std::uintmax_t entry_size(std::size_t index) const
     {
         return index < entries_.size() ? entries_[index].size : 0;
     }
 
-    bool focusable() const override { return true; }
-
-    bool on_key_down(event::KeyCode key, event::Modifier) override
-    {
-        switch (key) {
-            case event::KeyCode::Down:
-                select_index(std::min(static_cast<int>(entries_.size()) - 1, selected_ + 1));
-                return true;
-            case event::KeyCode::Up:
-                select_index(std::max(0, selected_ - 1));
-                return true;
-            case event::KeyCode::Enter:
-                if (selected_ >= 0) activate(selected_);
-                return true;
-            case event::KeyCode::Backspace: {
-                namespace fs = std::filesystem;
-                const fs::path current(directory_);
-                if (directory_.empty() || !current.has_parent_path() ||
-                    current.parent_path() == current) {
-                    return true;
-                }
-                directory_ = current.parent_path().string();
-                refresh();
-                if (on_directory_changed_) on_directory_changed_();
-                return true;
-            }
-            default:
-                return false;
-        }
-    }
+    void set_on_activate(std::function<void()> handler) { on_activate_ = std::move(handler); }
+    void set_on_select(std::function<void()> handler) { on_select_ = std::move(handler); }
     void set_on_directory_changed(std::function<void()> handler)
     {
         on_directory_changed_ = std::move(handler);
     }
 
-    // 重新枚举当前目录。目录不存在时列出空表（保持当前路径，便于用户改路径）。
+    void select_index(int index)
+    {
+        if (entries_.empty()) {
+            selected_ = -1;
+            return;
+        }
+        const int clamped = std::clamp(index, 0, static_cast<int>(entries_.size()) - 1);
+        selected_ = clamped;
+        if (table_ != nullptr) table_->set_selected(clamped, false);
+    }
+    int selected_index() const { return selected_; }
+
+    bool focusable() const override { return true; }
+
+    bool on_key_down(event::KeyCode key, event::Modifier) override
+    {
+        if (entries_.empty()) return false;
+        switch (key) {
+        case event::KeyCode::Up:
+            select_index(selected_ - 1);
+            if (on_select_) on_select_();
+            return true;
+        case event::KeyCode::Down:
+            select_index(selected_ + 1);
+            if (on_select_) on_select_();
+            return true;
+        case event::KeyCode::Enter:
+            return activate();
+        case event::KeyCode::Backspace: {
+            const std::filesystem::path current(directory_);
+            if (!current.has_parent_path() || current.parent_path() == current) return true;
+            set_directory(current.parent_path().string());
+            if (on_directory_changed_) on_directory_changed_();
+            return true;
+        }
+        default:
+            return false;
+        }
+    }
+
     void refresh()
     {
         entries_.clear();
-        selected_ = -1;
-        scroll_ = 0.0f;
-
-        namespace fs = std::filesystem;
         std::error_code ec;
-        const fs::path dir(directory_);
-        if (directory_.empty() || !fs::is_directory(dir, ec)) {
-            mark_layout_dirty();
-            return;
-        }
+        const std::filesystem::path base(directory_);
 
-        if (dir.has_parent_path() && dir.parent_path() != dir) {
-            entries_.push_back(Entry{"..", true});
+        if (base.has_parent_path() && base.parent_path() != base) {
+            entries_.push_back(Entry{"..", true, 0});
         }
 
         std::vector<Entry> dirs;
         std::vector<Entry> files;
-        for (const auto& item : fs::directory_iterator(dir, ec)) {
-            const std::string name = item.path().filename().string();
-            if (name.empty()) continue;
+        for (auto it = std::filesystem::directory_iterator(base, ec);
+             !ec && it != std::filesystem::directory_iterator(); ++it) {
+            const std::string name = it->path().filename().string();
+            if (name.empty() || name.front() == '.') continue;
+
             std::error_code entry_ec;
-            if (item.is_directory(entry_ec)) {
-                dirs.push_back(Entry{name, true});
-            } else if (extension_.empty() || item.path().extension().string() == extension_) {
-                std::error_code size_ec;
-                const auto bytes = fs::file_size(item.path(), size_ec);
-                files.push_back(Entry{name, false, size_ec ? 0 : static_cast<std::uintmax_t>(bytes)});
+            const bool is_directory = it->is_directory(entry_ec);
+            if (!is_directory && !extension_.empty()) {
+                const std::string ext = it->path().extension().string();
+                if (ext != extension_) continue;
             }
+            std::uintmax_t size = 0;
+            if (!is_directory) {
+                std::error_code size_ec;
+                size = it->file_size(size_ec);
+            }
+            (is_directory ? dirs : files).push_back(Entry{name, is_directory, size});
         }
 
-        auto by_name = [](const Entry& a, const Entry& b) { return a.name < b.name; };
+        const auto by_name = [](const Entry& a, const Entry& b) { return a.name < b.name; };
         std::sort(dirs.begin(), dirs.end(), by_name);
         std::sort(files.begin(), files.end(), by_name);
         entries_.insert(entries_.end(), dirs.begin(), dirs.end());
         entries_.insert(entries_.end(), files.begin(), files.end());
-        mark_layout_dirty();
+
+        if (selected_ >= static_cast<int>(entries_.size())) selected_ = -1;
+        sync_table();
     }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        const float width = std::isfinite(constraints.x) && constraints.x > 0.0f ? constraints.x
-                                                                                : 560.0f;
-        return clamp_size({width, preferred_height_});
+        (void)constraints;
+        return clamp_size(min_size());
     }
 
     void arrange(Rect slot) override
@@ -214,89 +230,46 @@ public:
         global_ = slot;
         set_pos(slot.pos);
         set_size(slot.size);
-        clamp_scroll();
+        if (table_ != nullptr) table_->arrange(slot);
     }
 
     bool on_mouse_down(glm::vec2 pos, int button) override
     {
         if (button != 0) return false;
-        const int row = row_at(pos);
-        if (row < 0) return false;
-        selected_ = row;
-        mark_layout_dirty();
+        const int index = index_at(pos);
+        if (index < 0) return false;
+        select_index(index);
         if (on_select_) on_select_();
         return true;
     }
 
     bool on_double_click(glm::vec2 pos, int button) override
     {
-        if (button != 0) return false;
-        const int row = row_at(pos);
-        if (row < 0) return false;
-        selected_ = row;
-        activate(row);
-        return true;
+        (void)button;
+        const int index = index_at(pos);
+        if (index < 0) return false;
+        select_index(index);
+        return activate();
     }
 
     bool on_scroll(glm::vec2, glm::vec2 delta) override
     {
-        const float content = static_cast<float>(entries_.size()) * row_height_;
+        if (table_ == nullptr) return false;
+        // 内容不够高就不消费滚轮，让外层容器接手。
+        const float content = static_cast<float>(entries_.size()) * row_height();
         if (content <= global_.size.y) return false;
-        scroll_ -= delta.y * row_height_ * 0.75f;
-        clamp_scroll();
-        mark_layout_dirty();
+        table_->set_scroll_value(table_->scroll_offset() - delta.y * row_height() * 0.75f);
         return true;
     }
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = ui_theme();
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
-        const BoxStyle track = t.style(StyleRole::Track, ControlState::Normal);
-        graphics::append_rounded_rect(list, bounds, corner_radius(track.radius), track.fill);
-        if (track.border_width > 0.0f) {
-            graphics::append_rounded_ring(list, bounds, corner_radius(track.radius),
-                                          track.border_width, track.border);
-        }
-
-        list.push_clip(bounds);
-        auto* atlas = font_atlas();
-
-        const int first = std::max(0, static_cast<int>(scroll_ / row_height_));
-        const int visible = static_cast<int>(global_.size.y / row_height_) + 1;
-        for (int i = first; i < first + visible && i < static_cast<int>(entries_.size()); ++i) {
-            const float y = global_.pos.y + static_cast<float>(i) * row_height_ - scroll_;
-            if (y + row_height_ < global_.pos.y || y > global_.pos.y + global_.size.y) continue;
-
-            if (i == selected_) {
-                graphics::Rectangle{global_.pos.x, y, global_.size.x, row_height_,
-                                    glm::vec4{t.accent.r, t.accent.g, t.accent.b, 0.22f}}
-                    .append_to(list);
-            }
-
-            if (atlas == nullptr) continue;
-            const Entry& entry = entries_[static_cast<std::size_t>(i)];
-            const std::string label = entry.is_directory ? (entry.name + "/") : entry.name;
-            atlas->append_text(list, global_.pos.x + 10.0f, y + (row_height_ - t.small_text_size) * 0.5f,
-                               t.small_text_size, label,
-                               entry.is_directory ? t.accent_text : t.text);
-        }
-
-        // 内容超出时在右下角提示还有多少项，避免「以为到底了」。
-        if (atlas != nullptr) {
-            const int total = static_cast<int>(entries_.size());
-            const int shown = std::min(total, first + visible);
-            if (total > shown) {
-                const std::string more = "… +" + std::to_string(total - shown);
-                const float width = atlas->measure_width(more, t.small_text_size);
-                atlas->append_text(list, global_.pos.x + global_.size.x - width - 10.0f,
-                                   global_.pos.y + global_.size.y - t.small_text_size - 6.0f,
-                                   t.small_text_size, more, t.text);
-            }
-        }
-
-        list.pop_clip();
+        if (table_ != nullptr) table_->append_to(list);
     }
+
+    bool hit_testable() const override { return true; }
+
+    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
 
 private:
     struct Entry
@@ -306,62 +279,60 @@ private:
         std::uintmax_t size = 0;
     };
 
-    void clamp_scroll()
+    void sync_table()
     {
-        const float content = static_cast<float>(entries_.size()) * row_height_;
-        const float max_scroll = std::max(0.0f, content - global_.size.y);
-        scroll_ = std::clamp(scroll_, 0.0f, max_scroll);
-    }
-
-    // 键盘移动选择时把行滚进视口。
-    void ensure_visible(int index)
-    {
-        if (index < 0) return;
-        const float top = static_cast<float>(index) * row_height_;
-        const float bottom = top + row_height_;
-        if (top < scroll_) {
-            scroll_ = top;
-        } else if (bottom > scroll_ + global_.size.y) {
-            scroll_ = bottom - global_.size.y;
+        if (table_ == nullptr) return;
+        std::vector<std::vector<std::string>> rows;
+        rows.reserve(entries_.size());
+        for (const Entry& entry : entries_) {
+            rows.push_back({entry.is_directory ? entry.name + "/" : entry.name,
+                            entry.is_directory ? std::string{"-"} : format_bytes(entry.size)});
         }
-        clamp_scroll();
-    }
-
-    int row_at(glm::vec2 pos) const
-    {
-        if (!global_.contains(pos)) return -1;
-        const float y = pos.y - global_.pos.y + scroll_;
-        if (y < 0.0f) return -1;
-        const int index = static_cast<int>(y / row_height_);
-        return index < static_cast<int>(entries_.size()) ? index : -1;
-    }
-
-    void activate(int index)
-    {
-        if (index < 0 || index >= static_cast<int>(entries_.size())) return;
-        const Entry& entry = entries_[static_cast<std::size_t>(index)];
-        if (!entry.is_directory) {
-            if (on_activate_) on_activate_();
-            return;
+        table_->set_rows(std::move(rows));
+        if (selected_ >= 0 && selected_ < static_cast<int>(entries_.size())) {
+            table_->set_selected(selected_, false);
         }
-
-        namespace fs = std::filesystem;
-        fs::path next = entry.name == ".." ? fs::path(directory_).parent_path()
-                                           : fs::path(directory_) / entry.name;
-        directory_ = next.string();
-        refresh();
-        if (on_directory_changed_) on_directory_changed_();
     }
 
-    std::string directory_;
-    std::string extension_;
+    int index_at(glm::vec2 pos) const
+    {
+        if (entries_.empty() || !global_bounds().contains(pos)) return -1;
+        const float offset = pos.y - global_.pos.y + (table_ != nullptr ? table_->scroll_offset() : 0.0f);
+        if (offset < 0.0f) return -1;
+        const int index = static_cast<int>(offset / row_height());
+        if (index < 0 || index >= static_cast<int>(entries_.size())) return -1;
+        return index;
+    }
+
+    bool activate()
+    {
+        if (selected_ < 0 || selected_ >= static_cast<int>(entries_.size())) return false;
+        const Entry& entry = entries_[static_cast<std::size_t>(selected_)];
+        if (entry.is_directory) {
+            if (entry.name == "..") {
+                const std::filesystem::path current(directory_);
+                if (!current.has_parent_path() || current.parent_path() == current) return true;
+                set_directory(current.parent_path().string());
+            } else {
+                set_directory(resolve(entry.name));
+            }
+            if (on_directory_changed_) on_directory_changed_();
+            return true;
+        }
+        if (on_activate_) on_activate_();
+        return true;
+    }
+
     std::vector<Entry> entries_;
+    std::string directory_{"."};
+    std::string extension_;
     int selected_ = -1;
-    float scroll_ = 0.0f;
-    float row_height_ = 28.0f;
-    float preferred_height_ = 260.0f;
-    std::function<void()> on_activate_;
+    float preferred_height_ = 372.0f;
+    Table* table_ = nullptr;
+    std::vector<std::unique_ptr<Widget>> children_;
+
     std::function<void()> on_select_;
+    std::function<void()> on_activate_;
     std::function<void()> on_directory_changed_;
 };
 } // namespace xel::ui

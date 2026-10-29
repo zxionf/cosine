@@ -233,7 +233,9 @@ void UISystem::focus_next(bool backwards)
 {
     // 先按树序收集全部可聚焦控件（含 tab_order < 0 的），用于定位起点。
     std::vector<Widget*> ordered;
-    collect_focusable(root_.get(), ordered);
+    // 模态时 Tab 只在最上层模态窗口内循环。
+    Widget* scope = root_ != nullptr ? root_->modal_top() : nullptr;
+    collect_focusable(scope != nullptr ? scope : root_.get(), ordered);
     if (ordered.empty()) return;
 
     struct Entry
