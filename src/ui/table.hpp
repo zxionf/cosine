@@ -123,6 +123,7 @@ public:
         // 尺寸由 min/max 决定（构造时固定）；不读 global_，避免依赖 arrange 顺序。
         return clamp_size(min_size());
     }
+    bool fixed_size() const override { return true; }
 
     void arrange(Rect slot) override
     {

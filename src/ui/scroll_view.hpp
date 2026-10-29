@@ -59,7 +59,6 @@ public:
     bool hit_testable() const override { return true; }
     bool clips_children() const override { return true; }
 
-    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
 
     void append_to(graphics::DrawList& list) const override;
 

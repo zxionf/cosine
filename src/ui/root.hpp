@@ -31,7 +31,6 @@ public:
     void set_theme(const Theme& value);
     const Theme& ui_theme() const { return context_storage_.theme; }
 
-    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
     const std::vector<std::unique_ptr<Widget>>& overlays() const override { return overlays_; }
     bool hit_testable() const override { return false; }
     void append_to(graphics::DrawList& list) const override;

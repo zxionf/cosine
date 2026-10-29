@@ -179,8 +179,14 @@ public:
         left_l.append_to(list);
     }
     virtual void layout() {}
+    // 布局契约：constraints.x 是父容器给的可用宽度，返回值宽度不得超过它
+    // （min_size 强制除外）。违反这条会让并列控件互相挤压。
     virtual glm::vec2 measure(glm::vec2 constraints) = 0;
     virtual void arrange(Rect slot) = 0;
+
+    // 固定尺寸控件：忽略 constraints，尺寸由 min_size/max_size 决定。
+    // 目的是把「Table/FileBrowser 这类吃满父宽」的行为从隐式约定变成显式声明。
+    virtual bool fixed_size() const { return false; }
     void set_align(Align a) { align_self_ = a; has_align_ = true; mark_layout_dirty(); }
     std::optional<Align> align_self() const { return has_align_ ? std::optional<Align>(align_self_) : std::nullopt; }
 

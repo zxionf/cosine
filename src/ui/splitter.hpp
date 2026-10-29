@@ -30,7 +30,6 @@ public:
         mark_layout_dirty();
     }
 
-    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
     bool hit_testable() const override { return true; }
     bool clips_children() const override { return true; }
 

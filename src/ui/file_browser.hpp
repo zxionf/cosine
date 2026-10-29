@@ -223,6 +223,7 @@ public:
         (void)constraints;
         return clamp_size(min_size());
     }
+    bool fixed_size() const override { return true; }
 
     void arrange(Rect slot) override
     {
@@ -268,7 +269,6 @@ public:
 
     bool hit_testable() const override { return true; }
 
-    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
 
 private:
     struct Entry

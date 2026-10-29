@@ -191,7 +191,6 @@ public:
     {
         if (body_ != nullptr) body_->add(std::move(child));
     }
-    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
 
     glm::vec2 measure(glm::vec2) override
     {

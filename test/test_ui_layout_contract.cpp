@@ -53,6 +53,7 @@ void test_fixed_size_control_ignores_constraints()
     const glm::vec2 size = browser.measure({100.0f, 100.0f});
     check(near(size.x, 560.0f), "filebrowser keeps its min width",
           ("measure = " + std::to_string(size.x)).c_str());
+    check(browser.fixed_size(), "filebrowser declares fixed_size()", "fixed_size() = false");
 }
 
 // 3) 子项变化后，容器自己的测量缓存必须失效。

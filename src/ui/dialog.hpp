@@ -226,7 +226,6 @@ public:
         return false;
     }
 
-    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
 
 private:
     UIRoot* find_root() const
