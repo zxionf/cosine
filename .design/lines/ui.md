@@ -59,10 +59,12 @@
   - [x] **阶段 4 层模型**：`Widget::fills_parent()` + `Layer{Content,Floating,Modal}`；`UIRoot::layout_child` 去掉 `dynamic_cast<Scrim*>`
   - [ ] **阶段 5 行为基元**：`ScrollState` → `ListView`（Table/FileBrowser）→ `CollapsibleHeader`
     - [x] `ScrollState`（`src/ui/scroll_state.hpp`）：clamp / 目标 / 平滑逼近 / range 收敛到一处，6 项单测
-    - [ ] `Table` 接入 `ScrollState`（替掉 `scroll_` / `scroll_target_` / `smoothing_`）
-    - [ ] `ScrollView` / `TextInput` 接入
+    - [x] `Table` 接入 `ScrollState`（13 处引用一次替换，指数衰减/Fast/snap 手感不变）
+    - [x] ~~`ScrollView` 接入~~（不迁：二维 `glm::vec2 offset_` + 自带 `scroll_speed`/`line_step`，`ScrollState` 保持一维）
+    - [x] ~~`TextInput` 接入~~（不迁：只有一条 `clamp_scroll`、无 `ScrollMode`/平滑，收益为零）
     - [ ] 抽 `ListView`（Table 先接，FileBrowser 自动受益）
-    - [ ] 抽 `CollapsibleHeader`（Section 与 Window 标题栏复用）
+    - [x] 抽 `CollapsibleHeader`（`src/ui/collapsible_header.hpp`），`Section` 已接入
+    - [x] ~~`Window` 标题栏复用~~（不迁：标题栏还要拖动/关闭叉/双击最大化，套进去反而更绕）
   - [x] ~~**阶段 6 Widget 瘦身**~~：默认不做，阶段 5 后再评估
 - **明确不做**：不重写布局引擎、不引入 ECS、不拆 `Widget`、不动 `menu_bar.hpp`（857 行是菜单语义的合理复杂度）
 - **记录为后续优化项**（不在本轮）：

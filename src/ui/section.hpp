@@ -3,6 +3,7 @@
 #include "../graphics/box.hpp"
 #include "../graphics/line.hpp"
 #include "theme.hpp"
+#include "collapsible_header.hpp"
 #include "vbox.hpp"
 #include "widget.hpp"
 
@@ -64,11 +65,7 @@ public:
         mark_layout_dirty();
     }
 
-    float header_height() const
-    {
-        const auto& t = ui_theme();
-        return std::max(t.control_height * 0.72f, t.text_size + 10.0f);
-    }
+    float header_height() const { return header_.height(); }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
@@ -86,8 +83,11 @@ public:
         set_pos(slot.pos);
         set_size(slot.size);
         global_ = slot;
-        if (!expanded_) return;
         const float hh = header_height();
+        header_.set_title(title_);
+        header_.set_expanded(expanded_);
+        header_.arrange({slot.pos, {slot.size.x, hh}});
+        if (!expanded_) return;
         content_->arrange({{slot.pos.x + kContentInset, slot.pos.y + hh},
                            {std::max(0.0f, slot.size.x - kContentInset * 2.0f),
                             std::max(0.0f, slot.size.y - hh)}});
@@ -95,28 +95,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = ui_theme();
-        const float hh = header_height();
-        graphics::Rectangle{global_.pos.x, global_.pos.y, global_.size.x, hh, t.panel_bg}
-            .append_to(list);
-
-        // 折叠三角：展开朝下（V），收起朝右（>）。
-        const float cy = global_.pos.y + hh * 0.5f;
-        const glm::vec4 glyph = t.text_muted;
-        const float ax = global_.pos.x + 8.0f;
-        if (expanded_) {
-            graphics::Line{ax, cy - 4.0f, ax + 7.0f, cy + 3.0f, 1.5f, glyph}.append_to(list);
-            graphics::Line{ax + 7.0f, cy + 3.0f, ax + 14.0f, cy - 4.0f, 1.5f, glyph}.append_to(list);
-        } else {
-            graphics::Line{ax, cy - 4.0f, ax + 7.0f, cy, 1.5f, glyph}.append_to(list);
-            graphics::Line{ax + 7.0f, cy, ax, cy + 4.0f, 1.5f, glyph}.append_to(list);
-        }
-
-        if (auto* atlas = font_atlas()) {
-            const float text_y = atlas->centered_text_y(t.text_size, global_.pos.y, hh);
-            atlas->append_text(list, global_.pos.x + 30.0f, text_y,
-                               t.text_size, title_, t.text);
-        }
+        header_.append_to(list);
         if (expanded_) content_->append_to(list);
     }
 
@@ -135,6 +114,7 @@ private:
     static constexpr float kContentInset = 12.0f;
 
     std::string title_;
+    CollapsibleHeader header_;
     bool expanded_ = true;
     std::unique_ptr<Vbox> content_;
 };
