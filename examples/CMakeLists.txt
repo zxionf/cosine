@@ -54,7 +54,7 @@ add_dependencies(ui_anim_showcase shaders copy_assets)
 add_executable(ui_lab
     ui_lab/main.cpp
 )
-target_link_libraries(ui_lab PRIVATE cosine_app)
+target_link_libraries(ui_lab PRIVATE cosine_app cosine_editor)
 target_include_directories(ui_lab PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ui_lab
 )

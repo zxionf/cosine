@@ -3,6 +3,7 @@
 // 硬约束：产品代码不得依赖本目录；lab 不进 ctest 断言，只有冒烟门禁。
 
 #include "ui/core/button.hpp"
+#include "ui/core/color_rect.hpp"
 #include "ui/core/image.hpp"
 #include "ui/views/file_browser.hpp"
 #include "ui/containers/hbox.hpp"
@@ -17,6 +18,8 @@
 #include "ui/composites/section.hpp"
 #include "ui/core/tab_bar.hpp"
 #include "ui/composites/window.hpp"
+#include "cosine/texture_cache.hpp"
+#include "graphics/text_debug.hpp"
 #include "xel_application.hpp"
 
 #include <stb_image.h>
@@ -192,8 +195,11 @@ struct Lab
     std::vector<xel::ui::Window*> windows;
     // 全局参数窗口（无标题栏、始终置顶）。
     xel::ui::Window* settings = nullptr;
-    // E7 资源浏览器常驻窗口（不可收起）。
+    // E7 资源浏览器窗口（不可收起）。
     xel::ui::Window* resource_window = nullptr;
+    // 图片预览：路径 → 纹理槽。
+    xel::backend::vulkan::Renderer* renderer = nullptr;
+    xel::editor::TextureCache texture_cache;
     bool labels_debug = false;
     xel::ui::Theme theme;
     int current = -1;
@@ -206,34 +212,55 @@ struct Lab
     void select(int index);
 };
 
-void build_resource(Lab& lab, Vbox* stage)
+// E7 新框架：只放三个 box，功能后续填。
+void build_framework(Lab& lab, xel::ui::Window* window)
 {
     Resource& res = lab.resource;
     res = Resource{};
+    Vbox* stage = window->content();
+    stage->set_padding(0.0f);
+    stage->set_spacing(0.0f);
     stage->set_cross_align(xel::ui::Align::top_left());
-    stage->set_spacing(4.0f);
 
-    // 地址栏：Up + 单行路径输入框 + Go。
-    auto crumb_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 812.0f, 32.0f);
-    crumb_row->set_spacing(4.0f);
-    crumb_row->set_cross_align(xel::ui::Align::center_left());
-    crumb_row->set_size_percent({1.0f, 0.0f});
-    res.crumbs = crumb_row.get();
-    crumb_row->add(std::make_unique<Button>("Up", [&lab] {
+    // 顶部 box：宽度 = 窗口宽度，未来放路径与搜索。
+    auto top = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
+    top->set_padding(xel::ui::Edges{8.0f, 0.0f, 8.0f, 0.0f});
+    top->set_spacing(4.0f);
+    top->set_size_percent({1.0f, 0.0f});
+    top->set_min_size({0.0f, 40.0f});
+    top->set_max_size({10000.0f, 40.0f});
+    top->set_cross_align(xel::ui::Align::center_left());
+
+    auto up = std::make_unique<Button>("Up", [&lab] {
         if (lab.resource.list == nullptr) return;
         const std::filesystem::path current(lab.resource.list->directory());
         if (!current.has_parent_path() || current.parent_path() == current) return;
         lab.resource.list->set_directory(current.parent_path().string());
         if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
         if (lab.resource.refresh_info) lab.resource.refresh_info();
-    }));
-    auto path_input = std::make_unique<xel::ui::TextInput>("", 500.0f);
-    res.path_input = path_input.get();
-    crumb_row->add(std::move(path_input));
-    auto search_input = std::make_unique<xel::ui::TextInput>("", 180.0f);
-    res.search_input = search_input.get();
-    crumb_row->add(std::move(search_input));
-    crumb_row->add(std::make_unique<Button>("Go", [&lab] {
+    });
+    up->set_min_size({48.0f, 28.0f});
+    up->set_max_size({48.0f, 28.0f});
+    top->add(std::move(up));
+
+    auto path = std::make_unique<xel::ui::TextInput>("", 460.0f);
+    path->set_min_size({0.0f, 28.0f});
+    path->set_max_size({10000.0f, 28.0f});
+    path->set_flex_grow(1.0f);
+    res.path_input = path.get();
+    top->add(std::move(path));
+
+    auto search = std::make_unique<xel::ui::TextInput>("", 160.0f);
+    search->set_min_size({0.0f, 28.0f});
+    search->set_max_size({10000.0f, 28.0f});
+    search->set_on_change([&lab](const std::string& text) {
+        if (lab.resource.list) lab.resource.list->set_name_filter(text);
+        if (lab.resource.refresh_info) lab.resource.refresh_info();
+    });
+    res.search_input = search.get();
+    top->add(std::move(search));
+
+    auto go = std::make_unique<Button>("Go", [&lab] {
         if (lab.resource.path_input == nullptr || lab.resource.list == nullptr) return;
         std::error_code path_ec;
         const std::filesystem::path target(lab.resource.path_input->text());
@@ -244,20 +271,31 @@ void build_resource(Lab& lab, Vbox* stage)
         lab.resource.list->set_directory(target.string());
         if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
         if (lab.resource.refresh_info) lab.resource.refresh_info();
-    }));
-    stage->add(std::move(crumb_row));
+    });
+    go->set_min_size({40.0f, 28.0f});
+    go->set_max_size({40.0f, 28.0f});
+    top->add(std::move(go));
 
-    // 三栏：左分类 / 中列表 / 右预览。
-    auto body = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 812.0f, 372.0f);
-    body->set_spacing(12.0f);
-    body->set_size_percent({1.0f, 0.0f});
-    body->set_cross_align(xel::ui::Align::v_stretch());
+    stage->add(std::move(top));
 
-    // 左栏：分类（同时充当类型过滤）。
-    auto categories = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 110.0f, 372.0f);
-    categories->set_spacing(4.0f);
-    categories->set_cross_align(xel::ui::Align::top_left());
-    categories->add(std::make_unique<Label>("Library", 16.0f));
+    // 中间 box：横向容器，宽度 = 窗口宽度，高度占满剩余。
+    auto middle = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 0.0f);
+    middle->set_padding(0.0f);
+    middle->set_spacing(12.0f);
+    middle->set_size_percent({1.0f, 0.0f});
+    middle->set_min_size({0.0f, 0.0f});
+    middle->set_max_size({10000.0f, 10000.0f});
+    middle->set_flex_grow(1.0f);
+    middle->set_cross_align(xel::ui::Align::v_stretch());
+
+    // 左栏：固定宽度 110，分类按钮。
+    auto left = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 110.0f, 0.0f);
+    left->set_padding(0.0f);
+    left->set_spacing(4.0f);
+    left->set_cross_align(xel::ui::Align::top_center());
+    left->set_min_size({110.0f, 0.0f});
+    left->set_max_size({110.0f, 10000.0f});
+    left->add(std::make_unique<Label>("Library", 16.0f));
     for (int i = 0; i < 4; ++i) {
         auto button = std::make_unique<Button>(kResourceFilters[i], [&lab, i] {
             lab.resource.filter = i;
@@ -267,76 +305,110 @@ void build_resource(Lab& lab, Vbox* stage)
                 }
             }
             if (lab.resource.list) lab.resource.list->set_extension_filter(kResourceExtensions[i]);
-            if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
             if (lab.resource.refresh_info) lab.resource.refresh_info();
         });
         button->set_min_size({100.0f, 28.0f});
         button->set_max_size({100.0f, 28.0f});
-        if (i == res.filter) button->set_pressed(true);
+        if (i == 0) button->set_pressed(true);
         res.category_buttons.push_back(button.get());
-        categories->add(std::move(button));
+        left->add(std::move(button));
     }
-    body->add(std::move(categories));
+    middle->add(std::move(left));
 
-    // 中栏：列表（弹性宽度 + 表头）。
-    auto list = std::make_unique<xel::ui::FileBrowser>(glm::vec2{430.0f, 372.0f});
+    // 中栏：填充剩余宽度，放 FileBrowser。
+    auto center = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 0.0f, 0.0f);
+    center->set_padding(0.0f);
+    center->set_spacing(0.0f);
+    center->set_cross_align(xel::ui::Align::h_stretch());
+    center->set_min_size({0.0f, 0.0f});
+    center->set_max_size({10000.0f, 10000.0f});
+    center->set_flex_grow(1.0f);
+
+    auto list = std::make_unique<xel::ui::FileBrowser>(glm::vec2{430.0f, 300.0f});
     res.list = list.get();
-    res.list->set_header_height(28.0f);
-    res.list->set_auto_width(true);
-    res.list->set_flex_grow(1.0f);
-    res.list->set_min_size({240.0f, 372.0f});
-    res.list->set_max_size({10000.0f, 372.0f});
+    list->set_header_height(28.0f);
+    list->set_auto_width(true);
+    list->set_flex_grow(1.0f);
+    list->set_min_size({240.0f, 0.0f});
+    list->set_max_size({10000.0f, 10000.0f});
     std::error_code dir_ec;
     const std::filesystem::path cwd = std::filesystem::current_path(dir_ec);
-    res.list->set_directory(dir_ec ? std::string{"."} : cwd.string());
-    res.list->set_extension_filter(kResourceExtensions[res.filter]);
-    if (res.search_input != nullptr) {
-        res.search_input->set_on_change([&lab](const std::string& text) {
-            if (lab.resource.list) lab.resource.list->set_name_filter(text);
-            if (lab.resource.refresh_info) lab.resource.refresh_info();
-        });
-    }
-    body->add(std::move(list));
+    list->set_directory(dir_ec ? std::string{"."} : cwd.string());
+    list->set_extension_filter(kResourceExtensions[res.filter]);
+    res.list->set_on_select([&lab] {
+        if (lab.resource.refresh_info) lab.resource.refresh_info();
+    });
+    res.list->set_on_activate([&lab] {
+        if (lab.resource.refresh_info) lab.resource.refresh_info();
+        if (lab.resource.list == nullptr) return;
+        if (lab.resource.list->selected_is_directory()) {
+            lab.set_status("entered: " + lab.resource.list->directory());
+        } else {
+            lab.set_status("activated: " + lab.resource.list->selected_path());
+        }
+    });
+    res.list->set_on_directory_changed([&lab] {
+        if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
+        if (lab.resource.refresh_info) lab.resource.refresh_info();
+    });
+    center->add(std::move(list));
+    middle->add(std::move(center));
 
-    // 右栏：预览 + 详情（无标题，与设计图一致）。
-    auto detail = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 240.0f, 372.0f);
-    detail->set_spacing(6.0f);
-    detail->set_cross_align(xel::ui::Align::top_left());
+    // 右栏：固定宽度 240，预览 + 详情。
+    auto right = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 240.0f, 0.0f);
+    right->set_padding(0.0f);
+    right->set_spacing(6.0f);
+    right->set_cross_align(xel::ui::Align::top_left());
+    right->set_min_size({240.0f, 0.0f});
+    right->set_max_size({240.0f, 10000.0f});
     auto preview = std::make_unique<xel::ui::Image>(200.0f, 150.0f);
     res.preview = preview.get();
-    detail->add(std::move(preview));
+    right->add(std::move(preview));
     auto name = std::make_unique<Label>("-", 16.0f);
     res.info_name = name.get();
-    detail->add(std::move(name));
+    right->add(std::move(name));
     auto extra = std::make_unique<Label>("", 16.0f);
     res.info_extra = extra.get();
-    detail->add(std::move(extra));
+    right->add(std::move(extra));
     auto size = std::make_unique<Label>("", 16.0f);
     res.info_size = size.get();
-    detail->add(std::move(size));
-    auto path = std::make_unique<Label>("", 16.0f);
-    res.info_path = path.get();
-    detail->add(std::move(path));
-    body->add(std::move(detail));
-    stage->add(std::move(body));
+    right->add(std::move(size));
+    auto path_label = std::make_unique<Label>("", 16.0f);
+    res.info_path = path_label.get();
+    right->add(std::move(path_label));
+    middle->add(std::move(right));
+    stage->add(std::move(middle));
 
-    // 底部状态栏：选中摘要 + Import（lab 占位）。
-    auto status_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 812.0f, 28.0f);
-    status_row->set_spacing(8.0f);
-    status_row->set_cross_align(xel::ui::Align::center_left());
-    status_row->set_size_percent({1.0f, 0.0f});
-    auto status_line = std::make_unique<Label>("no selection", 16.0f);
+    // 底部 box：宽度 = 窗口宽度，位置始终贴窗口底。
+    auto bottom = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
+    bottom->set_padding(xel::ui::Edges{8.0f, 0.0f, 8.0f, 0.0f});
+    bottom->set_spacing(8.0f);
+    bottom->set_min_size({0.0f, 40.0f});
+    bottom->set_max_size({10000.0f, 40.0f});
+    bottom->set_cross_align(xel::ui::Align::center_left());
+
+    auto status_line = std::make_unique<Label>("", 16.0f);
     res.status_line = status_line.get();
-    status_row->add(std::move(status_line));
-    auto status_spacer = std::make_unique<xel::ui::Spacer>(1.0f, 1.0f);
-    status_spacer->set_flex_grow(1.0f);
-    status_row->add(std::move(status_spacer));
-    status_row->add(std::make_unique<Button>("Import", [&lab] {
-        lab.set_status("import not wired (lab placeholder)");
-    }));
-    stage->add(std::move(status_row));
+    bottom->add(std::move(status_line));
 
-    // 详情：名字 / 字节数（目录不统计）/ 图片尺寸（只读头部）。
+    auto bottom_spacer = std::make_unique<xel::ui::Spacer>(1.0f, 1.0f);
+    bottom_spacer->set_flex_grow(1.0f);
+    bottom->add(std::move(bottom_spacer));
+
+    auto import = std::make_unique<Button>("Import", [] {});
+    import->set_min_size({0.0f, 28.0f});
+    import->set_max_size({1000.0f, 28.0f});
+    bottom->add(std::move(import));
+
+    window->set_footer(std::move(bottom));
+
+    // 地址栏同步：Up / Go / 双击 / Backspace 改变目录后刷新输入框文本。
+    res.rebuild_crumbs = [&lab] {
+        if (lab.resource.path_input != nullptr && lab.resource.list != nullptr) {
+            lab.resource.path_input->set_text(lab.resource.list->directory());
+        }
+    };
+
     res.refresh_info = [&lab] {
         Resource& r = lab.resource;
         if (r.list == nullptr) return;
@@ -348,6 +420,7 @@ void build_resource(Lab& lab, Vbox* stage)
             if (r.info_path) r.info_path->set_text("");
             if (r.status_line) r.status_line->set_text("no selection");
             if (r.preview) {
+                r.preview->set_texture_id(0);
                 r.preview->set_source("");
                 r.preview->set_placeholder_text("image");
             }
@@ -361,13 +434,27 @@ void build_resource(Lab& lab, Vbox* stage)
                          static_cast<std::size_t>(r.list->selected_index())));
 
         std::string extra;
+        bool has_texture = false;
         if (!is_dir && path.size() > 4 && path.compare(path.size() - 4, 4, ".png") == 0) {
             int w = 0;
             int h = 0;
             int channels = 0;
             if (stbi_info(path.c_str(), &w, &h, &channels) != 0) {
                 extra = std::format("{} × {} px", w, h);
+                if (r.preview != nullptr && lab.renderer != nullptr) {
+                    const std::uint32_t id = lab.texture_cache.load(path, *lab.renderer);
+                    if (id != 0) {
+                        r.preview->set_texture_id(id);
+                        r.preview->set_texture_size(
+                            {static_cast<float>(w), static_cast<float>(h)});
+                        r.preview->set_fit(xel::ui::Image::Fit::Contain);
+                        has_texture = true;
+                    }
+                }
             }
+        }
+        if (r.preview != nullptr && !has_texture) {
+            r.preview->set_texture_id(0);
         }
 
         std::string name_text = name + (is_dir ? "/" : "");
@@ -391,30 +478,6 @@ void build_resource(Lab& lab, Vbox* stage)
             r.status_line->set_text(summary);
         }
     };
-
-    // 地址栏同步：Up / Go / 双击 / Backspace 改变目录后刷新输入框文本。
-    res.rebuild_crumbs = [&lab] {
-        Resource& r = lab.resource;
-        if (r.path_input == nullptr || r.list == nullptr) return;
-        r.path_input->set_text(r.list->directory());
-    };
-
-    res.list->set_on_select([&lab] {
-        if (lab.resource.refresh_info) lab.resource.refresh_info();
-    });
-    res.list->set_on_activate([&lab] {
-        if (lab.resource.refresh_info) lab.resource.refresh_info();
-        if (lab.resource.list == nullptr) return;
-        if (lab.resource.list->selected_is_directory()) {
-            lab.set_status("entered: " + lab.resource.list->directory());
-        } else {
-            lab.set_status("activated: " + lab.resource.list->selected_path());
-        }
-    });
-    res.list->set_on_directory_changed([&lab] {
-        if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
-        if (lab.resource.refresh_info) lab.resource.refresh_info();
-    });
 
     res.rebuild_crumbs();
     if (res.list->entry_count() > 1) res.list->select_index(1);
@@ -498,13 +561,14 @@ void Lab::select(int index)
         if (resource_window == nullptr) {
             auto window = std::make_unique<xel::ui::Window>("Assets", glm::vec2{300.0f, 24.0f},
                                                             glm::vec2{880.0f, 520.0f});
+            window->set_min_size({800.0f, 360.0f});
             window->set_collapsible(false);
             resource_window = window.get();
             if (root != nullptr) root->add(std::move(window));
-            build_resource(*this, resource_window->content());
+            build_framework(*this, resource_window);
         }
         resource_window->set_visible(true);
-        set_status("E7 资源浏览器：窗口内渲染、不可收起（set_modal 可切换模态）");
+        set_status("E7 资源浏览器");
         return;
     }
 
@@ -753,6 +817,7 @@ int run()
     xel::Application app{static_cast<int>(kW), static_cast<int>(kH), "ui_lab"};
 
     Lab lab;
+    lab.renderer = &app.renderer_;
     build(lab, *app.uisys.root());
 
     // 离屏导出：与其它示例一致的固定尺寸，便于人工核对布局。
