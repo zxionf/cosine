@@ -240,4 +240,14 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 - 双击文件不导入；Import 按钮通过 `set_on_import` 交给 `Editor::import_image`。
 - 预览纹理走 `TextureCache`，14 个图片槽满时回退占位；与项目导入共享同一缓存。
 - 入口：`Editor` 的 `View → Assets`；打开/保存项目后自动切到项目目录。
+
+### SettingsWindow
+
+`src/cosine/settings_window.*`：左侧分类按钮（General / Preview / Export / About）+ 右侧 `ScrollPanel`。
+
+- General：Rounded style、Light theme、UI text size，变更后 `apply_settings()` 即时生效。
+- Preview：背景色与标尺显隐即时；画布尺寸与 Fit 存值，待预览缩放任务消费。
+- Export：宽/高/FPS/背景/输出目录写入 `EditorSettings`，供 CO-3 使用。
+- About：版本、平台、编译器、构建类型、当前项目路径（只读）。
+- 入口：`Editor` 的 `View → Settings...`。
 | 无性能测量手段 | 优化前需先有统计 | UI-15 |

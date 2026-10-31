@@ -25,6 +25,14 @@ public:
     }
     scene::Scene* scene() const { return scene_; }
 
+    // 预览画布背景（letterbox 区域与场景底色）。
+    void set_background(glm::vec4 color)
+    {
+        background_ = color;
+        mark_layout_dirty();
+    }
+    glm::vec4 background() const { return background_; }
+
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
@@ -42,6 +50,11 @@ public:
     {
         if (scene_ == nullptr) return;
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        if (background_.a > 0.0f) {
+            graphics::Rectangle{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y,
+                                background_}
+                .append_to(list);
+        }
         draw_node(list, scene_->root(), {0.0f, 0.0f}, {1.0f, 1.0f}, 0.0f);
         list.pop_clip();
     }
@@ -170,5 +183,6 @@ private:
     }
 
     scene::Scene* scene_ = nullptr;
+    glm::vec4 background_{0.0f, 0.0f, 0.0f, 0.0f};
 };
 } // namespace xel::ui

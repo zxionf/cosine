@@ -4,7 +4,9 @@
 #include "anim/player.hpp"
 #include "anim/project.hpp"
 #include "backend/vulkan/renderer.hpp"
+#include "editor_settings.hpp"
 #include "resource_browser.hpp"
+#include "settings_window.hpp"
 #include "texture_cache.hpp"
 #include "ui/core/button.hpp"
 #include "ui/core/color_input.hpp"
@@ -31,6 +33,8 @@
 
 namespace xel::editor
 {
+class PreviewPane;
+
 // 编辑器外壳（M6.4a 骨架）。
 // 职责：持有 Project、组装菜单/工具栏/三栏面板、应用主题、按窗口尺寸排版。
 // 面板内容（属性编辑、时间轴）在 M6.2 / M6.3 填入，Editor 只负责挂载与转发。
@@ -48,7 +52,12 @@ public:
 
     anim::Project& project() { return project_; }
     const anim::Project& project() const { return project_; }
-    bool experimental_rounded() const { return experimental_rounded_; }
+    bool experimental_rounded() const { return settings_.rounded_style; }
+
+    EditorSettings& settings() { return settings_; }
+    const EditorSettings& settings() const { return settings_; }
+    const std::string& project_path() const { return project_path_; }
+    void apply_settings();
 
 private:
     void build();
@@ -114,6 +123,7 @@ private:
     ui::TreeView* scene_tree_ = nullptr;
     ui::SceneView* preview_ = nullptr;
     ui::PreviewRuler* preview_ruler_ = nullptr;
+    PreviewPane* preview_pane_ = nullptr;
     ui::Panel* property_panel_ = nullptr;
     ui::TimelineView* timeline_view_ = nullptr;
     ui::Label* property_label_ = nullptr;
@@ -121,6 +131,8 @@ private:
 
     // CO-5：独立资源浏览器窗口（默认隐藏）。
     std::unique_ptr<ResourceBrowser> resource_browser_;
+    // CO-6：设置窗口（默认隐藏）。
+    std::unique_ptr<SettingsWindow> settings_window_;
 
     // 属性面板行（M6.2）。
     ui::DragFloat* pos_x_ = nullptr;
@@ -136,7 +148,7 @@ private:
     scene::NodeId selected_ = scene::kInvalidNode;
     scene::NodeId demo_card_ = scene::kInvalidNode;
 
-    bool experimental_rounded_ = false;
+    EditorSettings settings_;
     float last_w_ = 0.0f;
     float last_h_ = 0.0f;
     float time_ = 0.0f;

@@ -58,7 +58,7 @@ Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys, backend::vulkan::Renderer&
     : root_(&root), uisys_(&uisys), renderer_(&renderer)
 {
     // 验证用：COSINE_EDITOR_ROUNDED=1 启动即启用实验性圆角样式。
-    if (std::getenv("COSINE_EDITOR_ROUNDED") != nullptr) experimental_rounded_ = true;
+    if (std::getenv("COSINE_EDITOR_ROUNDED") != nullptr) settings_.rounded_style = true;
 
     build_demo_content();
     // Player 只持引用，Project 先于它存在且生命周期更长。
@@ -85,6 +85,8 @@ void Editor::build()
     resource_browser_ = std::make_unique<ResourceBrowser>(*root_, texture_cache_, *renderer_);
     resource_browser_->set_on_import([this](const std::string& path) { import_image(path); });
     resource_browser_->set_on_status([this](const std::string& text) { set_status(text); });
+
+    settings_window_ = std::make_unique<SettingsWindow>(*root_, *this);
 }
 
 void Editor::toggle_playback()
@@ -178,6 +180,14 @@ void Editor::build_menu()
                 resource_browser_->show();
             }
         }),
+        ui::MenuItem::make("Settings...", [this] {
+            if (settings_window_ == nullptr) return;
+            if (settings_window_->visible()) {
+                settings_window_->hide();
+            } else {
+                settings_window_->show();
+            }
+        }),
         ui::MenuItem::make("Experimental rounded style",
                            [this] { toggle_rounded_style(); }),
     });
@@ -245,6 +255,7 @@ void Editor::build_panels()
         if (timeline_view_ != nullptr) timeline_view_->set_time(seconds);
     });
     auto preview_pane = std::make_unique<PreviewPane>(std::move(preview), std::move(ruler), 28.0f);
+    preview_pane_ = preview_pane.get();
 
     auto property = build_property_panel();
 
@@ -833,25 +844,37 @@ void Editor::save_project_as_dialog()
 
 void Editor::toggle_rounded_style()
 {
-    experimental_rounded_ = !experimental_rounded_;
+    settings_.rounded_style = !settings_.rounded_style;
+    apply_settings();
+    set_status(settings_.rounded_style ? "style: rounded" : "style: classic");
+}
+
+void Editor::apply_settings()
+{
     apply_theme();
-    set_status(experimental_rounded_ ? "style: rounded (experimental)" : "style: classic");
+    if (preview_ != nullptr) preview_->set_background(settings_.preview_background);
+    if (preview_pane_ != nullptr) preview_pane_->set_footer_visible(settings_.show_ruler);
+    if (root_ != nullptr) {
+        root_->invalidate_measure();
+        root_->mark_layout_dirty();
+    }
 }
 
 void Editor::apply_theme()
 {
     // classic 为默认外观：直角、无过渡、键盘焦点环。
-    // 实验性圆角样式需要从 dark() 重新派生（with_rounding 是单向变换）。
-    const ui::Theme base = ui::Theme::dark()
-                               .with_rounding(experimental_rounded_)
-                               .with_radius_scale(experimental_rounded_ ? 1.0f : 0.0f)
-                               .with_focus_policy(ui::FocusPolicy::Always)
-                               .with_transition_ms(experimental_rounded_ ? 120.0f : 0.0f);
+    // 圆角样式需要从基础主题重新派生（with_rounding 是单向变换）。
+    ui::Theme base = settings_.light_theme ? ui::Theme::light() : ui::Theme::dark();
+    base = base.with_rounding(settings_.rounded_style)
+               .with_radius_scale(settings_.rounded_style ? 1.0f : 0.0f)
+               .with_focus_policy(ui::FocusPolicy::Always)
+               .with_transition_ms(settings_.rounded_style ? 120.0f : 0.0f);
     // 编辑器比 gallery 观看距离更远：字号与控件高度适度放大。
     ui::Theme theme = base;
-    theme.text_size = 24.0f;
-    theme.small_text_size = 18.0f;
-    theme.heading_text_size = 32.0f;
+    const float text_size = settings_.ui_text_size;
+    theme.text_size = text_size;
+    theme.small_text_size = text_size * 0.75f;
+    theme.heading_text_size = text_size * 1.333f;
     theme.control_height = 44.0f;
     theme.padding = 10.0f;
     theme.spacing = 8.0f;

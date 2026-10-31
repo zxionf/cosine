@@ -28,6 +28,14 @@ public:
     xel::ui::Widget* main() const { return main_; }
     xel::ui::Widget* footer() const { return footer_; }
 
+    // 标尺显隐：隐藏时主体占满全部高度。
+    void set_footer_visible(bool visible)
+    {
+        footer_visible_ = visible;
+        mark_layout_dirty();
+    }
+    bool footer_visible() const { return footer_visible_; }
+
     const std::vector<std::unique_ptr<xel::ui::Widget>>& children() const override
     {
         return children_;
@@ -48,9 +56,10 @@ public:
         set_pos(slot.pos);
         set_size(slot.size);
 
-        const float footer_h = std::min(footer_height_, slot.size.y);
+        const float footer_h = footer_visible_ ? std::min(footer_height_, slot.size.y) : 0.0f;
         const float main_h = std::max(0.0f, slot.size.y - footer_h);
         main_->arrange({{slot.pos.x, slot.pos.y}, {slot.size.x, main_h}});
+        footer_->set_visible(footer_visible_);
         footer_->arrange(
             {{slot.pos.x, slot.pos.y + main_h}, {slot.size.x, footer_h}});
     }
@@ -66,5 +75,6 @@ private:
     xel::ui::Widget* main_ = nullptr;
     xel::ui::Widget* footer_ = nullptr;
     float footer_height_ = 0.0f;
+    bool footer_visible_ = true;
 };
 } // namespace xel::editor
