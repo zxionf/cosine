@@ -251,23 +251,14 @@ public:
         const float radius = corner_radius(t.radius_panel);
         const bool active = mode_ != Mode::None;
 
-        // 窗口底 + 边框：用比面板更亮的一档，否则窗口会与父面板融成一片。
-        // （真正的 elevated 令牌待补，这里先复用 control 色阶。）
+        // 窗口底：比面板更亮的一档，否则窗口会与父面板融成一片。
         graphics::append_rounded_rect(list, bounds, radius, t.elevated);
-        // 浮层边框：拿到焦点时用强调色，否则用 elevated_border。
-        {
-            const glm::vec4 border_color = has_focus_ ? t.accent : t.elevated_border;
-            const float bw = has_focus_ ? 2.0f : 1.0f;
-            graphics::Rectangle{bounds.x, bounds.y, bounds.z, bw, border_color}.append_to(list);
-            graphics::Rectangle{bounds.x, bounds.y + bounds.w - bw, bounds.z, bw, border_color}
-                .append_to(list);
-            graphics::Rectangle{bounds.x, bounds.y, bw, bounds.w, border_color}.append_to(list);
-            graphics::Rectangle{bounds.x + bounds.z - bw, bounds.y, bw, bounds.w, border_color}
-                .append_to(list);
-        }
-        // 标题栏用 button_bg：窗口体已经用 surface，否则窗口和里面的按钮一个颜色。
-        graphics::append_rounded_ring(list, bounds, radius, active ? 2.0f : 1.0f,
-                                      active ? t.accent : t.panel_border);
+        // 边框统一走圆角 ring：classic 下 radius = 0 时自动退化为直边，
+        // 不再额外画直角矩形，避免圆角模式下露出尖角。
+        const bool emphasized = has_focus_ || active;
+        const glm::vec4 border_color = emphasized ? t.accent : t.elevated_border;
+        graphics::append_rounded_ring(list, bounds, radius, emphasized ? 2.0f : 1.0f,
+                                      border_color);
 
         // 标题栏（无标题栏窗口跳过）。
         const float title = title_height();
