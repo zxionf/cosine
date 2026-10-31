@@ -1,6 +1,10 @@
 #include "ui/composites/window.hpp"
 
+#include "ui/containers/hbox.hpp"
 #include "ui/containers/vbox.hpp"
+#include "ui/core/button.hpp"
+#include "ui/core/label.hpp"
+#include "ui/core/spacer.hpp"
 
 #include <cassert>
 #include <cmath>
@@ -134,6 +138,39 @@ void test_collapse_and_close()
     g.window->destroy();
     assert(!g.window->visible());
 }
+void test_footer_follows_width()
+{
+    xel::ui::Window win("W", {0.0f, 0.0f}, {800.0f, 400.0f});
+    auto footer = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
+    footer->set_padding(xel::ui::Edges{8.0f, 0.0f, 8.0f, 0.0f});
+    footer->set_spacing(8.0f);
+    footer->set_min_size({0.0f, 40.0f});
+    footer->set_max_size({10000.0f, 40.0f});
+    footer->set_cross_align(xel::ui::Align::center_left());
+    footer->add(std::make_unique<xel::ui::Label>("framework", 16.0f));
+    auto spacer = std::make_unique<xel::ui::Spacer>(1.0f, 1.0f);
+    spacer->set_flex_grow(1.0f);
+    footer->add(std::move(spacer));
+    auto import = std::make_unique<xel::ui::Button>("Import", [] {});
+    import->set_min_size({0.0f, 28.0f});
+    import->set_max_size({1000.0f, 28.0f});
+    auto* button = import.get();
+    footer->add(std::move(import));
+    win.set_footer(std::move(footer));
+
+    win.set_size({900.0f, 400.0f});
+    win.arrange({{0.0f, 0.0f}, {900.0f, 400.0f}});
+    const float wide = button->global_bounds().pos.x;
+    win.set_size({820.0f, 400.0f});
+    win.arrange({{0.0f, 0.0f}, {820.0f, 400.0f}});
+    const float narrow = button->global_bounds().pos.x;
+    assert(narrow < wide);
+    assert(std::fabs((wide - narrow) - 80.0f) < kEps);
+
+    win.set_size({900.0f, 400.0f});
+    win.arrange({{0.0f, 0.0f}, {900.0f, 400.0f}});
+    assert(std::fabs(button->global_bounds().pos.x - wide) < kEps);
+}
 } // namespace
 
 int main()
@@ -143,6 +180,7 @@ int main()
     test_raise_on_press();
     test_resize_grips();
     test_collapse_and_close();
+    test_footer_follows_width();
     std::printf("test_ui_window: all passed\n");
     return 0;
 }

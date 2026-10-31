@@ -55,6 +55,16 @@ public:
     // 内容区容器：外部往窗口里塞一整块界面时用（资源浏览器等）。
     Vbox* content() const { return body_; }
 
+    // 底部栏（状态栏/工具栏）：全宽贴窗口底，覆盖底部 resize 抓取带。
+    // 高度由 footer 自身的 measure 决定；footer 为 null 时窗口行为与原来一致。
+    void set_footer(std::unique_ptr<Widget> footer)
+    {
+        footer_ = footer.get();
+        adopt(std::move(footer));
+        mark_layout_dirty();
+    }
+    Widget* footer() const { return footer_; }
+
     // 无标题栏窗口：整块区域都是拖动带（内容里的控件仍然优先接收点击）。
     void set_title_bar_visible(bool visible)
     {
@@ -213,12 +223,24 @@ public:
     {
         if (body_ == nullptr) return;
         const float title = title_height();
-        const float body_h = collapsed_ ? 0.0f : std::max(0.0f, height() - title);
+        float footer_h = 0.0f;
+        if (footer_ != nullptr && footer_->visible()) {
+            footer_h = footer_->measure({global_.size.x, 0.0f}).y;
+        }
+        const float body_h = collapsed_ ? 0.0f : std::max(0.0f, height() - title - footer_h);
         body_->set_visible(!collapsed_);
-        // 右侧与下侧留出 resize 抓取带：否则边缘点击会被内容区吞掉，resize 永远轮不到窗口。
+        // 有 footer 时内容区全宽（footer 已覆盖底部抓取带），否则右侧留 resize 抓取带。
+        const float body_w = footer_ != nullptr ? global_.size.x
+                                                : std::max(0.0f, global_.size.x - kGripEdge);
+        // footer 已覆盖底部，body 不再为底部抓取带留空，避免中间 box 与 footer 之间出现缝。
+        const float body_grip = footer_ != nullptr ? 0.0f : kGripEdge;
         body_->arrange({{global_.pos.x, global_.pos.y + title},
-                        {std::max(0.0f, global_.size.x - kGripEdge),
-                         std::max(0.0f, body_h - kGripEdge)}});
+                        {body_w, std::max(0.0f, body_h - body_grip)}});
+        if (footer_ != nullptr) {
+            footer_->set_visible(!collapsed_ && visible());
+            footer_->arrange({{global_.pos.x, global_.pos.y + height() - footer_h},
+                              {global_.size.x, footer_h}});
+        }
     }
 
     void append_to(graphics::DrawList& list) const override
@@ -306,6 +328,14 @@ public:
                 graphics::Rectangle{box.pos.x + box.size.x - th, box.pos.y, th, box.size.y, c}
                     .append_to(list);
             }
+            list.pop_clip();
+        }
+
+        // 底部栏：全宽贴窗口底（在内容区 clip 之外，覆盖底部 resize 抓取带）。
+        if (!collapsed_ && footer_ != nullptr && footer_->visible()) {
+            // 窗口窄于内容时裁掉溢出部分，避免按钮跑出窗口。
+            list.push_clip(bounds);
+            footer_->append_to(list);
             list.pop_clip();
         }
     }
@@ -403,9 +433,10 @@ public:
             if ((edges_ & kEdgeRight) != 0) next_size.x += delta.x;
             if ((edges_ & kEdgeBottom) != 0) next_size.y += delta.y;
 
-            // 夹到最小尺寸：把左/上边被推回的那部分偿还给位置，避免窗口向右下飘。
-            const float min_w = 160.0f;
-            const float min_h = collapsed_ ? title_height() : title_height() + 48.0f;
+            // 夹到最小/最大尺寸：把左/上边被推回的那部分偿还给位置，避免窗口向右下飘。
+            const float min_w = std::max(160.0f, min_size().x);
+            const float min_h = collapsed_ ? title_height()
+                                           : std::max(title_height() + 48.0f, min_size().y);
             if (next_size.x < min_w) {
                 if ((edges_ & kEdgeLeft) != 0) next_pos.x -= min_w - next_size.x;
                 next_size.x = min_w;
@@ -414,6 +445,8 @@ public:
                 if ((edges_ & kEdgeTop) != 0) next_pos.y -= min_h - next_size.y;
                 next_size.y = min_h;
             }
+            next_size.x = std::min(next_size.x, max_size().x);
+            next_size.y = std::min(next_size.y, max_size().y);
 
             set_absolute_pos(next_pos);
             set_pos(next_pos);
@@ -530,6 +563,7 @@ private:
 
     std::string title_;
     Vbox* body_ = nullptr;
+    Widget* footer_ = nullptr;
     Mode mode_ = Mode::None;
     int edges_ = 0;
     glm::vec2 grab_{0.0f, 0.0f};

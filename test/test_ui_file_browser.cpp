@@ -1,10 +1,13 @@
 #include "ui/views/file_browser.hpp"
+#include "ui/containers/hbox.hpp"
+#include "ui/core/color_rect.hpp"
 
 #include <cassert>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <string>
 
 namespace fs = std::filesystem;
@@ -147,9 +150,25 @@ void test_auto_width()
     flex.set_min_size({200.0f, 300.0f});
     flex.set_max_size({2000.0f, 300.0f});
     assert(!flex.fixed_size());
+    // 自然宽度 = min_size.x，由父容器 flex_grow 扩展。
     const glm::vec2 m = flex.measure({700.0f, 900.0f});
-    assert(nearly(m.x, 700.0f) && nearly(m.y, 300.0f));
-    assert(nearly(flex.measure({100.0f, 900.0f}).x, 200.0f));
+    assert(nearly(m.x, 200.0f) && nearly(m.y, 300.0f));
+
+    // 在 Hbox 中：100 固定 + 8 间距 + 弹性列表占剩余 292。
+    xel::ui::Hbox row{0.0f, 0.0f, 400.0f, 300.0f};
+    row.set_padding(0.0f);
+    row.set_spacing(8.0f);
+    row.add(std::make_unique<xel::ui::ColorRect>(0.0f, 0.0f, 100.0f, 300.0f,
+                                                glm::vec4{1.0f}));
+    auto flex_ptr = std::make_unique<FileBrowser>(glm::vec2{400.0f, 300.0f});
+    flex_ptr->set_auto_width(true);
+    flex_ptr->set_min_size({200.0f, 300.0f});
+    flex_ptr->set_max_size({2000.0f, 300.0f});
+    flex_ptr->set_flex_grow(1.0f);
+    row.add(std::move(flex_ptr));
+    row.measure({400.0f, 300.0f});
+    row.arrange({{0.0f, 0.0f}, {400.0f, 300.0f}});
+    assert(nearly(row.children().back()->width(), 292.0f));
 }
 
 // 开表头后：表头区域不命中，行号从表头下方开始。

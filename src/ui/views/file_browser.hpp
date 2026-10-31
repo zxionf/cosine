@@ -113,7 +113,8 @@ public:
     const std::vector<TableColumn>& columns() const { return columns_; }
 
     // 弹性宽度：默认关闭（固定尺寸，保持 cosine 对话框行为）。
-    // 开启后 measure 按父给宽度，高度仍用 preferred_height_；调用方应同步调整 min/max。
+    // 开启后 measure 返回 min_size 作为「自然宽度」，高度用 preferred_height_；
+    // 父容器（Hbox）用 set_flex_grow(1) 把剩余宽度分配进来。
     void set_auto_width(bool on)
     {
         auto_width_ = on;
@@ -300,8 +301,8 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         if (!auto_width_) return clamp_size(min_size());
-        const float width = constraints.x > 0.0f ? constraints.x : min_size().x;
-        return clamp_size({width, preferred_height_});
+        (void)constraints;
+        return clamp_size({min_size().x, preferred_height_});
     }
     bool fixed_size() const override { return !auto_width_; }
 
