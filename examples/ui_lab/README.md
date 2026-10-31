@@ -26,14 +26,18 @@ lab 探索**未定 API** 的组合控件（无稳定测试、结论回填文档�
 
 ### E7 结论与缺口
 
-- **保留**：左分类（All / Images / Fonts / Projects）+ 中列表（`FileBrowser`）+ 右预览（`Image` 占位）在 880×520 下成立，列宽与详情都放得下。
+- **保留**：左分类（All / Images / Fonts / Projects）+ 中列表（`FileBrowser`）+ 右预览（`Image` 占位）在 880×520 下成立。
 - **保留**：单选模型（`FileBrowser::selected_index`）足够支撑预览与状态栏。
-- **保留**：顶部单行路径输入框（`TextInput`）+ Up + Go 的地址栏形态。
-- **缺口 1**：`FileBrowser` 是 `fixed_size()`，中栏宽度必须写死，窗口拉宽/缩小时不跟随。
-- **缺口 2**：`FileBrowser` 只有扩展名过滤，没有名字过滤；搜索框只能占位。
-- **缺口 3**：`FileBrowser` 键盘只处理 Up / Down / Enter / Backspace，缺 Home / End / PageUp / PageDown。
-- **缺口 4**：`TextInput` 单行模式没有 Enter 提交回调（`on_key_down` 对 Enter 返回 false），地址栏只能靠 Go 按钮提交。
-- **缺口 5**：`Image` 只画占位（不采样纹理），真实缩略图需要等纹理槽接入。
+- **保留**：地址栏（Up + 单行路径 + 搜索 + Go）与窗口内底部状态栏（选中摘要 + Import 占位）。
+- **已落地**：
+  - `FileBrowser` 开表头（Name / Size），行命中与滚动扣除表头高度。
+  - 中栏 `auto_width + flex_grow`，窗口 resize 时列表跟随，左右栏固定。
+  - 搜索框接 `name_filter`（大小写不敏感，与扩展名过滤叠加）。
+  - 默认选中第一个非 `..` 条目，右栏与状态栏有内容。
+- **缺口 1**：`TextInput` 单行模式没有 Enter 提交回调，地址栏依赖 Go 按钮；搜索框也没有 placeholder。
+- **缺口 2**：`Button` 没有 selected 样式，分类栏用 `set_pressed()` 近似选中态。
+- **缺口 3**：`Image` 在 lab 中仍是占位；`ui::Image` 已支持真实纹理（UI-16），但未接 `TextureCache`。
+- **缺口 4**：无目录/文件类型图标、无多选、无拖拽导入。
 
 ## 运行
 
