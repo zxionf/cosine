@@ -154,6 +154,7 @@ public:
     }
     void set_visible(bool visible) { visible_ = visible; mark_layout_dirty(); }
     virtual void debug() { debug_ = true; }
+    void set_debug(bool enabled) { debug_ = enabled; mark_layout_dirty(); }
     bool is_debug() const { return debug_; }
     void debug_recursive()
     {

@@ -89,7 +89,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 2,
+      "skipped_count": 7,
       "status": "paused",
       "steps": [
         {
@@ -228,33 +228,33 @@
           "desc": "能浏览目录、按类型过滤、看到资源信息、选中结果可回传",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-10-31T08:42:18Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "缩略图网格可用",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-10-31T08:42:18Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ui_lab 冒烟 exit=0 / validation=0",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-10-31T08:42:18Z",
+          "verified_by": "agent:pi"
         }
       ],
-      "archived_at": null,
+      "archived_at": "2026-10-31T12:11:08Z",
       "archived_git_head": null,
       "created_at": "2026-10-31T06:33:19Z",
       "current_step": null,
       "depends": [],
-      "finished_at": null,
+      "finished_at": "2026-10-31T12:11:08Z",
       "goal": "EX-4 ui_lab 内置资源浏览器",
       "id": "T3",
       "line": "examples",
@@ -284,8 +284,8 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 2,
-      "status": "paused",
+      "skipped_count": 0,
+      "status": "archived",
       "steps": [
         {
           "desc": "",
@@ -374,10 +374,488 @@
           "skipped_reason": null,
           "status": "done",
           "title": "冒烟 exit=0 / validation=0 + README 结论回填（占位纹理、固定宽度限制、搜索 API 缺口）"
+        },
+        {
+          "desc": "",
+          "id": "S9",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "地址栏合并：Up + 路径 500 + 搜索 180 + Go，删除独立搜索行"
+        },
+        {
+          "desc": "",
+          "id": "S10",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "底部状态栏：选中摘要（name | W×H | bytes）+ Spacer + Import（仅占位）"
+        },
+        {
+          "desc": "",
+          "id": "S11",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "右栏整理：去掉 Preview 标题；顺序改为 name / 像素 / 字节 / 路径；字号 16 + 截断"
+        },
+        {
+          "desc": "",
+          "id": "S12",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "左栏整理：分类按钮统一 100×28，pressed 表示选中"
+        },
+        {
+          "desc": "",
+          "id": "S13",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "高度与间距：body 392、列表 364、状态栏 28；保留窗口 resize"
+        },
+        {
+          "desc": "",
+          "id": "S14",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "冒烟 + README 更新（本轮偏差修正）"
+        },
+        {
+          "desc": "",
+          "id": "S15",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "接入表头：FileBrowser set_header_height / set_columns"
+        },
+        {
+          "desc": "",
+          "id": "S16",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "接入弹性宽度：中栏随窗口宽度"
+        },
+        {
+          "desc": "",
+          "id": "S17",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "接入 name_filter：搜索框真实过滤"
+        },
+        {
+          "desc": "",
+          "id": "S18",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "最终冒烟 + README 收尾"
+        },
+        {
+          "desc": "",
+          "id": "S19",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交资源浏览器改动"
+        },
+        {
+          "desc": "",
+          "id": "S20",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "footer 裁剪与窗口最小宽度：缩小时按钮不溢出"
+        },
+        {
+          "desc": "",
+          "id": "S21",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "搭建资源浏览器框架：独立窗口 + debug 布局框 + 旧内容移到 Assets (old)"
+        },
+        {
+          "desc": "",
+          "id": "S22",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "框架改为三个全宽 box（顶部/中间/底部），每个 box 开启 debug 边框"
+        },
+        {
+          "desc": "",
+          "id": "S23",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "三个 box 改为空容器（去掉 ColorRect），只保留 debug 边框"
+        },
+        {
+          "desc": "",
+          "id": "S24",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "删除中间 box 与底部 box 间隙；顶部 box 加回目录与搜索输入"
+        },
+        {
+          "desc": "",
+          "id": "S25",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "底部 box 加回状态文字与 Import，竖向居中"
+        },
+        {
+          "desc": "",
+          "id": "S26",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "修复 Spacer::measure 使用 arranged 尺寸导致 flex_grow 无法收缩（Import 不随窗口变小）"
+        },
+        {
+          "desc": "",
+          "id": "S27",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "中间 box 加回三栏：左 110 固定、中 flex 填充、右 240 固定"
+        },
+        {
+          "desc": "",
+          "id": "S28",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "中间 box 填真实内容：分类按钮 + FileBrowser + 预览信息"
+        },
+        {
+          "desc": "",
+          "id": "S29",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "左栏分类按钮横向居中（cross_align=top_center）"
+        },
+        {
+          "desc": "",
+          "id": "S30",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "删除旧版资源浏览器实现；关闭三个 box 的 debug；只开启中间左栏 debug"
+        },
+        {
+          "desc": "",
+          "id": "S31",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "关闭资源浏览器所有 debug（移除 left->debug，恢复 UIRoot debug 判断）"
+        },
+        {
+          "desc": "",
+          "id": "S32",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "右栏接入真实图片预览：TextureCache + Renderer，png 显示纹理，非 png 回退占位"
+        },
+        {
+          "desc": "",
+          "id": "S33",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交资源浏览器框架与图片预览"
+        },
+        {
+          "desc": "",
+          "id": "S34",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交删除 ui_lab E7 资源浏览器"
         }
       ],
       "title": "EX-4 ui_lab 内置资源浏览器",
       "uid": "tsk_01M68AK9BX0HPGM189CZ7715AR"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "settings 窗口 TabBar 新增 Widget 页，切换正常",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T14:46:37Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "显示当前控件：类型、位置、尺寸、可见性、z、子项数（每帧刷新）",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T14:46:37Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "可修改通用属性与类型特定属性，修改立即生效",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T14:46:37Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "目标控件销毁/隐藏时自动清理；ui_lab 冒烟 exit=0 / validation=0",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T14:46:37Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T14:16:10Z",
+      "current_step": "S12",
+      "depends": [],
+      "finished_at": "2026-10-31T15:29:01Z",
+      "goal": "EX-5 ui_lab Widget 调试页",
+      "id": "T4",
+      "line": "examples",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "examples"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Widget 页骨架：TabBar 第一项 \"Widget\"；Section 内容改为 ScrollPanel 可滚动；fill_widget 入口"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "目标选择：默认跟随 hovered，点击锁定/解锁；显示子控件列表，可点选切换目标并返回上级"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "只读信息：本地 widget_name()、pos/size、visible、z_index、children 数；每帧刷新"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "通用属性修改：pos / size / visible / z_index / absolute / flex_grow，即时应用到目标"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Debug 绘制开关：目标控件单层/递归边框，可开启与关闭（需 Widget 增加 set_debug(bool)）"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "目标失效处理：控件销毁/隐藏/切换实验时清空；每帧校验目标指针仍在树中"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "冒烟与 README：ui_lab exit=0 / validation=0，更新实验表与结论"
+        },
+        {
+          "desc": "",
+          "id": "S8",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "修复：滚动区随窗口高度；选择控件排除 settings 窗口内容；ScrollView 轨道过短时的 clamp 防御"
+        },
+        {
+          "desc": "",
+          "id": "S9",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "修复：鼠标进入 settings 窗口时保留最后可调试 hover 目标，使 Lock hovered 可用"
+        },
+        {
+          "desc": "",
+          "id": "S10",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "重设计抓取：hover 停留 0.12s 自动抓取；settings 面板内保持目标；Follow hover 开关 + Clear；子控件列表点击冻结；修复 Tab 标题被 clear"
+        },
+        {
+          "desc": "",
+          "id": "S11",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "修复：切换 Tab 时清空 Widget 页控件指针并暂停调试更新，避免悬空指针崩溃"
+        },
+        {
+          "desc": "",
+          "id": "S12",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "in_progress",
+          "title": "提交 EX-5"
+        }
+      ],
+      "title": "EX-5 ui_lab Widget 调试页",
+      "uid": "tsk_01M6952SZC706MNVECKHHQCCAG"
     }
   ]
 }

@@ -3,7 +3,10 @@
 // 硬约束：产品代码不得依赖本目录；lab 不进 ctest 断言，只有冒烟门禁。
 
 #include "ui/core/button.hpp"
+#include "ui/core/checkbox.hpp"
 #include "ui/core/color_rect.hpp"
+#include "ui/core/drag_float.hpp"
+#include "ui/core/image.hpp"
 #include "ui/views/file_browser.hpp"
 #include "ui/containers/hbox.hpp"
 #include "ui/core/label.hpp"
@@ -15,6 +18,7 @@
 #include "ui/theme.hpp"
 #include "ui/containers/vbox.hpp"
 #include "ui/composites/section.hpp"
+#include "ui/composites/scroll_panel.hpp"
 #include "ui/core/tab_bar.hpp"
 #include "ui/composites/window.hpp"
 #include "graphics/text_debug.hpp"
@@ -37,6 +41,8 @@
 namespace
 {
 using xel::ui::Button;
+using xel::ui::Checkbox;
+using xel::ui::DragFloat;
 using xel::ui::Label;
 using xel::ui::Panel;
 using xel::ui::Slider;
@@ -144,6 +150,59 @@ struct Density
     Label* spacing_value = nullptr;
 };
 
+// 本地控件名识别（参考 DebugOverlay 的判断链，lab 自用）。
+std::string widget_name(const xel::ui::Widget* widget)
+{
+    if (widget == nullptr) return "-";
+    if (dynamic_cast<const Label*>(widget)) return "Label";
+    if (dynamic_cast<const Button*>(widget)) return "Button";
+    if (dynamic_cast<const xel::ui::ColorRect*>(widget)) return "ColorRect";
+    if (dynamic_cast<const xel::ui::TextInput*>(widget)) return "TextInput";
+    if (dynamic_cast<const xel::ui::Slider*>(widget)) return "Slider";
+    if (dynamic_cast<const xel::ui::Spacer*>(widget)) return "Spacer";
+    if (dynamic_cast<const xel::ui::Image*>(widget)) return "Image";
+    if (dynamic_cast<const xel::ui::FileBrowser*>(widget)) return "FileBrowser";
+    if (dynamic_cast<const xel::ui::ScrollPanel*>(widget)) return "ScrollPanel";
+    if (dynamic_cast<const xel::ui::Section*>(widget)) return "Section";
+    if (dynamic_cast<const xel::ui::TabBar*>(widget)) return "TabBar";
+    if (dynamic_cast<const xel::ui::Window*>(widget)) return "Window";
+    if (dynamic_cast<const xel::ui::Panel*>(widget)) return "Panel";
+    if (dynamic_cast<const xel::ui::Hbox*>(widget)) return "Hbox";
+    if (dynamic_cast<const xel::ui::Vbox*>(widget)) return "Vbox";
+    return "Widget";
+}
+
+void set_debug_recursive(xel::ui::Widget* widget, bool enabled)
+{
+    if (widget == nullptr) return;
+    widget->set_debug(enabled);
+    for (const auto& child : widget->children()) {
+        set_debug_recursive(child.get(), enabled);
+    }
+}
+
+bool widget_in_tree(const xel::ui::Widget* root, const xel::ui::Widget* target)
+{
+    if (root == nullptr || target == nullptr) return false;
+    if (root == target) return true;
+    for (const auto& child : root->children()) {
+        if (widget_in_tree(child.get(), target)) return true;
+    }
+    for (const auto& overlay : root->overlays()) {
+        if (widget_in_tree(overlay.get(), target)) return true;
+    }
+    return false;
+}
+
+bool is_descendant(const xel::ui::Widget* widget, const xel::ui::Widget* ancestor)
+{
+    if (widget == nullptr || ancestor == nullptr) return false;
+    for (const xel::ui::Widget* w = widget; w != nullptr; w = w->parent()) {
+        if (w == ancestor) return true;
+    }
+    return false;
+}
+
 // ---------- 实验室外壳 ----------
 
 struct Lab
@@ -159,6 +218,29 @@ struct Lab
     std::vector<xel::ui::Window*> windows;
     // 全局参数窗口（无标题栏、始终置顶）。
     xel::ui::Window* settings = nullptr;
+    xel::ui::ScrollPanel* settings_scroll = nullptr;
+    // Widget 调试页（EX-5）。
+    xel::ui::Widget* widget_target = nullptr;
+    xel::ui::Widget* widget_hovered = nullptr;
+    xel::ui::Widget* widget_hover_candidate = nullptr;
+    float widget_hover_time = 0.0f;
+    bool widget_follow = true;
+    Label* widget_target_label = nullptr;
+    Label* widget_info_label = nullptr;
+    Vbox* widget_children_box = nullptr;
+    DragFloat* widget_pos_x = nullptr;
+    DragFloat* widget_pos_y = nullptr;
+    DragFloat* widget_size_w = nullptr;
+    DragFloat* widget_size_h = nullptr;
+    DragFloat* widget_z = nullptr;
+    DragFloat* widget_flex = nullptr;
+    Checkbox* widget_visible = nullptr;
+    Checkbox* widget_absolute = nullptr;
+    Checkbox* widget_debug = nullptr;
+    Checkbox* widget_debug_children = nullptr;
+    Checkbox* widget_follow_box = nullptr;
+    bool widget_updating = false;
+    bool widget_page_active = false;
     bool labels_debug = false;
     xel::ui::Theme theme;
     int current = -1;
@@ -169,6 +251,11 @@ struct Lab
     }
 
     void select(int index);
+    void update_widget_debug(const xel::ui::Widget* hovered, const xel::ui::Widget* focused,
+                             float dt);
+    void update_widget_props();
+    void clear_widget_page_refs();
+    void rebuild_widget_children();
 };
 
 void apply_density(Lab& lab)
@@ -376,8 +463,10 @@ void build(Lab& lab, xel::ui::UIRoot& root)
                                                       glm::vec2{440.0f, 320.0f});
     settings->set_title_bar_visible(false);
     settings->set_always_on_top(true);
+    settings->content()->set_cross_align(xel::ui::Align::h_stretch());
 
     auto tabs = std::make_unique<xel::ui::TabBar>();
+    tabs->add_tab("Widget");
     tabs->add_tab("Font");
     tabs->add_tab("Theme");
     tabs->add_tab("Scene");
@@ -389,15 +478,175 @@ void build(Lab& lab, xel::ui::UIRoot& root)
     auto* settings_status_ptr = settings_status.get();
     settings->add(std::move(settings_status));
 
-    auto section = std::make_unique<xel::ui::Section>("Font");
-    auto* section_ptr = section.get();
-    settings->add(std::move(section));
+    // 直接使用 ScrollPanel 作为内容区：高度由 settings 窗口剩余空间决定，随 resize 跟随。
+    auto scroll = std::make_unique<xel::ui::ScrollPanel>(0.0f, 0.0f, 0.0f, 0.0f);
+    scroll->set_size_percent({1.0f, 0.0f});
+    scroll->set_flex_grow(1.0f);
+    scroll->set_min_size({0.0f, 0.0f});
+    scroll->set_max_size({10000.0f, 10000.0f});
+    auto* scroll_ptr = scroll.get();
+    settings->add(std::move(scroll));
+    lab.settings_scroll = scroll_ptr;
 
-    // 三页内容切换时重建（Section::clear + add），避免隐藏页仍参与排布。
-    auto fill_font = [&lab, section_ptr, settings_status_ptr] {
-        section_ptr->set_title("Font · 文字与调试绘制");
-        section_ptr->clear();
-        section_ptr->add(std::make_unique<Button>("Toggle font debug", [&lab, settings_status_ptr] {
+    // 内容切换时重建到 ScrollPanel 的内容区。
+    auto fill_widget = [&lab, scroll_ptr, settings_status_ptr] {
+        lab.clear_widget_page_refs();
+        lab.widget_page_active = true;
+        scroll_ptr->content()->clear_children();
+        scroll_ptr->content()->add(std::make_unique<Label>("Widget · 当前控件", 20.0f));
+        auto target = std::make_unique<Label>("target: -", 18.0f);
+        lab.widget_target_label = target.get();
+        scroll_ptr->content()->add(std::move(target));
+        auto info = std::make_unique<Label>("hover a widget", 16.0f);
+        lab.widget_info_label = info.get();
+        scroll_ptr->content()->add(std::move(info));
+
+        // 通用属性编辑行。
+        auto pos_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 36.0f);
+        pos_row->set_padding(0.0f);
+        pos_row->set_spacing(6.0f);
+        pos_row->set_cross_align(xel::ui::Align::center_left());
+        pos_row->add(std::make_unique<Label>("Pos", 16.0f));
+        auto px = std::make_unique<DragFloat>("", 90.0f);
+        px->set_range(-10000.0f, 10000.0f);
+        lab.widget_pos_x = px.get();
+        px->set_on_change([&lab](float value) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            const auto b = lab.widget_target->local_bounds();
+            lab.widget_target->set_pos(value, b.pos.y);
+        });
+        pos_row->add(std::move(px));
+        auto py = std::make_unique<DragFloat>("", 90.0f);
+        py->set_range(-10000.0f, 10000.0f);
+        lab.widget_pos_y = py.get();
+        py->set_on_change([&lab](float value) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            const auto b = lab.widget_target->local_bounds();
+            lab.widget_target->set_pos(b.pos.x, value);
+        });
+        pos_row->add(std::move(py));
+        scroll_ptr->content()->add(std::move(pos_row));
+
+        auto size_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 36.0f);
+        size_row->set_padding(0.0f);
+        size_row->set_spacing(6.0f);
+        size_row->set_cross_align(xel::ui::Align::center_left());
+        size_row->add(std::make_unique<Label>("Size", 16.0f));
+        auto sw = std::make_unique<DragFloat>("", 90.0f);
+        sw->set_range(0.0f, 10000.0f);
+        lab.widget_size_w = sw.get();
+        sw->set_on_change([&lab](float value) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            const auto b = lab.widget_target->local_bounds();
+            lab.widget_target->set_size(value, b.size.y);
+        });
+        size_row->add(std::move(sw));
+        auto sh = std::make_unique<DragFloat>("", 90.0f);
+        sh->set_range(0.0f, 10000.0f);
+        lab.widget_size_h = sh.get();
+        sh->set_on_change([&lab](float value) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            const auto b = lab.widget_target->local_bounds();
+            lab.widget_target->set_size(b.size.x, value);
+        });
+        size_row->add(std::move(sh));
+        scroll_ptr->content()->add(std::move(size_row));
+
+        auto z_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 36.0f);
+        z_row->set_padding(0.0f);
+        z_row->set_spacing(6.0f);
+        z_row->set_cross_align(xel::ui::Align::center_left());
+        z_row->add(std::make_unique<Label>("Z", 16.0f));
+        auto z = std::make_unique<DragFloat>("", 90.0f);
+        z->set_range(-1000.0f, 1000.0f);
+        lab.widget_z = z.get();
+        z->set_on_change([&lab](float value) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            lab.widget_target->set_z_index(static_cast<int>(value + 0.5f));
+        });
+        z_row->add(std::move(z));
+        scroll_ptr->content()->add(std::move(z_row));
+
+        auto flex_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 36.0f);
+        flex_row->set_padding(0.0f);
+        flex_row->set_spacing(6.0f);
+        flex_row->set_cross_align(xel::ui::Align::center_left());
+        flex_row->add(std::make_unique<Label>("Flex", 16.0f));
+        auto flex = std::make_unique<DragFloat>("", 90.0f);
+        flex->set_range(0.0f, 100.0f);
+        lab.widget_flex = flex.get();
+        flex->set_on_change([&lab](float value) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            lab.widget_target->set_flex_grow(value);
+        });
+        flex_row->add(std::move(flex));
+        scroll_ptr->content()->add(std::move(flex_row));
+
+        auto toggle_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 36.0f);
+        toggle_row->set_padding(0.0f);
+        toggle_row->set_spacing(8.0f);
+        toggle_row->set_cross_align(xel::ui::Align::center_left());
+        auto visible = std::make_unique<Checkbox>("Visible", false, [&lab](bool checked) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            lab.widget_target->set_visible(checked);
+        });
+        lab.widget_visible = visible.get();
+        toggle_row->add(std::move(visible));
+        auto absolute = std::make_unique<Checkbox>("Absolute", false, [&lab](bool checked) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            lab.widget_target->set_absolute(checked);
+        });
+        lab.widget_absolute = absolute.get();
+        toggle_row->add(std::move(absolute));
+        scroll_ptr->content()->add(std::move(toggle_row));
+
+        auto debug_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 0.0f, 36.0f);
+        debug_row->set_padding(0.0f);
+        debug_row->set_spacing(8.0f);
+        debug_row->set_cross_align(xel::ui::Align::center_left());
+        auto debug = std::make_unique<Checkbox>("Debug", false, [&lab](bool checked) {
+            if (lab.widget_updating || lab.widget_target == nullptr) return;
+            lab.widget_target->set_debug(checked);
+            if (lab.root != nullptr) lab.root->set_debug(true);
+        });
+        lab.widget_debug = debug.get();
+        debug_row->add(std::move(debug));
+        auto debug_children = std::make_unique<Checkbox>("Debug children", false, [&lab](bool checked) {
+            if (lab.widget_target == nullptr) return;
+            set_debug_recursive(lab.widget_target, checked);
+            if (lab.root != nullptr) lab.root->set_debug(true);
+        });
+        lab.widget_debug_children = debug_children.get();
+        debug_row->add(std::move(debug_children));
+        scroll_ptr->content()->add(std::move(debug_row));
+
+        auto follow = std::make_unique<Checkbox>(
+            "Follow hover", lab.widget_follow, [&lab](bool checked) {
+                lab.widget_follow = checked;
+            });
+        lab.widget_follow_box = follow.get();
+        scroll_ptr->content()->add(std::move(follow));
+        scroll_ptr->content()->add(std::make_unique<Button>("Clear", [&lab] {
+            lab.widget_target = nullptr;
+            lab.rebuild_widget_children();
+            lab.update_widget_props();
+        }));
+        auto children = std::make_unique<Vbox>(0.0f, 0.0f, 0.0f, 0.0f);
+        children->set_spacing(4.0f);
+        children->set_cross_align(xel::ui::Align::top_left());
+        lab.widget_children_box = children.get();
+        scroll_ptr->content()->add(std::move(children));
+        lab.rebuild_widget_children();
+        (void)settings_status_ptr;
+        (void)settings_status_ptr;
+    };
+
+    auto fill_font = [&lab, scroll_ptr, settings_status_ptr] {
+        lab.clear_widget_page_refs();
+        lab.widget_page_active = false;
+        scroll_ptr->content()->clear_children();
+        scroll_ptr->content()->add(std::make_unique<Label>("Font · 文字与调试绘制", 20.0f));
+        scroll_ptr->content()->add(std::make_unique<Button>("Toggle font debug", [&lab, settings_status_ptr] {
             lab.labels_debug = !lab.labels_debug;
             xel::graphics::TextDebugOptions options;
             options.glyph_boxes = lab.labels_debug;
@@ -409,42 +658,49 @@ void build(Lab& lab, xel::ui::UIRoot& root)
             }
             lab.set_status(lab.labels_debug ? "font debug: on" : "font debug: off");
         }));
-        section_ptr->add(std::make_unique<Button>("Glyph boxes only", [&lab] {
+        scroll_ptr->content()->add(std::make_unique<Button>("Glyph boxes only", [&lab] {
             xel::graphics::TextDebugOptions options;
             options.glyph_boxes = true;
             apply_label_debug(lab.root, options);
             lab.set_status("font debug: glyph boxes");
         }));
-        section_ptr->add(std::make_unique<Label>(
+        scroll_ptr->content()->add(std::make_unique<Label>(
             "调试绘制作用于现有控件，新建控件需再点一次", 18.0f));
     };
 
-    auto fill_theme = [&lab, section_ptr] {
-        section_ptr->set_title("Theme · 主题与密度");
-        section_ptr->clear();
-        section_ptr->add(std::make_unique<Label>(
+    auto fill_theme = [&lab, scroll_ptr] {
+        lab.clear_widget_page_refs();
+        lab.widget_page_active = false;
+        scroll_ptr->content()->clear_children();
+        scroll_ptr->content()->add(std::make_unique<Label>("Theme · 主题与密度", 20.0f));
+        scroll_ptr->content()->add(std::make_unique<Label>(
             "text " + std::format("{:.0f}", lab.theme.text_size) + "    control " +
                 std::format("{:.0f}", lab.theme.control_height) + "    padding " +
                 std::format("{:.0f}", lab.theme.padding) + "    spacing " +
                 std::format("{:.0f}", lab.theme.spacing),
             18.0f));
-        section_ptr->add(std::make_unique<Label>("密度实时调参：见 E2 主题密度矩阵", 18.0f));
-        section_ptr->add(std::make_unique<Label>("令牌色板编辑：待 UI-3 后续", 18.0f));
+        scroll_ptr->content()->add(
+            std::make_unique<Label>("密度实时调参：见 E2 主题密度矩阵", 18.0f));
+        scroll_ptr->content()->add(
+            std::make_unique<Label>("令牌色板编辑：待 UI-3 后续", 18.0f));
     };
 
-    auto fill_scene = [&lab, section_ptr] {
-        section_ptr->set_title("Scene · 场景与导出");
-        section_ptr->clear();
-        section_ptr->add(std::make_unique<Label>(
+    auto fill_scene = [&lab, scroll_ptr] {
+        lab.clear_widget_page_refs();
+        lab.widget_page_active = false;
+        scroll_ptr->content()->clear_children();
+        scroll_ptr->content()->add(std::make_unique<Label>("Scene · 场景与导出", 20.0f));
+        scroll_ptr->content()->add(std::make_unique<Label>(
             std::string{"current: "} + kExperiments[lab.current < 0 ? 0 : lab.current].title,
             18.0f));
-        section_ptr->add(std::make_unique<Button>("Next experiment", [&lab] {
+        scroll_ptr->content()->add(std::make_unique<Button>("Next experiment", [&lab] {
             lab.select((lab.current + 1) % kExperimentCount);
         }));
-        section_ptr->add(std::make_unique<Label>("离屏导出：见 E1 的 Export PNG", 18.0f));
+        scroll_ptr->content()->add(
+            std::make_unique<Label>("离屏导出：见 E1 的 Export PNG", 18.0f));
     };
 
-    std::vector<std::function<void()>> fills{fill_font, fill_theme, fill_scene};
+    std::vector<std::function<void()>> fills{fill_widget, fill_font, fill_theme, fill_scene};
     tabs_ptr->set_on_change([fills, &lab](int index) {
         if (index >= 0 && index < static_cast<int>(fills.size())) {
             fills[static_cast<std::size_t>(index)]();
@@ -456,7 +712,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
         }
     });
     tabs_ptr->set_selected(0, false);
-    fill_font();
+    fill_widget();
 
     // 导出验证用：直接切到指定页，走一遍「重建 + 重排」的路径。
     if (const char* tab = std::getenv("COSINE_LAB_SETTINGS_TAB")) {
@@ -482,6 +738,137 @@ void build(Lab& lab, xel::ui::UIRoot& root)
     }
 }
 
+void Lab::clear_widget_page_refs()
+{
+    widget_target_label = nullptr;
+    widget_info_label = nullptr;
+    widget_children_box = nullptr;
+    widget_pos_x = nullptr;
+    widget_pos_y = nullptr;
+    widget_size_w = nullptr;
+    widget_size_h = nullptr;
+    widget_z = nullptr;
+    widget_flex = nullptr;
+    widget_visible = nullptr;
+    widget_absolute = nullptr;
+    widget_debug = nullptr;
+    widget_debug_children = nullptr;
+    widget_follow_box = nullptr;
+}
+
+void Lab::rebuild_widget_children()
+{
+    if (widget_children_box == nullptr) return;
+    widget_children_box->clear_children();
+    if (widget_target == nullptr) return;
+
+    if (auto* parent = widget_target->parent()) {
+        widget_children_box->add(std::make_unique<Button>(
+            "^ parent: " + widget_name(parent), [this, parent] {
+                widget_target = parent;
+                widget_follow = false;
+                if (widget_follow_box != nullptr) widget_follow_box->set_checked(false);
+                rebuild_widget_children();
+            }));
+    }
+
+    widget_children_box->add(std::make_unique<Label>("children:", 16.0f));
+    for (const auto& child : widget_target->children()) {
+        auto* ptr = child.get();
+        widget_children_box->add(std::make_unique<Button>(
+            widget_name(ptr), [this, ptr] {
+                widget_target = ptr;
+                widget_follow = false;
+                if (widget_follow_box != nullptr) widget_follow_box->set_checked(false);
+                rebuild_widget_children();
+            }));
+    }
+}
+
+void Lab::update_widget_debug(const xel::ui::Widget* hovered, const xel::ui::Widget* focused,
+                              float dt)
+{
+    (void)focused;
+    if (!widget_page_active) return;
+    // 目标失效（被销毁/移出 root/进入调试窗口）时清空。
+    if (widget_target != nullptr
+        && (!widget_in_tree(root, widget_target) || is_descendant(widget_target, settings))) {
+        widget_target = nullptr;
+        widget_hover_candidate = nullptr;
+        widget_hover_time = 0.0f;
+        rebuild_widget_children();
+    }
+
+    // 抓取：鼠标在可调试控件上“停留”一小段时间才成为目标。
+    // 这样从目标移向 settings 面板时，途经的控件不会被误抓；移到面板或空白后保持原目标。
+    widget_hovered = nullptr;
+    if (hovered != nullptr && hovered != root && !is_descendant(hovered, settings)) {
+        widget_hovered = const_cast<xel::ui::Widget*>(hovered);
+        if (widget_follow) {
+            if (widget_hovered == widget_hover_candidate) {
+                widget_hover_time += dt;
+            } else {
+                widget_hover_candidate = widget_hovered;
+                widget_hover_time = 0.0f;
+            }
+            if (widget_hover_time >= 0.12f && widget_target != widget_hovered) {
+                widget_target = widget_hovered;
+                rebuild_widget_children();
+            }
+        }
+    } else {
+        widget_hover_candidate = nullptr;
+        widget_hover_time = 0.0f;
+    }
+
+    if (widget_target_label != nullptr) {
+        widget_target_label->set_text("target: " + widget_name(widget_target));
+    }
+    if (widget_info_label != nullptr) {
+        if (widget_target == nullptr) {
+            widget_info_label->set_text("hover a widget");
+        } else {
+            const auto& bounds = widget_target->global_bounds();
+            widget_info_label->set_text(std::format(
+                "pos {:.0f},{:.0f}  size {:.0f}x{:.0f}  visible {}  z {}  children {}",
+                bounds.pos.x, bounds.pos.y, bounds.size.x, bounds.size.y,
+                widget_target->visible() ? "yes" : "no", widget_target->z_index(),
+                widget_target->children().size()));
+        }
+    }
+    update_widget_props();
+}
+
+void Lab::update_widget_props()
+{
+    widget_updating = true;
+    const xel::ui::Widget* target = widget_target;
+    const xel::ui::Rect bounds = target ? target->local_bounds() : xel::ui::Rect{};
+    if (widget_pos_x != nullptr) widget_pos_x->set_value(bounds.pos.x);
+    if (widget_pos_y != nullptr) widget_pos_y->set_value(bounds.pos.y);
+    if (widget_size_w != nullptr) widget_size_w->set_value(bounds.size.x);
+    if (widget_size_h != nullptr) widget_size_h->set_value(bounds.size.y);
+    if (widget_z != nullptr) {
+        widget_z->set_value(target != nullptr ? static_cast<float>(target->z_index()) : 0.0f);
+    }
+    if (widget_flex != nullptr) {
+        widget_flex->set_value(target != nullptr ? target->flex_grow() : 0.0f);
+    }
+    if (widget_visible != nullptr) {
+        widget_visible->set_checked(target != nullptr && target->visible());
+    }
+    if (widget_absolute != nullptr) {
+        widget_absolute->set_checked(target != nullptr && target->absolute());
+    }
+    if (widget_debug != nullptr) {
+        widget_debug->set_checked(target != nullptr && target->is_debug());
+    }
+    if (widget_debug_children != nullptr) {
+        widget_debug_children->set_checked(target != nullptr && target->is_debug());
+    }
+    widget_updating = false;
+}
+
 int run()
 {
     xel::Application app{static_cast<int>(kW), static_cast<int>(kH), "ui_lab"};
@@ -492,6 +879,7 @@ int run()
     // 离屏导出：与其它示例一致的固定尺寸，便于人工核对布局。
     if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
         app.uisys.tick(1.0f / 60.0f);
+        lab.update_widget_debug(app.uisys.hovered(), app.uisys.focused(), 1.0f / 60.0f);
 
         auto* root = app.uisys.root();
         root->set_size(kW, kH);
@@ -522,9 +910,9 @@ int run()
         const auto& stats = app.renderer_.frame_stats();
         const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
         app.uisys.tick(dt);
+        lab.update_widget_debug(app.uisys.hovered(), app.uisys.focused(), dt);
 
-        app.renderer_.draw(*app.uisys.root());
-        app.renderer_.end();
+        app.renderer_.draw(*app.uisys.root());        app.renderer_.end();
 
         total_time += dt;
         if (exit_after > 0.0f && total_time >= exit_after) {

@@ -114,7 +114,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 2,
+      "skipped_count": 7,
       "status": "paused",
       "steps": [
         {
@@ -236,7 +236,7 @@
           "requires_review": false,
           "skipped_reason": null,
           "status": "todo",
-          "title": "帧序列导出：时间范围 + 帧率 + 输出目录"
+          "title": "导出设置模型：时间范围 / 帧率 / 分辨率 / 背景色 / 输出路径（均可配置）"
         },
         {
           "desc": "",
@@ -247,7 +247,7 @@
           "requires_review": false,
           "skipped_reason": null,
           "status": "todo",
-          "title": "外部 ffmpeg 管道调用（参数拼装 + 失败信息）"
+          "title": "编码与色彩决策落地：rawvideo 直通 + libx264/mp4 + yuv420p + bt709"
         },
         {
           "desc": "",
@@ -258,7 +258,7 @@
           "requires_review": false,
           "skipped_reason": null,
           "status": "todo",
-          "title": "编码器选型与色彩空间决策"
+          "title": "帧导出：独立 SceneView + Player.seek + render_offscreen → rawvideo 写入 ffmpeg 管道"
         },
         {
           "desc": "",
@@ -269,7 +269,7 @@
           "requires_review": false,
           "skipped_reason": null,
           "status": "todo",
-          "title": "导出进度反馈（状态栏百分比 + 可取消）"
+          "title": "ffmpeg 进程：启动/参数拼装/缺失检测（缺失直接报错，不落盘）"
         },
         {
           "desc": "",
@@ -280,7 +280,18 @@
           "requires_review": false,
           "skipped_reason": null,
           "status": "todo",
-          "title": "冒烟：小尺寸短时长导出进 CI 脚本（可选）"
+          "title": "进度显示与取消：状态栏百分比；取消删除已生成的 mp4，报错保留"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "测试与冒烟：帧数/时间计算、ffmpeg 参数、缺 ffmpeg 错误、小尺寸短时长"
         }
       ],
       "title": "CO-3 M6.6 导出管线",
@@ -376,6 +387,323 @@
       ],
       "title": "CO-4 M6.7 脚本共存",
       "uid": "tsk_01M68AKQ37XXHSBCB9D5MXC3B3"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Assets 独立窗口可从 View 菜单打开/关闭",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T11:54:17Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "分类/搜索/表头/单选/预览正常；双击文件不导入，Import 按钮导入",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T11:54:17Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "默认 cwd；打开项目后切到项目目录",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T11:54:17Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "cosine 冒烟 exit=0 / validation=0；ctest 全绿",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T11:54:17Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "删除 ui_lab 的 E7 资源浏览器实现",
+          "id": "A5",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T11:54:17Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T11:36:49Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-10-31T12:10:43Z",
+      "goal": "CO-5 资源浏览器转正",
+      "id": "T4",
+      "line": "cosine",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "cosine",
+        "examples"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "抽取 ResourceBrowser：src/cosine/resource_browser.hpp/.cpp（从 lab 移植，依赖注入）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "集成 Editor：字段、View 菜单、显示/隐藏、挂 UIRoot"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "导入回调：Import 按钮 → import_image；双击文件不导入"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "目录联动：默认 cwd，打开项目后切项目目录并 refresh"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "槽位与回退：预览/导入共享 TextureCache；槽满回退占位"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "冒烟：cosine exit=0 / validation=0；ctest 全绿"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "删除 ui_lab E7 实现并更新文档"
+        },
+        {
+          "desc": "",
+          "id": "S8",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交 cosine 层资源浏览器"
+        }
+      ],
+      "title": "CO-5 资源浏览器转正",
+      "uid": "tsk_01M68VZ0W6KA6PW4DJ9MJZSZMQ"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Settings 窗口可打开/关闭；左栏分类按钮 + 右侧 ScrollPanel 正常",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T14:02:33Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "General 组即时生效；Preview 的背景/标尺即时，画布尺寸与 Fit 存值",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T14:02:33Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "Export 组设置可编辑并供 CO-3 使用；About 组显示版本信息",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T14:02:33Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "cosine 冒烟 exit=0 / validation=0；ctest 全绿",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T14:02:33Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T13:44:42Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-10-31T14:07:00Z",
+      "goal": "CO-6 编辑器设置窗口",
+      "id": "T5",
+      "line": "cosine",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "cosine",
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "设置数据模型：EditorSettings（General/Preview/Export）+ Editor 字段与访问器；apply_theme 支持深/浅主题与 UI 字号"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "SettingsWindow 骨架：820×560，左栏 160 分类按钮，右侧 ScrollPanel + 4 个预建 Vbox，切换 visible 保留状态"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "General 组：Rounded style / Light theme / UI text size；变更即时 apply_theme"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Preview 组：Canvas 宽高 / Fit（存值，待预览缩放任务消费）；Preview background / Show ruler（即时）"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Export 组：宽 / 高 / FPS / 背景色 / 输出目录（写入 EditorSettings，CO-3 消费）"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "About 组：版本、平台、编译器、构建类型、项目路径（只读）"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Editor 集成：View → Settings 菜单、显示/隐藏、关闭清理"
+        },
+        {
+          "desc": "",
+          "id": "S8",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "冒烟与文档：cosine 冒烟 0、ctest 全绿、docs 更新"
+        },
+        {
+          "desc": "",
+          "id": "S9",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交设置窗口实现"
+        }
+      ],
+      "title": "CO-6 编辑器设置窗口",
+      "uid": "tsk_01M69395CNSV4BGRK042H3YEB6"
     }
   ]
 }

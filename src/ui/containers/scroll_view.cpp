@@ -125,8 +125,10 @@ float ScrollView::thumb_length(bool vertical, const Rect& track) const
     if (content <= 0.0f) return vertical ? track.size.y : track.size.x;
 
     const float track_length = vertical ? track.size.y : track.size.x;
+    // 轨道比最小滑块还短时（例如容器被压到 0 高），直接退回轨道长度，避免 clamp 的 lo > hi。
+    const float min_thumb = std::min(t.scrollbar_min_thumb, track_length);
     const float ratio = std::clamp(viewport / content, 0.0f, 1.0f);
-    return std::clamp(track_length * ratio, t.scrollbar_min_thumb, track_length);
+    return std::clamp(track_length * ratio, min_thumb, track_length);
 }
 
 Rect ScrollView::scrollbar_thumb_rect(bool vertical) const

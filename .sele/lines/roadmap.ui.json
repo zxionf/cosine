@@ -394,7 +394,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 2,
+      "skipped_count": 7,
       "status": "paused",
       "steps": [
         {
@@ -563,6 +563,288 @@
       ],
       "title": "UI-16 Image 真实纹理显示",
       "uid": "tsk_01M68FCN6K98MXKW1XZAGHV8V1"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "弹性宽度：auto_width 模式按父宽，默认固定尺寸行为不变",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T08:31:33Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "表头：可设置高度与列，命中与滚动不偏移",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T08:31:33Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "name_filter：大小写不敏感，与扩展名过滤叠加",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T08:31:33Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "键盘：Home / End / PageUp / PageDown 可用",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T08:31:33Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 全绿；cosine 打开/保存对话框行为不变",
+          "id": "A5",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T08:31:33Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T08:25:39Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-10-31T08:31:40Z",
+      "goal": "UI-17 FileBrowser 布局与查找能力",
+      "id": "T9",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "弹性宽度：set_auto_width + measure/fixed_size 双模式"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "表头透传：set_header_height / set_columns，并修正 index_at / on_scroll / sync_table"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "name_filter：set_name_filter + refresh 过滤（与扩展名叠加）"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "键盘：Home / End / PageUp / PageDown"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "选中保持：refresh 后按名字恢复；切目录仍清空"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "单测：test_ui_file_browser 覆盖以上"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "回归：cosine / ui_gallery / ui_lab 冒烟"
+        }
+      ],
+      "title": "UI-17 FileBrowser 布局与查找能力",
+      "uid": "tsk_01M68H0Z46G38QQ4R58TEHAYT2"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Window footer 全宽贴底并裁剪溢出；resize 使用 min/max",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T11:27:40Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "Spacer measure 返回首选尺寸，flex 可正常收缩",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T11:27:40Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "FileBrowser auto_width 返回自然宽度；ctest 全绿",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T11:27:40Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T11:27:40Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-10-31T11:27:40Z",
+      "goal": "UI-18 Window footer 与 flex 布局修复",
+      "id": "T10",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交 ui 层修复"
+        }
+      ],
+      "title": "UI-18 Window footer 与 flex 布局修复",
+      "uid": "tsk_01M68VE8DW1XW7A14963V2C18H"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "现代圆角主题下 Window 边框为圆角，无直角细线",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T12:26:52Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "classic 主题下边框保持 1px 直边",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T12:26:52Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 全绿；ui_lab E8 与 cosine 冒烟通过",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T12:26:52Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": "2026-10-31T12:43:51Z",
+      "archived_git_head": null,
+      "created_at": "2026-10-31T12:26:52Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-10-31T12:33:16Z",
+      "goal": "UI-19 Window 圆角边框修复",
+      "id": "T11",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "archived",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "删除 Window 直角 Rectangle 边框，统一用 append_rounded_ring"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交 Window 圆角边框修复"
+        }
+      ],
+      "title": "UI-19 Window 圆角边框修复",
+      "uid": "tsk_01M68YTMV4AFRV34D871TY2W0X"
     }
   ]
 }
