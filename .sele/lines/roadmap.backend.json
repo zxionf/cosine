@@ -1,0 +1,31 @@
+{
+  "acceptance": [
+    {
+      "desc": "validation=0",
+      "id": "A1",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "ASAN 无新增泄漏（白名单外）",
+      "id": "A2",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    }
+  ],
+  "created_at": "2026-10-31T06:33:02Z",
+  "depends": [],
+  "goal": "Vulkan 设备、交换链、管线、离屏渲染与读回、shader 构建",
+  "id": "backend",
+  "modules": [
+    "backend",
+    "shaders"
+  ],
+  "plan": "roadmap",
+  "status": "active",
+  "tasks": []
+}

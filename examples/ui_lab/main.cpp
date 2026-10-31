@@ -3,6 +3,7 @@
 // 硬约束：产品代码不得依赖本目录；lab 不进 ctest 断言，只有冒烟门禁。
 
 #include "ui/core/button.hpp"
+#include "ui/core/image.hpp"
 #include "ui/views/file_browser.hpp"
 #include "ui/containers/hbox.hpp"
 #include "ui/core/label.hpp"
@@ -160,9 +161,13 @@ struct Resource
 {
     xel::ui::FileBrowser* list = nullptr;
     xel::ui::Hbox* crumbs = nullptr;
+    xel::ui::TextInput* path_input = nullptr;
+    xel::ui::Image* preview = nullptr;
     Label* info_name = nullptr;
     Label* info_size = nullptr;
     Label* info_extra = nullptr;
+    Label* info_path = nullptr;
+    std::vector<xel::ui::Button*> category_buttons;
     int filter = 0;
     std::function<void()> rebuild_crumbs;
     std::function<void()> refresh_info;
@@ -202,47 +207,93 @@ void build_resource(Lab& lab, Vbox* stage)
 {
     Resource& res = lab.resource;
     res = Resource{};
+    stage->set_cross_align(xel::ui::Align::top_left());
 
-    // 面包屑：Up + 逐级路径按钮（最多 6 级，避免撑爆宽度）。
-    auto crumb_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 820.0f, 30.0f);
+    // 地址栏：Up + 单行路径输入框 + Go。
+    auto crumb_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 812.0f, 32.0f);
     crumb_row->set_spacing(4.0f);
     crumb_row->set_cross_align(xel::ui::Align::center_left());
     res.crumbs = crumb_row.get();
+    crumb_row->add(std::make_unique<Button>("Up", [&lab] {
+        if (lab.resource.list == nullptr) return;
+        const std::filesystem::path current(lab.resource.list->directory());
+        if (!current.has_parent_path() || current.parent_path() == current) return;
+        lab.resource.list->set_directory(current.parent_path().string());
+        if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
+        if (lab.resource.refresh_info) lab.resource.refresh_info();
+    }));
+    auto path_input = std::make_unique<xel::ui::TextInput>("", 690.0f);
+    res.path_input = path_input.get();
+    crumb_row->add(std::move(path_input));
+    crumb_row->add(std::make_unique<Button>("Go", [&lab] {
+        if (lab.resource.path_input == nullptr || lab.resource.list == nullptr) return;
+        std::error_code path_ec;
+        const std::filesystem::path target(lab.resource.path_input->text());
+        if (!std::filesystem::is_directory(target, path_ec)) {
+            lab.set_status("not a directory: " + target.string());
+            return;
+        }
+        lab.resource.list->set_directory(target.string());
+        if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
+        if (lab.resource.refresh_info) lab.resource.refresh_info();
+    }));
     stage->add(std::move(crumb_row));
 
-    // 类型过滤。
-    auto filter_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 820.0f, 32.0f);
-    filter_row->set_spacing(6.0f);
-    filter_row->set_cross_align(xel::ui::Align::center_left());
-    filter_row->add(std::make_unique<Label>("Filter:", 18.0f));
+    // 搜索框占位：本阶段只验证布局与输入，不接名字过滤（需要 FileBrowser 的 name_filter）。
+    auto search_row = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 812.0f, 32.0f);
+    search_row->set_spacing(6.0f);
+    search_row->set_cross_align(xel::ui::Align::center_left());
+    search_row->add(std::make_unique<xel::ui::TextInput>("", 300.0f));
+    search_row->add(std::make_unique<Label>("Search (placeholder: filter not wired)", 18.0f));
+    stage->add(std::move(search_row));
+
+    // 三栏：左分类 / 中列表 / 右预览。
+    auto body = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 812.0f, 360.0f);
+    body->set_spacing(12.0f);
+
+    // 左栏：分类（同时充当类型过滤）。
+    auto categories = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 110.0f, 360.0f);
+    categories->set_spacing(4.0f);
+    categories->set_cross_align(xel::ui::Align::top_left());
+    categories->add(std::make_unique<Label>("Library", 18.0f));
     for (int i = 0; i < 4; ++i) {
-        filter_row->add(std::make_unique<Button>(kResourceFilters[i], [&lab, i] {
+        auto button = std::make_unique<Button>(kResourceFilters[i], [&lab, i] {
             lab.resource.filter = i;
+            for (std::size_t j = 0; j < lab.resource.category_buttons.size(); ++j) {
+                if (auto* b = lab.resource.category_buttons[j]) {
+                    b->set_pressed(static_cast<int>(j) == i);
+                }
+            }
             if (lab.resource.list) lab.resource.list->set_extension_filter(kResourceExtensions[i]);
             if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
             if (lab.resource.refresh_info) lab.resource.refresh_info();
-        }));
+        });
+        if (i == res.filter) button->set_pressed(true);
+        res.category_buttons.push_back(button.get());
+        categories->add(std::move(button));
     }
-    stage->add(std::move(filter_row));
+    body->add(std::move(categories));
 
-    // 列表 + 详情。
-    auto body = std::make_unique<xel::ui::Hbox>(0.0f, 0.0f, 820.0f, 372.0f);
-    body->set_spacing(12.0f);
-
-    auto list = std::make_unique<xel::ui::FileBrowser>(glm::vec2{560.0f, 372.0f});
+    // 中栏：列表。
+    auto list = std::make_unique<xel::ui::FileBrowser>(glm::vec2{430.0f, 360.0f});
     res.list = list.get();
-    // FileBrowser 的 measure 会吃掉父给的宽度：不锁尺寸的话详情栏会被挤没。
-    res.list->set_min_size({560.0f, 372.0f});
-    res.list->set_max_size({560.0f, 372.0f});
+    // FileBrowser 的 measure 返回固定尺寸，中栏宽度需要显式锁定。
+    res.list->set_min_size({430.0f, 360.0f});
+    res.list->set_max_size({430.0f, 360.0f});
     std::error_code dir_ec;
     const std::filesystem::path cwd = std::filesystem::current_path(dir_ec);
     res.list->set_directory(dir_ec ? std::string{"."} : cwd.string());
     res.list->set_extension_filter(kResourceExtensions[res.filter]);
+    body->add(std::move(list));
 
-    auto detail = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 240.0f, 372.0f);
+    // 右栏：预览占位 + 详情。
+    auto detail = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 240.0f, 360.0f);
     detail->set_spacing(4.0f);
     detail->set_cross_align(xel::ui::Align::top_left());
-    detail->add(std::make_unique<Label>("Details", 18.0f));
+    detail->add(std::make_unique<Label>("Preview", 18.0f));
+    auto preview = std::make_unique<xel::ui::Image>(200.0f, 150.0f);
+    res.preview = preview.get();
+    detail->add(std::move(preview));
     auto name = std::make_unique<Label>("-", 18.0f);
     res.info_name = name.get();
     detail->add(std::move(name));
@@ -252,9 +303,11 @@ void build_resource(Lab& lab, Vbox* stage)
     auto extra = std::make_unique<Label>("", 18.0f);
     res.info_extra = extra.get();
     detail->add(std::move(extra));
-
-    body->add(std::move(list));
+    auto path = std::make_unique<Label>("", 18.0f);
+    res.info_path = path.get();
+    detail->add(std::move(path));
     body->add(std::move(detail));
+
     stage->add(std::move(body));
 
     // 详情：名字 / 字节数（目录不统计）/ 图片尺寸（只读头部）。
@@ -266,6 +319,11 @@ void build_resource(Lab& lab, Vbox* stage)
             if (r.info_name) r.info_name->set_text("-");
             if (r.info_size) r.info_size->set_text("");
             if (r.info_extra) r.info_extra->set_text("");
+            if (r.info_path) r.info_path->set_text("");
+            if (r.preview) {
+                r.preview->set_source("");
+                r.preview->set_placeholder_text("image");
+            }
             return;
         }
         const bool is_dir = r.list->selected_is_directory();
@@ -287,38 +345,22 @@ void build_resource(Lab& lab, Vbox* stage)
             }
         }
         if (r.info_extra) r.info_extra->set_text(extra);
+        if (r.info_path) {
+            std::string path_text = path;
+            if (path_text.size() > 24) path_text = "..." + path_text.substr(path_text.size() - 21);
+            r.info_path->set_text(path_text);
+        }
+        if (r.preview) {
+            r.preview->set_source(path);
+            r.preview->set_placeholder_text(name + (is_dir ? "/" : ""));
+        }
     };
 
-    // 面包屑重建：双击目录 / Backspace 也会改目录，必须跟着刷新。
+    // 地址栏同步：Up / Go / 双击 / Backspace 改变目录后刷新输入框文本。
     res.rebuild_crumbs = [&lab] {
         Resource& r = lab.resource;
-        if (r.crumbs == nullptr || r.list == nullptr) return;
-        r.crumbs->clear_children();
-        r.crumbs->add(std::make_unique<Button>("Up", [&lab] {
-            if (lab.resource.list == nullptr) return;
-            const std::filesystem::path current(lab.resource.list->directory());
-            if (!current.has_parent_path() || current.parent_path() == current) return;
-            lab.resource.list->set_directory(current.parent_path().string());
-            if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
-            if (lab.resource.refresh_info) lab.resource.refresh_info();
-        }));
-
-        const std::filesystem::path current(r.list->directory());
-        std::vector<std::string> parts;
-        for (const auto& part : current) parts.push_back(part.string());
-        const int start = std::max(0, static_cast<int>(parts.size()) - 6);
-        for (int i = start; i < static_cast<int>(parts.size()); ++i) {
-            std::filesystem::path target;
-            for (int j = 0; j <= i; ++j) target /= parts[static_cast<std::size_t>(j)];
-            const std::string segment = parts[static_cast<std::size_t>(i)];
-            r.crumbs->add(std::make_unique<Button>(segment.empty() ? std::string{"/"} : segment,
-                                                   [&lab, target] {
-                if (lab.resource.list == nullptr) return;
-                lab.resource.list->set_directory(target.string());
-                if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
-                if (lab.resource.refresh_info) lab.resource.refresh_info();
-            }));
-        }
+        if (r.path_input == nullptr || r.list == nullptr) return;
+        r.path_input->set_text(r.list->directory());
     };
 
     res.list->set_on_select([&lab] {
@@ -326,6 +368,12 @@ void build_resource(Lab& lab, Vbox* stage)
     });
     res.list->set_on_activate([&lab] {
         if (lab.resource.refresh_info) lab.resource.refresh_info();
+        if (lab.resource.list == nullptr) return;
+        if (lab.resource.list->selected_is_directory()) {
+            lab.set_status("entered: " + lab.resource.list->directory());
+        } else {
+            lab.set_status("activated: " + lab.resource.list->selected_path());
+        }
     });
     res.list->set_on_directory_changed([&lab] {
         if (lab.resource.rebuild_crumbs) lab.resource.rebuild_crumbs();
@@ -368,6 +416,8 @@ void Lab::select(int index)
     if (resource_window != nullptr) resource_window->set_visible(false);
 
     if (stage == nullptr) return;
+    // E7 资源浏览器需要完整的窗口宽度，隐藏全局 settings 面板。
+    if (settings != nullptr) settings->set_visible(index != 6);
     stage->clear_children();
     palette = Palette{};
     density = Density{};

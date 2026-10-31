@@ -1,0 +1,568 @@
+{
+  "acceptance": [
+    {
+      "desc": "ctest 全绿",
+      "id": "A1",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "ui_gallery 冒烟 exit=0 / validation=0",
+      "id": "A2",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "新控件带单测与 gallery 分区",
+      "id": "A3",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    }
+  ],
+  "created_at": "2026-10-31T06:33:02Z",
+  "depends": [
+    {
+      "id": "backend",
+      "type": "line"
+    }
+  ],
+  "goal": "控件、布局、样式、输入路由、DrawList、字体与图集",
+  "id": "ui",
+  "modules": [
+    "ui",
+    "graphics"
+  ],
+  "plan": "roadmap",
+  "status": "active",
+  "tasks": [
+    {
+      "acceptance": [
+        {
+          "desc": "65 项测试全绿",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ui_lab 自适应列场景验证通过",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:26Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-8 constraint 布局（Flutter 式）",
+      "id": "T1",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-8 constraint 布局（Flutter 式）",
+      "uid": "tsk_01M68AKGK3H35P5R1Z2MX6GSGQ"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "先出设计文档，不写实现",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:26Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-9 声明式 / 响应式层",
+      "id": "T2",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-9 声明式 / 响应式层",
+      "uid": "tsk_01M68AKGKCGK0JF1JJQH1FAPPG"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Table 与 TreeView 离屏导出对比无差异",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "65 项测试全绿",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:26Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-10 draw_row 接管 + TreeView 迁移",
+      "id": "T3",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-10 draw_row 接管 + TreeView 迁移",
+      "uid": "tsk_01M68AKGKMW4P01WQ8NXY09CDJ"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "文档层完成，不动代码",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:26Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-11 主题令牌对照表",
+      "id": "T4",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-11 主题令牌对照表",
+      "uid": "tsk_01M68AKGKXZ7YHHGJWW6D62SB8"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "能读出每帧测量次数 / batch 数 / 帧时间分布",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:26Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-15 性能观测与候选优化",
+      "id": "T5",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui",
+        "graphics"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-15 性能观测与候选优化",
+      "uid": "tsk_01M68AKGM52KV881P9YFX2WVZK"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "新控件必须有单元测试",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ui_gallery 分区存在",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ctest 全绿、gallery 冒烟 exit=0 / validation=0",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:26Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M68AK99PST1KR85ZDKPXTDHF"
+        }
+      ],
+      "finished_at": null,
+      "goal": "UI-5 控件转正（由 ui_lab 结论驱动）",
+      "id": "T6",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "从 examples/ui_lab/README.md 选择已得出结论的实验"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "设计正式 API（复用 lab 的交互结论，不照抄代码）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "实现到 src/ui/，补单元测试"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "在 ui_gallery 加分区 + 更新 test_ui_gallery"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "更新 .design/SPEC.md 与 docs/"
+        }
+      ],
+      "title": "UI-5 控件转正（由 ui_lab 结论驱动）",
+      "uid": "tsk_01M68AKGMEB2707YJ54AV3KNKC"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "1000 节点展开时滚动无卡顿",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "行为与现状一致",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:26Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-4 TreeView 可见行缓存（M4.6 T13）",
+      "id": "T7",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": {
+        "at": "2026-10-31T06:33:46Z",
+        "current_step": null,
+        "git_snapshot": {
+          "branch": "main",
+          "dirty_files": [
+            ".sele/"
+          ],
+          "head": "86d4f2250c415499c5faad95fdbc1b1e2e820c2a"
+        },
+        "reason": "节点规模远未到瓶颈",
+        "resume_hint": "场景节点接近上千"
+      },
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 2,
+      "status": "paused",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "维护扁平可见数组 + 失效版本号"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "折叠父级保留子树展开状态的语义保持不变"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "补滚动/展开回归测试"
+        }
+      ],
+      "title": "UI-4 TreeView 可见行缓存（M4.6 T13）",
+      "uid": "tsk_01M68AKGNYZQ55QEKBAMT6TE8J"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "texture_id 非 0 时按 Fit 绘制真实纹理；texture_id=0 保持占位",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T08:06:55Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "Fill / Contain / Cover 的位移与 UV 有单元测试",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T08:06:55Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 全绿；ui_gallery 冒烟 exit=0 / validation=0",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-10-31T08:06:55Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T07:57:05Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-10-31T08:10:30Z",
+      "goal": "UI-16 Image 真实纹理显示",
+      "id": "T8",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui",
+        "examples"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "API：set_texture_size / texture_size、背景色与边框开关；明确 texture_id 语义"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Fill 绘制：Sprite + image_slot + tint + 可选背景/边框"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Contain / Cover：compute_placement + push_clip 裁剪"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "单测：placement、槽映射、占位/纹理分支、tint/opacity"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "ui_gallery：内存生成的纹理展示三种 Fit"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档：SPEC / ui_architecture 补充 Image 纹理节"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交 UI-16 改动"
+        }
+      ],
+      "title": "UI-16 Image 真实纹理显示",
+      "uid": "tsk_01M68FCN6K98MXKW1XZAGHV8V1"
+    }
+  ]
+}

@@ -1,0 +1,151 @@
+{
+  "acceptance": [
+    {
+      "desc": "纯逻辑单测（test_anim_*）通过",
+      "id": "A1",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "序列化 round-trip 通过",
+      "id": "A2",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "错误路径不崩溃",
+      "id": "A3",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    }
+  ],
+  "created_at": "2026-10-31T06:33:02Z",
+  "depends": [],
+  "goal": "scene/property/timeline/easing/player 与 XEL 宿主侧",
+  "id": "anim",
+  "modules": [
+    "anim",
+    "interpreter"
+  ],
+  "plan": "roadmap",
+  "status": "active",
+  "tasks": [
+    {
+      "acceptance": [
+        {
+          "desc": "XEL 脚本创建多节点动画并播放",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "错误脚本给出行/列可读报错且不崩溃",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:12Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "AN-3 M5 XEL 绑定",
+      "id": "T1",
+      "line": "anim",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "anim",
+        "interpreter"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "interpreter/ → xel_core 静态库（保留现有可执行作为 CLI 入口）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "宿主 API：创建/查找节点、设置属性、创建轨道与关键帧、播放控制"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "值互转：宿主对象 ↔ XEL 值；错误不崩溃"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "脚本生命周期：加载、执行、错误定位（行/列）"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "类型系统边界决策（动态类型是否够用）"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "单元测试：宿主 API 正常路径 + 错误路径"
+        }
+      ],
+      "title": "AN-3 M5 XEL 绑定",
+      "uid": "tsk_01M68AK25DMY62Y34NKXDHW01X"
+    }
+  ]
+}

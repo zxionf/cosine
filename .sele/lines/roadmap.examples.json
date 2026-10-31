@@ -1,0 +1,383 @@
+{
+  "acceptance": [
+    {
+      "desc": "所有示例冒烟 exit=0 / validation=0",
+      "id": "A1",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "ui_lab 只要求冒烟，不写断言",
+      "id": "A2",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    }
+  ],
+  "created_at": "2026-10-31T06:33:02Z",
+  "depends": [
+    {
+      "id": "cosine",
+      "type": "line"
+    },
+    {
+      "id": "ui",
+      "type": "line"
+    },
+    {
+      "id": "anim",
+      "type": "line"
+    }
+  ],
+  "goal": "组合并展示现有能力、研发组合控件",
+  "id": "examples",
+  "modules": [
+    "examples"
+  ],
+  "plan": "roadmap",
+  "status": "active",
+  "tasks": [
+    {
+      "acceptance": [
+        {
+          "desc": "E3–E6 实验结论回填 README 实验表",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ui_lab 冒烟 exit=0 / validation=0",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:19Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "EX-2 ui_lab 高级 UI 实验室（E3–E6）",
+      "id": "T1",
+      "line": "examples",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "examples"
+      ],
+      "pause_context": {
+        "at": "2026-10-31T06:33:46Z",
+        "current_step": null,
+        "git_snapshot": {
+          "branch": "main",
+          "dirty_files": [
+            ".sele/"
+          ],
+          "head": "86d4f2250c415499c5faad95fdbc1b1e2e820c2a"
+        },
+        "reason": "CO-2 完成前不重启",
+        "resume_hint": "CO-2 完成，且 E3/E4 结论对后续 cosine 任务有直接用处"
+      },
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 2,
+      "status": "paused",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "E3 时间轴非线性缩放"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "E4 多选批量编辑"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "E5 拖拽排序"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "E6 内联重命名"
+        }
+      ],
+      "title": "EX-2 ui_lab 高级 UI 实验室（E3–E6）",
+      "uid": "tsk_01M68AK99PST1KR85ZDKPXTDHF"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "脚本改动后运行示例可见效果变化",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "错误脚本给出可读报错",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:19Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M68AK25DMY62Y34NKXDHW01X"
+        }
+      ],
+      "finished_at": null,
+      "goal": "EX-3 XEL 脚本动画演示",
+      "id": "T2",
+      "line": "examples",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "examples"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "选择演示内容（多节点 + 缓动 + 事件）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "脚本文件放 examples/xel_anim_demo/，CMake target xel_anim_demo"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "更新 docs/examples.md 与 docs/ci.md 的冒烟清单"
+        }
+      ],
+      "title": "EX-3 XEL 脚本动画演示",
+      "uid": "tsk_01M68AK9AX27D87DV948GDV0X3"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "能浏览目录、按类型过滤、看到资源信息、选中结果可回传",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "缩略图网格可用",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ui_lab 冒烟 exit=0 / validation=0",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:19Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "EX-4 ui_lab 内置资源浏览器",
+      "id": "T3",
+      "line": "examples",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "examples"
+      ],
+      "pause_context": {
+        "at": "2026-10-31T07:49:00Z",
+        "current_step": null,
+        "git_snapshot": {
+          "branch": "main",
+          "dirty_files": [
+            "AGENTS.md",
+            "docs/sele-0.21.0-agent.md",
+            "examples/ui_lab/README.md",
+            "examples/ui_lab/main.cpp",
+            ".sele/",
+            "docs/sele-0.21.3-agent.md"
+          ],
+          "head": "86d4f2250c415499c5faad95fdbc1b1e2e820c2a"
+        },
+        "reason": "布局与占位预览已落地，等待下一轮修改",
+        "resume_hint": "继续资源浏览器：搜索过滤、真实缩略图、FileBrowser 可变尺寸"
+      },
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 2,
+      "status": "paused",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "布局骨架：三栏（分类 110 / 列表 480 / 预览 240）+ 顶部面包屑，窗口 880×520"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "列表主区：FileBrowser 接中栏，Name/Size 两列，滚动与单选"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "左栏分类：All / Images / Fonts / Projects 四个按钮，联动扩展名过滤"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "右栏预览：Image 占位 200×150 + 名称 / 像素尺寸 / 字节 / 路径"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "选中联动：单击与方向键更新预览；双击目录进入、文件触发激活回调"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "顶部搜索框占位：只验证布局与输入，不实现过滤（结论记录所需 API）"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "键盘验证：Up / Down / Enter / Backspace 可用；Home·End·PageUp·PageDown 记为 ui 线缺口"
+        },
+        {
+          "desc": "",
+          "id": "S8",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "冒烟 exit=0 / validation=0 + README 结论回填（占位纹理、固定宽度限制、搜索 API 缺口）"
+        }
+      ],
+      "title": "EX-4 ui_lab 内置资源浏览器",
+      "uid": "tsk_01M68AK9BX0HPGM189CZ7715AR"
+    }
+  ]
+}

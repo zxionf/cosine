@@ -1,0 +1,56 @@
+{
+  "acceptance": [
+    {
+      "desc": "所有 line 为 done/abandoned，且各线质量门通过",
+      "id": "PA1",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "ctest 全绿，主要程序冒烟 exit=0 / validation=0",
+      "id": "PA2",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "跨线冻结接口的变更均已在 DECISIONS.log 记录",
+      "id": "PA3",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    }
+  ],
+  "approved_at": "2026-10-31T06:32:56Z",
+  "approved_by": "human:zxionf",
+  "created_at": "2026-10-31T06:32:56Z",
+  "goal": "按 .design/阶段计划.md 完成 M5–M8：XEL 绑定、编辑器 M6.5–M6.7 收尾、UI 架构演进、示例跟随",
+  "id": "roadmap",
+  "lines": [
+    {
+      "depends": [],
+      "id": "ui"
+    },
+    {
+      "depends": [],
+      "id": "backend"
+    },
+    {
+      "depends": [],
+      "id": "anim"
+    },
+    {
+      "depends": [],
+      "id": "cosine"
+    },
+    {
+      "depends": [],
+      "id": "examples"
+    }
+  ],
+  "status": "active"
+}

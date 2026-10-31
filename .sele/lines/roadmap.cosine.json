@@ -1,0 +1,381 @@
+{
+  "acceptance": [
+    {
+      "desc": "ctest 全绿",
+      "id": "A1",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "冒烟 exit=0 / validation=0",
+      "id": "A2",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "离屏导出 PNG 人工核对",
+      "id": "A3",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    }
+  ],
+  "created_at": "2026-10-31T06:33:02Z",
+  "depends": [
+    {
+      "id": "ui",
+      "type": "line"
+    },
+    {
+      "id": "anim",
+      "type": "line"
+    }
+  ],
+  "goal": "编辑器产品（cosine_editor 静态库 + cosine 可执行）",
+  "id": "cosine",
+  "modules": [
+    "cosine"
+  ],
+  "plan": "roadmap",
+  "status": "active",
+  "tasks": [
+    {
+      "acceptance": [
+        {
+          "desc": "导入 png → 出现在节点上 → 保存 → 重载后仍指向同一资源",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ctest 全绿",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "冒烟 exit=0 / validation=0",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "导出 PNG 人工核对",
+          "id": "A4",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:33Z",
+      "current_step": "S1",
+      "depends": [],
+      "finished_at": null,
+      "goal": "CO-2 M6.5 收尾：资源浏览器与真实纹理",
+      "id": "T1",
+      "line": "cosine",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "cosine",
+        "ui",
+        "backend"
+      ],
+      "pause_context": {
+        "at": "2026-10-31T07:29:16Z",
+        "current_step": "S1",
+        "git_snapshot": {
+          "branch": "main",
+          "dirty_files": [
+            "AGENTS.md",
+            "docs/sele-0.21.0-agent.md",
+            ".sele/",
+            "docs/sele-0.21.3-agent.md"
+          ],
+          "head": "86d4f2250c415499c5faad95fdbc1b1e2e820c2a"
+        },
+        "reason": "主推切换：转向 examples 的 EX-4 资源浏览器，先做布局重新设计",
+        "resume_hint": "EX-4 布局定稿并写入动工步骤后恢复"
+      },
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 2,
+      "status": "paused",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "in_progress",
+          "title": "槽分配与回收（同路径去重，超出 14 张时淘汰最久未用）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "图片宽高比与 fit（Contain / Cover）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "资源浏览器：png 导入进节点、字体列表、脚本占位"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "Ctrl+N/O/S 键盘路由 + 覆盖保存确认"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "测试：槽映射、Sprite 顶点/UV、路径 round-trip、缺失资源"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "冒烟 + 导出核对"
+        }
+      ],
+      "title": "CO-2 M6.5 收尾：资源浏览器与真实纹理",
+      "uid": "tsk_01M68AKPZX6K4WZ16P9XP58DBS"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "导出一段 3 秒 mp4",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ffmpeg 缺失时给出明确错误",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:33Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "CO-3 M6.6 导出管线",
+      "id": "T2",
+      "line": "cosine",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "cosine"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "帧序列导出：时间范围 + 帧率 + 输出目录"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "外部 ffmpeg 管道调用（参数拼装 + 失败信息）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "编码器选型与色彩空间决策"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "导出进度反馈（状态栏百分比 + 可取消）"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "冒烟：小尺寸短时长导出进 CI 脚本（可选）"
+        }
+      ],
+      "title": "CO-3 M6.6 导出管线",
+      "uid": "tsk_01M68AKQ1P1176BEN7YDJ50E4G"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "脚本描述的场景在编辑器里可见可编辑",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "保存后与脚本的关系有明确结论",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "重新加载后一致性验证通过",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-10-31T06:33:33Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M68AK25DMY62Y34NKXDHW01X"
+        }
+      ],
+      "finished_at": null,
+      "goal": "CO-4 M6.7 脚本共存",
+      "id": "T3",
+      "line": "cosine",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "cosine",
+        "anim"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "编辑器加载脚本 → 生成 Project 的桥接"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "决策：回写脚本 vs 独立保存（可能两者都支持）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "todo",
+          "title": "重新加载后的一致性验证"
+        }
+      ],
+      "title": "CO-4 M6.7 脚本共存",
+      "uid": "tsk_01M68AKQ37XXHSBCB9D5MXC3B3"
+    }
+  ]
+}

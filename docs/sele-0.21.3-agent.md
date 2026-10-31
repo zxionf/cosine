@@ -1,8 +1,8 @@
-# sele 0.21.0 Agent 操作手册
+# sele 0.21.3 Agent 操作手册
 
 > 面向执行 agent。接口依据 `docs/sele-f.md`，概念依据 `docs/sele-f-d.md`。
-> 命令细节以 `sele <cmd> --help` 为准。**0.21 绝不向后兼容**：pre-0.20 的 `.sele`
-> 布局会被直接拒绝（退出码 4），不提供迁移。
+> 命令细节以 `sele <cmd> --help` 为准。**0.21 只支持当前 `.sele` 结构**：结构不匹配
+> 会被拒绝（退出码 4）。
 
 ## 1. 入口与规则
 
@@ -130,6 +130,11 @@ Plan → Line → Task（内嵌于 line.json）→ Step（内嵌于 task）
 
 | 命令 | 说明 |
 |---|---|
+| `task [--all] [--global]` | 当前 line（`--all` 当前 plan，`--global` 全部）的 task，按依赖拓扑序 |
+| `step [--all] [--global]` | 当前 task 的 step（`--all` 当前 line，`--global` 全部），按数组顺序 |
+
+> 视图中的状态显示短名：`in_progress` → `active`，`pending_review` → `review`；
+> JSON 仍返回内部值（`in_progress` / `pending_review`）。
 | `next [--plan] [--line] [--resume]` | 就绪 task（存在 in_progress 时为空），按 created_at/uid |
 | `status [--plan] [--with-git]` | plan/line/task 摘要、warnings、git 信息 |
 | `tree [--plan] [--all]` | 四层结构 |
@@ -151,7 +156,8 @@ Plan → Line → Task（内嵌于 line.json）→ Step（内嵌于 task）
 | `git health` | HEAD/branch/dirty |
 | `git reconcile --sync-to <sha>` | 漂移后承认当前 HEAD |
 
-**没有 checkpoint、没有 `task revert`、没有自动提交**：唯一的 `git commit` 由上面这条命令手动触发。
+**Git 只读**：agent 只允许 `git status/diff/log/show` 等查询；上表写命令（`commit`/`stash`/`branch`/`reconcile`）必须先获用户授权。
+**没有自动提交**：唯一的 `git commit` 由上面这条命令手动触发，且是用户批准后。
 
 ## 5. 迁移前置（必须记住）
 
@@ -184,7 +190,7 @@ Plan → Line → Task（内嵌于 line.json）→ Step（内嵌于 task）
 - 所有迁移写 `log.jsonl`（append-only），`git commit` 写 `git.commit`（`after` = commit sha）。
 - 漂移：D1 HEAD 前进（自动更新指纹）、D2 回退（阻断 commit）、D3 分叉（阻断）、D6 分支切换（记录）。
 - 漂移阻断时：`git reconcile --sync-to <当前 HEAD>` 承认现实，再继续。
-- 没有任何 checkpoint 文件；`git health` 只报告 HEAD/branch/dirty。
+- `git health` 只报告 HEAD/branch/dirty。
 
 ## 8. 归档与恢复
 
@@ -220,7 +226,7 @@ Plan → Line → Task（内嵌于 line.json）→ Step（内嵌于 task）
 - 进入 `in_progress` 必须对应一次退出迁移（pause/done/fail/block）。
 - 切换 task 用 `task start <other>`（自动 pause 当前）。
 - 长时间离开用 `task pause --reason --hint`。
-- **提交时机**：没有自动提交；在 step 边界手动 `sele git commit`。
+- **提交时机**：一个 task 最多一次，在 task 完成时；先审查命令与 diff 再执行。
 
 ## 11. 常见错误与处理
 
@@ -239,7 +245,7 @@ Plan → Line → Task（内嵌于 line.json）→ Step（内嵌于 task）
 ## 12. 禁止项
 
 - 不手改 `.sele/` 下的 JSON 与 `log.jsonl`。
-- 不直接 `git commit` / `git reset` / `git push`；提交经 `sele git commit`。
+- git 只读；`sele git` 写命令（commit/stash/branch/reconcile）需用户授权。
 - 不修改 plan/line 定义、不创建 task（这是人的权限）。
 - 不在 `check` 失败时继续推进。
-- 不尝试迁移 pre-0.20 的 `.sele` 布局。
+- 不尝试迁移不支持的 `.sele` 结构。
