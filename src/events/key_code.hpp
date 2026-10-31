@@ -20,6 +20,8 @@ enum class KeyCode : int
     Down,
     Home,
     End,
+    PageUp,
+    PageDown,
     Escape,
     A,
 };

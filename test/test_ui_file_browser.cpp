@@ -13,6 +13,11 @@ namespace
 {
 using xel::ui::FileBrowser;
 
+bool nearly(float a, float b)
+{
+    return std::fabs(a - b) < 1e-3f;
+}
+
 // 造一棵固定目录树：sub_a/ sub_b/ alpha.cos zeta.cos notes.txt
 fs::path make_fixture()
 {
@@ -130,6 +135,133 @@ void test_scroll_clamped()
 
     fs::remove_all(dir);
 }
+// 弹性宽度：默认固定；auto_width 时按父宽，并受 min/max 夹取。
+void test_auto_width()
+{
+    FileBrowser fixed(glm::vec2{400.0f, 300.0f});
+    assert(fixed.fixed_size());
+    assert(nearly(fixed.measure({700.0f, 900.0f}).x, 400.0f));
+
+    FileBrowser flex(glm::vec2{400.0f, 300.0f});
+    flex.set_auto_width(true);
+    flex.set_min_size({200.0f, 300.0f});
+    flex.set_max_size({2000.0f, 300.0f});
+    assert(!flex.fixed_size());
+    const glm::vec2 m = flex.measure({700.0f, 900.0f});
+    assert(nearly(m.x, 700.0f) && nearly(m.y, 300.0f));
+    assert(nearly(flex.measure({100.0f, 900.0f}).x, 200.0f));
+}
+
+// 开表头后：表头区域不命中，行号从表头下方开始。
+void test_header_hit_offset()
+{
+    const fs::path dir = make_fixture();
+    FileBrowser browser(glm::vec2{400.0f, 300.0f});
+    browser.set_row_height(30.0f);
+    browser.set_header_height(28.0f);
+    browser.set_extension_filter(".cos");
+    browser.set_directory(dir.string());
+    browser.arrange({{0.0f, 0.0f}, {400.0f, 300.0f}});
+    assert(browser.entry_count() == 5);
+
+    assert(!browser.on_mouse_down({20.0f, 10.0f}, 0));
+    assert(browser.on_mouse_down({20.0f, 28.0f + 15.0f}, 0));
+    assert(browser.selected_index() == 0);
+    assert(browser.on_mouse_down({20.0f, 28.0f + 30.0f + 15.0f}, 0));
+    assert(browser.selected_index() == 1);
+
+    fs::remove_all(dir);
+}
+
+// 名字过滤：大小写不敏感、与扩展名叠加、".." 保留。
+void test_name_filter()
+{
+    const fs::path dir = make_fixture();
+    FileBrowser browser;
+    browser.set_directory(dir.string());
+    assert(browser.entry_count() == 6);
+
+    browser.set_name_filter("COS");
+    assert(browser.entry_count() == 3);
+    assert(browser.entry_name(0) == "..");
+    assert(browser.entry_name(1) == "alpha.cos");
+    assert(browser.entry_name(2) == "zeta.cos");
+
+    browser.set_name_filter("sub");
+    assert(browser.entry_count() == 3);
+    assert(browser.entry_name(1) == "sub_a");
+    assert(browser.entry_name(2) == "sub_b");
+
+    browser.set_extension_filter(".cos");
+    browser.set_name_filter("alpha");
+    assert(browser.entry_count() == 2);
+    assert(browser.entry_name(1) == "alpha.cos");
+
+    fs::remove_all(dir);
+}
+
+// 键盘：Home / End / PageUp / PageDown。
+void test_keyboard_navigation()
+{
+    const fs::path dir = make_fixture();
+    using xel::event::KeyCode;
+    using xel::event::Modifier;
+
+    FileBrowser browser(glm::vec2{400.0f, 300.0f});
+    browser.set_row_height(30.0f);
+    browser.set_extension_filter(".cos");
+    browser.set_directory(dir.string());
+    browser.arrange({{0.0f, 0.0f}, {400.0f, 300.0f}});
+    assert(browser.entry_count() == 5);
+
+    browser.on_key_down(KeyCode::Home, Modifier::None);
+    assert(browser.selected_index() == 0);
+    browser.on_key_down(KeyCode::End, Modifier::None);
+    assert(browser.selected_index() == 4);
+    browser.on_key_down(KeyCode::PageUp, Modifier::None);
+    assert(browser.selected_index() == 0);
+    browser.on_key_down(KeyCode::PageDown, Modifier::None);
+    assert(browser.selected_index() == 4);
+
+    // 小视口：60 / 30 = 2 行一页。
+    FileBrowser small(glm::vec2{400.0f, 60.0f});
+    small.set_row_height(30.0f);
+    small.set_extension_filter(".cos");
+    small.set_directory(dir.string());
+    small.arrange({{0.0f, 0.0f}, {400.0f, 60.0f}});
+    small.on_key_down(KeyCode::Home, Modifier::None);
+    small.on_key_down(KeyCode::PageDown, Modifier::None);
+    assert(small.selected_index() == 2);
+    small.on_key_down(KeyCode::PageDown, Modifier::None);
+    assert(small.selected_index() == 4);
+
+    fs::remove_all(dir);
+}
+
+// 过滤/刷新保留同名选中；切目录清空。
+void test_selection_preserved_on_filter()
+{
+    const fs::path dir = make_fixture();
+    FileBrowser browser;
+    browser.set_directory(dir.string());
+    browser.select_index(3);
+    assert(browser.selected_name() == "alpha.cos");
+
+    browser.set_extension_filter(".cos");
+    assert(browser.selected_name() == "alpha.cos");
+    browser.set_name_filter("alpha");
+    assert(browser.selected_name() == "alpha.cos");
+
+    browser.set_name_filter("zeta");
+    assert(browser.selected_name().empty());
+
+    browser.set_name_filter("");
+    browser.select_index(1);
+    browser.set_directory(dir.string());
+    assert(browser.selected_index() == -1);
+
+    fs::remove_all(dir);
+}
 } // namespace
 
 int main()
@@ -138,6 +270,11 @@ int main()
     test_click_and_activate();
     test_resolve();
     test_scroll_clamped();
+    test_auto_width();
+    test_header_hit_offset();
+    test_name_filter();
+    test_keyboard_navigation();
+    test_selection_preserved_on_filter();
     std::printf("test_ui_file_browser: all passed\n");
     return 0;
 }

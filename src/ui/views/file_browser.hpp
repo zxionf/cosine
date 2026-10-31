@@ -5,6 +5,7 @@
 #include "ui/widget.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <filesystem>
 #include <format>
@@ -30,7 +31,15 @@ inline std::string format_bytes(std::uintmax_t bytes)
     return std::format("{:.1f} {}", value, units[unit]);
 }
 
-// 文件浏览器：目录列举 + 扩展名过滤 + 选中/双击，渲染、滚动、行选中全部交给 Table。
+inline std::string ascii_lower(std::string value)
+{
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char c) {
+        return static_cast<char>(std::tolower(c));
+    });
+    return value;
+}
+
+// 文件浏览器：目录列举 + 扩展名/名字过滤 + 选中/双击，渲染、滚动、行选中全部交给 Table。
 class FileBrowser : public Widget
 {
 public:
@@ -47,7 +56,8 @@ public:
         // FileBrowser 是纯列表：不要表头，否则行位置整体下移（
         // 列宽仍然要定义，用来把尺寸列右对齐）。
         table->set_header_height(0.0f);
-        table->set_columns({{"Name", 0.0f}, {"Size", 88.0f, TableColumn::Align::Right}});
+        columns_ = {{"Name", 0.0f}, {"Size", 88.0f, TableColumn::Align::Right}};
+        table->set_columns(columns_);
         table->set_on_select([this](int index) {
             selected_ = index;
             if (on_select_) on_select_();
@@ -71,12 +81,45 @@ public:
     }
     const std::string& extension_filter() const { return extension_; }
 
+    // 名字子串过滤：大小写不敏感，与扩展名过滤叠加；“..” 始终保留用于返回上级。
+    void set_name_filter(std::string filter)
+    {
+        name_filter_ = std::move(filter);
+        refresh();
+    }
+    const std::string& name_filter() const { return name_filter_; }
+
     void set_row_height(float height)
     {
         if (table_ != nullptr) table_->set_row_height(height);
         mark_layout_dirty();
     }
     float row_height() const { return table_ != nullptr ? table_->row_height() : 32.0f; }
+
+    // 表头：默认 0（纯列表）。开启后行绘制/命中/滚动都会扣除表头高度。
+    void set_header_height(float height)
+    {
+        if (table_ != nullptr) table_->set_header_height(height);
+        mark_layout_dirty();
+    }
+    float header_height() const { return table_ != nullptr ? table_->header_height() : 0.0f; }
+
+    // 列定义：FileBrowser 的行数据固定为 Name/Size 两列，这里只调整宽度与对齐。
+    void set_columns(std::vector<TableColumn> columns)
+    {
+        columns_ = std::move(columns);
+        if (table_ != nullptr) table_->set_columns(columns_);
+    }
+    const std::vector<TableColumn>& columns() const { return columns_; }
+
+    // 弹性宽度：默认关闭（固定尺寸，保持 cosine 对话框行为）。
+    // 开启后 measure 按父给宽度，高度仍用 preferred_height_；调用方应同步调整 min/max。
+    void set_auto_width(bool on)
+    {
+        auto_width_ = on;
+        mark_layout_dirty();
+    }
+    bool auto_width() const { return auto_width_; }
 
     void set_preferred_height(float height)
     {
@@ -149,6 +192,13 @@ public:
     }
     int selected_index() const { return selected_; }
 
+    // 一屏可见行数（已扣除表头），用于 PageUp/PageDown。
+    int page_rows() const
+    {
+        const float viewport = std::max(0.0f, height() - header_height());
+        return std::max(1, static_cast<int>(viewport / std::max(1.0f, row_height())));
+    }
+
     bool focusable() const override { return true; }
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
@@ -161,6 +211,22 @@ public:
             return true;
         case event::KeyCode::Down:
             select_index(selected_ + 1);
+            if (on_select_) on_select_();
+            return true;
+        case event::KeyCode::Home:
+            select_index(0);
+            if (on_select_) on_select_();
+            return true;
+        case event::KeyCode::End:
+            select_index(static_cast<int>(entries_.size()) - 1);
+            if (on_select_) on_select_();
+            return true;
+        case event::KeyCode::PageUp:
+            select_index(selected_ - page_rows());
+            if (on_select_) on_select_();
+            return true;
+        case event::KeyCode::PageDown:
+            select_index(selected_ + page_rows());
             if (on_select_) on_select_();
             return true;
         case event::KeyCode::Enter:
@@ -179,6 +245,9 @@ public:
 
     void refresh()
     {
+        // 过滤/刷新不主动丢选中：同名同类型仍存在时恢复；set_directory 会先清空。
+        const std::string keep_name = selected_name();
+        const bool keep_is_dir = selected_is_directory();
         entries_.clear();
         std::error_code ec;
         const std::filesystem::path base(directory_);
@@ -189,10 +258,12 @@ public:
 
         std::vector<Entry> dirs;
         std::vector<Entry> files;
+        const std::string needle = ascii_lower(name_filter_);
         for (auto it = std::filesystem::directory_iterator(base, ec);
              !ec && it != std::filesystem::directory_iterator(); ++it) {
             const std::string name = it->path().filename().string();
             if (name.empty() || name.front() == '.') continue;
+            if (!needle.empty() && ascii_lower(name).find(needle) == std::string::npos) continue;
 
             std::error_code entry_ec;
             const bool is_directory = it->is_directory(entry_ec);
@@ -214,16 +285,25 @@ public:
         entries_.insert(entries_.end(), dirs.begin(), dirs.end());
         entries_.insert(entries_.end(), files.begin(), files.end());
 
-        if (selected_ >= static_cast<int>(entries_.size())) selected_ = -1;
+        selected_ = -1;
+        if (!keep_name.empty()) {
+            for (std::size_t i = 0; i < entries_.size(); ++i) {
+                if (entries_[i].name == keep_name && entries_[i].is_directory == keep_is_dir) {
+                    selected_ = static_cast<int>(i);
+                    break;
+                }
+            }
+        }
         sync_table();
     }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        (void)constraints;
-        return clamp_size(min_size());
+        if (!auto_width_) return clamp_size(min_size());
+        const float width = constraints.x > 0.0f ? constraints.x : min_size().x;
+        return clamp_size({width, preferred_height_});
     }
-    bool fixed_size() const override { return true; }
+    bool fixed_size() const override { return !auto_width_; }
 
     void arrange(Rect slot) override
     {
@@ -256,8 +336,9 @@ public:
     {
         if (table_ == nullptr) return false;
         // 内容不够高就不消费滚轮，让外层容器接手。
+        const float viewport = std::max(0.0f, global_.size.y - header_height());
         const float content = static_cast<float>(entries_.size()) * row_height();
-        if (content <= global_.size.y) return false;
+        if (content <= viewport) return false;
         table_->set_scroll_value(table_->scroll_offset() - delta.y * row_height() * 0.75f);
         return true;
     }
@@ -296,7 +377,8 @@ private:
     int index_at(glm::vec2 pos) const
     {
         if (entries_.empty() || !global_bounds().contains(pos)) return -1;
-        const float offset = pos.y - global_.pos.y + (table_ != nullptr ? table_->scroll_offset() : 0.0f);
+        const float offset = pos.y - global_.pos.y - header_height() +
+                             (table_ != nullptr ? table_->scroll_offset() : 0.0f);
         if (offset < 0.0f) return -1;
         const int index = static_cast<int>(offset / row_height());
         if (index < 0 || index >= static_cast<int>(entries_.size())) return -1;
@@ -323,10 +405,14 @@ private:
     }
 
     std::vector<Entry> entries_;
+    std::vector<TableColumn> columns_{{"Name", 0.0f},
+                                      {"Size", 88.0f, TableColumn::Align::Right}};
     std::string directory_{"."};
     std::string extension_;
+    std::string name_filter_;
     int selected_ = -1;
     float preferred_height_ = 372.0f;
+    bool auto_width_ = false;
     Table* table_ = nullptr;
 
     std::function<void()> on_select_;
