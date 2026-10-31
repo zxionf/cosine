@@ -81,6 +81,10 @@ void Editor::build()
     build_menu();
     build_toolbar();
     build_panels();
+
+    resource_browser_ = std::make_unique<ResourceBrowser>(*root_, texture_cache_, *renderer_);
+    resource_browser_->set_on_import([this](const std::string& path) { import_image(path); });
+    resource_browser_->set_on_status([this](const std::string& text) { set_status(text); });
 }
 
 void Editor::toggle_playback()
@@ -166,6 +170,14 @@ void Editor::build_menu()
     });
 
     menu->add_menu("View", {
+        ui::MenuItem::make("Assets", [this] {
+            if (resource_browser_ == nullptr) return;
+            if (resource_browser_->visible()) {
+                resource_browser_->hide();
+            } else {
+                resource_browser_->show();
+            }
+        }),
         ui::MenuItem::make("Experimental rounded style",
                            [this] { toggle_rounded_style(); }),
     });
@@ -596,6 +608,7 @@ void Editor::new_project()
     sync_property_panel();
     if (preview_ != nullptr) preview_->mark_layout_dirty();
     set_status("new project");
+    sync_resource_directory({});
 }
 
 void Editor::open_project_dialog()
@@ -671,6 +684,7 @@ void Editor::load_project(const std::string& path)
     if (player_ != nullptr) player_->seek(0.0f);
     if (timeline_view_ != nullptr) timeline_view_->set_time(0.0f);
     if (preview_ruler_ != nullptr) preview_ruler_->set_duration(project_.timeline.duration());
+    sync_resource_directory(path);
     rebind_textures();
     refresh_scene_tree();
     if (scene_tree_ != nullptr) scene_tree_->set_selected_path({});
@@ -696,7 +710,23 @@ void Editor::write_project(const std::string& path)
         return;
     }
     project_path_ = path;
+    sync_resource_directory(path);
     set_status("saved " + path);
+}
+
+void Editor::sync_resource_directory(const std::string& path)
+{
+    if (resource_browser_ == nullptr) return;
+    std::error_code ec;
+    std::filesystem::path dir;
+    if (path.empty()) {
+        dir = std::filesystem::current_path(ec);
+    } else {
+        dir = std::filesystem::path(path).parent_path();
+    }
+    if (dir.empty() || ec) dir = std::filesystem::current_path(ec);
+    if (dir.empty()) dir = ".";
+    resource_browser_->set_root_directory(dir.string());
 }
 
 bool Editor::import_image(const std::string& path)

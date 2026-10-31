@@ -4,6 +4,7 @@
 #include "anim/player.hpp"
 #include "anim/project.hpp"
 #include "backend/vulkan/renderer.hpp"
+#include "resource_browser.hpp"
 #include "texture_cache.hpp"
 #include "ui/core/button.hpp"
 #include "ui/core/color_input.hpp"
@@ -76,6 +77,8 @@ private:
     void save_project();
     void save_project_as_dialog();
     void write_project(const std::string& path);
+    // 项目路径变化后同步资源浏览器根目录（空路径回退 cwd）。
+    void sync_resource_directory(const std::string& path);
 
     // 图片导入（CO-2）：上传到图片槽并绑定到选中节点（无选中时用 demo 节点）。
     bool import_image(const std::string& path);
@@ -115,6 +118,9 @@ private:
     ui::TimelineView* timeline_view_ = nullptr;
     ui::Label* property_label_ = nullptr;
     ui::Label* status_ = nullptr;
+
+    // CO-5：独立资源浏览器窗口（默认隐藏）。
+    std::unique_ptr<ResourceBrowser> resource_browser_;
 
     // 属性面板行（M6.2）。
     ui::DragFloat* pos_x_ = nullptr;

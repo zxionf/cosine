@@ -228,4 +228,16 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 | 无外阴影 | 窗口层次靠 1px 边框 + `elevated` 令牌 | UI-6 遗留 |
 | `ListView::draw_row` 未被 `Table` 使用 | 行绘制仍在 `append_to` | UI-10 |
 | `Layer` 未驱动命中排序 | 现有 overlay + z 已够用 | `tech_debt.md` T04 |
+
+## 九、编辑器层：ResourceBrowser
+
+`src/cosine/resource_browser.hpp/.cpp` 是 cosine 专用的资源浏览器，不属于 `src/ui` 通用控件：
+
+- 依赖 `editor::TextureCache`、`backend::vulkan::Renderer` 与 `stbi_info`，因此放在 cosine 层。
+- 内部创建独立 `ui::Window("Assets")`，布局为：顶部地址栏 / 中间三栏 / 底部 footer。
+- 三栏：分类固定 110、`FileBrowser` 弹性填充、预览固定 240。
+- 顶部：Up + 路径输入 + 搜索 + Go；底部：选中摘要 + Import。
+- 双击文件不导入；Import 按钮通过 `set_on_import` 交给 `Editor::import_image`。
+- 预览纹理走 `TextureCache`，14 个图片槽满时回退占位；与项目导入共享同一缓存。
+- 入口：`Editor` 的 `View → Assets`；打开/保存项目后自动切到项目目录。
 | 无性能测量手段 | 优化前需先有统计 | UI-15 |
