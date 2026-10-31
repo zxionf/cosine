@@ -22,22 +22,15 @@ lab 探索**未定 API** 的组合控件（无稳定测试、结论回填文档�
 | E4 | 多选批量编辑 | 属性面板应支持多选中「共同值 / 混合值」显示与批量写入 | — | — | ⬜ 待做 |
 | E5 | 拖拽排序 | 列表/树的内联重排应复用 `on_long_press` + 拖拽反馈，不必新事件 | — | — | ⬜ 待做 |
 | E6 | 内联重命名 | 就地编辑（双击行变输入框）比弹对话框更顺手 | — | — | ⬜ 待做 |
-| E7 | 资源浏览器 | 窄窗口里「左分类 + 中列表 + 右预览」比缩略图网格更实用，单选足够 | 880×520 三栏成立；占位预览可用；地址栏需要 Go 按钮 | 布局值得转正；缺口见下 | ✅ 已验证 |
+| E7 | 资源浏览器 | 窄窗口里「左分类 + 中列表 + 右预览」比缩略图网格更实用，单选足够 | 已转正到 cosine `Assets` 窗口；lab 实现已删除 | 布局与真实纹理预览均已在 cosine 落地 | ✅ 已验证（已转正） |
 
-### E7 结论与缺口
+### E7 结论（已转正）
 
-- **保留**：左分类（All / Images / Fonts / Projects）+ 中列表（`FileBrowser`）+ 右预览（`Image` 占位）在 880×520 下成立。
-- **保留**：单选模型（`FileBrowser::selected_index`）足够支撑预览与状态栏。
-- **保留**：地址栏（Up + 单行路径 + 搜索 + Go）与窗口内底部状态栏（选中摘要 + Import 占位）。
-- **已落地**：
-  - `FileBrowser` 开表头（Name / Size），行命中与滚动扣除表头高度。
-  - 中栏 `auto_width + flex_grow`，窗口 resize 时列表跟随，左右栏固定。
-  - 搜索框接 `name_filter`（大小写不敏感，与扩展名过滤叠加）。
-  - 默认选中第一个非 `..` 条目，右栏与状态栏有内容。
-- **缺口 1**：`TextInput` 单行模式没有 Enter 提交回调，地址栏依赖 Go 按钮；搜索框也没有 placeholder。
-- **缺口 2**：`Button` 没有 selected 样式，分类栏用 `set_pressed()` 近似选中态。
-- **缺口 3**：`Image` 在 lab 中仍是占位；`ui::Image` 已支持真实纹理（UI-16），但未接 `TextureCache`。
-- **缺口 4**：无目录/文件类型图标、无多选、无拖拽导入。
+- 左分类（All / Images / Fonts / Projects）+ 中列表（`FileBrowser`）+ 右预览（`Image`）在 880×520 下成立。
+- 地址栏（Up + 单行路径 + 搜索 + Go）与窗口内底部状态栏（选中摘要 + Import）可用。
+- 预览已接 `TextureCache + Renderer`，选中 png 显示真实纹理。
+- 转正实现：`src/cosine/resource_browser.hpp/.cpp`，通过 `View → Assets` 打开。
+- 仍存在的通用缺口：`TextInput` 单行无 Enter 提交；`Button` 无 selected 样式；无图标/多选/拖拽导入。
 
 ## 运行
 
