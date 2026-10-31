@@ -327,7 +327,8 @@ inline std::unique_ptr<ui::ScrollView> make_scroll(float width, float height)
 }
 } // namespace detail
 
-inline UiGallery build(ui::UIRoot& root)
+inline UiGallery build(ui::UIRoot& root, std::uint32_t image_texture_id = 0,
+                       glm::vec2 image_texture_size = {8.0f, 4.0f})
 {
     UiGallery gallery;
     gallery.root = &root;
@@ -968,21 +969,26 @@ inline UiGallery build(ui::UIRoot& root)
         card->add(std::move(badge));
         section->add(std::move(card));
 
-        section->add(std::make_unique<ui::Label>("Image 占位：有来源 / 空来源（宽 50%、16:9）", 18.0f));
-        auto image_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 620.0f, 200.0f);
+        section->add(std::make_unique<ui::Label>("Image 纹理：Fill / Contain / Cover（8×4 棋盘 + 渐变）", 18.0f));
+        auto image_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 620.0f, 120.0f);
         image_row->set_padding(0.0f);
         image_row->set_spacing(8.0f);
-        image_row->set_min_size({620.0f, 200.0f});
-        image_row->set_max_size({620.0f, 200.0f});
-        auto image_a = std::make_unique<ui::Image>(200.0f, 112.5f);
-        image_a->set_source("assets/tex/rock.png");
-        image_a->set_size_percent({0.5f, 0.0f});
-        image_a->set_aspect_ratio(16.0f / 9.0f);
-        image_row->add(std::move(image_a));
-        auto image_b = std::make_unique<ui::Image>(200.0f, 112.5f);
-        image_b->set_size_percent({0.5f, 0.0f});
-        image_b->set_aspect_ratio(16.0f / 9.0f);
-        image_row->add(std::move(image_b));
+        image_row->set_min_size({620.0f, 120.0f});
+        image_row->set_max_size({620.0f, 120.0f});
+        const auto make_image = [&](ui::Image::Fit fit) {
+            auto image = std::make_unique<ui::Image>(196.0f, 110.25f);
+            image->set_fit(fit);
+            if (image_texture_id != 0) {
+                image->set_texture_id(image_texture_id);
+                image->set_texture_size(image_texture_size);
+            } else {
+                image->set_source("assets/tex/rock.png");
+            }
+            image_row->add(std::move(image));
+        };
+        make_image(ui::Image::Fit::Fill);
+        make_image(ui::Image::Fit::Contain);
+        make_image(ui::Image::Fit::Cover);
         section->add(std::move(image_row));
 
         gallery.sections.push_back(section.get());

@@ -49,6 +49,18 @@ Drawable (graphics)
              └─ Section / Window / Dialog / MenuBar / TabView / TreeView / ...（复合）
 ```
 
+**叶子控件：纹理与占位**
+
+`Image`（`src/ui/core/image.hpp`）有两种绘制路径：
+
+- `texture_id == 0`：占位（圆角底色 + 边框 + 对角交叉 + 文案）。
+- `texture_id != 0`：纹理。`texture_id` 语义为「图片槽索引 + 1」，与 `scene::Node::texture_id`、
+  `editor::TextureCache` 一致；`slot = graphics::image_slot(texture_id - 1)`。
+  `Fit` 由 `compute_placement()` 转成目标矩形与 UV：`Fill` 拉伸、`Contain` 内接居中、`Cover` 填满并用
+  `DrawList::push_clip` 裁剪；纹理尺寸未知时回退 `Fill`。
+- 纹理模式为直角，可选底板（`set_background`）与边框（`set_border_visible`）；`Image` 不负责解码、
+  上传与槽分配。
+
 **组合与持有关系**（谁内部装了谁）
 
 | 控件 | 内部依赖 | 说明 |

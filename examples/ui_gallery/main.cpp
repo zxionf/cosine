@@ -3,11 +3,13 @@
 #include "xel_application.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <format>
 #include <iostream>
 #include <string_view>
+#include <vector>
 
 namespace
 {
@@ -23,7 +25,27 @@ glm::vec2 cursor_to_framebuffer(xel::backend::Window& window)
 int run()
 {
     xel::Application app{1200, 800, "XEL UI Gallery"};
-    auto gallery = xel::demo::build(*app.uisys.root());
+
+    // Image 纹理示例：内存生成 8×4 棋盘 + 渐变，上传到图片槽 0。
+    std::uint32_t image_texture_id = 0;
+    {
+        constexpr int kTexW = 8;
+        constexpr int kTexH = 4;
+        std::vector<unsigned char> pixels(static_cast<std::size_t>(kTexW * kTexH * 4));
+        for (int y = 0; y < kTexH; ++y) {
+            for (int x = 0; x < kTexW; ++x) {
+                const std::size_t i = static_cast<std::size_t>((y * kTexW + x) * 4);
+                const bool check = ((x / 2) + (y / 2)) % 2 == 0;
+                pixels[i + 0] = check ? 230 : 50;
+                pixels[i + 1] = static_cast<unsigned char>(x * 255 / (kTexW - 1));
+                pixels[i + 2] = static_cast<unsigned char>(y * 255 / (kTexH - 1));
+                pixels[i + 3] = 255;
+            }
+        }
+        if (app.renderer_.upload_texture(0, kTexW, kTexH, pixels.data())) image_texture_id = 1;
+    }
+
+    auto gallery = xel::demo::build(*app.uisys.root(), image_texture_id, {8.0f, 4.0f});
     gallery.ui_system = &app.uisys;
 
     bool f1_prev = false;

@@ -1124,49 +1124,59 @@ gallery `Layout` 分区：一个卡片容器，右下角绝对定位角标（徽
 - 不做 z-index 作用于 overlay 与 children 之间的跨界排序（overlays 永远在上）。
 - 不做负 z-index 的特殊语义（只做数值排序）。
 
-## Image 控件（占位实现）
+## Image 控件（真实纹理）
 ### 为什么
 
-M3.5 组件扩充只剩 `Image`。真实纹理采样依赖 M6 的资源管线（图片解码、上传、描述符、采样器），
-但布局层现在就需要一个「图片位」：能声明尺寸/比例/来源，参与容器排布，在 UI 里占位与验收。
-先给出稳定的公开接口，等 M6 把 `texture_id` 接到真实纹理时，控件本身不用改。
+CO-2 的纹理槽（`kMaxTextureSlots=16`、图片槽 2..15）与 `Renderer::upload_texture` 已就绪，
+`Sprite` 图元支持 UV + 槽号。`Image` 从占位升级为真实纹理渲染：调用方给槽句柄与纹理尺寸，
+控件负责按 `Fit` 计算目标矩形/UV 并提交绘制；没有纹理时仍是占位。
 
-### API（`src/ui/image.hpp`，header-only）
+### API（`src/ui/core/image.hpp`，header-only）
 
 - `Image(float width, float height)` / `Image(glm::vec2 size)`。
-- `set_source(std::string)` / `source()`：图片路径，仅供 M6 加载使用，当前不读文件。
-- `set_texture_id(std::uint32_t)` / `texture_id()`：预留纹理句柄，`0` 表示无纹理。
-- `set_fit(Fit)` / `fit()`：`Fill` / `Contain` / `Cover`，当前只存储，M6 采样时生效。
-- `set_tint(glm::vec4)` / `tint()`：叠加色，占位绘制用它着色。
+- `set_source(std::string)` / `source()`：图片路径，仅用于占位文案，不读文件。
+- `set_texture_id(std::uint32_t)` / `texture_id()`：图片槽索引 + 1（与 `scene::Node::texture_id`、
+  `editor::TextureCache` 一致），`0` 表示无纹理。
+- `set_texture_size(glm::vec2)` / `texture_size()`：纹理像素尺寸；`{0,0}` 时 `Contain`/`Cover` 回退 `Fill`。
+- `set_fit(Fit)` / `fit()`：`Fill` / `Contain` / `Cover`。
+- `set_tint(glm::vec4)` / `tint()`：纹理顶点色（预乘 alpha）。
+- `set_background(glm::vec4)` / `set_background_visible(bool)`：透明 PNG 的可选底板，默认关闭。
+- `set_border_visible(bool)`：纹理模式是否画外框，默认开启。
 - `set_placeholder_text(std::string)` / `placeholder_text()`：占位文案。
-  未显式设置时取 `source()` 的文件名，仍为空则回退 `"image"`。
 - 尺寸规格复用 `Widget`：`set_size_percent` / `set_aspect_ratio` / `min_size` / `max_size`。
 
-### 绘制（占位）
+### 绘制
 
-- 圆角底色（`accent` 降低不透明度）+ 1px 边框（`panel_border`）。
-- 对角交叉线，明确表示「尚未绑定纹理」。
-- 居中占位文案（`small_text_size` + `text_muted`），裁剪在控件内。
-- 即使 `texture_id != 0` 也保持同样的占位绘制——真实采样在 M6 接入，
-  避免出现「看起来支持纹理、实际是空图」的误判。
+`texture_id == 0`：保持原占位绘制（圆角底色 + 边框 + 交叉 + 文案）。
+
+`texture_id != 0`：
+- 可选底板（直角，alpha 由图元预乘）。
+- `slot = graphics::image_slot(texture_id - 1)`。
+- `compute_placement(rect, texture_size, fit)` 计算目标矩形与 UV：
+  - `Fill`：目标 = rect，UV 全图；
+  - `Contain`：按 `min` 比例内接居中，UV 全图，留白不绘制；
+  - `Cover`：按 `max` 比例居中，可超出 rect；
+  - 尺寸未知：回退 `Fill`。
+- `push_clip(rect)` 后提交 `graphics::Sprite`，再 `pop_clip()`（Cover 溢出裁剪）。
+- 边框可选，直角；纹理模式不做圆角。
 
 ### 验证
 
-新建 `test/test_ui_image.cpp` 并注册：
+`test/test_ui_image.cpp`：
+- 原有构造/`measure`/`arrange`/属性/占位文案用例。
+- `compute_placement`：Fill / Contain 宽高图 / Cover 宽高图 / 尺寸未知回退。
+- 槽映射：`texture_id=3` → `image_slot(2)`，4 顶点 UV 为 0..1。
+- `texture_id=0` 时所有 batch 都不使用 image slot（占位）。
+- tint 预乘 + `DrawList::push_opacity` 的顶点色。
+- 底板 batch 使用字体图集槽，纹理 batch 使用 image slot。
 
-- 构造尺寸、`measure`、`arrange` 后 bounds 正确。
-- `source` / `texture_id` / `fit` / `tint` 存取。
-- 未设置占位文案时：有来源取文件名、无来源回退 `"image"`。
-- 在 `Vbox` 中声明 `size_percent` 与 `aspect_ratio` 时按父内容区解析。
-- `append_to` 不崩（无字体上下文时静默跳过文字）。
-
-gallery `Layout` 分区：两张占位图（一张有来源、一张空），验证百分比宽与 16:9。
+`ui_gallery` Image 分区：内存生成 8×4 纹理，三张图分别 Fill / Contain / Cover。
 
 ### 边界（本次不做）
 
-- 不做图片解码、纹理上传、采样（M6 资源管线）。
-- 不做九宫格拉伸、平铺（tile）、mipmap、色彩空间处理。
-- 不做图片缓存与异步加载。
+- 不做图片解码、上传、槽分配（由 `TextureCache` / 调用方负责）。
+- 不做圆角纹理（需要 shader mask）、九宫格、平铺、mipmap、色彩空间。
+- 不做纹理加载状态（未上传的槽显示 `Renderer` 的棋盘占位）。
 
 ## M3.6 平滑滚动与离散行滚动
 ### 为什么
