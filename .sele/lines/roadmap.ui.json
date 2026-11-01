@@ -394,7 +394,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 11,
+      "skipped_count": 14,
       "status": "paused",
       "steps": [
         {
@@ -868,10 +868,10 @@
       "archived_at": null,
       "archived_git_head": null,
       "created_at": "2026-10-31T15:44:29Z",
-      "current_step": null,
+      "current_step": "S5",
       "depends": [],
-      "finished_at": "2026-10-31T15:53:40Z",
-      "goal": "修复 Checkbox 勾选态 label 文字颜色被 Accent 样式过渡污染（勾选/取消时黑白跳变）",
+      "finished_at": "2026-11-01T10:50:12Z",
+      "goal": "ui优化",
       "id": "T12",
       "line": "ui",
       "locked": {
@@ -885,7 +885,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "done",
+      "status": "in_progress",
       "steps": [
         {
           "desc": "",
@@ -908,9 +908,42 @@
           "skipped_reason": null,
           "status": "done",
           "title": "Radio 选中标记改用 checkbox_fill，移除 visual_style(Accent) 调用，避免覆盖 label 样式过渡缓存"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "TabBar 增加 Vertical orientation；TabView 增加 BarPosition（Top/Bottom/Left/Right）；补竖向测试"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "ui_gallery 增加竖向 TabBar 与左侧竖条 TabView 示例"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "in_progress",
+          "title": "提交竖向 TabBar、TabView BarPosition 与 gallery 示例"
         }
       ],
-      "title": "修复 Checkbox 勾选态 label 文字颜色被 Accent 样式过渡污染（勾选/取消时黑白跳变）",
+      "title": "ui优化",
       "uid": "tsk_01M69A4GSCPSA099TMYJK1SPMA"
     }
   ]

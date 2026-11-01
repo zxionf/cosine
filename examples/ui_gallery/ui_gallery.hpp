@@ -556,6 +556,22 @@ inline UiGallery build(ui::UIRoot& root, std::uint32_t image_texture_id = 0,
         auto tab_state = std::make_unique<ui::Label>("tab: Overview", 14.0f);
         gallery.tab_state = tab_state.get();
         section->add(std::move(tab_state));
+
+        section->add(std::make_unique<ui::Label>("TabBar (vertical, click or Up/Down when focused)", 18.0f));
+        auto vertical_tabs = std::make_unique<ui::TabBar>();
+        vertical_tabs->set_orientation(ui::TabBar::Orientation::Vertical);
+        vertical_tabs->set_tabs({"General", "Preview", "Export"});
+        vertical_tabs->set_min_size({160.0f, 120.0f});
+        vertical_tabs->set_max_size({160.0f, 120.0f});
+        auto vertical_tab_state = std::make_unique<ui::Label>("vertical tab: General", 14.0f);
+        auto* vertical_tab_state_ptr = vertical_tab_state.get();
+        auto* vertical_bar_ptr = vertical_tabs.get();
+        vertical_tabs->set_on_change([vertical_bar_ptr, vertical_tab_state_ptr](int index) {
+            vertical_tab_state_ptr->set_text(
+                "vertical tab: " + vertical_bar_ptr->tabs()[static_cast<std::size_t>(index)]);
+        });
+        section->add(std::move(vertical_tabs));
+        section->add(std::move(vertical_tab_state));
         gallery.sections.push_back(section.get());
         root.add(std::move(section));
     }
@@ -614,6 +630,36 @@ inline UiGallery build(ui::UIRoot& root, std::uint32_t image_texture_id = 0,
         gallery.tab_view = tab_view.get();
         section->add(std::move(tab_view));
         section->add(std::move(tab_view_state));
+
+        section->add(std::make_unique<ui::Label>("TabView (left vertical bar)", 18.0f));
+        auto side_view = std::make_unique<ui::TabView>();
+        side_view->set_bar_position(ui::TabView::BarPosition::Left);
+        side_view->set_min_size({620.0f, 200.0f});
+        side_view->set_max_size({620.0f, 200.0f});
+        {
+            auto general = std::make_unique<ui::Vbox>(0.0f, 0.0f, 600.0f, 120.0f);
+            general->set_cross_align(ui::Align::top_left());
+            general->add(std::make_unique<ui::Label>("General page: vertical tabs live on the left."));
+            general->add(std::make_unique<ui::Button>("General action", [] {}));
+            side_view->add_page("General", std::move(general));
+
+            auto preview = std::make_unique<ui::Vbox>(0.0f, 0.0f, 600.0f, 120.0f);
+            preview->set_cross_align(ui::Align::top_left());
+            preview->add(std::make_unique<ui::Label>("Preview page: click a left tab or use Up/Down."));
+            auto preview_bar = std::make_unique<ui::Progress>(280.0f);
+            preview_bar->set_value(0.6f);
+            preview->add(std::move(preview_bar));
+            side_view->add_page("Preview", std::move(preview));
+        }
+        auto side_state = std::make_unique<ui::Label>("left tab view: General", 12.0f);
+        auto* side_state_ptr = side_state.get();
+        auto* side_view_ptr = side_view.get();
+        side_view->set_on_change([side_view_ptr, side_state_ptr](int index) {
+            side_state_ptr->set_text(
+                "left tab view: " + side_view_ptr->tab_bar().tabs()[static_cast<std::size_t>(index)]);
+        });
+        section->add(std::move(side_view));
+        section->add(std::move(side_state));
 
         section->add(std::make_unique<ui::Label>("Table (header, selection, wheel scroll)", 18.0f));
         auto table = std::make_unique<ui::Table>(620.0f, 210.0f);

@@ -13,11 +13,25 @@
 
 namespace xel::ui
 {
-// 水平标签栏：点击或左右方向键切换，选中项下方有强调线。
+// 标签栏：水平或竖向排列。水平时选中项下方有强调线，竖向时强调线在左侧。
 class TabBar : public Widget
 {
 public:
+    enum class Orientation
+    {
+        Horizontal,
+        Vertical,
+    };
+
     TabBar() = default;
+
+    void set_orientation(Orientation orientation)
+    {
+        if (orientation_ == orientation) return;
+        orientation_ = orientation;
+        mark_layout_dirty();
+    }
+    Orientation orientation() const { return orientation_; }
 
     void set_tabs(std::vector<std::string> tabs)
     {
@@ -53,8 +67,17 @@ public:
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        (void)constraints;
         const auto& t = ui_theme();
+        if (tabs_.empty()) return {0.0f, t.control_height};
+
+        if (orientation_ == Orientation::Vertical) {
+            float width = 0.0f;
+            for (const auto& tab : tabs_) width = std::max(width, tab_width(tab));
+            const float height = static_cast<float>(tabs_.size()) * t.control_height
+                + static_cast<float>(tabs_.size() - 1) * t.spacing;
+            return {width, height};
+        }
+
         float width = 0.0f;
         for (const auto& tab : tabs_) {
             width += tab_width(tab) + t.spacing;
@@ -73,9 +96,43 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
+        const float radius = corner_radius(t.radius_small);
+
+        if (orientation_ == Orientation::Vertical) {
+            const float left = global_.pos.x;
+            const float width = global_.size.x;
+            float y = global_.pos.y;
+            for (std::size_t i = 0; i < tabs_.size(); ++i) {
+                const float height = t.control_height;
+                const bool active = static_cast<int>(i) == selected_;
+                const bool hovered = static_cast<int>(i) == hovered_ && !active;
+                const BoxStyle style = t.style(StyleRole::Control,
+                                               active ? ControlState::Pressed
+                                                      : hovered ? ControlState::Hovered
+                                                                : ControlState::Normal);
+
+                graphics::append_rounded_rect(list, {left, y, width, height}, radius, style.fill);
+                if (active) {
+                    graphics::append_rounded_rect(list, {left, y, 2.0f, height}, radius, t.accent);
+                }
+
+                if (auto* atlas = font_atlas()) {
+                    const glm::vec2 text_size = atlas->measure(tabs_[i], style.text_size);
+                    atlas->append_text(list,
+                                       left + t.padding,
+                                       y + (height - text_size.y) * 0.5f,
+                                       style.text_size, tabs_[i], style.text);
+                }
+
+                y += height + t.spacing;
+            }
+
+            append_focus_ring(list, {global_.pos.x, global_.pos.y, global_.size.x, global_.size.y}, radius);
+            return;
+        }
+
         const float top = global_.pos.y;
         const float height = global_.size.y;
-        const float radius = corner_radius(t.radius_small);
 
         float x = global_.pos.x;
         for (std::size_t i = 0; i < tabs_.size(); ++i) {
@@ -129,13 +186,24 @@ public:
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
         if (tabs_.empty()) return false;
-        if (key == event::KeyCode::Left) {
-            set_selected(selected_ - 1);
-            return true;
-        }
-        if (key == event::KeyCode::Right) {
-            set_selected(selected_ + 1);
-            return true;
+        if (orientation_ == Orientation::Vertical) {
+            if (key == event::KeyCode::Up) {
+                set_selected(selected_ - 1);
+                return true;
+            }
+            if (key == event::KeyCode::Down) {
+                set_selected(selected_ + 1);
+                return true;
+            }
+        } else {
+            if (key == event::KeyCode::Left) {
+                set_selected(selected_ - 1);
+                return true;
+            }
+            if (key == event::KeyCode::Right) {
+                set_selected(selected_ + 1);
+                return true;
+            }
         }
         if (key == event::KeyCode::Home) {
             set_selected(0);
@@ -167,8 +235,18 @@ private:
 
     int index_at(glm::vec2 pos) const
     {
-        if (pos.y < global_.pos.y || pos.y > global_.pos.y + global_.size.y) return -1;
         const auto& t = ui_theme();
+        if (orientation_ == Orientation::Vertical) {
+            if (pos.x < global_.pos.x || pos.x > global_.pos.x + global_.size.x) return -1;
+            float y = global_.pos.y;
+            for (std::size_t i = 0; i < tabs_.size(); ++i) {
+                if (pos.y >= y && pos.y <= y + t.control_height) return static_cast<int>(i);
+                y += t.control_height + t.spacing;
+            }
+            return -1;
+        }
+
+        if (pos.y < global_.pos.y || pos.y > global_.pos.y + global_.size.y) return -1;
         float x = global_.pos.x;
         for (std::size_t i = 0; i < tabs_.size(); ++i) {
             const float width = tab_width(tabs_[i]);
@@ -179,6 +257,7 @@ private:
     }
 
     std::vector<std::string> tabs_;
+    Orientation orientation_ = Orientation::Horizontal;
     int selected_ = -1;
     int hovered_ = -1;
     int index_at_last_mouse_ = -1;

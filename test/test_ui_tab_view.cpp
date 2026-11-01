@@ -150,6 +150,46 @@ int main()
     assert(view_ptr->page(0) != nullptr);
     assert(view_ptr->page(0)->visible());
 
+    // 竖向 TabBar + 左侧栏：measure / arrange / 命中 / 键盘。
+    auto side = std::make_unique<xel::ui::TabView>();
+    side->set_bar_position(xel::ui::TabView::BarPosition::Left);
+    side->set_pos(400.0f, 20.0f);
+    side->set_min_size({300.0f, 220.0f});
+    side->add_page("Alpha", page_with_label("alpha"));
+    side->add_page("Beta", page_with_label("beta"));
+    auto* side_ptr = side.get();
+    ui.root()->add(std::move(side));
+    ui.tick();
+
+    auto& side_bar = side_ptr->tab_bar();
+    assert(side_bar.orientation() == xel::ui::TabBar::Orientation::Vertical);
+    const float control_h = ui.context()->theme.control_height;
+    const float spacing = ui.context()->theme.spacing;
+    assert(side_bar.measure({300.0f, 300.0f}).y >= control_h * 2.0f);
+    assert(side_bar.global_bounds().size.x < side_ptr->global_bounds().size.x);
+    assert(side_bar.global_bounds().size.y >= control_h * 2.0f);
+    assert(side_ptr->page(0)->global_bounds().pos.x > side_bar.global_bounds().pos.x);
+
+    // 第二项位于竖条下半部分；点击切换。
+    const auto side_bar_bounds = side_bar.global_bounds();
+    const glm::vec2 second{side_bar_bounds.pos.x + 8.0f,
+                           side_bar_bounds.pos.y + control_h + spacing + control_h * 0.5f};
+    ui.dispatch(mouse(InputEvent::Type::MouseButtonDown, second));
+    ui.dispatch(mouse(InputEvent::Type::MouseButtonUp, second));
+    assert(side_ptr->selected() == 1);
+    assert(side_ptr->page(1)->visible());
+    assert(!side_ptr->page(0)->visible());
+
+    // 竖向键盘导航用 Up/Down。
+    ui.set_focus(&side_bar);
+    ui.dispatch([] {
+        InputEvent event;
+        event.type = InputEvent::Type::KeyDown;
+        event.key = KeyCode::Up;
+        return event;
+    }());
+    assert(side_ptr->selected() == 0);
+
     std::cout << "tab view tests passed\n";
     return 0;
 }

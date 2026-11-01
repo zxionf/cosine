@@ -77,6 +77,26 @@ public:
 
     void set_on_change(std::function<void(int)> handler) { on_change_ = std::move(handler); }
 
+    enum class BarPosition
+    {
+        Top,
+        Bottom,
+        Left,
+        Right,
+    };
+
+    // 标签栏位置：Left/Right 会把 TabBar 切到竖向。
+    void set_bar_position(BarPosition position)
+    {
+        if (bar_position_ == position) return;
+        bar_position_ = position;
+        tab_bar().set_orientation(position == BarPosition::Left || position == BarPosition::Right
+                                      ? TabBar::Orientation::Vertical
+                                      : TabBar::Orientation::Horizontal);
+        mark_layout_dirty();
+    }
+    BarPosition bar_position() const { return bar_position_; }
+
     // 页面是否填满内容区（默认 true，符合标签页习惯）。
     void set_page_fill(bool fill)
     {
@@ -114,10 +134,10 @@ public:
         }
 
         cached_constraints_ = constraints;
-        cached_measure_ = {
-            std::max(bar.x, content.x) + pad,
-            bar.y + t.spacing + content.y + pad_v
-        };
+        const bool side = bar_position_ == BarPosition::Left || bar_position_ == BarPosition::Right;
+        cached_measure_ = side
+            ? glm::vec2{bar.x + t.spacing + content.x + pad, std::max(bar.y, content.y) + pad_v}
+            : glm::vec2{std::max(bar.x, content.x) + pad, bar.y + t.spacing + content.y + pad_v};
         measure_valid_ = true;
         return cached_measure_;
     }
@@ -135,12 +155,43 @@ public:
         const float inner_h = std::max(0.0f, slot.size.y - pad_t - padding_bottom());
 
         const glm::vec2 bar_size = tab_bar().measure({inner_w, inner_h});
-        const float bar_h = std::min(bar_size.y, inner_h);
-        tab_bar().arrange({{slot.pos.x + pad_l, slot.pos.y + pad_t}, {inner_w, bar_h}});
+        Rect bar_slot{};
+        Rect content{};
 
-        const float content_y = slot.pos.y + pad_t + bar_h + t.spacing;
-        const float content_h = std::max(0.0f, slot.pos.y + pad_t + inner_h - content_y);
-        const Rect content{{slot.pos.x + pad_l, content_y}, {inner_w, content_h}};
+        switch (bar_position_) {
+            case BarPosition::Top: {
+                const float bar_h = std::min(bar_size.y, inner_h);
+                bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t}, {inner_w, bar_h}};
+                content = {{slot.pos.x + pad_l, slot.pos.y + pad_t + bar_h + t.spacing},
+                           {inner_w, std::max(0.0f, inner_h - bar_h - t.spacing)}};
+                break;
+            }
+            case BarPosition::Bottom: {
+                const float bar_h = std::min(bar_size.y, inner_h);
+                content = {{slot.pos.x + pad_l, slot.pos.y + pad_t},
+                           {inner_w, std::max(0.0f, inner_h - bar_h - t.spacing)}};
+                bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t + inner_h - bar_h},
+                            {inner_w, bar_h}};
+                break;
+            }
+            case BarPosition::Left: {
+                const float bar_w = std::min(bar_size.x, inner_w);
+                bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t}, {bar_w, inner_h}};
+                content = {{slot.pos.x + pad_l + bar_w + t.spacing, slot.pos.y + pad_t},
+                           {std::max(0.0f, inner_w - bar_w - t.spacing), inner_h}};
+                break;
+            }
+            case BarPosition::Right: {
+                const float bar_w = std::min(bar_size.x, inner_w);
+                content = {{slot.pos.x + pad_l, slot.pos.y + pad_t},
+                           {std::max(0.0f, inner_w - bar_w - t.spacing), inner_h}};
+                bar_slot = {{slot.pos.x + pad_l + inner_w - bar_w, slot.pos.y + pad_t},
+                            {bar_w, inner_h}};
+                break;
+            }
+        }
+
+        tab_bar().arrange(bar_slot);
 
         for (std::size_t i = 1; i < children_.size(); ++i) {
             auto& child = children_[i];
@@ -200,6 +251,7 @@ private:
     }
 
     std::function<void(int)> on_change_;
+    BarPosition bar_position_ = BarPosition::Top;
     glm::vec2 cached_constraints_{};
     glm::vec2 cached_measure_{};
     bool measure_valid_ = false;
