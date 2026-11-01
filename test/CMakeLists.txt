@@ -198,16 +198,22 @@ target_include_directories(test_text PRIVATE
     ${PROJECT_SOURCE_DIR}/src
     ${STB_INCLUDE_DIR}
 )
-target_link_libraries(test_text PRIVATE cosine_text)
+target_link_libraries(test_text PRIVATE cosine_ui)
 
 file(GLOB_RECURSE interpreter_test
     ${PROJECT_SOURCE_DIR}/interpreter/*.cpp
 )
 list(FILTER interpreter_test EXCLUDE REGEX "main.cpp")
 
-add_executable(test_interpreter_token test_interpreter_token.cpp ../interpreter/token.cpp ../interpreter/lexer.cpp)
-add_executable(test_intepreter_tree_structure test_intepreter_tree_structure.cpp ${interpreter_test})
-add_executable(test_intepreter_tree_evaluator test_intepreter_tree_evaluator.cpp ${interpreter_test})
+# interpreter 测试源复用：token/lexer 只编译一次，三个 target 共享对象。
+add_library(interpreter_test_support OBJECT ${interpreter_test})
+target_include_directories(interpreter_test_support PRIVATE
+    ${PROJECT_SOURCE_DIR}/interpreter
+)
+
+add_executable(test_interpreter_token test_interpreter_token.cpp $<TARGET_OBJECTS:interpreter_test_support>)
+add_executable(test_intepreter_tree_structure test_intepreter_tree_structure.cpp $<TARGET_OBJECTS:interpreter_test_support>)
+add_executable(test_intepreter_tree_evaluator test_intepreter_tree_evaluator.cpp $<TARGET_OBJECTS:interpreter_test_support>)
 
 # 测试不使用 C++ modules；显式关闭，避免额外 CXX_SCAN 进程和 -fmodules-ts 开销。
 set(COSINE_TEST_TARGETS
@@ -279,6 +285,22 @@ set(COSINE_TEST_TARGETS
     test_intepreter_tree_evaluator
 )
 set_target_properties(${COSINE_TEST_TARGETS} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+
+# PCH 实验：先覆盖三个代表性 UI 测试，测量 clean 构建收益。
+foreach(pch_test IN ITEMS test_ui_layout test_ui_controls test_text)
+    target_precompile_headers(${pch_test} PRIVATE
+        <algorithm>
+        <cstdint>
+        <format>
+        <memory>
+        <optional>
+        <string>
+        <vector>
+        <glm/glm.hpp>
+        ${PROJECT_SOURCE_DIR}/src/ui/widget.hpp
+        ${PROJECT_SOURCE_DIR}/src/ui/theme.hpp
+    )
+endforeach()
 
 add_test(NAME ui_layout COMMAND test_ui_layout)
 add_test(NAME ui_grid COMMAND test_ui_grid)

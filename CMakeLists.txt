@@ -2,6 +2,19 @@ cmake_minimum_required(VERSION 4.0.0)
 project(cosine VERSION 0.4.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+
+# 可选编译器缓存：环境里装了 ccache 就自动启用，未安装时行为不变。
+find_program(COSINE_CCACHE ccache)
+if(COSINE_CCACHE)
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${COSINE_CCACHE}")
+    set(CMAKE_C_COMPILER_LAUNCHER "${COSINE_CCACHE}")
+    message(STATUS "cosine: using ccache ${COSINE_CCACHE}")
+    # ccache 与 PCH 组合时，clean 后 PCH 文件重建会让大量对象缓存失效；
+    # 实测有 PCH 的热缓存 clean 21.8s，无 PCH 15.4s。默认让 ccache 优先。
+    if(NOT DEFINED CMAKE_DISABLE_PRECOMPILE_HEADERS)
+        set(CMAKE_DISABLE_PRECOMPILE_HEADERS ON)
+    endif()
+endif()
 set(COSINE_GENERATED_DIR "${CMAKE_BINARY_DIR}/generated" CACHE INTERNAL "Generated headers")
 file(MAKE_DIRECTORY "${COSINE_GENERATED_DIR}")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/version.hpp.in"

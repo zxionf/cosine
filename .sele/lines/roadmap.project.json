@@ -1,0 +1,393 @@
+{
+  "acceptance": [
+    {
+      "desc": "记录 clean build / 增量构建基线：TU 数、编译时间、热点头 fan-out",
+      "id": "A1",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "解耦热点头（widget/theme/root 等）后，修改单个头触发的重编译 TU 数显著下降",
+      "id": "A2",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    },
+    {
+      "desc": "ctest 65/65 通过，示例冒烟 validation=0",
+      "id": "A3",
+      "requires_human": false,
+      "status": "unverified",
+      "verified_at": null,
+      "verified_by": null
+    }
+  ],
+  "created_at": "2026-11-01T14:36:25Z",
+  "depends": [],
+  "goal": "优化编译单元：降低 clean/incremental 构建时间与头文件重编译扇出",
+  "id": "project",
+  "modules": [
+    "src",
+    "examples",
+    "test",
+    "cmake"
+  ],
+  "plan": "roadmap",
+  "status": "active",
+  "tasks": [
+    {
+      "acceptance": [
+        {
+          "desc": "记录 clean build 时间、TU 数、热点头增量重编译数",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:01:09Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "产出 docs/review/build_baseline.md",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:01:09Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-01T14:40:57Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-01T15:01:09Z",
+      "goal": "P1 编译单元基线测量",
+      "id": "T1",
+      "line": "project",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "src",
+        "examples",
+        "test",
+        "cmake"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "测量 clean/incremental 构建与热点头扇出，产出基线文档"
+        }
+      ],
+      "title": "P1 编译单元基线测量",
+      "uid": "tsk_01M6BRWW6KFH3JXC4Z1ZW5YHG3"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "修改 widget.hpp 触发的重编译 TU 数较基线下降 ≥50%（目标 ≤10）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:17:21Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 65/65 通过",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:13:47Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-01T14:40:57Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-01T15:17:21Z",
+      "goal": "P2 拆分 ui/widget.hpp",
+      "id": "T2",
+      "line": "project",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "src",
+        "examples",
+        "test",
+        "cmake"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "widget.hpp 去 theme/style 传递依赖：StyleTransition / visual_style / focus ring 移到 widget.cpp，前置声明 UIContext/Theme/BoxStyle"
+        }
+      ],
+      "title": "P2 拆分 ui/widget.hpp",
+      "uid": "tsk_01M6BRWW6W9KRJ2GM9EGMSTDB9"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "修改 theme.hpp / root.hpp 的编译扇出较基线下降 ≥50%",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:20:19Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 65/65 通过",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:20:19Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-01T14:40:57Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-01T15:20:19Z",
+      "goal": "P3 拆分 ui/theme.hpp 与 ui/root.hpp",
+      "id": "T3",
+      "line": "project",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "src",
+        "examples",
+        "test",
+        "cmake"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "theme.hpp 的 with_* / light 实现外移到 theme.cpp，保留声明"
+        }
+      ],
+      "title": "P3 拆分 ui/theme.hpp 与 ui/root.hpp",
+      "uid": "tsk_01M6BRWW74CN12X21SKW0B2VHY"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "移除未使用 include，能用前向声明的 graphics 类型改为前向声明",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:36:45Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 65/65 通过",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:36:45Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-01T14:40:57Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-01T15:36:45Z",
+      "goal": "P4 头文件 IWYU 与前向声明",
+      "id": "T4",
+      "line": "project",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "src",
+        "examples",
+        "test",
+        "cmake"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "debug_rect/append_debug_tree 外移，widget.hpp 去 graphics/line.hpp"
+        }
+      ],
+      "title": "P4 头文件 IWYU 与前向声明",
+      "uid": "tsk_01M6BRWW7CBYSF8D6WQV525ZVX"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "为库/代表性 test 配置 PCH 并记录 clean/incremental 收益",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:29:39Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "给出保留或放弃的数据结论",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:29:39Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-01T14:40:57Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-01T15:29:39Z",
+      "goal": "P5 PCH 实验",
+      "id": "T5",
+      "line": "project",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "src",
+        "examples",
+        "test",
+        "cmake"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "PCH（cosine_ui/app/editor + 测试）与 interpreter 源复用实验，记录 clean 构建收益"
+        }
+      ],
+      "title": "P5 PCH 实验",
+      "uid": "tsk_01M6BRWW7M9W2P1KA20VGE7E1E"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "对比基线与最终数据，ctest 65/65，ui_lab/ui_gallery/cosine 冒烟 validation=0",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-01T15:38:53Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-01T14:40:57Z",
+      "current_step": "S2",
+      "depends": [],
+      "finished_at": "2026-11-01T15:38:53Z",
+      "goal": "P6 验证与构建报告",
+      "id": "T6",
+      "line": "project",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "src",
+        "examples",
+        "test",
+        "cmake"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "in_progress",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "汇总基线/最终数据，验证 ctest 与三个入口冒烟，产出构建报告"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "in_progress",
+          "title": "提交编译单元优化与构建报告"
+        }
+      ],
+      "title": "P6 验证与构建报告",
+      "uid": "tsk_01M6BRWW7WA2WDCK3PDTHEW43B"
+    }
+  ]
+}

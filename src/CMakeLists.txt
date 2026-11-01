@@ -29,6 +29,8 @@ target_link_libraries(cosine_anim PUBLIC glm::glm)
 
 # UI 库：布局、控件、事件、DrawList 消费端；测试和 ex4 不再各自重复编译。
 add_library(cosine_ui STATIC
+    ui/widget.cpp
+    ui/theme.cpp
     ui/root.cpp
     ui/ui_system.cpp
     ui/containers/vbox.cpp
@@ -48,6 +50,20 @@ target_link_libraries(cosine_ui
     PRIVATE
         glfw
         Vulkan::Vulkan
+)
+
+# PCH：UI 库的源反复解析标准库、glm 与核心头；先只在库内启用并测量。
+target_precompile_headers(cosine_ui PRIVATE
+    <algorithm>
+    <cstdint>
+    <format>
+    <memory>
+    <optional>
+    <string>
+    <vector>
+    <glm/glm.hpp>
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui/widget.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ui/theme.hpp
 )
 
 if(MSVC)

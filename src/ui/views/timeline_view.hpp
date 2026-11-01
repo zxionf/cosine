@@ -2,6 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
+#include "ui/uicontext.hpp"
 #include "ui/widget.hpp"
 #include "anim/timeline.hpp"
 #include "events/event.hpp"

@@ -1,5 +1,6 @@
 #include "ui/ui_system.hpp"
 #include "backend/window.hpp"
+#include "ui/theme.hpp"
 
 #include <algorithm>
 

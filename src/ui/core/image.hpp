@@ -1,6 +1,9 @@
 #pragma once
 
+#include "ui/theme.hpp"
 #include "ui/widget.hpp"
+#include "graphics/box.hpp"
+#include "graphics/line.hpp"
 #include "graphics/sprite.hpp"
 
 #include <algorithm>

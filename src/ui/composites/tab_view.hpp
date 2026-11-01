@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/core/tab_bar.hpp"
+#include "ui/uicontext.hpp"
 #include "ui/theme.hpp"
 #include "ui/widget.hpp"
 #include "graphics/rectangle.hpp"

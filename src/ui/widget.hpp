@@ -1,12 +1,9 @@
 #pragma once
 
 #include "graphics/drawable.hpp"
-#include "graphics/box.hpp"
-#include "graphics/line.hpp"
 #include "ui/rect.hpp"
 #include "ui/align.hpp"
-#include "ui/uicontext.hpp"
-#include "ui/style.hpp"
+#include "ui/style_types.hpp"
 #include "events/key_code.hpp"
 
 #include <algorithm>
@@ -16,8 +13,18 @@
 #include <stdexcept>
 #include <vector>
 
+namespace xel::graphics
+{
+class FontAtlas;
+}
+
 namespace xel::ui
 {
+struct UIContext;
+struct Theme;
+struct BoxStyle;
+struct StyleTransition;
+
 struct Edges
 {
     float left = 0.0f;
@@ -26,22 +33,13 @@ struct Edges
     float bottom = 0.0f;
 };
 
-// 控件状态过渡缓存：只在 (role, state) 变化时重建，几何瞬时、颜色平滑。
-struct StyleTransition
-{
-    StyleRole role = StyleRole::Control;
-    ControlState state = ControlState::Normal;
-    BoxStyle from{};
-    BoxStyle to{};
-    float progress = 1.0f; // 1 = 已完成
-    bool started = false;
-    std::uint64_t revision = 0; // 建立时的主题版本
-};
-
 class Widget : public graphics::Drawable
 {
 public:
-    virtual ~Widget() = default;
+    Widget();
+    Widget(const Widget&) = delete;
+    Widget& operator=(const Widget&) = delete;
+    virtual ~Widget();
 
     graphics::TextureSlot texture_slot() const override { return graphics::TextureSlot::Texture; }
 
@@ -96,16 +94,8 @@ public:
         if (context_) return context_;
         return parent_ ? parent_->context() : nullptr;
     }
-    const Theme& ui_theme() const
-    {
-        if (auto* ctx = context()) return ctx->theme;
-        return theme();
-    }
-    graphics::FontAtlas* font_atlas() const
-    {
-        if (auto* ctx = context()) return ctx->font_atlas;
-        return graphics::active_font_atlas();
-    }
+    const Theme& ui_theme() const;
+    graphics::FontAtlas* font_atlas() const;
     // 容器是否把子控件裁剪在自身范围内（命中测试与渲染共用同一语义）
     virtual bool clips_children() const { return false; }
 
@@ -116,42 +106,9 @@ public:
     // 焦点由基类持有：控件不再各自保存 focused_，样式解析与焦点环统一读这里。
     bool is_focused() const { return focused_; }
     void set_focused(bool focused) { focused_ = focused; }
-    // 焦点可见性只由 FocusPolicy 决定，与几何风格（圆角环 / 贴边框）无关：
-    // Keyboard = 仅键盘操作期间显示，Always = 聚焦即显示，Never = 从不显示。
-    bool focus_visible() const
-    {
-        if (!focused_) return false;
-        const UIContext* ctx = context();
-        if (ctx == nullptr) return true;
-        switch (ctx->theme.focus_policy) {
-            case FocusPolicy::Always: return true;
-            case FocusPolicy::Never:  return false;
-            case FocusPolicy::Keyboard: break;
-        }
-        return ctx->input_mode == InputMode::Keyboard;
-    }
-    // 焦点环画在控件外扩 focus_offset 的圆角环上，不压住内容边缘。
-    // 经典样式（FocusStyle::Border）则回到贴控件内边缘的四条实心框：无圆角、不外扩。
-    void append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const
-    {
-        if (!focus_visible()) return;
-        const auto& t = ui_theme();
-        const float thickness = t.focus_thickness;
-        if (t.focus_style == FocusStyle::Border) {
-            graphics::append_rounded_rect(list, {rect.x, rect.y, rect.z, thickness}, 0.0f, t.accent);
-            graphics::append_rounded_rect(list, {rect.x, rect.y + rect.w - thickness, rect.z, thickness}, 0.0f, t.accent);
-            graphics::append_rounded_rect(list, {rect.x, rect.y, thickness, rect.w}, 0.0f, t.accent);
-            graphics::append_rounded_rect(list, {rect.x + rect.z - thickness, rect.y, thickness, rect.w}, 0.0f, t.accent);
-            return;
-        }
-        const float offset = t.focus_offset;
-        graphics::append_rounded_ring(
-            list,
-            {rect.x - offset, rect.y - offset, rect.z + offset * 2.0f, rect.w + offset * 2.0f},
-            radius + offset,
-            thickness,
-            t.accent);
-    }
+    // 焦点可见性由 FocusPolicy 决定；样式解析与焦点环实现在 widget.cpp。
+    bool focus_visible() const;
+    void append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const;
     void set_visible(bool visible) { visible_ = visible; mark_layout_dirty(); }
     virtual void debug() { debug_ = true; }
     void set_debug(bool enabled) { debug_ = enabled; mark_layout_dirty(); }
@@ -161,24 +118,8 @@ public:
         debug();
         for (const auto& child : children()) child->debug_recursive();
     }
-    void append_debug_tree(graphics::DrawList& list) const
-    {
-        if (is_debug()) debug_rect(list);
-        for (const auto& child : children()) child->append_debug_tree(list);
-        for (const auto& overlay : overlays()) overlay->append_debug_tree(list);
-    }
-    void debug_rect(graphics::DrawList& list) const {
-        auto [x, y, w, h] = global_;
-        const glm::vec4 color = hovered_ ? glm::vec4{1, 0, 1, 1} : glm::vec4{0, 1, 0, 1};
-        graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, color};
-        graphics::Line right_l  {x + w, y,      x + w,  y + h,  1.0f, color};
-        graphics::Line bottom_l {x,     y + h,  x + w,  y + h,  1.0f, color};
-        graphics::Line left_l   {x,     y,      x,      y + h,  1.0f, color};
-        top_l.append_to(list);
-        right_l.append_to(list);
-        bottom_l.append_to(list);
-        left_l.append_to(list);
-    }
+    void append_debug_tree(graphics::DrawList& list) const;
+    void debug_rect(graphics::DrawList& list) const;
     virtual void layout() {}
     // 布局契约：constraints.x 是父容器给的可用宽度，返回值宽度不得超过它
     // （min_size 强制除外）。违反这条会让并列控件互相挤压。
@@ -381,55 +322,18 @@ public:
 
     // 状态样式：替代直接 ui_theme().style(...)。
     // 首次调用或 transition_ms == 0 时立即到位；状态变化时从当前插值结果出发，
-    // 因此中途反向（hover→normal→hover）不会跳变。
-    BoxStyle visual_style(StyleRole role, ControlState state) const
-    {
-        const auto& theme_value = ui_theme();
-        const BoxStyle target = theme_value.style(role, state);
-        const std::uint64_t revision = theme_revision();
-        // 主题变化（切换主题/圆角/密度/过渡时长）：旧缓存的 from/to 已过时，
-        // 直接重建成目标样式，不做过渡——否则会等到下一次 hover 才刷新。
-        if (!transition_.started || transition_.revision != revision) {
-            transition_ = StyleTransition{role, state, target, target, 1.0f, true, revision};
-            return target;
-        }
-        if (transition_.role != role || transition_.state != state) {
-            transition_.from = current_transition_style();
-            transition_.to = target;
-            transition_.role = role;
-            transition_.state = state;
-            transition_.progress = transition_duration() <= 0.0f ? 1.0f : 0.0f;
-        }
-        return current_transition_style();
-    }
+    // 中途反向（hover→normal→hover）不会跳变。实现在 widget.cpp。
+    BoxStyle visual_style(StyleRole role, ControlState state) const;
 
-    bool transition_active() const { return transition_.progress < 1.0f; }
+    bool transition_active() const;
 
 protected:
     virtual void on_update(float /*dt*/) {}
 
 private:
-    float transition_duration() const
-    {
-        const float ms = ui_theme().transition_ms;
-        return ms > 0.0f ? ms / 1000.0f : 0.0f;
-    }
-
-    BoxStyle current_transition_style() const
-    {
-        return lerp_style(transition_.from, transition_.to, ease_out_quad(transition_.progress));
-    }
-
-    void advance_transition(float dt)
-    {
-        if (transition_.progress >= 1.0f) return;
-        const float duration = transition_duration();
-        if (duration <= 0.0f) {
-            transition_.progress = 1.0f;
-            return;
-        }
-        transition_.progress = std::min(1.0f, transition_.progress + dt / duration);
-    }
+    float transition_duration() const;
+    BoxStyle current_transition_style() const;
+    void advance_transition(float dt);
 
     bool visible_ = true;
     bool hovered_ = false;
@@ -439,6 +343,6 @@ private:
     bool layout_dirty_ = true;
     int tab_order_ = 0;
     // visual_style() 在 const 的 append_to 中惰性更新过渡状态。
-    mutable StyleTransition transition_;
+    mutable std::unique_ptr<StyleTransition> transition_;
 };
 } // namespace xel::ui
