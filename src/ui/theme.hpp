@@ -5,6 +5,8 @@
 
 #include <glm/glm.hpp>
 
+#include "ui/scroll_mode.hpp"
+
 namespace xel::ui
 {
 // 样式角色：把控件抽象成「用途」，Theme 按角色而不是控件名提供外观。
@@ -149,6 +151,8 @@ struct Theme
     float slider_handle_radius = 7.0f;
     float scrollbar_width = 8.0f;
     float scrollbar_min_thumb = 20.0f;
+    // 全局默认滚动模式；ScrollView 未显式覆盖时采用。
+    ScrollMode scroll_mode = ScrollMode::Smooth;
 
     // 圆角档位：radius 是控件默认圆角，radius_panel 是面板/卡片。
     float radius = 6.0f;

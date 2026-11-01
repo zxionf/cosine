@@ -164,6 +164,7 @@ void ScrollView::place_content()
 
 void ScrollView::arrange(Rect slot)
 {
+    if (!scroll_mode_override_) scroll_mode_ = ui_theme().scroll_mode;
     global_ = slot;
     update_metrics(slot.size);
     offset_ = clamp_offset(offset_);

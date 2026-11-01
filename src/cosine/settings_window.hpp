@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/composites/scroll_panel.hpp"
+#include "ui/composites/tab_view.hpp"
 #include "ui/composites/window.hpp"
 #include "ui/containers/hbox.hpp"
 #include "ui/containers/vbox.hpp"
@@ -16,7 +17,7 @@ namespace xel::editor
 {
 class Editor;
 
-// 编辑器设置窗口：左侧分类按钮，右侧 ScrollPanel 承载设置组。
+// 编辑器设置窗口：左侧竖向标签栏（TabView + TabBar Vertical），右侧页面内嵌 ScrollPanel。
 class SettingsWindow
 {
 public:
@@ -38,8 +39,7 @@ private:
 
     Editor* editor_ = nullptr;
     ui::Window* window_ = nullptr;
-    ui::ScrollPanel* scroll_ = nullptr;
-    std::vector<ui::Button*> group_buttons_;
+    ui::TabView* tab_view_ = nullptr;
     std::vector<ui::Vbox*> groups_;
     int current_ = 0;
 };

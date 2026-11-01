@@ -176,17 +176,19 @@ public:
             }
             case BarPosition::Left: {
                 const float bar_w = std::min(bar_size.x, inner_w);
-                bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t}, {bar_w, inner_h}};
+                const float bar_h = std::min(bar_size.y, inner_h);
+                bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t}, {bar_w, bar_h}};
                 content = {{slot.pos.x + pad_l + bar_w + t.spacing, slot.pos.y + pad_t},
                            {std::max(0.0f, inner_w - bar_w - t.spacing), inner_h}};
                 break;
             }
             case BarPosition::Right: {
                 const float bar_w = std::min(bar_size.x, inner_w);
+                const float bar_h = std::min(bar_size.y, inner_h);
                 content = {{slot.pos.x + pad_l, slot.pos.y + pad_t},
                            {std::max(0.0f, inner_w - bar_w - t.spacing), inner_h}};
                 bar_slot = {{slot.pos.x + pad_l + inner_w - bar_w, slot.pos.y + pad_t},
-                            {bar_w, inner_h}};
+                            {bar_w, bar_h}};
                 break;
             }
         }

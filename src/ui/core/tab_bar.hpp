@@ -68,14 +68,14 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         const auto& t = ui_theme();
-        if (tabs_.empty()) return {0.0f, t.control_height};
+        if (tabs_.empty()) return clamp_size({0.0f, t.control_height});
 
         if (orientation_ == Orientation::Vertical) {
             float width = 0.0f;
             for (const auto& tab : tabs_) width = std::max(width, tab_width(tab));
             const float height = static_cast<float>(tabs_.size()) * t.control_height
                 + static_cast<float>(tabs_.size() - 1) * t.spacing;
-            return {width, height};
+            return clamp_size({width, height});
         }
 
         float width = 0.0f;
@@ -83,7 +83,7 @@ public:
             width += tab_width(tab) + t.spacing;
         }
         if (!tabs_.empty()) width -= t.spacing;
-        return {width, t.control_height};
+        return clamp_size({width, t.control_height});
     }
 
     void arrange(Rect slot) override
@@ -127,7 +127,12 @@ public:
                 y += height + t.spacing;
             }
 
-            append_focus_ring(list, {global_.pos.x, global_.pos.y, global_.size.x, global_.size.y}, radius);
+            const float content_h = static_cast<float>(tabs_.size()) * t.control_height
+                + static_cast<float>(tabs_.size() - 1) * t.spacing;
+            append_focus_ring(list,
+                              {global_.pos.x, global_.pos.y, global_.size.x,
+                               std::min(global_.size.y, content_h)},
+                              radius);
             return;
         }
 

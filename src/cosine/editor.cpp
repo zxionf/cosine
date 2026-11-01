@@ -864,20 +864,44 @@ void Editor::apply_theme()
 {
     // classic 为默认外观：直角、无过渡、键盘焦点环。
     // 圆角样式需要从基础主题重新派生（with_rounding 是单向变换）。
+    const float transition_ms = settings_.transition == 0 ? 0.0f
+        : settings_.transition == 1 ? 120.0f
+        : settings_.transition == 2 ? 240.0f
+        : settings_.transition_custom_ms;
+
+    ui::FocusPolicy focus = ui::FocusPolicy::Always;
+    if (settings_.focus_policy == 0) focus = ui::FocusPolicy::Keyboard;
+    else if (settings_.focus_policy == 2) focus = ui::FocusPolicy::Never;
+
     ui::Theme base = settings_.light_theme ? ui::Theme::light() : ui::Theme::dark();
     base = base.with_rounding(settings_.rounded_style)
                .with_radius_scale(settings_.rounded_style ? 1.0f : 0.0f)
-               .with_focus_policy(ui::FocusPolicy::Always)
-               .with_transition_ms(settings_.rounded_style ? 120.0f : 0.0f);
+               .with_focus_policy(focus)
+               .with_transition_ms(transition_ms);
+
+    struct DensityMetrics
+    {
+        float control;
+        float padding;
+        float spacing;
+    };
+    constexpr DensityMetrics kDensity[3] = {
+        {36.0f, 8.0f, 6.0f},   // compact
+        {44.0f, 10.0f, 8.0f},  // normal
+        {52.0f, 12.0f, 10.0f}, // spacious
+    };
+    const int density = std::clamp(settings_.density, 0, 2);
+
     // 编辑器比 gallery 观看距离更远：字号与控件高度适度放大。
     ui::Theme theme = base;
     const float text_size = settings_.ui_text_size;
     theme.text_size = text_size;
     theme.small_text_size = text_size * 0.75f;
     theme.heading_text_size = text_size * 1.333f;
-    theme.control_height = 44.0f;
-    theme.padding = 10.0f;
-    theme.spacing = 8.0f;
+    theme.control_height = kDensity[density].control;
+    theme.padding = kDensity[density].padding;
+    theme.spacing = kDensity[density].spacing;
+    theme.scroll_mode = static_cast<ui::ScrollMode>(std::clamp(settings_.scroll_mode, 0, 2));
     root_->set_theme(theme);
 }
 

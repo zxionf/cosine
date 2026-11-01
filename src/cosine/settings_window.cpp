@@ -11,6 +11,7 @@
 #include "ui/core/text_input.hpp"
 #include "ui/composites/dropdown.hpp"
 
+#include <algorithm>
 #include <format>
 #include <utility>
 
@@ -47,16 +48,10 @@ bool SettingsWindow::visible() const
 
 void SettingsWindow::select_group(int index)
 {
+    if (tab_view_ == nullptr) return;
     if (index < 0 || index >= static_cast<int>(groups_.size())) return;
     current_ = index;
-    for (std::size_t i = 0; i < group_buttons_.size(); ++i) {
-        if (group_buttons_[i] != nullptr) {
-            group_buttons_[i]->set_pressed(static_cast<int>(i) == index);
-        }
-    }
-    for (std::size_t i = 0; i < groups_.size(); ++i) {
-        if (groups_[i] != nullptr) groups_[i]->set_visible(static_cast<int>(i) == index);
-    }
+    tab_view_->set_selected(index);
 }
 
 void SettingsWindow::build()
@@ -66,47 +61,33 @@ void SettingsWindow::build()
     stage->set_spacing(0.0f);
     stage->set_cross_align(ui::Align::top_left());
 
-    auto body = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 0.0f);
-    body->set_padding(0.0f);
-    body->set_spacing(0.0f);
-    body->set_size_percent({1.0f, 0.0f});
-    body->set_flex_grow(1.0f);
-    body->set_cross_align(ui::Align::v_stretch());
-    body->set_min_size({0.0f, 0.0f});
-    body->set_max_size({10000.0f, 10000.0f});
+    auto view = std::make_unique<ui::TabView>();
+    view->set_bar_position(ui::TabView::BarPosition::Left);
+    view->set_size_percent({1.0f, 0.0f});
+    view->set_flex_grow(1.0f);
+    view->set_min_size({0.0f, 0.0f});
+    view->set_max_size({10000.0f, 10000.0f});
 
-    auto left = std::make_unique<ui::Vbox>(0.0f, 0.0f, 160.0f, 0.0f);
-    left->set_padding(8.0f);
-    left->set_spacing(6.0f);
-    left->set_cross_align(ui::Align::top_center());
-    left->set_min_size({160.0f, 0.0f});
-    left->set_max_size({160.0f, 10000.0f});
+    // 左侧栏固定 160 宽：TabBar::measure() 会按 min/max 收窄。
+    ui::TabBar& bar = view->tab_bar();
+    bar.set_min_size({160.0f, 0.0f});
+    bar.set_max_size({160.0f, 10000.0f});
+
+    ui::TabView* view_ptr = view.get();
+    tab_view_ = view_ptr;
+    stage->add(std::move(view));
+    // Window::add 会经 set_context 重新套 theme padding，这里覆盖回 0。
+    view_ptr->set_padding(0.0f);
+    view_ptr->set_on_change([this](int index) { current_ = index; });
 
     constexpr const char* kGroupNames[] = {"General", "Preview", "Export", "About"};
-    for (int i = 0; i < 4; ++i) {
-        auto button = std::make_unique<ui::Button>(kGroupNames[i], [this, i] {
-            select_group(i);
-        });
-        button->set_min_size({140.0f, 32.0f});
-        button->set_max_size({140.0f, 32.0f});
-        if (i == 0) button->set_pressed(true);
-        group_buttons_.push_back(button.get());
-        left->add(std::move(button));
-    }
-    body->add(std::move(left));
+    constexpr int kGroupCount = 4;
+    for (int i = 0; i < kGroupCount; ++i) {
+        auto page = std::make_unique<ui::ScrollPanel>(0.0f, 0.0f, 0.0f, 0.0f);
+        page->set_padding(0.0f);
+        page->set_min_size({0.0f, 0.0f});
+        page->set_max_size({10000.0f, 10000.0f});
 
-    auto scroll = std::make_unique<ui::ScrollPanel>(0.0f, 0.0f, 0.0f, 0.0f);
-    scroll->set_padding(0.0f);
-    scroll->set_size_percent({1.0f, 0.0f});
-    scroll->set_flex_grow(1.0f);
-    scroll->set_min_size({0.0f, 0.0f});
-    scroll->set_max_size({10000.0f, 10000.0f});
-    scroll_ = scroll.get();
-    body->add(std::move(scroll));
-
-    stage->add(std::move(body));
-
-    for (int i = 0; i < 4; ++i) {
         auto group = std::make_unique<ui::Vbox>(0.0f, 0.0f, 0.0f, 0.0f);
         group->set_padding(12.0f);
         group->set_spacing(10.0f);
@@ -114,10 +95,11 @@ void SettingsWindow::build()
         group->set_size_percent({1.0f, 0.0f});
         group->set_min_size({0.0f, 0.0f});
         group->set_max_size({10000.0f, 10000.0f});
-        group->set_visible(i == 0);
+
         ui::Vbox* group_ptr = group.get();
         groups_.push_back(group_ptr);
-        scroll_->add(std::move(group));
+        page->add(std::move(group));
+        view_ptr->add_page(kGroupNames[i], std::move(page));
 
         switch (i) {
             case 0: build_general(*group_ptr); break;
@@ -126,29 +108,57 @@ void SettingsWindow::build()
             default: build_about(*group_ptr); break;
         }
     }
+
+    view_ptr->set_selected(0);
 }
 
 void SettingsWindow::build_general(ui::Vbox& group)
 {
     auto& settings = editor_->settings();
-    group.add(std::make_unique<ui::Label>("Appearance", 20.0f));
+    group.add(std::make_unique<ui::Label>("Appearance", 26.0f));
 
-    group.add(std::make_unique<ui::Checkbox>(
-        "Rounded style", settings.rounded_style, [this](bool checked) {
-            editor_->settings().rounded_style = checked;
-            editor_->apply_settings();
-        }));
-    group.add(std::make_unique<ui::Checkbox>(
-        "Light theme", settings.light_theme, [this](bool checked) {
-            editor_->settings().light_theme = checked;
-            editor_->apply_settings();
-        }));
+    auto add_row = [&group](const std::string& text, std::unique_ptr<ui::Widget> control) {
+        auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
+        row->set_padding(0.0f);
+        row->set_spacing(8.0f);
+        row->set_cross_align(ui::Align::center_left());
+        row->set_size_percent({1.0f, 0.0f});
+        row->add(std::make_unique<ui::Label>(text, 24.0f));
+        // 标签靠左、控件靠右：中间用可伸缩 Spacer 吃掉剩余宽度。
+        auto push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
+        push->set_flex_grow(1.0f);
+        row->add(std::move(push));
+        row->add(std::move(control));
+        group.add(std::move(row));
+    };
+
+    auto style = std::make_unique<ui::Dropdown>(
+        std::vector<std::string>{"Classic", "Rounded"}, settings.rounded_style ? 1 : 0);
+    style->set_min_size({180.0f, 0.0f});
+    style->set_on_change([this](int index) {
+        editor_->settings().rounded_style = index == 1;
+        editor_->apply_settings();
+    });
+    add_row("Style", std::move(style));
+
+    auto theme = std::make_unique<ui::Dropdown>(
+        std::vector<std::string>{"Dark", "Light"}, settings.light_theme ? 1 : 0);
+    theme->set_min_size({180.0f, 0.0f});
+    theme->set_on_change([this](int index) {
+        editor_->settings().light_theme = index == 1;
+        editor_->apply_settings();
+    });
+    add_row("Theme", std::move(theme));
 
     auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
     row->set_padding(0.0f);
     row->set_spacing(8.0f);
     row->set_cross_align(ui::Align::center_left());
-    row->add(std::make_unique<ui::Label>("UI text size", 16.0f));
+    row->set_size_percent({1.0f, 0.0f});
+    row->add(std::make_unique<ui::Label>("UI text size", 24.0f));
+    auto push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
+    push->set_flex_grow(1.0f);
+    row->add(std::move(push));
     auto drag = std::make_unique<ui::DragFloat>("", 120.0f);
     drag->set_range(14.0f, 36.0f);
     drag->set_value(settings.ui_text_size);
@@ -158,18 +168,71 @@ void SettingsWindow::build_general(ui::Vbox& group)
     });
     row->add(std::move(drag));
     group.add(std::move(row));
+
+    auto focus = std::make_unique<ui::Dropdown>(
+        std::vector<std::string>{"Keyboard only", "Always", "Never"},
+        std::clamp(settings.focus_policy, 0, 2));
+    focus->set_min_size({180.0f, 0.0f});
+    focus->set_on_change([this](int index) {
+        editor_->settings().focus_policy = index;
+        editor_->apply_settings();
+    });
+    add_row("Focus", std::move(focus));
+
+    auto density = std::make_unique<ui::Dropdown>(
+        std::vector<std::string>{"Compact", "Normal", "Spacious"},
+        std::clamp(settings.density, 0, 2));
+    density->set_min_size({180.0f, 0.0f});
+    density->set_on_change([this](int index) {
+        editor_->settings().density = index;
+        editor_->apply_settings();
+    });
+    add_row("Density", std::move(density));
+
+    auto transition = std::make_unique<ui::Dropdown>(
+        std::vector<std::string>{"Off", "120 ms", "240 ms", "Custom"},
+        std::clamp(settings.transition, 0, 3));
+    transition->set_min_size({180.0f, 0.0f});
+    transition->set_on_change([this](int index) {
+        editor_->settings().transition = index;
+        editor_->apply_settings();
+    });
+    add_row("Transition", std::move(transition));
+
+    auto custom = std::make_unique<ui::DragFloat>("", 120.0f);
+    custom->set_range(0.0f, 600.0f);
+    custom->set_value(settings.transition_custom_ms);
+    custom->set_on_change([this](float value) {
+        editor_->settings().transition_custom_ms = value;
+        if (editor_->settings().transition == 3) editor_->apply_settings();
+    });
+    add_row("Custom ms", std::move(custom));
+
+    auto scroll = std::make_unique<ui::Dropdown>(
+        std::vector<std::string>{"Smooth", "Fast", "Line"},
+        std::clamp(settings.scroll_mode, 0, 2));
+    scroll->set_min_size({180.0f, 0.0f});
+    scroll->set_on_change([this](int index) {
+        editor_->settings().scroll_mode = index;
+        editor_->apply_settings();
+    });
+    add_row("Scroll", std::move(scroll));
 }
 
 void SettingsWindow::build_preview(ui::Vbox& group)
 {
     auto& settings = editor_->settings();
-    group.add(std::make_unique<ui::Label>("Preview", 20.0f));
+    group.add(std::make_unique<ui::Label>("Preview", 24.0f));
 
     auto size_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
     size_row->set_padding(0.0f);
     size_row->set_spacing(8.0f);
     size_row->set_cross_align(ui::Align::center_left());
-    size_row->add(std::make_unique<ui::Label>("Canvas", 16.0f));
+    size_row->set_size_percent({1.0f, 0.0f});
+    size_row->add(std::make_unique<ui::Label>("Canvas", 24.0f));
+    auto canvas_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
+    canvas_push->set_flex_grow(1.0f);
+    size_row->add(std::move(canvas_push));
     auto width = std::make_unique<ui::DragFloat>("", 100.0f);
     width->set_range(16.0f, 8192.0f);
     width->set_value(settings.preview_canvas.x);
@@ -209,13 +272,17 @@ void SettingsWindow::build_preview(ui::Vbox& group)
 void SettingsWindow::build_export(ui::Vbox& group)
 {
     auto& settings = editor_->settings();
-    group.add(std::make_unique<ui::Label>("Export", 20.0f));
+    group.add(std::make_unique<ui::Label>("Export", 24.0f));
 
     auto size_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
     size_row->set_padding(0.0f);
     size_row->set_spacing(8.0f);
     size_row->set_cross_align(ui::Align::center_left());
-    size_row->add(std::make_unique<ui::Label>("Size", 16.0f));
+    size_row->set_size_percent({1.0f, 0.0f});
+    size_row->add(std::make_unique<ui::Label>("Size", 24.0f));
+    auto size_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
+    size_push->set_flex_grow(1.0f);
+    size_row->add(std::move(size_push));
     auto width = std::make_unique<ui::DragFloat>("", 100.0f);
     width->set_range(16.0f, 8192.0f);
     width->set_value(settings.export_size.x);
@@ -236,7 +303,11 @@ void SettingsWindow::build_export(ui::Vbox& group)
     fps_row->set_padding(0.0f);
     fps_row->set_spacing(8.0f);
     fps_row->set_cross_align(ui::Align::center_left());
-    fps_row->add(std::make_unique<ui::Label>("FPS", 16.0f));
+    fps_row->set_size_percent({1.0f, 0.0f});
+    fps_row->add(std::make_unique<ui::Label>("FPS", 24.0f));
+    auto fps_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
+    fps_push->set_flex_grow(1.0f);
+    fps_row->add(std::move(fps_push));
     auto fps = std::make_unique<ui::DragFloat>("", 100.0f);
     fps->set_range(1.0f, 120.0f);
     fps->set_value(static_cast<float>(settings.export_fps));
@@ -257,7 +328,11 @@ void SettingsWindow::build_export(ui::Vbox& group)
     dir_row->set_padding(0.0f);
     dir_row->set_spacing(8.0f);
     dir_row->set_cross_align(ui::Align::center_left());
-    dir_row->add(std::make_unique<ui::Label>("Output", 16.0f));
+    dir_row->set_size_percent({1.0f, 0.0f});
+    dir_row->add(std::make_unique<ui::Label>("Output", 24.0f));
+    auto dir_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
+    dir_push->set_flex_grow(1.0f);
+    dir_row->add(std::move(dir_push));
     auto directory = std::make_unique<ui::TextInput>(settings.export_directory, 360.0f);
     directory->set_on_change([this](const std::string& text) {
         editor_->settings().export_directory = text;
@@ -268,9 +343,9 @@ void SettingsWindow::build_export(ui::Vbox& group)
 
 void SettingsWindow::build_about(ui::Vbox& group)
 {
-    group.add(std::make_unique<ui::Label>("About", 20.0f));
+    group.add(std::make_unique<ui::Label>("About", 24.0f));
     group.add(std::make_unique<ui::Label>(
-        std::format("cosine {}", xel::version_string()), 16.0f));
+        std::format("cosine {}", xel::version_string()), 24.0f));
 
 #if defined(_WIN32)
     constexpr const char* kPlatform = "Windows";
@@ -299,11 +374,11 @@ void SettingsWindow::build_about(ui::Vbox& group)
     constexpr const char* kBuild = "Debug";
 #endif
 
-    group.add(std::make_unique<ui::Label>(std::format("Platform: {}", kPlatform), 14.0f));
-    group.add(std::make_unique<ui::Label>("Compiler: " + compiler, 14.0f));
-    group.add(std::make_unique<ui::Label>(std::format("Build: {}", kBuild), 14.0f));
+    group.add(std::make_unique<ui::Label>(std::format("Platform: {}", kPlatform), 24.0f));
+    group.add(std::make_unique<ui::Label>("Compiler: " + compiler, 24.0f));
+    group.add(std::make_unique<ui::Label>(std::format("Build: {}", kBuild), 24.0f));
     const std::string& path = editor_->project_path();
     group.add(std::make_unique<ui::Label>(
-        "Project: " + (path.empty() ? std::string{"(unsaved)"} : path), 14.0f));
+        "Project: " + (path.empty() ? std::string{"(unsaved)"} : path), 24.0f));
 }
 } // namespace xel::editor

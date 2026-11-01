@@ -28,7 +28,12 @@ public:
     void set_scroll_offset(glm::vec2 offset);
 
     // 滚动模式：Smooth = 滚轮只改目标、实际位置平滑逼近；Line = 立即到位。
-    void set_scroll_mode(ScrollMode mode) { scroll_mode_ = mode; }
+    // 显式设置后会覆盖 theme.scroll_mode；未设置时跟随主题。
+    void set_scroll_mode(ScrollMode mode)
+    {
+        scroll_mode_ = mode;
+        scroll_mode_override_ = true;
+    }
     ScrollMode scroll_mode() const { return scroll_mode_; }
     // 平滑时间常数（秒）；0 = 立即到位。
     void set_scroll_smoothing(float seconds) { smoothing_ = seconds > 0.0f ? seconds : 0.0f; }
@@ -80,6 +85,7 @@ private:
     glm::vec2 offset_{0.0f, 0.0f};
     glm::vec2 target_{0.0f, 0.0f};
     ScrollMode scroll_mode_ = ScrollMode::Smooth;
+    bool scroll_mode_override_ = false;
     float smoothing_ = 0.12f;
     float scroll_speed_ = 40.0f;
     float line_step_ = 40.0f;

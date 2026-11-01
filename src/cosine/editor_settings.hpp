@@ -13,6 +13,15 @@ struct EditorSettings
     bool rounded_style = false;
     bool light_theme = false;
     float ui_text_size = 24.0f;
+    // 0 = keyboard only, 1 = always, 2 = never
+    int focus_policy = 1;
+    // 0 = compact, 1 = normal, 2 = spacious
+    int density = 1;
+    // 0 = off, 1 = 120 ms, 2 = 240 ms, 3 = custom
+    int transition = 1;
+    float transition_custom_ms = 120.0f;
+    // 0 = smooth, 1 = fast, 2 = line
+    int scroll_mode = 0;
 
     // Preview
     glm::vec2 preview_canvas{1280.0f, 720.0f};
