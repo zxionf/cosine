@@ -1,5 +1,6 @@
 add_library(cosine_editor STATIC
     editor.cpp
+    debug_window.cpp
     texture_cache.cpp
     resource_browser.cpp
     settings_window.cpp

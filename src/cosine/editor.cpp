@@ -87,6 +87,7 @@ void Editor::build()
     resource_browser_->set_on_status([this](const std::string& text) { set_status(text); });
 
     settings_window_ = std::make_unique<SettingsWindow>(*root_, *this);
+    debug_window_ = std::make_unique<DebugWindow>(*root_);
 }
 
 void Editor::toggle_playback()
@@ -186,6 +187,14 @@ void Editor::build_menu()
                 settings_window_->hide();
             } else {
                 settings_window_->show();
+            }
+        }),
+        ui::MenuItem::make("Debug Window", [this] {
+            if (debug_window_ == nullptr) return;
+            if (debug_window_->visible()) {
+                debug_window_->hide();
+            } else {
+                debug_window_->show();
             }
         }),
         ui::MenuItem::make("Experimental rounded style",
@@ -945,6 +954,8 @@ void Editor::tick(float dt)
         last_h_ = height;
         layout();
     }
+
+    if (debug_window_ != nullptr) debug_window_->update(*uisys_, dt);
 }
 
 void Editor::set_status(std::string text)

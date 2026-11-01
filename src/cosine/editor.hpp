@@ -7,6 +7,7 @@
 #include "editor_settings.hpp"
 #include "resource_browser.hpp"
 #include "settings_window.hpp"
+#include "debug_window.hpp"
 #include "texture_cache.hpp"
 #include "ui/core/button.hpp"
 #include "ui/core/color_input.hpp"
@@ -133,6 +134,8 @@ private:
     std::unique_ptr<ResourceBrowser> resource_browser_;
     // CO-6：设置窗口（默认隐藏）。
     std::unique_ptr<SettingsWindow> settings_window_;
+    // EX-5 移植：运行时调试窗口（Widget / Font 两页，默认隐藏）。
+    std::unique_ptr<DebugWindow> debug_window_;
 
     // 属性面板行（M6.2）。
     ui::DragFloat* pos_x_ = nullptr;
