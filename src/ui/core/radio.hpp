@@ -78,7 +78,9 @@ public:
             const float cx = bx + box * 0.5f;
             const float cy = by + box * 0.5f;
             const float r = box * 0.28f;
-            const glm::vec4 marker = visual_style(StyleRole::Accent, control_state(enabled_, is_hovered(), false)).fill;
+            // 与 Checkbox 同理：不要用 visual_style(Accent)，否则会覆盖本控件的
+            // 样式过渡缓存，label 文字颜色被 Accent 的深色污染。
+            const glm::vec4 marker = enabled_ ? t.checkbox_fill : t.text_disabled;
             graphics::Triangle upper{cx, cy - r, cx + r, cy, cx, cy + r, marker};
             graphics::Triangle lower{cx, cy - r, cx - r, cy, cx, cy + r, marker};
             upper.append_to(list);

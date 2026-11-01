@@ -76,8 +76,14 @@ glm::vec2 Vbox::measure(glm::vec2 constraints)
         const float mb = child->margin_bottom();
 
         const glm::vec2 cs = Widget::measure_child(*child, {std::max(0.0f, inner_w - ml - mr), inner_h});
+        // flex 子项的主轴高度不取内容测量值：内容高度可能大于容器，
+        // 若计入 natural_h 会让 extra 变负，flex 永远不分配（例如 ScrollPanel）。
+        // 主轴只保留 min_size，剩余空间交给 arrange 的 flex 分配。
+        const float child_h = child->flex_grow() > 0.0f
+            ? std::max(child->min_size().y, 0.0f)
+            : cs.y;
 
-        total_h += mt + cs.y + mb;
+        total_h += mt + child_h + mb;
         max_w = std::max(max_w, ml + cs.x + mr);
     }
 
@@ -122,10 +128,15 @@ void Vbox::arrange(Rect slot)
         const float mb = child->margin_bottom();
 
         const glm::vec2 cs = Widget::measure_child(*child, {std::max(0.0f, inner_w - ml - mr), inner_h});
+        // 与 measure() 一致：flex 子项主轴只保留 min_size，不把内容高度计入 natural_h。
+        const glm::vec2 item_size = {
+            cs.x,
+            child->flex_grow() > 0.0f ? std::max(child->min_size().y, 0.0f) : cs.y
+        };
 
         if (!items.empty()) natural_h += spacing_;
-        items.push_back({child.get(), cs, ml, mt, mr, mb});
-        natural_h += mt + cs.y + mb;
+        items.push_back({child.get(), item_size, ml, mt, mr, mb});
+        natural_h += mt + item_size.y + mb;
     }
 
     float extra = inner_h - natural_h;

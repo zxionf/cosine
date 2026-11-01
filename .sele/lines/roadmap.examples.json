@@ -89,7 +89,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 7,
+      "skipped_count": 11,
       "status": "paused",
       "steps": [
         {
@@ -703,9 +703,9 @@
       "archived_at": null,
       "archived_git_head": null,
       "created_at": "2026-10-31T14:16:10Z",
-      "current_step": "S12",
+      "current_step": "S14",
       "depends": [],
-      "finished_at": "2026-10-31T15:29:01Z",
+      "finished_at": "2026-11-01T09:33:47Z",
       "goal": "EX-5 ui_lab Widget 调试页",
       "id": "T4",
       "line": "examples",
@@ -850,8 +850,30 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "in_progress",
+          "status": "done",
           "title": "提交 EX-5"
+        },
+        {
+          "desc": "",
+          "id": "S13",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "修正 Vbox flex 语义：flex_grow 子项不把内容高度计入主轴自然尺寸，剩余空间由 flex 分配；修复 ScrollPanel 不跟随窗口高度"
+        },
+        {
+          "desc": "",
+          "id": "S14",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "in_progress",
+          "title": "提交 Vbox flex 语义与 Checkbox/Radio 修复"
         }
       ],
       "title": "EX-5 ui_lab Widget 调试页",

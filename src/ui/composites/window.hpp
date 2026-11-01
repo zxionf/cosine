@@ -234,8 +234,8 @@ public:
                                                 : std::max(0.0f, global_.size.x - kGripEdge);
         // footer 已覆盖底部，body 不再为底部抓取带留空，避免中间 box 与 footer 之间出现缝。
         const float body_grip = footer_ != nullptr ? 0.0f : kGripEdge;
-        body_->arrange({{global_.pos.x, global_.pos.y + title},
-                        {body_w, std::max(0.0f, body_h - body_grip)}});
+        body_->arrange({{global_.pos.x + body_grip, global_.pos.y + title},
+                        {body_w - body_grip, std::max(0.0f, body_h - body_grip)}});
         if (footer_ != nullptr) {
             footer_->set_visible(!collapsed_ && visible());
             footer_->arrange({{global_.pos.x, global_.pos.y + height() - footer_h},

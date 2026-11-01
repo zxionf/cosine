@@ -69,11 +69,13 @@ public:
             // inset 取整：勾选块与外框同心，四边留白完全相等且边界落在整像素。
             const float inset = std::round(box * 0.25f);
             const float marker = box - inset * 2.0f;
-            const BoxStyle accent = visual_style(StyleRole::Accent, control_state(enabled_, is_hovered(), pressed_));
+            // 直接用 checkbox 专属色：若这里再调 visual_style(Accent)，会覆盖本控件
+            // 的样式过渡缓存，导致 label 文字颜色被 Accent 的深色文字污染（勾选/取消时黑白跳变）。
+            const glm::vec4 marker_color = enabled_ ? t.checkbox_fill : t.text_disabled;
             graphics::append_rounded_rect(list,
                                           {bx + inset, by + inset, marker, marker},
                                           radius * 0.5f,
-                                          accent.fill);
+                                          marker_color);
         }
 
         append_focus_ring(list, box_bounds, radius);
