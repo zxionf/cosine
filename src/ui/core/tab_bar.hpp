@@ -67,6 +67,7 @@ public:
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
+        (void)constraints;
         const auto& t = ui_theme();
         if (tabs_.empty()) return clamp_size({0.0f, t.control_height});
 

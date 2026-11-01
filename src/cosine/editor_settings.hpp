@@ -12,7 +12,7 @@ struct EditorSettings
     // General
     bool rounded_style = false;
     bool light_theme = false;
-    float ui_text_size = 24.0f;
+    float ui_text_size = 16.0f;
     // 0 = keyboard only, 1 = always, 2 = never
     int focus_policy = 1;
     // 0 = compact, 1 = normal, 2 = spacious

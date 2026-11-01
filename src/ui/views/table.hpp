@@ -133,7 +133,7 @@ public:
                         std::round(global_.size.x), std::round(global_.size.y)});
 
         const float header_h = header_height_;
-        const float body_top_probe = global_.pos.y + header_h;
+        // const float body_top_probe = global_.pos.y + header_h;
         const float body_h_probe = std::max(0.0f, global_.size.y - header_h);
         const float bar_w_probe = content_height() > body_h_probe ? t.scrollbar_width + 2.0f : 0.0f;
         const float body_w_probe = std::max(0.0f, global_.size.x - bar_w_probe);
@@ -276,7 +276,7 @@ private:
 
     float text_advance(const std::string& text) const
     {
-        const auto& t = ui_theme();
+        // const auto& t = ui_theme();
         if (auto* atlas = font_atlas()) return atlas->measure(text, font_size()).x;
         return static_cast<float>(text.size()) * font_size() * 0.5f;
     }

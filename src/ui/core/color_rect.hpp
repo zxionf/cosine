@@ -33,6 +33,7 @@ public:
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
+        (void)constraints;
         return local_bounds().size;
     }
 

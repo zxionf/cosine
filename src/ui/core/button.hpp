@@ -33,14 +33,14 @@ public:
     {
         (void)constraints;
         const auto& t = ui_theme();
-        glm::vec2 text_size{static_cast<float>(label_.size()) * t.text_size * 0.5f, t.text_size};
+
+        float text_width = static_cast<float>(label_.size()) * t.text_size * 0.5f;
         if (auto* atlas = font_atlas()) {
-            text_size = atlas->measure(label_, t.text_size);
+            text_width = atlas->measure(label_, t.text_size).x;
         }
-        return {
-            text_size.x + t.padding * 2.0f,
-            std::max(t.control_height, text_size.y + t.padding * 2.0f)
-        };
+        const float min_width = t.control_height;   // 短文本也有可点击宽度
+        const float width = std::max(min_width, text_width + t.padding * 2.0f);
+        return {width, t.control_height};
     }
 
     void arrange(Rect slot) override
@@ -52,7 +52,6 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const auto& t = ui_theme();
         const BoxStyle style = visual_style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const float radius = corner_radius(style.radius);

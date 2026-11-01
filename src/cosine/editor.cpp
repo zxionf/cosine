@@ -32,8 +32,8 @@ namespace
 namespace ns = xel::scene;
 namespace prop = xel::anim::prop;
 
-constexpr float kMenuHeight = 44.0f;
-constexpr float kToolbarHeight = 62.0f;
+constexpr float kMenuHeight = 24.0f;
+constexpr float kToolbarHeight = 32.0f;
 constexpr float kTreeWidth = 280.0f;
 constexpr float kPropertyWidth = 380.0f;
 constexpr float kTimelineRatio = 0.28f;
@@ -222,10 +222,8 @@ void Editor::build_toolbar()
     auto add = [&toolbar](std::string label, std::function<void()> action) {
         toolbar->add(std::make_unique<ui::Button>(std::move(label), std::move(action)));
     };
-    auto play = std::make_unique<ui::Button>("Pause", [this] { toggle_playback(); });
-    play_button_ = play.get();
-    toolbar->add(std::move(play));
 
+    add("Pause?", [this] { toggle_playback(); });
     add("◀ Frame", [this] { step_frame(-1); });
     add("Frame ▶", [this] { step_frame(1); });
     add("Reset", [this] {
@@ -245,7 +243,7 @@ void Editor::build_panels()
 {
     auto tree = std::make_unique<ui::TreeView>(kTreeWidth, 300.0f);
     scene_tree_ = tree.get();
-    tree->set_row_height(38.0f); // 字号放大后行高要跟上，否则文字被裁
+    tree->set_row_height(24.0f);
     tree->set_min_size({160.0f, 160.0f});
     tree->set_max_size({1.0e6f, 1.0e6f});
     tree->set_on_select([this](const std::vector<int>& path) { on_scene_selected(path); });
@@ -895,13 +893,13 @@ void Editor::apply_theme()
         float spacing;
     };
     constexpr DensityMetrics kDensity[3] = {
-        {36.0f, 8.0f, 6.0f},   // compact
-        {44.0f, 10.0f, 8.0f},  // normal
-        {52.0f, 12.0f, 10.0f}, // spacious
+        {26.0f, 6.0f, 4.0f},  // compact
+        {30.0f, 4.0f, 6.0f},  // normal（与主题默认度量一致）
+        {36.0f, 10.0f, 8.0f}, // spacious
     };
     const int density = std::clamp(settings_.density, 0, 2);
 
-    // 编辑器比 gallery 观看距离更远：字号与控件高度适度放大。
+    // 使用主题默认度量；density 只在此基础上微调，不再整体放大字号/控件高度。
     ui::Theme theme = base;
     const float text_size = settings_.ui_text_size;
     theme.text_size = text_size;

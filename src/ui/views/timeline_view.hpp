@@ -144,7 +144,7 @@ public:
                 if (atlas != nullptr) {
                     const std::string label = std::format("node {} · prop {}", tracks[i].node(),
                                                           tracks[i].property());
-                    atlas->append_text(list, global_.pos.x + 8.0f, row_y + 6.0f,
+                    atlas->append_text(list, global_.pos.x + 8.0f, row_y + 2.0f,
                                        t.small_text_size, label, t.text);
                 }
 
@@ -441,7 +441,7 @@ private:
     }
 
     float ruler_height() const { return 34.0f; }
-    float row_height() const { return 36.0f; }
+    float row_height() const { return 24.0f; }
     float label_width() const { return 160.0f; }
     float track_left() const { return global_.pos.x + label_width(); }
     float track_area_width() const { return std::max(10.0f, global_.size.x - label_width()); }

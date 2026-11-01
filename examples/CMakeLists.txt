@@ -63,8 +63,22 @@ if(COSINE_CXX_MODULE_SCAN)
 endif()
 add_dependencies(ui_lab shaders copy_assets)
 
+# 字体实验室（EX-6）：字符串预览、字号、文字调试与测量。
+add_executable(font_lab
+    font_lab/main.cpp
+)
+target_link_libraries(font_lab PRIVATE cosine_app)
+target_include_directories(font_lab PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/font_lab
+)
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(font_lab PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
+add_dependencies(font_lab shaders copy_assets)
+
 cosine_apply_sanitizers(ui_demo)
 cosine_apply_sanitizers(ui_gallery)
 cosine_apply_sanitizers(ui_anim_demo)
 cosine_apply_sanitizers(ui_anim_showcase)
 cosine_apply_sanitizers(ui_lab)
+cosine_apply_sanitizers(font_lab)
