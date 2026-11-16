@@ -182,11 +182,11 @@ void DebugWindow::build_widget_page(ui::ScrollPanel& page)
     inner->set_spacing(6.0f);
     inner->set_cross_align(ui::Align::top_left());
 
-    auto target = std::make_unique<ui::Label>("target: -", 22.0f);
+    auto target = std::make_unique<ui::Label>("target: -", 16.0f);
     target_label_ = target.get();
     inner->add(std::move(target));
 
-    auto info = std::make_unique<ui::Label>("hover a widget", 22.0f);
+    auto info = std::make_unique<ui::Label>("hover a widget", 16.0f);
     info_label_ = info.get();
     inner->add(std::move(info));
 
@@ -197,7 +197,7 @@ void DebugWindow::build_widget_page(ui::ScrollPanel& page)
         row->set_spacing(6.0f);
         row->set_cross_align(ui::Align::center_left());
         row->set_size_percent({1.0f, 0.0f});
-        row->add(std::make_unique<ui::Label>(name, 22.0f));
+        row->add(std::make_unique<ui::Label>(name, 16.0f));
         auto drag = std::make_unique<ui::DragFloat>("", 100.0f);
         drag->set_range(-1.0e5f, 1.0e5f);
         drag->set_value(value);
@@ -307,9 +307,9 @@ void DebugWindow::build_font_page(ui::ScrollPanel& page)
     inner->set_spacing(8.0f);
     inner->set_cross_align(ui::Align::top_left());
 
-    inner->add(std::make_unique<ui::Label>("Text debug", 22.0f));
+    inner->add(std::make_unique<ui::Label>("Text debug", 16.0f));
     inner->add(std::make_unique<ui::Label>(
-        "字形框 / 行框 / 基线，作用于当前控件树", 22.0f));
+        "字形框 / 行框 / 基线，作用于当前控件树", 16.0f));
 
     inner->add(std::make_unique<ui::Button>("Toggle font debug", [this] {
         font_debug_ = !font_debug_;
@@ -320,7 +320,7 @@ void DebugWindow::build_font_page(ui::ScrollPanel& page)
         apply_text_debug(true, true);
     }));
     inner->add(std::make_unique<ui::Label>(
-        "新建控件不会自动继承；Debug Window 自身不绘制", 22.0f));
+        "新建控件不会自动继承；Debug Window 自身不绘制", 16.0f));
 }
 
 void DebugWindow::apply_text_debug(bool enabled, bool glyph_only)
@@ -352,7 +352,7 @@ void DebugWindow::rebuild_children()
             }));
     }
 
-    children_box_->add(std::make_unique<ui::Label>("children:", 22.0f));
+    children_box_->add(std::make_unique<ui::Label>("children:", 16.0f));
     for (const auto& child : target_->children()) {
         auto* ptr = child.get();
         children_box_->add(std::make_unique<ui::Button>(

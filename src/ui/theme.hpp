@@ -151,6 +151,8 @@ struct Theme
 
     // 状态过渡时长（毫秒）：0 表示关闭动画，颜色立即到位。
     float transition_ms = 120.0f;
+    // 文字绘制是否对齐到整像素；控件可用 Label::set_pixel_snap 单独覆盖。
+    bool pixel_snap = true;
 
     Density density = Density::Normal;
 

@@ -39,7 +39,7 @@ constexpr float kPropertyWidth = 380.0f;
 constexpr float kTimelineRatio = 0.28f;
 constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
 constexpr float kRadToDeg = 180.0f / 3.14159265358979323846f;
-constexpr float kStatusHeight = 28.0f;
+constexpr float kStatusHeight = 24.0f;
 
 // 固定尺寸 + 固定位置：UIRoot 的自由画布布局会尊重子项的 pos/size。
 void place(ui::Widget* widget, float x, float y, float width, float height)
@@ -197,8 +197,8 @@ void Editor::build_menu()
                 debug_window_->show();
             }
         }),
-        ui::MenuItem::make("Experimental rounded style",
-                           [this] { toggle_rounded_style(); }),
+        // ui::MenuItem::make("Experimental rounded style",
+        //                    [this] { toggle_rounded_style(); }),
     });
 
     menu->add_menu("Playback", {
@@ -234,7 +234,7 @@ void Editor::build_toolbar()
         set_status("reset to 0s");
     });
     add("Add Shape", [this] { add_shape_node(); });
-    add("Style", [this] { toggle_rounded_style(); });
+    // add("Style", [this] { toggle_rounded_style(); });
 
     root_->add(std::move(toolbar));
 }
@@ -344,7 +344,7 @@ void Editor::build_panels()
     root_splitter_ = root_split.get();
     root_->add(std::move(root_split));
 
-    auto status = std::make_unique<ui::Label>("ready", 18.0f);
+    auto status = std::make_unique<ui::Label>("ready", 16.0f);
     status_ = status.get();
     root_->add(std::move(status));
 
@@ -849,12 +849,12 @@ void Editor::save_project_as_dialog()
     file_dialog_ = ui::show_dialog(*root_, std::move(dialog), [this] { file_dialog_ = nullptr; });
 }
 
-void Editor::toggle_rounded_style()
-{
-    settings_.rounded_style = !settings_.rounded_style;
-    apply_settings();
-    set_status(settings_.rounded_style ? "style: rounded" : "style: classic");
-}
+// void Editor::toggle_rounded_style()
+// {
+//     settings_.rounded_style = !settings_.rounded_style;
+//     apply_settings();
+//     set_status(settings_.rounded_style ? "style: rounded" : "style: classic");
+// }
 
 void Editor::apply_settings()
 {
@@ -909,6 +909,7 @@ void Editor::apply_theme()
     theme.padding = kDensity[density].padding;
     theme.spacing = kDensity[density].spacing;
     theme.scroll_mode = static_cast<ui::ScrollMode>(std::clamp(settings_.scroll_mode, 0, 2));
+    theme.pixel_snap = settings_.pixel_snap;
     root_->set_theme(theme);
 }
 

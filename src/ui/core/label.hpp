@@ -139,7 +139,7 @@ public:
 
         float tx = global_.pos.x + offset_x;
         float ty = global_.pos.y;
-        if (pixel_snap_) {
+        if (pixel_snap_ && ui_theme().pixel_snap) {
             tx = std::round(tx);
             ty = std::round(ty);
         }

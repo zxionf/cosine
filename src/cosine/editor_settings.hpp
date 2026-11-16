@@ -22,6 +22,8 @@ struct EditorSettings
     float transition_custom_ms = 120.0f;
     // 0 = smooth, 1 = fast, 2 = line
     int scroll_mode = 0;
+    // 文字坐标是否对齐到整像素。
+    bool pixel_snap = true;
 
     // Preview
     glm::vec2 preview_canvas{1280.0f, 720.0f};

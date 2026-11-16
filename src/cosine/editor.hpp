@@ -78,7 +78,7 @@ private:
     void sync_property_panel();
     void add_shape_node();
     void step_frame(int direction);
-    void toggle_rounded_style();
+    // void toggle_rounded_style();
 
     // 项目文件（M6.5）。
     void new_project();

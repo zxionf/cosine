@@ -31,9 +31,7 @@ void Window::init_window()
     GLFWcursor* cursor = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
     glfwSetCursor(window_, cursor);
 }
-}
-namespace xel::backend
-{
+
 VkExtent2D Window::get_window_extent()
 {
     int width = 0;

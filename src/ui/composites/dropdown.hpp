@@ -203,7 +203,8 @@ public:
         }
 
         // 下拉箭头
-        const float ax = global_.pos.x + global_.size.x - t.padding - 5.0f;
+        const float arrow_w = 10.0f;
+        const float ax = global_.pos.x + global_.size.x - t.padding - arrow_w;
         const float ay = global_.pos.y + global_.size.y * 0.5f;
         graphics::Triangle arrow{ax, ay - 2.0f, ax + 10.0f, ay - 2.0f, ax + 5.0f, ay + 3.0f, style.text};
         arrow.append_to(list);

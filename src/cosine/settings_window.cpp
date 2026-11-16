@@ -115,7 +115,7 @@ void SettingsWindow::build()
 void SettingsWindow::build_general(ui::Vbox& group)
 {
     auto& settings = editor_->settings();
-    group.add(std::make_unique<ui::Label>("Appearance", 26.0f));
+    group.add(std::make_unique<ui::Label>("Appearance", 16.0f));
 
     auto add_row = [&group](const std::string& text, std::unique_ptr<ui::Widget> control) {
         auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
@@ -123,7 +123,7 @@ void SettingsWindow::build_general(ui::Vbox& group)
         row->set_spacing(8.0f);
         row->set_cross_align(ui::Align::center_left());
         row->set_size_percent({1.0f, 0.0f});
-        row->add(std::make_unique<ui::Label>(text, 24.0f));
+        row->add(std::make_unique<ui::Label>(text, 16.0f));
         // 标签靠左、控件靠右：中间用可伸缩 Spacer 吃掉剩余宽度。
         auto push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
         push->set_flex_grow(1.0f);
@@ -133,7 +133,7 @@ void SettingsWindow::build_general(ui::Vbox& group)
     };
 
     auto style = std::make_unique<ui::Dropdown>(
-        std::vector<std::string>{"Classic", "Rounded"}, settings.rounded_style ? 1 : 0);
+        std::vector<std::string>{"Classic", "Rounded (ex)"}, settings.rounded_style ? 1 : 0);
     style->set_min_size({180.0f, 0.0f});
     style->set_on_change([this](int index) {
         editor_->settings().rounded_style = index == 1;
@@ -150,12 +150,19 @@ void SettingsWindow::build_general(ui::Vbox& group)
     });
     add_row("Theme", std::move(theme));
 
+    auto pixel_snap = std::make_unique<ui::Checkbox>(
+        "", settings.pixel_snap, [this](bool checked) {
+            editor_->settings().pixel_snap = checked;
+            editor_->apply_settings();
+        });
+    add_row("Pixel snap", std::move(pixel_snap));
+
     auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
     row->set_padding(0.0f);
     row->set_spacing(8.0f);
     row->set_cross_align(ui::Align::center_left());
     row->set_size_percent({1.0f, 0.0f});
-    row->add(std::make_unique<ui::Label>("UI text size", 24.0f));
+    row->add(std::make_unique<ui::Label>("UI text size", 16.0f));
     auto push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     push->set_flex_grow(1.0f);
     row->add(std::move(push));
@@ -222,14 +229,14 @@ void SettingsWindow::build_general(ui::Vbox& group)
 void SettingsWindow::build_preview(ui::Vbox& group)
 {
     auto& settings = editor_->settings();
-    group.add(std::make_unique<ui::Label>("Preview", 24.0f));
+    group.add(std::make_unique<ui::Label>("Preview", 16.0f));
 
     auto size_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
     size_row->set_padding(0.0f);
     size_row->set_spacing(8.0f);
     size_row->set_cross_align(ui::Align::center_left());
     size_row->set_size_percent({1.0f, 0.0f});
-    size_row->add(std::make_unique<ui::Label>("Canvas", 24.0f));
+    size_row->add(std::make_unique<ui::Label>("Canvas", 16.0f));
     auto canvas_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     canvas_push->set_flex_grow(1.0f);
     size_row->add(std::move(canvas_push));
@@ -272,14 +279,14 @@ void SettingsWindow::build_preview(ui::Vbox& group)
 void SettingsWindow::build_export(ui::Vbox& group)
 {
     auto& settings = editor_->settings();
-    group.add(std::make_unique<ui::Label>("Export", 24.0f));
+    group.add(std::make_unique<ui::Label>("Export", 16.0f));
 
     auto size_row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
     size_row->set_padding(0.0f);
     size_row->set_spacing(8.0f);
     size_row->set_cross_align(ui::Align::center_left());
     size_row->set_size_percent({1.0f, 0.0f});
-    size_row->add(std::make_unique<ui::Label>("Size", 24.0f));
+    size_row->add(std::make_unique<ui::Label>("Size", 16.0f));
     auto size_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     size_push->set_flex_grow(1.0f);
     size_row->add(std::move(size_push));
@@ -304,7 +311,7 @@ void SettingsWindow::build_export(ui::Vbox& group)
     fps_row->set_spacing(8.0f);
     fps_row->set_cross_align(ui::Align::center_left());
     fps_row->set_size_percent({1.0f, 0.0f});
-    fps_row->add(std::make_unique<ui::Label>("FPS", 24.0f));
+    fps_row->add(std::make_unique<ui::Label>("FPS", 16.0f));
     auto fps_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     fps_push->set_flex_grow(1.0f);
     fps_row->add(std::move(fps_push));
@@ -329,7 +336,7 @@ void SettingsWindow::build_export(ui::Vbox& group)
     dir_row->set_spacing(8.0f);
     dir_row->set_cross_align(ui::Align::center_left());
     dir_row->set_size_percent({1.0f, 0.0f});
-    dir_row->add(std::make_unique<ui::Label>("Output", 24.0f));
+    dir_row->add(std::make_unique<ui::Label>("Output", 16.0f));
     auto dir_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     dir_push->set_flex_grow(1.0f);
     dir_row->add(std::move(dir_push));
@@ -343,9 +350,9 @@ void SettingsWindow::build_export(ui::Vbox& group)
 
 void SettingsWindow::build_about(ui::Vbox& group)
 {
-    group.add(std::make_unique<ui::Label>("About", 24.0f));
+    group.add(std::make_unique<ui::Label>("About", 16.0f));
     group.add(std::make_unique<ui::Label>(
-        std::format("cosine {}", xel::version_string()), 24.0f));
+        std::format("cosine {}", xel::version_string()), 16.0f));
 
 #if defined(_WIN32)
     constexpr const char* kPlatform = "Windows";
@@ -374,11 +381,11 @@ void SettingsWindow::build_about(ui::Vbox& group)
     constexpr const char* kBuild = "Debug";
 #endif
 
-    group.add(std::make_unique<ui::Label>(std::format("Platform: {}", kPlatform), 24.0f));
-    group.add(std::make_unique<ui::Label>("Compiler: " + compiler, 24.0f));
-    group.add(std::make_unique<ui::Label>(std::format("Build: {}", kBuild), 24.0f));
+    group.add(std::make_unique<ui::Label>(std::format("Platform: {}", kPlatform), 16.0f));
+    group.add(std::make_unique<ui::Label>("Compiler: " + compiler, 16.0f));
+    group.add(std::make_unique<ui::Label>(std::format("Build: {}", kBuild), 16.0f));
     const std::string& path = editor_->project_path();
     group.add(std::make_unique<ui::Label>(
-        "Project: " + (path.empty() ? std::string{"(unsaved)"} : path), 24.0f));
+        "Project: " + (path.empty() ? std::string{"(unsaved)"} : path), 16.0f));
 }
 } // namespace xel::editor
