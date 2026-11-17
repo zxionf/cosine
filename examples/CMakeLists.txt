@@ -76,9 +76,23 @@ if(COSINE_CXX_MODULE_SCAN)
 endif()
 add_dependencies(font_lab shaders copy_assets)
 
+# moss: 手写测试
+add_executable(moss
+    moss/main.cpp
+)
+target_link_libraries(moss PRIVATE cosine_app)
+target_include_directories(moss PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/moss
+)
+if(COSINE_CXX_MODULE_SCAN)
+    set_target_properties(moss PROPERTIES CXX_SCAN_FOR_MODULES ON)
+endif()
+add_dependencies(moss shaders copy_assets)
+
 cosine_apply_sanitizers(ui_demo)
 cosine_apply_sanitizers(ui_gallery)
 cosine_apply_sanitizers(ui_anim_demo)
 cosine_apply_sanitizers(ui_anim_showcase)
 cosine_apply_sanitizers(ui_lab)
 cosine_apply_sanitizers(font_lab)
+cosine_apply_sanitizers(moss)
