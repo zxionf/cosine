@@ -145,15 +145,15 @@ public:
     void set_align(Align a) { align_self_ = a; has_align_ = true; mark_layout_dirty(); }
     std::optional<Align> align_self() const { return has_align_ ? std::optional<Align>(align_self_) : std::nullopt; }
 
-    void set_padding(Edges edges) { padding_ = edges; mark_layout_dirty(); }
-    void set_padding(float all) { padding_ = {all, all, all, all}; mark_layout_dirty(); }
-    Edges padding() const { return padding_; }
-    void set_margin(Edges edges) { margin_ = edges; mark_layout_dirty(); }
-    void set_margin(float all) { margin_ = {all, all, all, all}; mark_layout_dirty(); }
-    Edges margin() const { return margin_; }
+    void    set_padding(Edges edges)    { padding_ = edges; mark_layout_dirty(); }
+    void    set_padding(float all)      { padding_ = {all, all, all, all}; mark_layout_dirty(); }
+    Edges   padding() const             { return padding_; }
+    void    set_margin(Edges edges)     { margin_ = edges; mark_layout_dirty(); }
+    void    set_margin(float all)       { margin_ = {all, all, all, all}; mark_layout_dirty(); }
+    Edges   margin() const              { return margin_; }
 
-    void set_flex_grow(float grow) { flex_grow_ = grow < 0.0f ? 0.0f : grow; mark_layout_dirty(); }
-    float flex_grow() const { return flex_grow_; }
+    void    set_flex_grow(float grow)   { flex_grow_ = grow < 0.0f ? 0.0f : grow; mark_layout_dirty(); }
+    float   flex_grow() const           { return flex_grow_; }
 
     // 绝对定位：脱离流式布局，按 (x, y) 相对父内容区定位；容器不计入其尺寸。
     void set_absolute(bool value)

@@ -13,7 +13,7 @@ int main()
 
     std::cout << "xel" << xel::version_string() << std::endl;
 
-    auto vbox = std::make_unique<xel::ui::Vbox>(400, 400, 200, 400);
+    auto vbox = std::make_unique<xel::ui::Vbox>(10, 10, 200, 400);
     vbox->debug();
     vbox->set_size(400,400);
     auto color_rect = std::make_unique<xel::ui::ColorRect>(0,0, 200,100, glm::vec4{0,1,0,1});

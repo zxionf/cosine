@@ -9,8 +9,6 @@
 #include "ui/uicontext.hpp"
 #include "ui/widget_style.hpp"
 
-#include <algorithm>
-
 namespace xel::ui
 {
 Widget::Widget() = default;
