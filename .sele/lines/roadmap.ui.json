@@ -394,7 +394,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 23,
+      "skipped_count": 26,
       "status": "paused",
       "steps": [
         {
@@ -945,6 +945,318 @@
       ],
       "title": "ui优化",
       "uid": "tsk_01M69A4GSCPSA099TMYJK1SPMA"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "layer() 不再是死代码：绘制、命中、Tab 收集三处均按 layer 排序，overlay 不再是一等顺序来源",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T06:48:48Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "新增 test_ui_layer 通过：绘制顺序、命中优先级、浮层盖内容、模态盖浮层、嵌套模态 z 归一化、悬空模态帧",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T06:48:48Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ctest 全绿，既有 65 个测试无回归",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T06:48:48Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "docs/ui_architecture.md §3/§8、docs/tech_debt.md T04、docs/todo.md 的 Layer 条目已更新",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T06:48:48Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-21T06:30:14Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-21T06:48:48Z",
+      "goal": "UI-20 Layer 完全实现：统一绘制/命中/焦点排序",
+      "id": "T13",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "定义 layer 排序契约并写 docs/ui_architecture.md §3：layer 为跨 children_/overlays_ 的主排序键，z 仅层内生效"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "UIRoot 新增 layer_paint_order()：合并 children_ + overlays_ 按 (layer, z) 稳定排序"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "append_to / collect_hit_path / collect_focusable 改用同一排序：绘制正序、命中反序、Tab 正序"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "各控件 layer() 落地：Scrim→Modal；Window 模态→Modal；DialogHost/MenuPopup/MenuScrim/DropdownList/DropdownScrim/Tooltip→Floating"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "模态帧 z 归一化：frame i → scrim 2i+1 / window 2i+2，消除嵌套模态同 z（都 kOnTopZ）靠插入顺序兜底"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "modals_ 悬空帧清理：窗口被父容器直接销毁时 layout() 剔除对应帧，modal_top() 不解引用野指针"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "新增 test/test_ui_layer.cpp 并注册 ctest：绘制顺序、命中优先级、浮层盖内容、模态盖浮层、嵌套模态 z、悬空帧"
+        },
+        {
+          "desc": "",
+          "id": "S8",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档与收口：tech_debt.md T04 关闭、ui_architecture.md §8 更新、docs/todo.md Layer 条目勾销、ctest 全绿"
+        }
+      ],
+      "title": "UI-20 Layer 完全实现：统一绘制/命中/焦点排序",
+      "uid": "tsk_01M7YCRQYJ0NZF0GEB5N1YE4D1"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "模态打开时按键与字符输入不作用于被遮罩控件；关闭后焦点恢复到打开前控件（仍有效时）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T07:03:40Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "嵌套模态：聚焦与键序限定在最顶层，逐层 pop 后按层恢复焦点",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T07:03:40Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "Scrim 显式吞掉 click/right_click/double_click/long_press；dismiss 仅顶层帧生效且默认不关闭 Window 模态；DialogHost 纳入模态作用域",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T07:03:40Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "新增 test_ui_modal 通过，ctest 全绿",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T07:03:40Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-21T06:30:24Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M7YCRQYJ0NZF0GEB5N1YE4D1"
+        }
+      ],
+      "finished_at": "2026-11-21T07:52:01Z",
+      "goal": "UI-19 模态键盘与焦点隔离",
+      "id": "T14",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Widget 新增 virtual preferred_focus()（默认 nullptr），Dialog::preferred_focus() 改为 override，行为不变"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "UIRoot 焦点钩子：UISystem 构造注入 getter/setter、析构清空；push_modal(window, with_scrim) 快照焦点并聚焦目标"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "pop_modal 焦点恢复：快照仍在树中且不在被弹出子树内才恢复，否则清空焦点"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "dispatch_key / dispatch_char 作用域收敛：focused_ 不在 modal 子树内则忽略（Tab 保持现有作用域收集）"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Scrim 事件语义：显式吞掉 on_click/on_right_click/on_double_click/on_long_press；新增 set_on_dismiss，UIRoot 只给顶层帧接线"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "DialogHost 接入模态作用域：push_modal(this, with_scrim=false)，保留自绘遮罩与点外部关闭"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "新增 test/test_ui_modal.cpp 并注册 ctest：按键/字符不穿透、初始焦点、关闭恢复、嵌套模态、对话框作用域、遮罩手势、悬空模态"
+        },
+        {
+          "desc": "",
+          "id": "S8",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档与收口：ui_architecture.md §5 更新、docs/todo.md 模态条目勾销、ctest 全绿"
+        },
+        {
+          "desc": "",
+          "id": "S9",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-20 Layer 排序 + UI-19 模态焦点隔离，合并提交）"
+        }
+      ],
+      "title": "UI-19 模态键盘与焦点隔离",
+      "uid": "tsk_01M7YCS1NGVWBY8Y3NYEBFAGJP"
     }
   ]
 }
