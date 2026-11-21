@@ -9,6 +9,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <glm/glm.hpp>
+
 #include <string>
 #include <utility>
 #include <functional>
@@ -39,6 +41,12 @@ public:
     bool was_window_resized() { return framebuffer_resized_; }
     void reset_window_resized_flag() { framebuffer_resized_ = false; }
     GLFWwindow* get_glfw_window() { return window_; }
+
+    // 光标/坐标换算：窗口坐标 → framebuffer 物理像素（× DPR）。
+    // 属于 UI 层，不在这里做。
+    glm::vec2 cursor_pos();
+    glm::vec2 window_to_framebuffer(glm::vec2 window_pos);
+    glm::vec2 cursor_to_framebuffer();
 
     void set_framebuffer_size(int width, int height)
     {

@@ -50,4 +50,23 @@ std::pair<float, float> Window::framebuffer_scale()
         static_cast<float>(framebuffer.height) / static_cast<float>(window.height)
     };
 }
+
+glm::vec2 Window::cursor_pos()
+{
+    double x = 0.0;
+    double y = 0.0;
+    glfwGetCursorPos(window_, &x, &y);
+    return {static_cast<float>(x), static_cast<float>(y)};
+}
+
+glm::vec2 Window::window_to_framebuffer(glm::vec2 window_pos)
+{
+    const auto [sx, sy] = framebuffer_scale();
+    return {window_pos.x * sx, window_pos.y * sy};
+}
+
+glm::vec2 Window::cursor_to_framebuffer()
+{
+    return window_to_framebuffer(cursor_pos());
+}
 } // namespace xel::backend

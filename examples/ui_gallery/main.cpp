@@ -13,15 +13,6 @@
 
 namespace
 {
-glm::vec2 cursor_to_framebuffer(xel::backend::Window& window)
-{
-    double x = 0.0;
-    double y = 0.0;
-    glfwGetCursorPos(window.get_glfw_window(), &x, &y);
-    const auto [sx, sy] = window.framebuffer_scale();
-    return {static_cast<float>(x) * sx, static_cast<float>(y) * sy};
-}
-
 int run()
 {
     xel::Application app{1200, 800, "XEL UI Gallery"};
@@ -63,9 +54,8 @@ int run()
 
         const auto& stats = app.renderer_.frame_stats();
 
-        // 光标：窗口坐标 → framebuffer → UI 逻辑坐标（root 与命中测试都用后者）。
-        const glm::vec2 cursor = cursor_to_framebuffer(app.window_) / app.ui_scale();
-        gallery.update_tooltip(cursor, static_cast<float>(stats.frame_time_ms) / 1000.0f);
+        // 光标：UISystem 已在 dispatch 里维护逻辑坐标，直接读取即可。
+        gallery.update_tooltip(app.uisys.pointer_pos(), static_cast<float>(stats.frame_time_ms) / 1000.0f);
 
         gallery.stats->set_text(std::format(
             "fps: {:.1f}   frame: {:.2f} ms   draw calls: {}   vertices: {}   indices: {}",

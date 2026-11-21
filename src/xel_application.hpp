@@ -19,6 +19,8 @@ public:
 
     // DPI：逻辑像素 → framebuffer 像素的缩放比（COSINE_UI_SCALE，默认 1.0）。
     float ui_scale() const { return ui_scale_; }
+    // 单一入口：同步 ui_scale_ / renderer / uisys / 字体栅格化比例。
+    void set_ui_scale(float scale);
 
     Application(int window_w, int window_h, const std::string& title);
     ~Application();

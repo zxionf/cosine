@@ -131,8 +131,9 @@ void UISystem::tick(float dt)
     bool resized = false;
     if (window_) {
         const auto extent = window_->get_extent();
-        resized = extent.width != last_width_ || extent.height != last_height_;
+        resized = extent.width != last_width_ || extent.height != last_height_ || scale_dirty_;
         if (resized) {
+            scale_dirty_ = false;
             last_width_ = extent.width;
             last_height_ = extent.height;
             root_->set_pos(0, 0);

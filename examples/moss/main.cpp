@@ -2,6 +2,7 @@
 #include "xel_application.hpp"
 
 #include "ui/containers/vbox.hpp"
+#include "ui/containers/panel.hpp"
 #include "ui/core/color_rect.hpp"
 
 #include <iostream>
@@ -13,13 +14,26 @@ int main()
 
     std::cout << "xel" << xel::version_string() << std::endl;
 
-    auto vbox = std::make_unique<xel::ui::Vbox>(10, 10, 200, 400);
+    xel::ui::Theme base_theme = xel::ui::Theme::dark();
+    base_theme = base_theme.with_rounding(false)
+        .with_radius_scale(0.0f)
+        .with_focus_policy(xel::ui::FocusPolicy::Always)
+        .with_transition_ms(60.0f);
+
+    app.uisys.root()->set_theme(base_theme);
+    app.set_ui_scale(2.0f);
+
+    auto panel = std::make_unique<xel::ui::Panel>(20,20, 600,400);
+    panel->set_min_size(glm::vec2{600,400});
+    auto vbox = std::make_unique<xel::ui::Vbox>(0,0, 200,200);
+    vbox->set_min_size(glm::vec2{300,200});
     vbox->debug();
-    vbox->set_size(400,400);
     auto color_rect = std::make_unique<xel::ui::ColorRect>(0,0, 200,100, glm::vec4{0,1,0,1});
 
-    vbox->adopt(std::move(color_rect));
-    app.uisys.root()->add(std::move(vbox));
+    panel->add(std::move(color_rect));
+    panel->add(std::move(vbox));
+    app.uisys.root()->add(std::move(panel));
+    app.uisys.root()->debug();
 
     while(!app.window_.should_close()) {
         glfwPollEvents();

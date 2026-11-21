@@ -26,8 +26,23 @@ public:
     void tick(float dt);
 
     // DPI：root 以逻辑像素为尺寸，物理 extent 除以该比例。默认 1.0，行为不变。
-    void set_ui_scale(float scale) { ui_scale_ = scale > 0.0f ? scale : 1.0f; }
+    void set_ui_scale(float scale)
+    {
+        const float value = scale > 0.0f ? scale : 1.0f;
+        if (value != ui_scale_) {
+            ui_scale_ = value;
+            scale_dirty_ = true;
+        }
+    }
     float ui_scale() const { return ui_scale_; }
+
+    // 当前指针位置（UI 逻辑坐标）：dispatch 时更新，供 tooltip 等每帧跟随用。
+    glm::vec2 pointer_pos() const { return pointer_pos_; }
+    // framebuffer 物理像素 → UI 逻辑坐标（÷ui_scale），与输入回调共用同一换算。
+    glm::vec2 framebuffer_to_logical(glm::vec2 framebuffer_pos) const
+    {
+        return framebuffer_pos / ui_scale_;
+    }
 
     void dispatch(const event::InputEvent& event);
 
@@ -124,6 +139,7 @@ private:
 
     uint32_t last_width_ = 0;
     float ui_scale_ = 1.0f;
+    bool scale_dirty_ = false;
     uint32_t last_height_ = 0;
 
     backend::Window* window_ = nullptr;
