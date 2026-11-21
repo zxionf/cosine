@@ -745,3 +745,13 @@ Change: 20261028-theme-tokens
 Context: Theme 颜色按线性值书写但按 sRGB 视觉判断，导致写 0.13 显示成 #65696F：界面偏灰、层次靠边框、accent 发白
 Decision: 颜色改为 sRGB 书写（srgb_hex）存储线性；重做令牌 shell #1B1D21 / surface #232629 / control #41474F / splitter #3F454D；拆 accent 与 accent_text（文字用 #6FB0F2）；Accent 填充文字改深色；时间轴选中行 0.12→0.08
 Consequences: 显示值等于写入的十六进制；浅色主题已同步但未逐一目视核对；elevated 令牌尚未独立；分割条宽度未改
+## [150] 2026-11-21 06:44:27 UTC
+Change: 20261121-layer-paint-order
+Context: Layer 枚举（Content/Floating/Modal）长期只是声明，绘制/命中仍走「overlay 优先 + children 按 z 降序」两套平行机制（tech_debt T04）
+Decision: 完全实现 Layer（方案 A）：Widget 新增 layer_paint_order() 作为跨 children_/overlays_ 的唯一排序入口（layer 升序 → z 升序，稳定）；append_to 正序、collect_hit_path 反序、collect_focusable 正序都从它派生；z 仅层内生效；Scrim→Modal、模态 Window→Modal、DialogHost/MenuPopup/MenuScrim/DropdownList/DropdownScrim/Tooltip→Floating；模态帧 z 归一化为 frame i → scrim 2i+1 / window 2i+2；layout() 剔除悬空模态帧并清残留 scrim
+Consequences: overlay 不再是一等顺序来源；嵌套模态不再靠 kOnTopZ 撞 z + 插入顺序兜底；新增 test_ui_layer（6 组：顺序/层内 z/命中优先级/嵌套 z/悬空帧）；T04 关闭
+## [151] 2026-11-21 06:58:10 UTC
+Change: 20261121-modal-focus-isolation
+Context: 模态窗口的键盘/焦点隔离缺失：按键/字符只发 focused_，不检查 modal_top()；push/pop_modal 不转移/恢复焦点（todo.md Scrim 条目）
+Decision: UIRoot 新增焦点钩子（UISystem 注入 getter/setter）；push_modal(window, with_scrim) 快照焦点并聚焦 preferred_focus() → 首个可聚焦 → 窗口自身；pop_modal 恢复快照（仍在树中且不在被弹出子树内才恢复，否则清空）；dispatch_key/dispatch_char 限定最上层模态子树；Scrim 显式吞掉 click/right_click/double_click/long_press 并支持 set_on_dismiss（默认不关 Window 模态）；DialogHost 经 push_modal(host, with_scrim=false) 纳入模态作用域
+Consequences: 模态打开/关闭的焦点转移与恢复自动化；对话框也有真正键盘隔离（不再靠调用方手写 set_focus）；新增 test_ui_modal（8 组）；todo.md Scrim 条目关闭

@@ -5,7 +5,7 @@
 - 记录时间：2026-11-19T23:53:04+08:00
 - 分支：`main`
 - 提交：`7ac90ba31b3681d62983c72c3e315cf14ec2a420`
-- 状态：待修
+- 状态：已解决（UI-19）
 
 ### 问题
 
@@ -56,14 +56,17 @@
 5. 明确右键/双击/长按在模态遮罩上的语义（吞掉或触发关闭）。
 6. 补测试：模态键盘隔离、焦点恢复、嵌套模态。
 
-> 本记录只描述现状，未修改任何代码。
+> 已解决（UI-19）：`dispatch_key`/`dispatch_char` 限定在最上层模态子树；`push_modal` 快照焦点并聚焦
+> `preferred_focus()` → 首个可聚焦 → 窗口自身；`pop_modal` 恢复快照；`Scrim` 显式吞掉 click/right_click/
+> double_click/long_press 并支持可选 `set_on_dismiss`（默认不关 Window 模态）；`DialogHost` 经
+> `push_modal(host, with_scrim=false)` 纳入模态作用域；新增 `test/test_ui_modal.cpp`。详见 `docs/ui_architecture.md` §5。
 
 ## Layer 未完全实现
 
 - 记录时间：2026-11-20T00:14:10+08:00
 - 分支：`main`
 - 提交：`7ac90ba31b3681d62983c72c3e315cf14ec2a420`
-- 状态：待定（补全或删除）
+- 状态：已解决（方案 A：完全实现 Layer 排序，见 UI-20）
 
 ### 现状
 
@@ -136,4 +139,6 @@ Layer layer() const override { return Layer::Floating; }
 - 删除 `Layer` 枚举与 `layer()`，以及 `Scrim` 的重写；
 - 统一使用 overlay / z-index / 模态栈，避免误导。
 
-> 本记录只描述现状，未修改任何代码。
+> 已解决（UI-20）：Layer 现在是跨 `children_`/`overlays_` 的唯一主排序键（`Widget::layer_paint_order()`），
+> 绘制/命中/Tab 三处消费；`z_index` 仅层内生效；各控件归属已落地（Scrim→Modal、模态 Window→Modal、
+> DialogHost/Menu/Dropdown/Tooltip→Floating）；新增 `test/test_ui_layer.cpp`。详见 `docs/ui_architecture.md` §3。

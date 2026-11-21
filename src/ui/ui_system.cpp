@@ -24,15 +24,9 @@ bool collect_hit_path(xel::ui::Widget* widget, glm::vec2 pos, std::vector<xel::u
 
     path.push_back(widget);
 
-    // overlay 层优先命中，其次才是普通子项；两者内部按 z-index 降序（大的先命中）。
-    const std::vector<xel::ui::Widget*> overlays = widget->overlay_paint_order();
-    for (auto it = overlays.rbegin(); it != overlays.rend(); ++it) {
-        if (collect_hit_path(*it, pos, path)) return true;
-    }
-
-    // 顶层优先命中
-    const std::vector<xel::ui::Widget*> children = widget->paint_order();
-    for (auto it = children.rbegin(); it != children.rend(); ++it) {
+    // 统一按 layer 降序 → z 降序命中（大的先命中）；UIRoot 会合并 children_/overlays_。
+    const std::vector<xel::ui::Widget*> order = widget->layer_paint_order();
+    for (auto it = order.rbegin(); it != order.rend(); ++it) {
         if (collect_hit_path(*it, pos, path)) return true;
     }
     // 只在自己可命中时才返回自己
@@ -61,6 +55,7 @@ namespace xel::ui
 UISystem::UISystem(backend::Window& window) : window_{&window}
 {
     root_ = std::make_unique<UIRoot>(0, 0, 0, 0);
+    install_focus_hooks();
 }
 
 UISystem::UISystem(std::unique_ptr<UIRoot> root) : root_{std::move(root)}
@@ -68,7 +63,21 @@ UISystem::UISystem(std::unique_ptr<UIRoot> root) : root_{std::move(root)}
     if (root_) {
         root_->set_global_bounds({{0.0f, 0.0f}, {root_->width(), root_->height()}});
         root_->mark_layout_dirty();
+        install_focus_hooks();
     }
+}
+
+void UISystem::install_focus_hooks()
+{
+    if (!root_) return;
+    root_->set_focus_hooks(
+        [this]() -> Widget* { return focused_ ? focused_.widget : nullptr; },
+        [this](Widget* widget) { set_focus(widget); });
+}
+
+UISystem::~UISystem()
+{
+    if (root_) root_->clear_focus_hooks();
 }
 
 void UISystem::prune_stale_targets()
@@ -221,11 +230,8 @@ void UISystem::collect_focusable(Widget* widget, std::vector<Widget*>& out) cons
 {
     if (!widget || !widget->visible()) return;
     if (widget->focusable()) out.push_back(widget);
-    // overlay 处于顶层，Tab 顺序也优先进入；同层按 z-index 升序。
-    for (xel::ui::Widget* overlay : widget->overlay_paint_order()) {
-        collect_focusable(overlay, out);
-    }
-    for (xel::ui::Widget* child : widget->paint_order()) {
+    // 统一按 layer 升序 → z 升序收集 Tab 顺序；UIRoot 会合并 children_/overlays_。
+    for (xel::ui::Widget* child : widget->layer_paint_order()) {
         collect_focusable(child, out);
     }
 }
@@ -471,6 +477,11 @@ void UISystem::dispatch_key(const event::InputEvent& event)
     }
     if (!focused_) return;
 
+    // 模态作用域：焦点必须在最上层模态子树内，否则忽略按键（Tab 已由 focus_next 收窄）。
+    if (Widget* scope = root_ != nullptr ? root_->modal_top() : nullptr) {
+        if (!tree_contains(scope, focused_.widget)) return;
+    }
+
     bubble_to_root(focused_, [&](Widget* widget) {
         return event.type == event::InputEvent::Type::KeyDown
             ? widget->on_key_down(event.key, event.mods)
@@ -481,6 +492,12 @@ void UISystem::dispatch_key(const event::InputEvent& event)
 void UISystem::dispatch_char(const event::InputEvent& event)
 {
     if (!focused_) return;
+
+    // 与 dispatch_key 一致：模态时字符输入只作用于最上层模态子树。
+    if (Widget* scope = root_ != nullptr ? root_->modal_top() : nullptr) {
+        if (!tree_contains(scope, focused_.widget)) return;
+    }
+
     bubble_to_root(focused_, [&](Widget* widget) {
         return widget->on_char(event.codepoint);
     });

@@ -96,6 +96,9 @@ public:
     }
     bool modal() const { return modal_; }
 
+    // 模态窗口与 Scrim 同层（Modal），非模态窗口按普通内容处理。
+    Layer layer() const override { return modal_ ? Layer::Modal : Layer::Content; }
+
     // 不可收起的窗口：不画折叠三角，点击也不响应。
     void set_collapsible(bool on) { collapsible_ = on; }
     bool collapsible() const { return collapsible_; }

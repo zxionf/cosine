@@ -33,6 +33,7 @@ public:
         set_size(slot.size);
     }
     void append_to(graphics::DrawList&) const override {}
+    Layer layer() const override { return Layer::Floating; }
     bool on_mouse_down(glm::vec2, int) override
     {
         if (dismiss_) dismiss_();
@@ -71,6 +72,7 @@ public:
     void on_mouse_leave() override { hovered_ = -1; }
     bool on_click(glm::vec2 pos, int) override;
     bool hit_testable() const override { return true; }
+    Layer layer() const override { return Layer::Floating; }
     float row_height() const;
 
     int hovered() const { return hovered_; }

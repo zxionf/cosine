@@ -3,6 +3,7 @@
 #include "ui/widget.hpp"
 #include "ui/uicontext.hpp"
 
+#include <functional>
 #include <memory>
 
 namespace xel::ui
@@ -23,10 +24,17 @@ public:
     void clear_overlays() { overlays_.clear(); mark_layout_dirty(); }
 
     // 模态栈：窗口进入模态时撑一个全屏 Scrim（z = 窗口 z - 1），支持嵌套。
-    void push_modal(Widget* window);
+    // with_scrim=false 用于自带遮罩的模态宿主（如 DialogHost）。
+    void push_modal(Widget* window, bool with_scrim = true);
     void pop_modal(Widget* window);
     Widget* modal_top() const { return modals_.empty() ? nullptr : modals_.back(); }
     bool is_modal(Widget* window) const;
+
+    // 焦点钩子：由 UISystem 注入 getter/setter（UIRoot 不依赖 UISystem，避免循环）。
+    using FocusGetter = std::function<Widget*()>;
+    using FocusSetter = std::function<void(Widget*)>;
+    void set_focus_hooks(FocusGetter getter, FocusSetter setter);
+    void clear_focus_hooks();
 
     // 切换主题：更新 context 并递归刷新控件缓存的样式值（如 Panel 的 padding/spacing）。
     void set_theme(const Theme& value);
@@ -46,8 +54,12 @@ private:
     UIContext context_storage_;
     std::vector<std::unique_ptr<Widget>> overlays_;
     // 与 modals_ 一一对应；scrim 同时也在 children_ 里（参与命中与绘制）。
+    // modal_focus_stack_[i] 是打开第 i 层模态前的焦点快照（pop 时恢复用）。
     std::vector<Widget*> modals_;
     std::vector<Widget*> modal_scrims_;
+    std::vector<Widget*> modal_focus_stack_;
+    FocusGetter focus_getter_;
+    FocusSetter focus_setter_;
     std::vector<std::unique_ptr<Widget>> trash_;
 };
 } // namespace xel::ui

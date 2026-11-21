@@ -16,6 +16,7 @@ public:
     explicit UISystem(backend::Window& window);
     // 无窗口构造，供纯逻辑测试使用；root 的 global bounds 由构造函数按尺寸设置。
     explicit UISystem(std::unique_ptr<UIRoot> root);
+    ~UISystem();
 
     UIRoot* root() { return root_.get(); }
     UIContext* context() { return root_ ? root_->context() : nullptr; }
@@ -74,6 +75,8 @@ private:
     void collect_focusable(Widget* widget, std::vector<Widget*>& out) const;
     // 移除 overlay / 子项后清理已失效的 hover、press、focus 目标。
     void prune_stale_targets();
+    // 把焦点 getter/setter 注入 UIRoot，供模态栈快照/恢复焦点。
+    void install_focus_hooks();
 
     void dispatch_mouse_move(const event::InputEvent& event);
     void dispatch_mouse_button(const event::InputEvent& event);

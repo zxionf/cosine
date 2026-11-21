@@ -169,6 +169,12 @@ target_link_libraries(test_ui_window PRIVATE cosine_ui cosine_text)
 add_executable(test_ui_dispatch test_ui_dispatch.cpp)
 target_link_libraries(test_ui_dispatch PRIVATE cosine_ui cosine_text)
 
+add_executable(test_ui_layer test_ui_layer.cpp)
+target_link_libraries(test_ui_layer PRIVATE cosine_ui)
+
+add_executable(test_ui_modal test_ui_modal.cpp)
+target_link_libraries(test_ui_modal PRIVATE cosine_ui)
+
 add_executable(test_ui_layout_contract test_ui_layout_contract.cpp)
 target_link_libraries(test_ui_layout_contract PRIVATE cosine_ui cosine_text)
 
@@ -243,6 +249,8 @@ set(COSINE_TEST_TARGETS
     test_ui_file_browser
     test_ui_window
     test_ui_dispatch
+    test_ui_layer
+    test_ui_modal
     test_ui_layout_contract
     test_ui_scroll_state
     test_ui_list_view
@@ -327,6 +335,8 @@ add_test(NAME ui_preview_ruler COMMAND test_ui_preview_ruler)
 add_test(NAME ui_file_browser COMMAND test_ui_file_browser)
 add_test(NAME ui_window COMMAND test_ui_window)
 add_test(NAME ui_dispatch COMMAND test_ui_dispatch)
+add_test(NAME ui_layer COMMAND test_ui_layer)
+add_test(NAME ui_modal COMMAND test_ui_modal)
 add_test(NAME ui_layout_contract COMMAND test_ui_layout_contract)
 add_test(NAME ui_scroll_state COMMAND test_ui_scroll_state)
 add_test(NAME ui_list_view COMMAND test_ui_list_view)

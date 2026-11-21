@@ -192,6 +192,21 @@ public:
     }
     std::vector<Widget*> paint_order() const { return sorted_paint_order(children()); }
     std::vector<Widget*> overlay_paint_order() const { return sorted_paint_order(overlays()); }
+
+    // 跨 children_ 与 overlays_ 的唯一排序入口：layer 升序 → z 升序（稳定，同值按加入顺序）。
+    // 绘制正序、命中反序、Tab 正序都从这里派生；overlay 不再是一等顺序来源。
+    std::vector<Widget*> layer_paint_order() const
+    {
+        std::vector<Widget*> order;
+        order.reserve(children().size() + overlays().size());
+        for (const auto& child : children()) order.push_back(child.get());
+        for (const auto& overlay : overlays()) order.push_back(overlay.get());
+        std::stable_sort(order.begin(), order.end(), [](Widget* a, Widget* b) {
+            if (a->layer() != b->layer()) return a->layer() < b->layer();
+            return a->z_index() < b->z_index();
+        });
+        return order;
+    }
     void set_min_size(glm::vec2 size) { min_size_ = size; mark_layout_dirty(); }
     void set_max_size(glm::vec2 size) { max_size_ = size; mark_layout_dirty(); }
     glm::vec2 min_size() const { return min_size_; }
@@ -255,6 +270,9 @@ public:
     //   focusable=true      参与 Tab 顺序，可被 set_focus 获得键盘事件
     virtual bool hit_testable() const { return true; }
     virtual bool focusable() const { return false; }
+
+    // 打开模态/对话框时建议的初始焦点：默认无偏好，由模态栈按树序找首个可聚焦控件。
+    virtual Widget* preferred_focus() { return nullptr; }
 
     // Tab 顺序：>0 为显式顺序（小的先）；0 按树序（默认）；<0 不参与 Tab（仍可点击/程序聚焦）。
     void set_tab_order(int order) { tab_order_ = order; }

@@ -101,7 +101,7 @@ public:
     }
 
     // 打开时可用来设置初始焦点：优先主按钮，否则第一个按钮。
-    Widget* preferred_focus() const
+    Widget* preferred_focus() override
     {
         if (primary_) return primary_;
         return action_count() > 0 ? action(0) : nullptr;
@@ -145,7 +145,7 @@ public:
     Dialog* dialog() const { return dialog_; }
 
     // 打开时建议聚焦的控件：优先对话框内的主按钮，否则聚焦宿主自身（保证 Esc 可用）。
-    Widget* preferred_focus()
+    Widget* preferred_focus() override
     {
         if (dialog_) {
             if (auto* widget = dialog_->preferred_focus()) return widget;
@@ -153,15 +153,20 @@ public:
         return this;
     }
     bool focusable() const override { return true; }
+    // 宿主作为 overlay 浮层，遮罩与卡片一起在 Floating 层。
+    Layer layer() const override { return Layer::Floating; }
 
     void set_on_close(std::function<void()> handler) { on_close_ = std::move(handler); }
 
-    // 关闭并从 root.overlays 中移除（延迟销毁，事件派发期间安全）。
+    // 关闭并从 root.overlays 中移除（延迟销毁，事件派发期间安全）；同时退出模态作用域。
     void close()
     {
         if (closed_) return;
         closed_ = true;
-        if (auto* root = find_root()) root->remove_overlay(this);
+        if (auto* root = find_root()) {
+            root->pop_modal(this);
+            root->remove_overlay(this);
+        }
         if (on_close_) on_close_();
     }
     bool closed() const { return closed_; }
@@ -249,6 +254,8 @@ inline DialogHost* show_dialog(UIRoot& root, std::unique_ptr<Dialog> dialog,
     auto* raw = host.get();
     raw->set_on_close(std::move(on_close));
     root.add_overlay(std::move(host));
+    // 纳入模态作用域：自带遮罩（append_scrim），不额外造 Scrim；初始焦点按 preferred_focus 自动落到按钮。
+    root.push_modal(raw, /*with_scrim=*/false);
     return raw;
 }
 } // namespace xel::ui

@@ -3,6 +3,34 @@
 
 #include <algorithm>
 
+namespace
+{
+// 只做地址比较，不解引用 target：target 可能是已销毁的悬空指针。
+bool widget_in_tree(xel::ui::Widget* root, xel::ui::Widget* target)
+{
+    if (!root || !target) return false;
+    if (root == target) return true;
+    for (const auto& child : root->children()) {
+        if (widget_in_tree(child.get(), target)) return true;
+    }
+    for (const auto& overlay : root->overlays()) {
+        if (widget_in_tree(overlay.get(), target)) return true;
+    }
+    return false;
+}
+
+// 树序第一个可聚焦的子孙控件（不含 root 自身）。
+xel::ui::Widget* first_focusable(xel::ui::Widget* root)
+{
+    if (!root) return nullptr;
+    for (xel::ui::Widget* child : root->layer_paint_order()) {
+        if (child->focusable()) return child;
+        if (xel::ui::Widget* w = first_focusable(child)) return w;
+    }
+    return nullptr;
+}
+} // namespace
+
 namespace xel::ui
 {
 UIRoot::UIRoot(float x, float y, float width, float height)
@@ -15,6 +43,18 @@ UIRoot::UIRoot(float x, float y, float width, float height)
 void UIRoot::add(std::unique_ptr<Widget> child)
 {
     adopt(std::move(child));
+}
+
+void UIRoot::set_focus_hooks(FocusGetter getter, FocusSetter setter)
+{
+    focus_getter_ = std::move(getter);
+    focus_setter_ = std::move(setter);
+}
+
+void UIRoot::clear_focus_hooks()
+{
+    focus_getter_ = {};
+    focus_setter_ = {};
 }
 
 void UIRoot::add_overlay(std::unique_ptr<Widget> child)
@@ -54,12 +94,9 @@ void UIRoot::set_theme(const Theme& value)
 
 void UIRoot::append_to(graphics::DrawList& list) const
 {
-    // z-index 控制同层绘制顺序；overlays 始终在 children 之上。
-    for (Widget* child : paint_order()) {
-        if (child->visible()) child->append_to(list);
-    }
-    for (Widget* overlay : overlay_paint_order()) {
-        if (overlay->visible()) overlay->append_to(list);
+    // 统一按 layer 升序 → z 升序绘制；overlay 不再单独在 children 之上。
+    for (Widget* widget : layer_paint_order()) {
+        if (widget->visible()) widget->append_to(list);
     }
     if (is_debug()) append_debug_tree(list);
 }
@@ -81,26 +118,72 @@ void UIRoot::layout_child(Widget& child)
 void UIRoot::layout()
 {
     purge_trash();
-    // 遮罩始终贴在对应窗口下方：窗口 raise 归一化过 z 也不会失配。
+    // 剔除悬空帧：模态窗口被父容器直接销毁（未走 release_modal）时，modals_ 里会留野指针；
+    // 同时清掉残留 scrim，避免界面被透明遮罩永久挡住。
+    std::size_t keep = 0;
     for (std::size_t i = 0; i < modals_.size(); ++i) {
-        if (modal_scrims_[i] != nullptr && modals_[i] != nullptr) {
-            modal_scrims_[i]->set_z_index(modals_[i]->z_index() - 1);
+        if (!widget_in_tree(this, modals_[i])) {
+            if (Widget* scrim = modal_scrims_[i]) {
+                std::erase_if(children_, [scrim](const std::unique_ptr<Widget>& c) {
+                    return c.get() == scrim;
+                });
+            }
+            continue;
+        }
+        modals_[keep] = modals_[i];
+        modal_scrims_[keep] = modal_scrims_[i];
+        modal_focus_stack_[keep] = modal_focus_stack_[i];
+        ++keep;
+    }
+    modals_.resize(keep);
+    modal_scrims_.resize(keep);
+    modal_focus_stack_.resize(keep);
+
+    // 模态帧的 z 在 Modal 层内确定性分配：frame i → scrim 2i+1 / window 2i+2。
+    // 这样 scrim 永远压在自己窗口之下、前一个模态窗口之上，嵌套模态不再靠插入顺序或 kOnTopZ 撞 z。
+    for (std::size_t i = 0; i < modals_.size(); ++i) {
+        if (modal_scrims_[i] != nullptr) {
+            modal_scrims_[i]->set_z_index(static_cast<int>(2 * i + 1));
+        }
+        if (modals_[i] != nullptr) {
+            modals_[i]->set_z_index(static_cast<int>(2 * i + 2));
         }
     }
     for (auto& child : children_) layout_child(*child);
     for (auto& overlay : overlays_) layout_child(*overlay);
 }
 
-void UIRoot::push_modal(Widget* window)
+void UIRoot::push_modal(Widget* window, bool with_scrim)
 {
     if (window == nullptr || is_modal(window)) return;
-    auto scrim = std::make_unique<Scrim>();
-    Widget* raw = scrim.get();
-    raw->set_z_index(window->z_index() - 1);
-    add(std::move(scrim));
+
+    // 记录打开前的焦点快照，pop 时恢复。
+    const Widget* prev_focus = focus_getter_ ? focus_getter_() : nullptr;
+    modal_focus_stack_.push_back(const_cast<Widget*>(prev_focus));
+
+    Widget* scrim = nullptr;
+    if (with_scrim) {
+        auto raw_scrim = std::make_unique<Scrim>();
+        scrim = raw_scrim.get();
+        raw_scrim->set_z_index(window->z_index() - 1);
+        add(std::move(raw_scrim));
+    }
+    modal_scrims_.push_back(scrim);
     modals_.push_back(window);
-    modal_scrims_.push_back(raw);
     mark_layout_dirty();
+
+    // 初始焦点：焦点已在模态子树内则保留；否则 preferred_focus → 首个可聚焦 → 窗口自身。
+    if (!focus_setter_) return;
+    Widget* current = focus_getter_ ? focus_getter_() : nullptr;
+    if (current != nullptr && widget_in_tree(window, current)) {
+        return; // 已在子树内
+    }
+    Widget* target = window->preferred_focus();
+    if (target == nullptr || !widget_in_tree(window, target)) {
+        target = first_focusable(window);
+    }
+    if (target == nullptr) target = window;
+    focus_setter_(target);
 }
 
 void UIRoot::pop_modal(Widget* window)
@@ -109,14 +192,24 @@ void UIRoot::pop_modal(Widget* window)
     if (it == modals_.end()) return;
     const auto index = static_cast<std::size_t>(it - modals_.begin());
     Widget* scrim = modal_scrims_[index];
+    Widget* restore = modal_focus_stack_[index];
     modals_.erase(it);
     modal_scrims_.erase(modal_scrims_.begin() + static_cast<std::ptrdiff_t>(index));
+    modal_focus_stack_.erase(modal_focus_stack_.begin() + static_cast<std::ptrdiff_t>(index));
     if (scrim != nullptr) {
         std::erase_if(children_, [scrim](const std::unique_ptr<Widget>& child) {
             return child.get() == scrim;
         });
     }
     mark_layout_dirty();
+
+    // 恢复焦点：快照仍在树中且不在被弹出子树内才恢复，否则清空。
+    if (!focus_setter_) return;
+    if (restore != nullptr && widget_in_tree(this, restore) && !widget_in_tree(window, restore)) {
+        focus_setter_(restore);
+    } else {
+        focus_setter_(nullptr);
+    }
 }
 
 bool UIRoot::is_modal(Widget* window) const

@@ -86,6 +86,7 @@ public:
         backdrop.append_to(list);
     }
     bool hit_testable() const override { return true; }
+    Layer layer() const override { return Layer::Floating; }
     bool on_mouse_down(glm::vec2, int) override
     {
         if (dismiss_) dismiss_();
@@ -133,6 +134,7 @@ public:
     void on_mouse_leave() override { hovered_ = -1; }
     bool on_click(glm::vec2 pos, int) override;
     bool hit_testable() const override { return true; }
+    Layer layer() const override { return Layer::Floating; }
 
     // 内容源：顶层菜单或某层子菜单的拷贝（菜单项数量少，拷贝换来地址稳定）。
     const std::vector<MenuItem>& items() const { return items_; }

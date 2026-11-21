@@ -129,7 +129,22 @@ virtual Layer layer() const { return Layer::Content; }
 ```
 
 - `fills_parent()`：不参与测量协商，直接铺满父容器（`Scrim`）
-- `Layer` 目前**只是声明**，命中顺序仍沿用「overlay 优先 + children 按 z 降序」
+- `Layer` 是跨 `children_` 与 `overlays_` 的**唯一主排序键**，`z_index` 只在同一 layer 内生效。
+
+**排序契约**（`UIRoot::layer_paint_order()` 是唯一消费入口）：
+
+```
+Content < Floating < Modal
+绘制 append_to：    layer 升序 → z 升序（稳定，同值按加入顺序）
+命中 collect_hit_path：layer 降序 → z 降序
+Tab collect_focusable：layer 升序 → z 升序
+```
+
+- `overlays_` 保留 API，但**不再是一等顺序来源**，只作为 `layer_paint_order()` 的输入之一。
+- 典型归属：普通子项与控件默认 `Content`；`Window`（模态）与 `Scrim` 为 `Modal`；
+  `DialogHost` / `MenuPopup` / `MenuScrim` / `DropdownList` / `DropdownScrim` / `Tooltip` 为 `Floating`。
+- 模态帧的 z 在 `UIRoot::layout()` 归一化：frame `i` → scrim `2i+1`、window `2i+2`，保证嵌套模态
+  不会因 `kOnTopZ` 撞 z 而靠插入顺序兜底。
 
 ### 4. 视口：`viewport_height()`
 
@@ -187,7 +202,7 @@ dispatch(InputEvent)
 | `ScrollState` | 一维滚动：值/目标/平滑（指数衰减）+ Fast 加速 + snap + range 夹取 | `Table` |
 | `ListView` | 行列表：滚动/选中/键盘/可见行窗口；子类只实现 `item_count()` + `draw_row()` | `Table`（`FileBrowser` 经 Table 受益） |
 | `CollapsibleHeader` | 折叠标题条：`panel_bg` 底 + 三角 + 标题 | `Section` |
-| `Scrim` | 全屏半透明遮罩，吃指针/滚轮，不参与 Tab | `UIRoot` 模态栈 |
+| `Scrim` | 全屏半透明遮罩，吞掉所有指针/滚轮事件，不参与 Tab | `UIRoot` 模态栈 |
 | `FontAtlas::centered_text_y()` | 行框在给定高度内垂直居中 | 所有自绘文字 |
 
 ## 五、模态窗口
@@ -197,15 +212,20 @@ dispatch(InputEvent)
 ```
 Window::set_modal
    └─▶ UIRoot::push_modal(this)
-          ├─ 造一个 Scrim 放进 children_，z = 窗口 z − 1
+          ├─ 造一个 Scrim 放进 children_（Modal 层）
+          ├─ 快照当前焦点 → modal_focus_stack_
+          ├─ 初始焦点：焦点已在模态子树内则保留；否则 preferred_focus() → 首个可聚焦 → 窗口自身
           └─ 记入 modals_ / modal_scrims_（栈，支持嵌套）
-UIRoot::layout() 每帧把 scrim 的 z 重设为「窗口 z − 1」（raise 归一化后也不会错位）
+UIRoot::layout() 归一化模态帧 z：frame i → scrim 2i+1 / window 2i+2
 Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 ```
 
 - 遮罩 z 比窗口小 1：命中时窗口先命中，绘制时遮罩先画
 - `UISystem::focus_next` 在有模态时把收集范围收窄到 `modal_top()`
-- 解除路径统一走 `release_modal()`，避免「遮罩残留、界面永久不可点」
+- `dispatch_key` / `dispatch_char` 在模态打开时只作用于最上层模态子树；焦点在作用域外则忽略
+- `pop_modal` 恢复打开前的焦点快照（仍在树中且不在被弹出子树内才恢复，否则清空）
+- `DialogHost`（overlay 宿主）也经 `push_modal(host, with_scrim=false)` 纳入模态作用域，自带遮罩
+- 解除路径统一走 `release_modal()`，避免「遮罩残留、界面永久不可点」；窗口被直接销毁时 `layout()` 剔除悬空帧
 
 ## 六、主题
 
@@ -227,7 +247,6 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 | 圆角无抗锯齿 | 几何近似，硬边 | `tech_debt.md` D01 |
 | 无外阴影 | 窗口层次靠 1px 边框 + `elevated` 令牌 | UI-6 遗留 |
 | `ListView::draw_row` 未被 `Table` 使用 | 行绘制仍在 `append_to` | UI-10 |
-| `Layer` 未驱动命中排序 | 现有 overlay + z 已够用 | `tech_debt.md` T04 |
 
 ## 九、编辑器层：ResourceBrowser
 

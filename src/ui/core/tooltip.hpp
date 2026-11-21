@@ -105,6 +105,8 @@ public:
     }
 
     bool hit_testable() const override { return false; }
+    // Tooltip 是浮层，绘制在普通内容之上。
+    Layer layer() const override { return Layer::Floating; }
 
 private:
     static constexpr float kOffsetX = 16.0f;
