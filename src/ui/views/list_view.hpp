@@ -113,18 +113,48 @@ protected:
 
     void sync_scroll_range() { scroll_.set_range(viewport_height(), content_height()); }
 
-    // 第一行可见行号（按当前滚动偏移）。
+    // 像素对齐的滚动偏移：行绘制与命中都用它，避免行停在半像素上多出一条溢出像素。
+    float snapped_offset() const { return std::round(scroll_.offset()); }
+
+    // 第一行可见行号（基于 snapped_offset，与绘制一致）。
     std::size_t first_visible_row() const
     {
         if (row_height_ <= 0.0f) return 0;
-        const float row = scroll_.offset() / row_height_;
-        return static_cast<std::size_t>(std::max(0.0f, std::floor(row)));
+        const float snap = snapped_offset();
+        return static_cast<std::size_t>(std::max(0.0f, snap) / row_height_);
     }
     // 可见行数（多算一行，避免底部露出半行）。
     std::size_t visible_row_count() const
     {
         if (row_height_ <= 0.0f) return 0;
         return static_cast<std::size_t>(viewport_height() / row_height_) + 1;
+    }
+    // 第 index 行的顶部 y（相对 body_top），与 first_visible_row 共用同一 snap。
+    float row_y(std::size_t index, float body_top) const
+    {
+        return body_top + static_cast<float>(index) * row_height_ - snapped_offset();
+    }
+    // 命中测试：给定 body_top 与逻辑 y，返回行号（越界 -1）。与绘制共用同一 snap。
+    int row_at(float y, float body_top) const
+    {
+        if (row_height_ <= 0.0f) return -1;
+        const float local = y - body_top + snapped_offset();
+        const int row = static_cast<int>(std::floor(local / row_height_));
+        if (row < 0 || row >= static_cast<int>(item_count())) return -1;
+        return row;
+    }
+
+    // 统一行绘制循环：子类在 append_to 里画完表头/背景后调用。
+    // 循环、可见窗口、像素对齐、越界裁剪都在基类，子类只填 draw_row。
+    void append_rows(graphics::DrawList& list, Rect body) const
+    {
+        for (std::size_t row = first_visible_row(); row < item_count(); ++row) {
+            const float y = row_y(row, body.pos.y);
+            if (y + row_height_ < body.pos.y) continue;
+            if (y > body.pos.y + body.size.y) break;
+            draw_row(list, row, Rect{{body.pos.x, y}, {body.size.x, row_height_}},
+                     static_cast<int>(row) == selected_);
+        }
     }
 
     void ensure_selected_visible()

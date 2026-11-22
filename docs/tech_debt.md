@@ -49,7 +49,6 @@
 
 | 编号 | 内容 | 为什么不做 |
 |---|---|---|
-| T01 | `ListView::draw_row` 留空，`Table::append_to` 仍自己画行 | 搬到 `draw_row` 是纯视觉重构，但当前无像素级测试；且 `snap`（像素对齐）与 `first_visible_row()`（逻辑行号）取整口径不同，合并有抖动风险。见 UI-10 |
 | T02 | `ScrollView` 保留独立的二维滚动，不接 `ScrollState` | `ScrollState` 是一维的（`float offset_`）；扩成二维会让它变成什么都装的对象 |
 | T03 | `Window` 标题栏不复用 `CollapsibleHeader` | 标题栏还要拖动、关闭叉、双击最大化、无标题栏整块拖动，套进去要回传事件，比各自写更绕 |
 | T05 | `Widget` 不拆分（406 行 / 12 种职责） | 4 个显式契约（`adopt` / `fixed_size` / `fills_parent` / `Layer` / `viewport_height`）已缓解最痛处；拆分回归面覆盖全部控件 |

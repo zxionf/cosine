@@ -72,8 +72,36 @@ public:
     std::size_t item_count() const override { return rows_.size(); }
     // 视口要去掉表头高度（ListView 默认用 global_.size.y）。
     float viewport_height() const override { return body_height(); }
-    // 目前行绘制仍在 append_to 里（带表头/列宽/斑马纹），这里留空以满纯虚契约。
-    void draw_row(graphics::DrawList&, std::size_t, Rect, bool) const override {}
+    // 单行绘制：斑马纹/选中/悬停背景 + 列循环。行窗口/像素对齐由 ListView::append_rows 负责。
+    void draw_row(graphics::DrawList& list, std::size_t index, Rect row, bool selected) const override
+    {
+        const auto& t = ui_theme();
+        const bool is_hovered = static_cast<int>(index) == hovered_;
+        const float row_radius = corner_radius(t.radius_small);
+
+        if (selected) {
+            const glm::vec4 color{t.accent.r, t.accent.g, t.accent.b, 0.28f};
+            graphics::append_rounded_rect(list, {row.pos.x + 2.0f, row.pos.y, row.size.x - 4.0f, row.size.y},
+                                          row_radius, color);
+        } else if (is_hovered) {
+            const BoxStyle row_style = t.style(StyleRole::Row, ControlState::Hovered);
+            graphics::append_rounded_rect(list, {row.pos.x + 2.0f, row.pos.y, row.size.x - 4.0f, row.size.y},
+                                          row_radius, row_style.fill);
+        } else if (striped_ && (index % 2) == 1) {
+            graphics::append_rounded_rect(list, {row.pos.x + 2.0f, row.pos.y, row.size.x - 4.0f, row.size.y},
+                                          row_radius, {1.0f, 1.0f, 1.0f, 0.03f});
+        }
+
+        float x = row.pos.x;
+        const auto& cells = rows_[index];
+        for (std::size_t col = 0; col < widths_.size(); ++col) {
+            const std::string& text = col < cells.size() ? cells[col] : empty_;
+            draw_cell(list, text, x, row.pos.y, widths_[col], row.size.y,
+                      col < columns_.size() ? columns_[col].align : TableColumn::Align::Left,
+                      t.text, x, row.pos.x + row.size.x);
+            x += widths_[col];
+        }
+    }
     void set_header_height(float height)
     {
         header_height_ = std::max(0.0f, height);
@@ -138,7 +166,7 @@ public:
         const float bar_w_probe = content_height() > body_h_probe ? t.scrollbar_width + 2.0f : 0.0f;
         const float body_w_probe = std::max(0.0f, global_.size.x - bar_w_probe);
         // 列宽按「去掉滚动条后的正文宽度」分配，否则右对齐的最后一列会被滚动条裁掉。
-        const auto widths = column_widths(body_w_probe);
+        widths_ = column_widths(body_w_probe);
 
         // 表头
         if (header_h > 0.0f) {
@@ -148,10 +176,10 @@ public:
             header.append_to(list);
 
             float x = global_.pos.x;
-            for (std::size_t i = 0; i < columns_.size() && i < widths.size(); ++i) {
-                draw_cell(list, columns_[i].title, x, global_.pos.y, widths[i], header_h,
+            for (std::size_t i = 0; i < columns_.size() && i < widths_.size(); ++i) {
+                draw_cell(list, columns_[i].title, x, global_.pos.y, widths_[i], header_h,
                           columns_[i].align, t.text, x, global_.pos.x + body_w_probe);
-                x += widths[i];
+                x += widths_[i];
             }
             graphics::Rectangle line{global_.pos.x, global_.pos.y + header_h - 1.0f,
                                      global_.size.x, 1.0f, t.panel_border};
@@ -166,43 +194,8 @@ public:
         list.push_clip({std::round(global_.pos.x), std::round(body_top),
                         std::round(body_w), std::round(body_h)});
 
-        // 像素对齐：滚动偏移取整，避免行停在半像素上而多出一条溢出像素。
-        const float snap = std::round(scroll_.offset());
-        std::size_t first_visible = row_height_ > 0.0f
-            ? static_cast<std::size_t>(std::max(0.0f, snap) / row_height_)
-            : 0;
-        for (std::size_t row = first_visible; row < rows_.size(); ++row) {
-            const float y = body_top + static_cast<float>(row) * row_height_ - snap;
-            if (y + row_height_ < body_top) continue;
-            if (y > body_top + body_h) break;
-
-            const bool is_selected = static_cast<int>(row) == selected_;
-            const bool is_hovered = static_cast<int>(row) == hovered_;
-
-            const float row_radius = corner_radius(t.radius_small);
-            if (is_selected) {
-                const glm::vec4 color{t.accent.r, t.accent.g, t.accent.b, 0.28f};
-                graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
-                                              row_radius, color);
-            } else if (is_hovered) {
-                const BoxStyle row_style = t.style(StyleRole::Row, ControlState::Hovered);
-                graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
-                                              row_radius, row_style.fill);
-            } else if (striped_ && (row % 2) == 1) {
-                graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
-                                              row_radius, {1.0f, 1.0f, 1.0f, 0.03f});
-            }
-
-            float x = global_.pos.x;
-            const auto& cells = rows_[row];
-            for (std::size_t col = 0; col < widths.size(); ++col) {
-                const std::string& text = col < cells.size() ? cells[col] : empty_;
-                draw_cell(list, text, x, y, widths[col], row_height_,
-                          col < columns_.size() ? columns_[col].align : TableColumn::Align::Left,
-                          t.text, x, global_.pos.x + body_w);
-                x += widths[col];
-            }
-        }
+        // 行循环统一走 ListView::append_rows（像素对齐、可见窗口、裁剪都在基类）。
+        append_rows(list, Rect{{global_.pos.x, body_top}, {body_w, body_h}});
         list.pop_clip();
 
         draw_scrollbar(list, body_top, body_h, bar_w);
@@ -335,16 +328,15 @@ private:
         const float body_top = global_.pos.y + header_height_;
         if (pos.y < body_top || pos.y > global_.pos.y + global_.size.y) return -1;
         if (pos.x < global_.pos.x || pos.x > global_.pos.x + global_.size.x) return -1;
-        const float local_y = pos.y - body_top + scroll_.offset();
-        const int row = static_cast<int>(std::floor(local_y / row_height_));
-        if (row < 0 || row >= static_cast<int>(rows_.size())) return -1;
-        return row;
+        // 统一用 ListView 的 row_at（基于 snapped_offset，与绘制一致）。
+        return ListView::row_at(pos.y, body_top);
     }
 
     int hovered_row(glm::vec2 pos) const { return row_at(pos); }
 
     std::vector<TableColumn> columns_;
     std::vector<std::vector<std::string>> rows_;
+    mutable std::vector<float> widths_; // append_to 算好列宽，draw_row 复用
     std::string empty_;
     int hovered_ = -1;
     glm::vec2 last_mouse_{-1.0f, -1.0f};

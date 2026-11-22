@@ -2,8 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
-#include "ui/scroll_mode.hpp"
+#include "ui/views/list_view.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
 #include "graphics/line.hpp"
@@ -27,22 +26,25 @@ struct TreeNode
     bool has_children() const { return !children.empty(); }
 };
 
-// 树形列表：层级缩进、展开/折叠、键盘导航、自绘滚动条。
+// 树形列表：层级缩进、展开/折叠、键盘导航。滚动/可见行/行窗口由 ListView 提供。
 // 选中用「根索引路径」表示（如 {0, 2, 1}），展开/折叠不改变其含义。
-class TreeView : public Widget
+class TreeView : public ListView
 {
 public:
     TreeView(float width = 320.0f, float height = 240.0f)
     {
         set_min_size({width, height});
         set_max_size({width, height});
+        set_row_height(26.0f);
     }
 
     void set_roots(std::vector<TreeNode> roots)
     {
         roots_ = std::move(roots);
         validate_selection();
-        set_scroll_value(0.0f);
+        invalidate_visible();
+        sync_selection();
+        scroll_.jump_to(0.0f);
         mark_layout_dirty();
     }
     const std::vector<TreeNode>& roots() const { return roots_; }
@@ -51,6 +53,8 @@ public:
     void add_root(TreeNode node)
     {
         roots_.push_back(std::move(node));
+        invalidate_visible();
+        sync_selection();
         mark_layout_dirty();
     }
 
@@ -59,7 +63,9 @@ public:
         roots_.clear();
         selected_path_.clear();
         hovered_ = -1;
-        set_scroll_value(0.0f);
+        invalidate_visible();
+        selected_ = -1;
+        scroll_.jump_to(0.0f);
         mark_layout_dirty();
     }
 
@@ -93,6 +99,7 @@ public:
         if (node_at(path) == nullptr) return;
         if (path == selected_path_) return;
         selected_path_ = std::move(path);
+        sync_selection();
         ensure_selected_visible();
         if (notify && on_select_) on_select_(selected_path_);
     }
@@ -120,8 +127,8 @@ public:
             if (on_select_) on_select_(selected_path_);
         }
 
-        scroll_ = clamp_scroll(scroll_);
-        scroll_target_ = scroll_;
+        invalidate_visible();
+        sync_selection();
         mark_layout_dirty();
     }
 
@@ -132,14 +139,8 @@ public:
     {
         set_all_expanded(false);
         validate_selection();
+        sync_selection();
     }
-
-    void set_row_height(float height)
-    {
-        row_height_ = std::max(12.0f, height);
-        mark_layout_dirty();
-    }
-    float row_height() const { return row_height_; }
 
     void set_indent(float indent)
     {
@@ -151,21 +152,7 @@ public:
     void set_striped(bool striped) { striped_ = striped; }
     bool striped() const { return striped_; }
 
-    float scroll_offset() const { return scroll_; }
-
-    // 滚动模式：Smooth = 滚轮只改目标、位置平滑逼近；Line = 立即到位（按行）。
-    void set_scroll_mode(ScrollMode mode) { scroll_mode_ = mode; }
-    ScrollMode scroll_mode() const { return scroll_mode_; }
-    void set_scroll_smoothing(float seconds) { smoothing_ = seconds > 0.0f ? seconds : 0.0f; }
-    float scroll_smoothing() const { return smoothing_; }
-    float scroll_target() const { return scroll_target_; }
-
-    // 立即设置滚动值并同步目标（程序化、键盘、结构变化时用，避免平滑把位置拉回）。
-    void set_scroll_value(float value)
-    {
-        scroll_ = clamp_scroll(value);
-        scroll_target_ = scroll_;
-    }
+    // 滚动模式/平滑/offset 均继承自 ListView（ScrollState）。
 
     // 可见行（展开节点的前序遍历），交互与绘制共用同一份定义。
     struct VisibleRow
@@ -181,7 +168,10 @@ public:
         collect_visible(roots_, {}, 0, rows);
         return rows;
     }
-    std::size_t visible_count() const { return visible_rows().size(); }
+    std::size_t visible_count() const { return cached_visible_rows().size(); }
+
+    // ListView 契约：行数 = 展开后的可见节点数。
+    std::size_t item_count() const override { return cached_visible_rows().size(); }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
@@ -191,12 +181,8 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
-        scroll_ = clamp_scroll(scroll_);
-        // 保留平滑目标（只按新的可滚范围收紧），否则每帧布局会把刚设置的滚轮目标清零。
-        scroll_target_ = clamp_scroll(scroll_target_);
+        ListView::arrange(slot);
+        sync_scroll_range();
     }
 
     void append_to(graphics::DrawList& list) const override
@@ -211,7 +197,7 @@ public:
         list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
                         std::round(global_.size.x), std::round(global_.size.y)});
 
-        const auto rows = visible_rows();
+        const auto& rows = cached_visible_rows();
         const float content = static_cast<float>(rows.size()) * row_height_;
         const float bar_w = content > global_.size.y ? t.scrollbar_width + 2.0f : 0.0f;
         const float body_w = std::max(0.0f, global_.size.x - bar_w);
@@ -219,18 +205,8 @@ public:
         list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
                         std::round(body_w), std::round(global_.size.y)});
 
-        // 像素对齐：滚动偏移取整，避免内容停在半像素上，
-        // 使 scissor 向外取整后多画出一条顶部/底部像素。
-        const float snap = std::round(scroll_);
-        const int first_visible = row_height_ > 0.0f
-            ? static_cast<int>(std::max(0.0f, snap) / row_height_)
-            : 0;
-        for (int index = first_visible; index < static_cast<int>(rows.size()); ++index) {
-            const float y = global_.pos.y + static_cast<float>(index) * row_height_ - snap;
-            if (y + row_height_ < global_.pos.y) continue;
-            if (y > global_.pos.y + global_.size.y) break;
-            draw_row(list, rows[static_cast<std::size_t>(index)], index, y, body_w);
-        }
+        // 行循环统一走 ListView::append_rows（像素对齐、可见窗口、裁剪都在基类）。
+        append_rows(list, Rect{{global_.pos.x, global_.pos.y}, {body_w, global_.size.y}});
         list.pop_clip();
 
         draw_scrollbar(list, content, bar_w);
@@ -256,7 +232,7 @@ public:
     {
         const int index = row_at(pos);
         if (index < 0) return false;
-        const auto rows = visible_rows();
+        const auto& rows = cached_visible_rows();
         if (index >= static_cast<int>(rows.size())) return false;
 
         const auto& row = rows[static_cast<std::size_t>(index)];
@@ -279,7 +255,7 @@ public:
     {
         const int index = row_at(pos);
         if (index < 0) return false;
-        const auto rows = visible_rows();
+        const auto& rows = cached_visible_rows();
         if (index >= static_cast<int>(rows.size())) return false;
 
         const auto& row = rows[static_cast<std::size_t>(index)];
@@ -293,47 +269,15 @@ public:
         return true;
     }
 
-    bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
-    {
-        if (!global_.contains(pos)) return false;
-        if (content_height() <= body_height()) return false;
-        scroll_target_ = clamp_scroll(scroll_target_ - delta.y * row_height_ * 1.5f);
-        idle_ = 0.0f;
-        if (scroll_mode_ == ScrollMode::Line) scroll_ = scroll_target_;
-        return true;
-    }
-
-    void on_update(float dt) override
-    {
-        if (scroll_mode_ == ScrollMode::Line || dt <= 0.0f) return;
-        const float diff = scroll_target_ - scroll_;
-        if (std::abs(diff) < 0.01f) {
-            idle_ = 0.0f;
-            return;
-        }
-        idle_ += dt;
-
-        float tau = smoothing_;
-        float snap = 0.25f;
-        if (scroll_mode_ == ScrollMode::Fast) {
-            // 基础更快；停止输入 0.1s 后再加速收尾。
-            tau = std::max(0.03f, smoothing_ * 0.4f);
-            snap = 0.5f;
-            if (idle_ > 0.1f) tau *= 0.5f;
-        }
-
-        const float k = tau > 0.0f ? (1.0f - std::exp(-dt / tau)) : 1.0f;
-        scroll_ = clamp_scroll(scroll_ + diff * k);
-        if (std::abs(scroll_target_ - scroll_) < snap) scroll_ = scroll_target_;
-    }
+    // 滚轮/平滑滚动由 ListView 的 ScrollState 处理（on_scroll / on_update 不再覆写）。
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        const auto rows = visible_rows();
+        const auto& rows = cached_visible_rows();
         if (rows.empty()) return false;
 
         const int last = static_cast<int>(rows.size()) - 1;
-        const int index = selected_index(rows);
+        const int index = selected_;
 
         switch (key) {
             case event::KeyCode::Down:
@@ -403,13 +347,32 @@ public:
 private:
     float arrow_width() const { return 14.0f; }
 
-    float body_height() const { return std::max(0.0f, global_.size.y); }
-    float content_height() const { return static_cast<float>(visible_count()) * row_height_; }
+    void invalidate_visible() { visible_cache_valid_ = false; }
 
-    float clamp_scroll(float value) const
+    const std::vector<VisibleRow>& cached_visible_rows() const
     {
-        const float max_scroll = std::max(0.0f, content_height() - body_height());
-        return std::clamp(value, 0.0f, max_scroll);
+        if (!visible_cache_valid_) {
+            visible_cache_ = visible_rows();
+            visible_cache_valid_ = true;
+        }
+        return visible_cache_;
+    }
+
+    // 把 selected_path_ 映射为 ListView 的行号（结构变化后同步）。
+    void sync_selection()
+    {
+        if (selected_path_.empty()) {
+            selected_ = -1;
+            return;
+        }
+        const auto& rows = cached_visible_rows();
+        for (std::size_t i = 0; i < rows.size(); ++i) {
+            if (rows[i].path == selected_path_) {
+                selected_ = static_cast<int>(i);
+                return;
+            }
+        }
+        selected_ = -1;
     }
 
     static void collect_visible(const std::vector<TreeNode>& nodes, const std::vector<int>& base,
@@ -437,8 +400,9 @@ private:
             node->expanded = expanded;
             for (auto& child : node->children) stack.push_back(&child);
         }
-        scroll_ = clamp_scroll(scroll_);
-        scroll_target_ = scroll_;
+        invalidate_visible();
+        sync_selection();
+        scroll_.jump_to(scroll_.offset());
         mark_layout_dirty();
     }
 
@@ -460,69 +424,40 @@ private:
         selected_path_ = std::move(walk);
     }
 
-    int selected_index(const std::vector<VisibleRow>& rows) const
-    {
-        if (selected_path_.empty()) return -1;
-        for (std::size_t i = 0; i < rows.size(); ++i) {
-            if (rows[i].path == selected_path_) return static_cast<int>(i);
-        }
-        return -1;
-    }
-
-    void ensure_selected_visible()
-    {
-        if (selected_path_.empty()) return;
-        if (body_height() <= 0.0f) {
-            set_scroll_value(0.0f);
-            return;
-        }
-        const auto rows = visible_rows();
-        for (std::size_t i = 0; i < rows.size(); ++i) {
-            if (rows[i].path != selected_path_) continue;
-            const float top = static_cast<float>(i) * row_height_;
-            const float bottom = top + row_height_;
-            if (top < scroll_) scroll_ = top;
-            else if (bottom > scroll_ + body_height()) scroll_ = bottom - body_height();
-            set_scroll_value(scroll_);
-            return;
-        }
-    }
-
     int row_at(glm::vec2 pos) const
     {
         if (!global_.contains(pos)) return -1;
-        const float local_y = pos.y - global_.pos.y + scroll_;
-        const int index = static_cast<int>(std::floor(local_y / row_height_));
-        if (index < 0 || index >= static_cast<int>(visible_count())) return -1;
-        return index;
+        // 统一用 ListView 的 row_at（基于 snapped_offset，与绘制一致）。
+        return ListView::row_at(pos.y, global_.pos.y);
     }
 
-    void draw_row(graphics::DrawList& list, const VisibleRow& row, int index,
-                  float y, float body_w) const
+    void draw_row(graphics::DrawList& list, std::size_t index, Rect row_rect, bool selected) const override
     {
         const auto& t = ui_theme();
-        const bool is_selected = row.path == selected_path_;
-        const bool is_hovered = index == hovered_;
+        const auto& rows = cached_visible_rows();
+        if (index >= rows.size()) return;
+        const VisibleRow& row = rows[index];
+        const bool is_hovered = static_cast<int>(index) == hovered_;
 
         const float row_radius = corner_radius(t.radius_small);
-        if (is_selected) {
+        if (selected) {
             const glm::vec4 color{t.accent.r, t.accent.g, t.accent.b, 0.28f};
-            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
+            graphics::append_rounded_rect(list, {row_rect.pos.x + 2.0f, row_rect.pos.y, row_rect.size.x - 4.0f, row_rect.size.y},
                                           row_radius, color);
         } else if (is_hovered) {
             const BoxStyle row_style = t.style(StyleRole::Row, ControlState::Hovered);
-            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
+            graphics::append_rounded_rect(list, {row_rect.pos.x + 2.0f, row_rect.pos.y, row_rect.size.x - 4.0f, row_rect.size.y},
                                           row_radius, row_style.fill);
         } else if (striped_ && (index % 2) == 1) {
-            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, body_w - 4.0f, row_height_},
+            graphics::append_rounded_rect(list, {row_rect.pos.x + 2.0f, row_rect.pos.y, row_rect.size.x - 4.0f, row_rect.size.y},
                                           row_radius, {1.0f, 1.0f, 1.0f, 0.03f});
         }
 
         const float pad = t.padding;
-        const float x = global_.pos.x + pad + static_cast<float>(row.depth) * indent_;
+        const float x = row_rect.pos.x + pad + static_cast<float>(row.depth) * indent_;
         const float arrow = arrow_width();
         if (row.node && row.node->has_children()) {
-            draw_chevron(list, x + arrow * 0.5f, y + row_height_ * 0.5f,
+            draw_chevron(list, x + arrow * 0.5f, row_rect.pos.y + row_rect.size.y * 0.5f,
                          row.node->expanded, t.text_muted);
         }
 
@@ -530,9 +465,9 @@ private:
         if (!atlas || !row.node) return;
 
         const float text_x = x + arrow;
-        const float text_y = y + std::max(0.0f, (row_height_ - atlas->line_height(t.text_size)) * 0.5f);
-        const float clip_right = std::max(text_x, global_.pos.x + body_w - pad * 0.5f);
-        list.push_clip({text_x, y, std::max(0.0f, clip_right - text_x), row_height_});
+        const float text_y = row_rect.pos.y + std::max(0.0f, (row_rect.size.y - atlas->line_height(t.text_size)) * 0.5f);
+        const float clip_right = std::max(text_x, row_rect.pos.x + row_rect.size.x - pad * 0.5f);
+        list.push_clip({text_x, row_rect.pos.y, std::max(0.0f, clip_right - text_x), row_rect.size.y});
         atlas->append_text(list, text_x, text_y, t.text_size, row.node->title, t.text);
         list.pop_clip();
     }
@@ -556,7 +491,7 @@ private:
 
     void draw_scrollbar(graphics::DrawList& list, float content, float bar_w) const
     {
-        const float body_h = body_height();
+        const float body_h = viewport_height();
         if (bar_w <= 0.0f || body_h <= 0.0f) return;
 
         const auto& t = ui_theme();
@@ -571,7 +506,7 @@ private:
         const float thumb_h = std::max(t.scrollbar_min_thumb, body_h * ratio);
         const float travel = std::max(0.0f, body_h - thumb_h);
         const float thumb_y = global_.pos.y +
-                              (max_scroll > 0.0f ? travel * (scroll_ / max_scroll) : 0.0f);
+                              (max_scroll > 0.0f ? travel * (scroll_.offset() / max_scroll) : 0.0f);
 
         graphics::append_rounded_rect(list, {track_x + 1.0f, thumb_y, std::max(1.0f, bar_w - 2.0f), thumb_h},
                                       bar_radius, t.scrollbar_thumb);
@@ -579,15 +514,11 @@ private:
 
     std::vector<TreeNode> roots_;
     std::vector<int> selected_path_;
+    mutable std::vector<VisibleRow> visible_cache_;
+    mutable bool visible_cache_valid_ = false;
     int hovered_ = -1;
     glm::vec2 last_mouse_{-1.0f, -1.0f};
-    float row_height_ = 26.0f;
     float indent_ = 16.0f;
-    float scroll_ = 0.0f;
-    float scroll_target_ = 0.0f;
-    ScrollMode scroll_mode_ = ScrollMode::Smooth;
-    float smoothing_ = 0.12f;
-    float idle_ = 0.0f;
     bool striped_ = true;
     std::function<void(const std::vector<int>&)> on_select_;
 };

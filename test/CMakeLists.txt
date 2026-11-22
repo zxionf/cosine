@@ -178,6 +178,10 @@ target_link_libraries(test_ui_modal PRIVATE cosine_ui)
 add_executable(test_ui_scale test_ui_scale.cpp)
 target_link_libraries(test_ui_scale PRIVATE cosine_ui)
 
+# 渲染快照工具（不进 ctest）：需要 Vulkan，用于 Table/TreeView 迁移的像素对比。
+add_executable(test_ui_render_snapshot test_ui_render_snapshot.cpp)
+target_link_libraries(test_ui_render_snapshot PRIVATE cosine_app)
+
 add_executable(test_ui_layout_contract test_ui_layout_contract.cpp)
 target_link_libraries(test_ui_layout_contract PRIVATE cosine_ui cosine_text)
 
