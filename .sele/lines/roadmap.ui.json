@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 32,
+      "skipped_count": 34,
       "status": "paused",
       "steps": [
         {
@@ -1577,6 +1577,141 @@
       ],
       "title": "UI-22 模态层级修正与模态栈收敛",
       "uid": "tsk_01M81HWKGFZQSPYFQJK9DYV8TQ"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "文本垂直居中统一走 centered_text_y，字符宽估测统一走 estimate_text_width，不再有手写 *0.5f 居中/估测",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T14:36:21Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "draw_scrollbar 上移到 ListView 基类，Table/TreeView 不再各写一份",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T14:36:21Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "DropdownScrim 并入 Scrim；DialogHost 遮罩与 Scrim 的 dismiss 语义统一，不再各写一份",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T14:36:21Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "composites/list.hpp 删除，ui_gallery 迁移到 Table/ListView",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T14:36:21Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ctest 全绿 + 渲染快照无差异",
+          "id": "A5",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T14:36:21Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-22T14:07:35Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-22T15:02:43Z",
+      "goal": "UI-23 UI 冗余收敛：文本度量 + 滚动条 + 遮罩 + 删 list.hpp",
+      "id": "T17",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui",
+        "examples"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文本度量收敛：FontAtlas 新增 estimate_text_width，centered_text_y/estimate_text_width 替换 32 处手写 *0.5f"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "draw_scrollbar 上移到 ListView 基类（统一签名），Table/TreeView 删除各自实现"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "遮罩收敛：DropdownScrim 并入 Scrim；DialogHost 复用 Scrim 的 dismiss 语义"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "删除 composites/list.hpp，迁移 ui_gallery 用法"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档 + ctest 全绿 + 渲染快照无差异"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-23）"
+        }
+      ],
+      "title": "UI-23 UI 冗余收敛：文本度量 + 滚动条 + 遮罩 + 删 list.hpp",
+      "uid": "tsk_01M81SAWRXM6D7EP4WMH0AKDVS"
     }
   ]
 }

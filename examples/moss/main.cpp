@@ -4,6 +4,7 @@
 #include "ui/containers/vbox.hpp"
 #include "ui/containers/panel.hpp"
 #include "ui/containers/scroll_view.hpp"
+#include "ui/composites/window.hpp"
 #include "ui/core/color_rect.hpp"
 
 #include <iostream>
@@ -27,19 +28,25 @@ int main()
     auto panel = std::make_unique<xel::ui::Panel>(20,20, 600,400);
     panel->set_min_size(glm::vec2{600,400});
     panel->set_main_align(xel::ui::MainAlign::Center);
-    // auto scroll_view = std::make_unique<xel::ui::ScrollView>();
-    // scroll_view->set_pos(20,20);
-    // scroll_view->set_max_size(glm::vec2{600,100});
     // auto vbox = std::make_unique<xel::ui::Vbox>(0,0, 200,200);
     // vbox->set_min_size(glm::vec2{300,200});
     auto color_rect = std::make_unique<xel::ui::ColorRect>(0,0, 200,100, glm::vec4{0,1,0,1});
     color_rect->set_align(xel::ui::Align::h_stretch());
+    
+    auto window = std::make_unique<xel::ui::Window>("xel", glm::vec2{30,30}, glm::vec2{300,200});
+    auto scroll_view = std::make_unique<xel::ui::ScrollView>();
+    // scroll_view->set_pos(20,20);
+    // scroll_view->set_max_size(glm::vec2{600,100});
+    auto color_rect2 = std::make_unique<xel::ui::ColorRect>(0,0, 200,400, glm::vec4{0,1,0,1});
+    scroll_view->set_content(std::move(color_rect2));
+    window->add(std::move(scroll_view));
 
     panel->add(std::move(color_rect));
     // scroll_view->set_content(std::move(panel));
     // panel->add(std::move(vbox));
     app.uisys.root()->add(std::move(panel));
-    // app.uisys.root()->debug_recursive();
+    app.uisys.root()->add(std::move(window));
+    app.uisys.root()->debug_recursive();
 
     while(!app.window_.should_close()) {
         glfwPollEvents();
