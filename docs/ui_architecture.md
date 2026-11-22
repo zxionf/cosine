@@ -141,8 +141,10 @@ Tab collect_focusable：layer 升序 → z 升序
 ```
 
 - `overlays_` 保留 API，但**不再是一等顺序来源**，只作为 `layer_paint_order()` 的输入之一。
-- 典型归属：普通子项与控件默认 `Content`；`Window`（模态）与 `Scrim` 为 `Modal`；
-  `DialogHost` / `MenuPopup` / `MenuScrim` / `DropdownList` / `DropdownScrim` / `Tooltip` 为 `Floating`。
+- 典型归属：普通子项与控件默认 `Content`；`Window`（模态）、`Scrim` 与 `DialogHost` 为 `Modal`；
+  `MenuPopup` / `MenuScrim` / `DropdownList` / `DropdownScrim` / `Tooltip` 为 `Floating`。
+- `DialogHost` 虽是 overlay 宿主，但它经 `push_modal(host, with_scrim=false)` 进入模态栈（有键盘/焦点隔离），
+  层级也必须是 `Modal`，否则会被模态 `Window`（同为 Modal 层）盖住。
 - 模态帧的 z 在 `UIRoot::layout()` 归一化：frame `i` → scrim `2i+1`、window `2i+2`，保证嵌套模态
   不会因 `kOnTopZ` 撞 z 而靠插入顺序兜底。
 
@@ -213,18 +215,20 @@ dispatch(InputEvent)
 Window::set_modal
    └─▶ UIRoot::push_modal(this)
           ├─ 造一个 Scrim 放进 children_（Modal 层）
-          ├─ 快照当前焦点 → modal_focus_stack_
+          ├─ 快照当前焦点 → ModalFrame.prev_focus
           ├─ 初始焦点：焦点已在模态子树内则保留；否则 preferred_focus() → 首个可聚焦 → 窗口自身
-          └─ 记入 modals_ / modal_scrims_（栈，支持嵌套）
+          └─ 记入 modal_frames_（单一 ModalFrame{window, scrim, prev_focus} 栈，支持嵌套）
 UIRoot::layout() 归一化模态帧 z：frame i → scrim 2i+1 / window 2i+2
 Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 ```
 
 - 遮罩 z 比窗口小 1：命中时窗口先命中，绘制时遮罩先画
+- 模态栈合并为 `std::vector<ModalFrame>`：`window` / `scrim` / `prev_focus` 三份状态在一个元素里，
+  `push_modal` / `pop_modal` / `layout()` 悬空剔除三处各维护一次，不再有「三数组错位」风险
 - `UISystem::focus_next` 在有模态时把收集范围收窄到 `modal_top()`
 - `dispatch_key` / `dispatch_char` 在模态打开时只作用于最上层模态子树；焦点在作用域外则忽略
 - `pop_modal` 恢复打开前的焦点快照（仍在树中且不在被弹出子树内才恢复，否则清空）
-- `DialogHost`（overlay 宿主）也经 `push_modal(host, with_scrim=false)` 纳入模态作用域，自带遮罩
+- `DialogHost`（overlay 宿主）经 `push_modal(host, with_scrim=false)` 纳入模态作用域，自带遮罩、层级为 Modal
 - 解除路径统一走 `release_modal()`，避免「遮罩残留、界面永久不可点」；窗口被直接销毁时 `layout()` 剔除悬空帧
 
 ## 六、主题
@@ -246,7 +250,6 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 |---|---|---|
 | 圆角无抗锯齿 | 几何近似，硬边 | `tech_debt.md` D01 |
 | 无外阴影 | 窗口层次靠 1px 边框 + `elevated` 令牌 | UI-6 遗留 |
-| `ListView::draw_row` 未被 `Table` 使用 | 行绘制仍在 `append_to` | UI-10 |
 
 ## 九、编辑器层：ResourceBrowser
 

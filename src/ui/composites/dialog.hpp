@@ -153,8 +153,8 @@ public:
         return this;
     }
     bool focusable() const override { return true; }
-    // 宿主作为 overlay 浮层，遮罩与卡片一起在 Floating 层。
-    Layer layer() const override { return Layer::Floating; }
+    // 宿主已进模态栈（有键盘/焦点隔离），层级也应是 Modal：否则模态 Window（Modal 层）会盖住它。
+    Layer layer() const override { return Layer::Modal; }
 
     void set_on_close(std::function<void()> handler) { on_close_ = std::move(handler); }
 

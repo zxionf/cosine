@@ -27,7 +27,7 @@ public:
     // with_scrim=false 用于自带遮罩的模态宿主（如 DialogHost）。
     void push_modal(Widget* window, bool with_scrim = true);
     void pop_modal(Widget* window);
-    Widget* modal_top() const { return modals_.empty() ? nullptr : modals_.back(); }
+    Widget* modal_top() const { return modal_frames_.empty() ? nullptr : modal_frames_.back().window; }
     bool is_modal(Widget* window) const;
 
     // 焦点钩子：由 UISystem 注入 getter/setter（UIRoot 不依赖 UISystem，避免循环）。
@@ -53,11 +53,14 @@ private:
 
     UIContext context_storage_;
     std::vector<std::unique_ptr<Widget>> overlays_;
-    // 与 modals_ 一一对应；scrim 同时也在 children_ 里（参与命中与绘制）。
-    // modal_focus_stack_[i] 是打开第 i 层模态前的焦点快照（pop 时恢复用）。
-    std::vector<Widget*> modals_;
-    std::vector<Widget*> modal_scrims_;
-    std::vector<Widget*> modal_focus_stack_;
+    // 模态帧：window / scrim / prev_focus 三份状态合并为一个元素，避免三数组错位。
+    struct ModalFrame
+    {
+        Widget* window = nullptr;
+        Widget* scrim = nullptr;      // scrim 同时也在 children_ 里（参与命中与绘制）
+        Widget* prev_focus = nullptr; // 打开该层前的焦点快照（pop 时恢复）
+    };
+    std::vector<ModalFrame> modal_frames_;
     FocusGetter focus_getter_;
     FocusSetter focus_setter_;
     std::vector<std::unique_ptr<Widget>> trash_;

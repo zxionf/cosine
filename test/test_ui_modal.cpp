@@ -262,6 +262,78 @@ void test_dialog_modal_scope()
     std::printf("dialog modal scope ok\n");
 }
 
+// 5b) 模态窗口内弹对话框：DialogHost 是 Modal 层，不被窗口 Scrim 盖住。
+void test_dialog_over_modal_window()
+{
+    Fixture f;
+    auto win = std::make_unique<ui::Window>("W", glm::vec2{100.0f, 100.0f}, glm::vec2{300.0f, 200.0f});
+    ui::Window* win_ptr = win.get();
+    win->add(std::make_unique<ui::Button>("w-ok", [] {}));
+    f.add(std::move(win));
+    f.tick();
+    win_ptr->set_modal(true);
+    f.tick();
+    assert(f.root->modal_top() == win_ptr);
+
+    int ok_calls = 0;
+    auto dialog = std::make_unique<ui::Dialog>("Confirm", 360.0f);
+    auto* ok = dialog->add_action("OK", [&ok_calls] { ++ok_calls; }, /*primary=*/true);
+    auto* host = ui::show_dialog(*f.root, std::move(dialog));
+    f.tick();
+
+    assert(host->layer() == ui::Widget::Layer::Modal);
+    assert(f.root->modal_top() == host); // 对话框成为最顶层模态
+
+    // 对话框内按钮可命中（不被窗口 Scrim 盖住）。
+    const auto bounds = ok->global_bounds();
+    f.click({bounds.pos.x + bounds.size.x * 0.5f, bounds.pos.y + bounds.size.y * 0.5f});
+    assert(ok_calls == 1);
+
+    // 关闭对话框后回到窗口。
+    host->close();
+    f.tick();
+    assert(f.root->modal_top() == win_ptr);
+    std::printf("dialog over modal window ok\n");
+}
+
+// 5c) 模态栈不变量：scrim 配对（with_scrim 的帧才加 scrim）、push/pop/悬空剔除后栈一致。
+void test_modal_frame_invariants()
+{
+    Fixture f;
+    auto w1 = std::make_unique<ui::Window>("A", glm::vec2{50.0f, 50.0f}, glm::vec2{200.0f, 150.0f});
+    ui::Window* w1_ptr = w1.get();
+    f.add(std::move(w1));
+    f.tick();
+    const std::size_t base_children = f.root->children().size();
+
+    // with_scrim=true：多一个 Scrim 进 children。
+    w1_ptr->set_modal(true);
+    f.tick();
+    assert(f.root->modal_top() == w1_ptr);
+    assert(f.root->children().size() == base_children + 1);
+
+    // with_scrim=false（对话框）：不加 Scrim，children 不变。
+    auto dialog = std::make_unique<ui::Dialog>("Confirm", 300.0f);
+    dialog->add_action("OK", [] {}, true);
+    auto* host = ui::show_dialog(*f.root, std::move(dialog));
+    f.tick();
+    assert(f.root->modal_top() == host);
+    assert(f.root->children().size() == base_children + 1);
+
+    // pop 对话框：窗口的 Scrim 仍在。
+    host->close();
+    f.tick();
+    assert(f.root->modal_top() == w1_ptr);
+    assert(f.root->children().size() == base_children + 1);
+
+    // pop 窗口：Scrim 被移除，children 回到基线。
+    w1_ptr->set_modal(false);
+    f.tick();
+    assert(f.root->modal_top() == nullptr);
+    assert(f.root->children().size() == base_children);
+    std::printf("modal frame invariants ok\n");
+}
+
 // 6) 遮罩显式吞掉 click/right_click/double_click/long_press；默认不关闭窗口模态。
 void test_scrim_swallows_gestures()
 {
@@ -354,6 +426,8 @@ int main()
     test_focus_restored_on_close();
     test_nested_modal_focus_restore();
     test_dialog_modal_scope();
+    test_dialog_over_modal_window();
+    test_modal_frame_invariants();
     test_scrim_swallows_gestures();
     test_scrim_dismiss_callback();
     test_stale_modal_cleared();
