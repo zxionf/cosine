@@ -13,7 +13,6 @@
 #include "ui/core/image.hpp"
 #include "ui/core/label.hpp"
 #include "ui/composites/menu_bar.hpp"
-#include "ui/composites/list.hpp"
 #include "ui/containers/panel.hpp"
 #include "ui/core/progress.hpp"
 #include "ui/composites/radio_group.hpp"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "drawable.hpp"
+#include "utf8.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -97,6 +98,12 @@ public:
     float centered_text_y(float size, float top, float box_height) const
     {
         return top + std::max(0.0f, (box_height - line_height(size)) * 0.5f);
+    }
+    // 粗略估算文本宽度（无需 atlas 或只需近似）：字符数 × 字号 × 平均宽比 0.5。
+    // 精确测量用 measure_width；多处控件用它做无 atlas 回退与布局预估算。
+    static float estimate_text_width(std::string_view text, float size)
+    {
+        return static_cast<float>(utf8_codepoint_count(text)) * size * 0.5f;
     }
     float line_step(float size, float line_spacing) const { return line_height(size) + line_spacing; }
 

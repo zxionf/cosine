@@ -1,6 +1,5 @@
 #include "ui/core/button.hpp"
 #include "ui/core/color_rect.hpp"
-#include "ui/composites/list.hpp"
 #include "ui/core/splitter.hpp"
 #include "ui/core/text_input.hpp"
 #include "ui/core/tooltip.hpp"
@@ -127,15 +126,6 @@ int main()
     // Tab：text input -> button（循环）
     ui.dispatch(key(xel::event::KeyCode::Tab));
     assert(ui.focused() == button_ptr);
-
-    // List
-    xel::ui::List list{200.0f, 100.0f};
-    list.add_item(std::make_unique<xel::ui::ColorRect>(0, 0, 200, 30, glm::vec4{1.0f}));
-    list.add_item(std::make_unique<xel::ui::ColorRect>(0, 0, 200, 30, glm::vec4{1.0f}));
-    assert(list.item_count() == 2);
-    list.measure({200.0f, 100.0f});
-    list.arrange({{0.0f, 0.0f}, {200.0f, 100.0f}});
-    assert(list.content_size().y > 0.0f);
 
     // Splitter
     xel::ui::Splitter splitter{200.0f, 100.0f};

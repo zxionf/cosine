@@ -209,7 +209,7 @@ public:
         append_rows(list, Rect{{global_.pos.x, global_.pos.y}, {body_w, global_.size.y}});
         list.pop_clip();
 
-        draw_scrollbar(list, content, bar_w);
+        draw_scrollbar(list, global_.pos.y, viewport_height(), bar_w);
 
         append_focus_ring(list, bounds, panel_radius);
 
@@ -465,7 +465,7 @@ private:
         if (!atlas || !row.node) return;
 
         const float text_x = x + arrow;
-        const float text_y = row_rect.pos.y + std::max(0.0f, (row_rect.size.y - atlas->line_height(t.text_size)) * 0.5f);
+        const float text_y = atlas->centered_text_y(t.text_size, row_rect.pos.y, row_rect.size.y);
         const float clip_right = std::max(text_x, row_rect.pos.x + row_rect.size.x - pad * 0.5f);
         list.push_clip({text_x, row_rect.pos.y, std::max(0.0f, clip_right - text_x), row_rect.size.y});
         atlas->append_text(list, text_x, text_y, t.text_size, row.node->title, t.text);
@@ -489,28 +489,7 @@ private:
         }
     }
 
-    void draw_scrollbar(graphics::DrawList& list, float content, float bar_w) const
-    {
-        const float body_h = viewport_height();
-        if (bar_w <= 0.0f || body_h <= 0.0f) return;
-
-        const auto& t = ui_theme();
-        const float max_scroll = std::max(0.0f, content - body_h);
-        const float track_x = global_.pos.x + global_.size.x - bar_w;
-
-        const float bar_radius = corner_radius(t.radius_pill);
-        const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
-        graphics::append_rounded_rect(list, {track_x, global_.pos.y, bar_w, body_h}, bar_radius, track_style.fill);
-
-        const float ratio = std::min(1.0f, body_h / std::max(1.0f, content));
-        const float thumb_h = std::max(t.scrollbar_min_thumb, body_h * ratio);
-        const float travel = std::max(0.0f, body_h - thumb_h);
-        const float thumb_y = global_.pos.y +
-                              (max_scroll > 0.0f ? travel * (scroll_.offset() / max_scroll) : 0.0f);
-
-        graphics::append_rounded_rect(list, {track_x + 1.0f, thumb_y, std::max(1.0f, bar_w - 2.0f), thumb_h},
-                                      bar_radius, t.scrollbar_thumb);
-    }
+    // 滚动条绘制由 ListView 基类提供（draw_scrollbar）。
 
     std::vector<TreeNode> roots_;
     std::vector<int> selected_path_;

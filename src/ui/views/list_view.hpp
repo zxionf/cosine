@@ -1,7 +1,10 @@
 #pragma once
 
 #include "events/event.hpp"
+#include "graphics/box.hpp"
 #include "ui/scroll_state.hpp"
+#include "ui/style.hpp"
+#include "ui/theme.hpp"
 #include "ui/widget.hpp"
 
 #include <algorithm>
@@ -171,6 +174,30 @@ protected:
         if (top < target) target = top;
         else if (bottom > target + viewport_height()) target = bottom - viewport_height();
         scroll_.jump_to(target);
+    }
+
+    // 垂直滚动条：Table/TreeView 共用同一份绘制。body_top 为轨道顶部（表头下方），
+    // body_h 为轨道高度。
+    void draw_scrollbar(graphics::DrawList& list, float body_top, float body_h, float bar_w) const
+    {
+        if (bar_w <= 0.0f || body_h <= 0.0f) return;
+        const auto& t = ui_theme();
+        const float content = content_height();
+        const float max_scroll = std::max(0.0f, content - body_h);
+        const float track_x = global_.pos.x + global_.size.x - bar_w;
+
+        const float bar_radius = corner_radius(t.radius_pill);
+        const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
+        graphics::append_rounded_rect(list, {track_x, body_top, bar_w, body_h}, bar_radius, track_style.fill);
+
+        const float ratio = std::min(1.0f, body_h / std::max(1.0f, content));
+        const float thumb_h = std::max(t.scrollbar_min_thumb, body_h * ratio);
+        const float travel = std::max(0.0f, body_h - thumb_h);
+        const float thumb_y = body_top +
+                              (max_scroll > 0.0f ? travel * (scroll_.offset() / max_scroll) : 0.0f);
+
+        graphics::append_rounded_rect(list, {track_x + 1.0f, thumb_y, std::max(1.0f, bar_w - 2.0f), thumb_h},
+                                      bar_radius, t.scrollbar_thumb);
     }
 
     ScrollState scroll_;

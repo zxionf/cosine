@@ -4,6 +4,7 @@
 #include "ui/style.hpp"
 #include "ui/widget.hpp"
 #include "ui/root.hpp"
+#include "ui/core/scrim.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
 #include "graphics/rectangle.hpp"
@@ -20,36 +21,6 @@ class Dropdown;
 
 namespace detail
 {
-// 全屏透明遮罩：点击任意位置关闭下拉，避免事件穿透到下层控件。
-class DropdownScrim : public Widget
-{
-public:
-    explicit DropdownScrim(std::function<void()> dismiss) : dismiss_{std::move(dismiss)} {}
-    glm::vec2 measure(glm::vec2 size) override { return size; }
-    void arrange(Rect slot) override
-    {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
-    }
-    void append_to(graphics::DrawList&) const override {}
-    Layer layer() const override { return Layer::Floating; }
-    bool on_mouse_down(glm::vec2, int) override
-    {
-        if (dismiss_) dismiss_();
-        return true;
-    }
-    bool on_click(glm::vec2, int) override { return true; }
-    bool on_scroll(glm::vec2, glm::vec2) override
-    {
-        if (dismiss_) dismiss_();
-        return true;
-    }
-
-private:
-    std::function<void()> dismiss_;
-};
-
 // 下拉列表浮层：绘制选项、处理悬停与点击。
 class DropdownList : public Widget
 {
@@ -142,7 +113,9 @@ public:
         // 上下各留一份 padding：否则行从顶部开始画，底部会多出空白、顶部贴边。
         const float height = static_cast<float>(options_.size()) * row + t.padding * 2.0f;
 
-        auto scrim = std::make_unique<detail::DropdownScrim>([this]() { close(); });
+        auto scrim = std::make_unique<ui::Scrim>(0.0f);
+        scrim->set_layer(ui::Widget::Layer::Floating);
+        scrim->set_on_dismiss([this]() { close(); });
         scrim->set_pos(0.0f, 0.0f);
         scrim_ = scrim.get();
 
@@ -305,7 +278,7 @@ private:
             }
         } else {
             for (const auto& option : options_) {
-                text_w = std::max(text_w, static_cast<float>(option.size()) * t.text_size * 0.5f);
+                text_w = std::max(text_w, graphics::FontAtlas::estimate_text_width(option, t.text_size));
             }
         }
         // 列表至少 160px，避免选项较短时弹层过窄、与下层文本重叠。
@@ -326,7 +299,7 @@ private:
     bool enabled_ = true;
     bool pressed_ = false;
     detail::DropdownList* popup_ = nullptr;
-    detail::DropdownScrim* scrim_ = nullptr;
+    ui::Scrim* scrim_ = nullptr;
     std::function<void(int)> on_change_;
 };
 

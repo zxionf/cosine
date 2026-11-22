@@ -293,7 +293,7 @@ private:
         if (begin >= end) return 0.0f;
         const std::string slice = text_.substr(begin, end - begin);
         if (auto* atlas = font_atlas()) return atlas->measure(slice, font_size).x;
-        return static_cast<float>(graphics::utf8_codepoint_count(slice)) * font_size * 0.5f;
+        return graphics::FontAtlas::estimate_text_width(slice, font_size);
     }
 
     float prefix_width(std::size_t index, float font_size) const

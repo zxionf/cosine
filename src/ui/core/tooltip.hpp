@@ -115,7 +115,7 @@ private:
     glm::vec2 tooltip_size() const
     {
         const auto& t = ui_theme();
-        glm::vec2 text_size{static_cast<float>(text_.size()) * t.small_text_size * 0.5f,
+        glm::vec2 text_size{graphics::FontAtlas::estimate_text_width(text_, t.small_text_size),
                             t.small_text_size};
         if (auto* atlas = font_atlas()) {
             text_size = atlas->measure(text_, t.small_text_size);

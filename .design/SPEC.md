@@ -56,7 +56,7 @@ assets/         shader、字体
 
 - `Layer{Content, Floating, Modal}`；`Widget::layer_paint_order()` 是跨 `children_`/`overlays_` 的唯一排序入口。
 - 排序键：layer 升序 → z 升序（稳定）；绘制正序、命中反序、Tab 正序；`z_index` 仅层内生效。
-- 归属：普通控件 `Content`；`Tooltip`/`MenuPopup`/`MenuScrim`/`DropdownList`/`DropdownScrim` `Floating`；`Scrim`/模态 `Window`/`DialogHost` `Modal`。
+- 归属：普通控件 `Content`；`Tooltip`/`MenuPopup`/`MenuScrim`/`DropdownList` `Floating`；`Scrim`/模态 `Window`/`DialogHost` `Modal`。
 
 ### 模态
 
@@ -64,7 +64,7 @@ assets/         shader、字体
 - `push_modal(window, with_scrim)`：快照焦点 + 聚焦 `preferred_focus()` → 首个可聚焦 → 窗口自身。
 - `pop_modal`：恢复快照（仍在树中且不在被弹出子树内才恢复，否则清空）。
 - `dispatch_key`/`dispatch_char` 限定最上层模态子树；`DialogHost` 经 `push_modal(host, with_scrim=false)` 纳入作用域。
-- `Scrim`：全屏遮罩，吞掉指针/滚轮/点击/右键/双击/长按，不参与 Tab。
+- `Scrim`：全屏遮罩（`alpha`/`layer` 可配，`alpha=0` 作透明遮罩），吞掉指针/滚轮/点击/右键/双击/长按，不参与 Tab；`set_on_dismiss` 在点击/滚轮时触发。
 
 ### 滚动与列表
 

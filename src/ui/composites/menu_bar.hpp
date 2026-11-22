@@ -427,7 +427,7 @@ private:
     {
         const auto& t = ui_theme();
         if (auto* atlas = font_atlas()) return atlas->measure(text, t.text_size).x;
-        return static_cast<float>(text.size()) * t.text_size * 0.5f;
+        return graphics::FontAtlas::estimate_text_width(text, t.text_size);
     }
 
     float title_width(const std::string& title) const

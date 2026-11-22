@@ -142,7 +142,7 @@ Tab collect_focusable：layer 升序 → z 升序
 
 - `overlays_` 保留 API，但**不再是一等顺序来源**，只作为 `layer_paint_order()` 的输入之一。
 - 典型归属：普通子项与控件默认 `Content`；`Window`（模态）、`Scrim` 与 `DialogHost` 为 `Modal`；
-  `MenuPopup` / `MenuScrim` / `DropdownList` / `DropdownScrim` / `Tooltip` 为 `Floating`。
+  `MenuPopup` / `MenuScrim` / `DropdownList` / `Tooltip` 为 `Floating`。
 - `DialogHost` 虽是 overlay 宿主，但它经 `push_modal(host, with_scrim=false)` 进入模态栈（有键盘/焦点隔离），
   层级也必须是 `Modal`，否则会被模态 `Window`（同为 Modal 层）盖住。
 - 模态帧的 z 在 `UIRoot::layout()` 归一化：frame `i` → scrim `2i+1`、window `2i+2`，保证嵌套模态
@@ -201,11 +201,12 @@ dispatch(InputEvent)
 
 | 基元 | 职责 | 使用者 |
 |---|---|---|
-| `ScrollState` | 一维滚动：值/目标/平滑（指数衰减）+ Fast 加速 + snap + range 夹取 | `Table` |
-| `ListView` | 行列表：滚动/选中/键盘/可见行窗口；子类只实现 `item_count()` + `draw_row()` | `Table`（`FileBrowser` 经 Table 受益） |
+| `ScrollState` | 一维滚动：值/目标/平滑（指数衰减）+ Fast 加速 + snap + range 夹取 | `Table` / `TreeView` |
+| `ListView` | 行列表：滚动/选中/键盘/可见行窗口/像素对齐/行循环/滚动条；子类只实现 `item_count()` + `draw_row()` | `Table`（`FileBrowser` 经 Table 受益）、`TreeView` |
 | `CollapsibleHeader` | 折叠标题条：`panel_bg` 底 + 三角 + 标题 | `Section` |
-| `Scrim` | 全屏半透明遮罩，吞掉所有指针/滚轮事件，不参与 Tab | `UIRoot` 模态栈 |
+| `Scrim` | 全屏遮罩（alpha/layer 可配），吞掉指针/滚轮/点击/右键/双击/长按，不参与 Tab | `UIRoot` 模态栈、下拉 |
 | `FontAtlas::centered_text_y()` | 行框在给定高度内垂直居中 | 所有自绘文字 |
+| `FontAtlas::estimate_text_width()` | 字符数 × 字号 × 0.5 的宽度估算（无 atlas 回退） | 各控件的文本估测 |
 
 ## 五、模态窗口
 

@@ -34,7 +34,7 @@ public:
         (void)constraints;
         const auto& t = ui_theme();
 
-        float text_width = static_cast<float>(label_.size()) * t.text_size * 0.5f;
+        float text_width = graphics::FontAtlas::estimate_text_width(label_, t.text_size);
         if (auto* atlas = font_atlas()) {
             text_width = atlas->measure(label_, t.text_size).x;
         }
