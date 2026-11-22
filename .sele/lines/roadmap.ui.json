@@ -125,17 +125,17 @@
           "desc": "Table 与 TreeView 离屏导出对比无差异",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-22T12:28:37Z",
+          "verified_by": "agent"
         },
         {
           "desc": "65 项测试全绿",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-22T12:28:37Z",
+          "verified_by": "agent"
         }
       ],
       "archived_at": null,
@@ -143,7 +143,7 @@
       "created_at": "2026-10-31T06:33:26Z",
       "current_step": null,
       "depends": [],
-      "finished_at": null,
+      "finished_at": "2026-11-22T12:41:25Z",
       "goal": "UI-10 draw_row 接管 + TreeView 迁移",
       "id": "T3",
       "line": "ui",
@@ -157,8 +157,75 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
-      "steps": [],
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "渲染快照对比手段：离屏 render Table/TreeView → readback → 与基线像素对比（迁移安全网）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "ListView 统一像素对齐口径：snapped_offset()=round(offset)，first_visible_row()/row_y()/row_at() 基于 snap"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "ListView 提供 append_rows(body_top,body_h,body_w) 与 row_at(pos,body_top) 模板，子类只填 draw_row"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Table 迁移：draw_row 实现斑马纹/选中/悬停 + 列循环；append_to 删行循环改 append_rows"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "TreeView 接入 ListView：删手写滚动全套，item_count=可见节点数，draw_row=缩进/箭头/图标/文本"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-10）"
+        }
+      ],
       "title": "UI-10 draw_row 接管 + TreeView 迁移",
       "uid": "tsk_01M68AKGKMW4P01WQ8NXY09CDJ"
     },
@@ -394,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 26,
+      "skipped_count": 32,
       "status": "paused",
       "steps": [
         {
@@ -1257,6 +1324,259 @@
       ],
       "title": "UI-19 模态键盘与焦点隔离",
       "uid": "tsk_01M7YCS1NGVWBY8Y3NYEBFAGJP"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "backend::Window 提供窗口→framebuffer 换算（cursor_pos / window_to_framebuffer / cursor_to_framebuffer）；UISystem 提供 framebuffer_to_logical 与 pointer_pos",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T09:23:27Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "Application::set_ui_scale 成为单一入口，同步 ui_scale/renderer/uisys/font_pixel_ratio；运行时改 scale 触发重新布局",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T09:23:27Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ui_gallery 与 moss 不再手写坐标换算或手动多步 scale 设置",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T09:23:27Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ctest 全绿",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-21T09:23:27Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-21T09:16:39Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-21T09:46:14Z",
+      "goal": "UI-21 缩放适配收口：坐标换算内聚 + ui_scale 单一入口",
+      "id": "T15",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui",
+        "backend"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "backend::Window 新增 cursor_pos / window_to_framebuffer / cursor_to_framebuffer（窗口坐标→framebuffer 的 DPR 换算内聚到 Window）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "UISystem 新增 pointer_pos() 与 framebuffer_to_logical()；set_ui_scale 变化时置 dirty，tick 里按新 scale 重新布局"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Application::set_ui_scale 公开为单一入口（同步 ui_scale/renderer/uisys/font_pixel_ratio）；回调改用 window_.cursor_to_framebuffer + uisys.framebuffer_to_logical，删除匿名 cursor_to_framebuffer"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "ui_gallery 改用 uisys.pointer_pos()，删除复制的 cursor_to_framebuffer"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "moss 改用 app.set_ui_scale(2.0f)，删除手动三步 scale 设置"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "测试与收口：新增坐标换算/scale 重布局测试，ctest 全绿"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-21 缩放适配收口）"
+        }
+      ],
+      "title": "UI-21 缩放适配收口：坐标换算内聚 + ui_scale 单一入口",
+      "uid": "tsk_01M7YP9EK5GEQBJBWF40VSCQPS"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "DialogHost 提为 Modal 层：模态窗口内 show_dialog 不被窗口 Scrim 盖住，可命中、可关闭",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T12:03:28Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "UIRoot 模态栈合并为单一 ModalFrame 数组（window/scrim/prev_focus），push/pop/layout 三处一致",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T12:03:28Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "模态栈不变量测试通过：push/pop/悬空帧剔除后长度、scrim 配对、焦点快照恒等",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T12:03:28Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ctest 全绿",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-22T12:03:28Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-22T11:57:27Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-22T12:41:05Z",
+      "goal": "UI-22 模态层级修正与模态栈收敛",
+      "id": "T16",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "DialogHost::layer() 从 Floating → Modal；补测试：模态窗口内 show_dialog 后对话框可命中、点外部/Esc 关闭"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "UIRoot 三数组合并为 std::vector<ModalFrame>{window, scrim, prev_focus}，push_modal/pop_modal/layout 悬空剔除一处维护"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "补模态栈不变量测试：push/pop/悬空帧剔除后 modal_frames_ 长度、scrim 配对、焦点快照恒等"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档（ui_architecture.md §3/§5）+ ctest 全绿"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-22）"
+        }
+      ],
+      "title": "UI-22 模态层级修正与模态栈收敛",
+      "uid": "tsk_01M81HWKGFZQSPYFQJK9DYV8TQ"
     }
   ]
 }

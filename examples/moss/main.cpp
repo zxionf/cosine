@@ -25,15 +25,16 @@ int main()
 
     auto panel = std::make_unique<xel::ui::Panel>(20,20, 600,400);
     panel->set_min_size(glm::vec2{600,400});
-    auto vbox = std::make_unique<xel::ui::Vbox>(0,0, 200,200);
-    vbox->set_min_size(glm::vec2{300,200});
-    vbox->debug();
+    panel->set_main_align(xel::ui::MainAlign::Center);
+    // auto vbox = std::make_unique<xel::ui::Vbox>(0,0, 200,200);
+    // vbox->set_min_size(glm::vec2{300,200});
     auto color_rect = std::make_unique<xel::ui::ColorRect>(0,0, 200,100, glm::vec4{0,1,0,1});
+    color_rect->set_align(xel::ui::Align::h_stretch());
 
     panel->add(std::move(color_rect));
-    panel->add(std::move(vbox));
+    // panel->add(std::move(vbox));
     app.uisys.root()->add(std::move(panel));
-    app.uisys.root()->debug();
+    app.uisys.root()->debug_recursive();
 
     while(!app.window_.should_close()) {
         glfwPollEvents();
