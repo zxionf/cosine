@@ -1,7 +1,7 @@
 # 示例（examples/）
 
-四个示例覆盖不同用途：文字排版、控件验收、最小动画、动画能力全景。
-全部为 1200×800 窗口，构建产物在 `build/examples/`。
+示例覆盖不同用途：文字排版、控件验收、最小动画、动画能力全景、实验室、最小 demo。
+构建产物在 `build/examples/`。
 
 ```bash
 cmake --build build -j
@@ -202,11 +202,14 @@ COSINE_EXIT_AFTER=3 ./build/examples/ui_anim_showcase
 | 序号 | 实验 | 用途 |
 |---|---|---|
 | E1 | 命令面板 | 输入过滤 + 列表直选；观察「过滤即重建列表」的代价与手感 |
-| E2 | 主题密度矩阵 | 四个标量（text size / control height / padding / spacing）实时改主题，观察既有布局如何反应 |
+| E2 | 主题密度矩阵 | 四个标量（text size / control height / padding / spacing）实时改主题 |
+| E7 | 资源浏览器 | 三栏布局 + 真实纹理预览（已转正到 cosine `Assets` 窗口，lab 实现已删除） |
+| E9 | Widget 调试页 | hover 抓取 + 通用属性编辑，定位布局问题 |
 
 ### 未实现实验
 
 E3 时间轴非线性缩放、E4 多选批量编辑、E5 拖拽排序、E6 内联重命名 —— 列表里显示 `(todo)`。
+完整实验表（假设/观测/结论）见 `examples/ui_lab/README.md`。
 
 ### 本示例专属环境变量
 

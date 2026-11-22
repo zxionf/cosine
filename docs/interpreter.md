@@ -1,27 +1,29 @@
-source.xel
+# XEL 解释器
 
-token       // 定义符号
+脚本语言 XEL 的解释器，位于 `interpreter/`，与 UI 解耦，M5 起作为可嵌入库接入动画内核。
 
-lexer       // 词法分析，生成符号
-
-ast         // 抽象语法树
-
-parser      // 语法分析
-
-parse       // 解析
-
-evaluator   // 评估->用来进行树递归下降求值
+## 结构
 
 ```
 interpreter/
-|---token.h         // 符号定义
-|---lexer.h         // 词法分析，生成符号
-|---ast/            // 抽象语法树
-|   |---node.h      // 抽象语法树节点定义
-|---parser/         // 语法分析
-|   |---parser.h    // 解析
-|---evaluator/      // 用来进行树递归下降求值
-|   |---evaluator.h // 树递归下降求值
-|---environment/    // 环境
-|   |---environment.h // 存储变量
+├── token.*              词法符号定义与词法分析（lexer）
+├── lexer.*              词法分析器
+├── ast/                 AST 节点
+│   ├── expr.*           表达式
+│   ├── stmt.*           语句
+│   ├── callable.h       可调用对象（函数）
+│   └── printer.h        AST 打印
+├── parser/parser.*      递归下降语法分析
+├── evaluator/evaluator.* 树递归下降求值
+├── environment/environment.* 作用域与变量存储
+├── xel_error.h          错误类型
+├── var.h                运行时值
+└── main.cpp             CLI 入口（作为独立可执行）
 ```
+
+## 能力
+
+- 词法：标识符、数字、字符串、运算符。
+- 语法：表达式、语句、函数声明/调用、native 函数。
+- 求值：四则运算、比较、变量、作用域、分支、循环。
+- 测试：`test_interpreter_token` / `test_intepreter_tree_structure` / `test_intepreter_tree_evaluator`。

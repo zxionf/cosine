@@ -5,61 +5,62 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 
 ## 阅读顺序
 
-1. `../.design/阶段计划.md` — 工作线视图、任务结构与跨线接口
-   （各线任务队列在 `../.design/lines/<线>.md`）
-2. `plan_archive.md` — 已完成阶段（M1–M6.4b）的计划原文归档
-3. `../.design/SPEC.md` — 当前有效的设计事实（唯一真相源）
-4. `tech_debt.md` — 欠账清单（知道欠、暂时不还）
-5. `risks.md` — 风险与未决问题
-6. `examples.md` — 五个示例的用途、按键与专属环境变量
-7. `project_format.md` — `.cosine` 项目文件格式（CO-2 开工前必读）
-8. `project_assessment.md` — 历史评估与改进清单（归档）
-9. 按需深入具体主题（见下表）
+1. `../.design/SPEC.md` — 当前设计事实（唯一真相源）
+2. `todo.md` — 待办：欠账、暂停池、风险、未决问题、有意不做的决策
+3. `plan_archive.md` — 已完成阶段的计划原文归档
+4. `project_format.md` — `.cosine` 项目文件格式
+5. `examples.md` — 示例用途、按键、环境变量
+6. `ui_architecture.md` — UI 层架构
+7. 按需深入具体主题（见下表）
 
 ## 文档地图
 
 | 文档 | 内容 |
 |---|---|
 | `index.md` | 本页：入口与索引 |
-| `examples.md` | 五个示例的用途、按键、环境变量影响（含 `ui_lab` 实验室） |
-| `ui_architecture.md` | UI 层架构：分层、五个核心契约、生命周期、行为基元、模态链路 |
-| `tech_debt.md` | 欠账清单：M1 原始 R01–R18 + M3.5 之后新增的 D01–D10 |
-| `risks.md` | 风险与未决问题 |
-| `dependencies.md` | 第三方依赖、版本锁定、升级方式 |
+| `todo.md` | 待办：欠账（R/D）、暂停池、风险、未决问题、有意不做的决策 |
+| `ui_architecture.md` | UI 层架构：分层、布局契约、层级排序、模态、缩放、生命周期 |
+| `examples.md` | 示例用途、按键、环境变量（含 `ui_lab` 实验室） |
 | `ci.md` | 构建命令、sanitizer、冒烟、测试分层与质量门、远端 CI 现状 |
+| `dependencies.md` | 第三方依赖、版本锁定、升级方式 |
 | `packaging.md` | 版本号、Linux/Windows 打包、资源与字体策略、运行依赖 |
-| `project_format.md` | `.cosine` 项目文件格式：文件头、版本、payload 布局、确定性、错误处理 |
-| `font_atlas.md` | 字体图集格式、FreeType 生成、动态字形、行高、脏矩形上传、DPI |
+| `project_format.md` | `.cosine` 项目文件格式 |
+| `font_atlas.md` | 字体图集格式、FreeType 生成、动态字形、DPI |
 | `history.md` | 已完成基线（M0 之前的骨架阶段）与历史变更摘要 |
-| `plan_archive.md` | 已完成阶段（M1–M6.4b）的计划原文归档：目标、边界、逐条任务、验收标准 |
+| `plan_archive.md` | 已完成阶段（M1–M6.4b）的计划原文归档 |
 | `interpreter.md` | XEL 解释器结构与实现笔记 |
-| `note1.md` | 开发过程笔记 |
 | `release_notes_template.md` | 发布说明模板 |
 | `readme_draft.md` | README 建议稿（未应用，供作者定稿） |
-| `code_review.md` | 历史代码评审记录（基线较早，保留参考） |
 | `project_assessment.md` | 项目评估与改进清单（历史归档） |
+| `sele-0.21.3-agent.md` | sele 执行 agent 操作手册 |
+| `review/` | 评估与审计归档（只读，不再改动） |
 
 ## 代码结构速查
 
 ```text
 src/
-├── anim/             缓动、场景图、属性、时间轴、播放器（只依赖 glm）
+├── anim/             缓动、场景图、属性、时间轴、播放器、命令栈（只依赖 glm）
 ├── backend/          窗口、Vulkan 上下文、swapchain、renderer、资源路径
 │   └── vulkan/       RenderTarget、Renderer（DrawList 消费端）
 ├── events/           InputEvent、KeyCode/Modifier
 ├── graphics/         DrawList/Drawable、图元、FontAtlas、FrameStats
-├── ui/               Widget 树、布局、控件、UISystem、UIContext、SceneView、DebugOverlay
-├── cosine/           编辑器产品层（Editor + main）→ 可执行 `cosine`
+├── ui/               Widget 树、布局、控件、UISystem、UIContext
+├── cosine/           编辑器产品层（cosine_editor + cosine 可执行）
 └── xel_application.* 窗口 + Vulkan + UI 的装配与事件桥接
 
-examples/ui_demo/           XEL Text Lab：文字排版实验台
-examples/ui_gallery/        XEL UI Gallery：控件与样式验收展厅
-examples/ui_anim_demo/      XEL Animation Demo：最小动画演示
-examples/ui_anim_showcase/  XEL Animation Showcase：动画能力全景
-test/                       CTest 用例（51 个）
-interpreter/                XEL 解释器（与 UI 解耦，M5 起作为可嵌入库）
-scripts/                    CI、打包、冒烟脚本
-assets/                     shader、字体与图集
+examples/
+├── ui_demo/          文字排版实验台
+├── ui_gallery/       控件与样式验收展厅
+├── ui_anim_demo/     最小动画演示
+├── ui_anim_showcase/ 动画能力全景
+├── ui_lab/           高级 UI 实验室（实验代码，不进 ctest）
+├── moss/             最小渲染 demo
+└── font_lab/         字体图集实验
+
+test/                 CTest 用例（68 个）
+interpreter/          XEL 解释器（与 UI 解耦，可嵌入）
+scripts/              CI、打包、冒烟脚本
+assets/               shader、字体与图集
 ```
 
 ## 快速开始
@@ -73,7 +74,7 @@ assets/                     shader、字体与图集
 ./build/examples/ui_gallery     # 控件展厅，F1 调试面板
 ./build/examples/ui_anim_demo   # 最小动画
 
-# 运行编辑器（最终产品）
+# 运行编辑器（产品）
 ./build/src/cosine/cosine
 
 # 冒烟（正常退出）
@@ -84,17 +85,3 @@ assets/                     shader、字体与图集
 ```
 
 各示例的按键与环境变量见 `examples.md`；详细命令见 `ci.md` 与 `packaging.md`。
-
-## 当前状态（0.4.0）
-
-- **GUI 框架**：Widget 树与 measure/arrange；Vbox/Hbox/Grid/Wrap、百分比尺寸、宽高比、
-  绝对定位与 z-index；TabBar/TabView、Radio/RadioGroup、Progress、Dropdown、Dialog、MenuBar、
-  Table、TreeView、Image（占位）、Tooltip；样式系统（主题/经典样式/状态过渡/焦点策略/圆角）；
-  指针手势、键盘导航、拖拽反馈；Smooth/Fast/Line 三档滚动。
-- **文本**：UTF-8 + CJK、FreeType 运行时图集、逐字号栅格化、动态字形、行高语义、测量缓存、
-  脏矩形上传、DPI 缩放；`ui_demo` 可开字形盒/行框/基线/advance 调试层。
-- **动画内核（M4）**：缓动、场景图、属性系统、时间轴与关键帧、播放器与时间点事件、
-  `SceneView` 渲染；`ui_anim_demo` 与 `ui_anim_showcase` 覆盖最小演示与能力全景。
-- **工程化**：静态库分层、51 个 CTest 用例、ASAN、lavapipe 冒烟、Linux/Windows 打包脚本。
-- **未完成**：Windows 实测、IME 与文字 shaping、SDF/MSDF、序列化；
-  下一步是 M6.0（离屏渲染与 PNG 导出），XEL 绑定（M5）排在编辑器之后。

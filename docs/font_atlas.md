@@ -146,5 +146,4 @@
 - 运行中切换 DPI 不自动重算，需重启
 - Windows 字体查找与运行尚未实测
 
-后续优化清单（kerning、避头尾、TextSpan、字体回退、IME、SDF、图集淘汰等）见
-`.design/阶段计划.md` 的「M4.6 文本 / 图集 / 输入 backlog」T5–T13。
+后续优化清单（kerning、避头尾、TextSpan、字体回退、IME、SDF、图集淘汰等）见 `docs/todo.md` 的暂停池。

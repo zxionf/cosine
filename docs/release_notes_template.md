@@ -59,7 +59,7 @@ ASAN:   <通过 / 未执行>
 - [ ] `ctest` 全绿
 - [ ] ASAN 构建与测试通过
 - [ ] lavapipe 冒烟通过
-- [ ] `docs/project_assessment.md` 状态已更新
+- [ ] `docs/todo.md` 待办状态已更新
 - [ ] `docs/dependencies.md` 版本表与实际一致
 - [ ] 打包产物可在干净环境解压运行
 - [ ] 发布说明已填写产物大小与校验结果

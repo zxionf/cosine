@@ -1,7 +1,7 @@
 # UI 层架构
 
 > 范围：`src/ui/` 与它依赖的 `src/graphics/`。
-> 本文只描述**当前有效**的结构与契约；欠账与取舍见 `docs/tech_debt.md`，演进计划见 `.design/lines/ui.md`。
+> 本文只描述**当前有效**的结构与契约；欠账与待办见 `docs/todo.md`。
 
 ## 一、分层
 
@@ -248,7 +248,7 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 
 | 项 | 说明 | 记录位置 |
 |---|---|---|
-| 圆角无抗锯齿 | 几何近似，硬边 | `tech_debt.md` D01 |
+| 圆角无抗锯齿 | 几何近似，硬边 | `todo.md` D01 |
 | 无外阴影 | 窗口层次靠 1px 边框 + `elevated` 令牌 | UI-6 遗留 |
 
 ## 九、编辑器层：ResourceBrowser

@@ -1,144 +1,66 @@
 # TODO
 
-## Scrim / 模态键盘与焦点隔离不完整
+> 还开放的欠账、风险、暂停池与未决问题，简写汇总。
+> 已关闭项与历史见 git、`docs/history.md` 与 `docs/review/`。
 
-- 记录时间：2026-11-19T23:53:04+08:00
-- 分支：`main`
-- 提交：`7ac90ba31b3681d62983c72c3e315cf14ec2a420`
-- 状态：已解决（UI-19）
+## 欠账（R / D 编号）
 
-### 问题
+| 编号 | 内容 | 归属 |
+|---|---|---|
+| R09 | Windows 实测 | backend |
+| R14 | 单窗口 / 单 Renderer 假设 | backend |
+| R15 | 文本 shaping：BiDi / 复杂字形 / 字体回退 / IME | ui |
+| R17 | 序列化：二进制格式已定，资源引用待 CO-2 | cosine |
+| D01 | 圆角无抗锯齿（需 MSAA 或 SDF） | ui |
+| D02 | Table/TreeView 行级背景不参与颜色过渡 | ui |
+| D03 | SceneView 椭圆/文字不随 rotation 旋转 | anim/ui |
+| D05 | File 菜单 Ctrl+N/O/S 键盘路由 | cosine（CO-2） |
+| D06 | 覆盖文件不二次确认、不记忆目录 | cosine |
+| D07 | 无自动保存 / 崩溃恢复 | cosine |
+| D08 | 属性面板不显示动画求值结果 | cosine |
 
-`src/ui/core/scrim.hpp` 的遮罩层本身已实现：
+## 暂停池
 
-- 全屏半透明绘制（`append_scrim`）
-- `fills_parent()` 由 `UIRoot::layout_child` 拉成全屏
-- `hit_testable()` 阻止指针穿透
-- `on_mouse_down` / `on_mouse_up` / `on_scroll` 吞噬事件
-- 不参与 Tab 焦点
-- `UIRoot::push_modal()` / `pop_modal()` 维护 Scrim 与模态窗口的 z-order / 嵌套栈
+| 项 | 挂起原因 | 重启条件 |
+|---|---|---|
+| 排版（kerning / 避头尾 / justify） | 中文排版够用 | 有排版质量硬需求 |
+| 亚像素策略 | 需与 pixel_snap 做矩阵实验 | ui_lab 有结论 |
+| TextSpan 文本片段 | 无富文本需求 | 编辑器行内多色 |
+| SDF / MSDF | 逐字号栅格化够用 | 超大字号 / 描边 / 发光 |
+| IME preedit | 无中文输入实测 | 真实输入法场景 |
+| TreeView 可见行缓存（UI-4） | 节点规模远未到瓶颈 | 节点上千 |
+| 弹层出现/消失过渡 | 需 alpha 合成 + 生命周期改造 | 有动画资源时 |
+| 缓动曲线可配置 | 四档够用 | 动画需求复杂 |
+| SceneView rotation 单测 | 靠截图人工验收 | 旋转逻辑再改时 |
 
-未完成的是模态的键盘与焦点隔离：
+## 风险
 
-1. `UISystem::dispatch_key()` / `dispatch_char()` 只把事件发给 `focused_`，没有检查 `root_->modal_top()`。打开模态时如果焦点仍在下层控件，键盘会穿透到被遮罩的控件。
-2. `UIRoot::push_modal()` 不自动把焦点移到模态窗口内的第一个可聚焦控件；`focus_next()` 只在用户按 Tab 时才用 `modal_top()` 作为作用域。
-3. `pop_modal()` 不记录/恢复打开模态前的焦点；关闭后焦点可能留在已销毁窗口，依赖 `prune_stale_targets()` 清理。
-4. `Scrim` 没有 `on_click` / dismiss 回调，点击遮罩不会关闭模态窗口。
-5. `Scrim` 只处理 down/up/scroll；右键、双击、长按没有显式行为。
-6. 菜单与下拉分别使用 `MenuScrim` / `DropdownScrim`，不复用 `Scrim`，说明遮罩能力目前只覆盖“窗口模态”。
+| 风险 | 缓解 |
+|---|---|
+| 平台覆盖：Windows 与 X11 未实测 | 拿到环境先跑冒烟与打包（R09） |
+| shader 工具链：slangc 安装不便 | glslc 回退或预编译 .spv |
+| 平台差异：Vulkan SDK / GLFW / 字体路径不同 | 发版前两端各跑一次冒烟 |
+| 2.5D/3D 返工 | 变换接口不固定 vec2，不写死 2D 假设 |
+| 视频导出：编码器/帧同步/色彩空间未定 | CO-3 开工前单独决策 |
+| 范围蔓延 | 新控件先问是否服务 cosine；实验只在 ui_lab |
+| 示例腐烂 | 示例纳入冒烟门禁（exit=0 / validation=0） |
 
-### 影响面
+## 未决问题
 
-- 文件：
-  - `src/ui/core/scrim.hpp`
-  - `src/ui/root.cpp`
-  - `src/ui/ui_system.cpp`
-  - `src/ui/composites/dialog.hpp`
-  - `src/ui/composites/menu_bar.hpp`
-  - `src/ui/composites/dropdown.hpp`
-- 功能：
-  - 模态窗口打开期间的键盘/字符输入隔离
-  - 模态打开/关闭时的焦点转移与恢复
-  - 点击遮罩关闭模态（如需要）
-  - 右键/双击/长按在遮罩上的行为
-- 用户场景：
-  - 打开/保存文件对话框、确认对话框等窗口模态
-  - 菜单、下拉的遮罩不受影响（使用各自的 scrim 实现）
-- 测试：
-  - 目前缺少“模态打开时键盘不穿透”“关闭后焦点恢复”的测试覆盖
+- Windows 最低版本与 GPU/驱动范围（决定 CI 与打包）。
+- XEL 类型系统边界（动态类型是否够用）。
+- 远端 CI 托管平台（发布阶段定）。
+- 纹理资源落盘形式与缺失占位策略（CO-2）。
+- ui_lab 实验转正门槛。
 
-### 建议修复
+## 有意不做（已决策，避免重评估）
 
-1. `dispatch_key` / `dispatch_char` 限制在 `modal_top()` 子树内；若焦点不在模态子树，忽略或先转移焦点。
-2. `push_modal()` 时记录当前焦点，并聚焦模态内第一个可聚焦控件。
-3. `pop_modal()` 恢复记录的焦点（若仍有效）。
-4. 如需点击遮罩关闭：给 `Scrim` 增加 dismiss 回调，并只对顶层模态生效。
-5. 明确右键/双击/长按在模态遮罩上的语义（吞掉或触发关闭）。
-6. 补测试：模态键盘隔离、焦点恢复、嵌套模态。
-
-> 已解决（UI-19）：`dispatch_key`/`dispatch_char` 限定在最上层模态子树；`push_modal` 快照焦点并聚焦
-> `preferred_focus()` → 首个可聚焦 → 窗口自身；`pop_modal` 恢复快照；`Scrim` 显式吞掉 click/right_click/
-> double_click/long_press 并支持可选 `set_on_dismiss`（默认不关 Window 模态）；`DialogHost` 经
-> `push_modal(host, with_scrim=false)` 纳入模态作用域；新增 `test/test_ui_modal.cpp`。详见 `docs/ui_architecture.md` §5。
-
-## Layer 未完全实现
-
-- 记录时间：2026-11-20T00:14:10+08:00
-- 分支：`main`
-- 提交：`7ac90ba31b3681d62983c72c3e315cf14ec2a420`
-- 状态：已解决（方案 A：完全实现 Layer 排序，见 UI-20）
-
-### 现状
-
-`src/ui/widget.hpp:138` 定义了：
-
-```cpp
-typedef enum class Layer
-{
-    Content,
-    Floating,
-    Modal,
-};
-```
-
-`layer()` 默认返回 `Content`。
-
-全仓库唯一的重写是：
-
-```cpp
-// src/ui/core/scrim.hpp:30
-Layer layer() const override { return Layer::Floating; }
-```
-
-但没有任何代码读取 `layer()`：
-
-- 不参与绘制排序；
-- 不参与命中测试；
-- 不参与布局；
-- 不参与模态/overlay 管理。
-
-所以 `Scrim::layer()` 当前没有实际效果，`Layer` 是预留但未接线的语义。
-
-实际分层由另一套机制完成：
-
-1. `children_` 与 `overlays_`（`UIRoot::add_overlay` / `overlay_paint_order`）
-2. `z_index`（同层内排序）
-3. `modals_` / `modal_scrims_`（窗口模态栈，Scrim z = window.z - 1）
-4. `MenuScrim` / `DropdownScrim`（菜单与下拉各自的遮罩）
-
-### 影响面
-
-- 文件：
-  - `src/ui/widget.hpp`
-  - `src/ui/core/scrim.hpp`
-  - `src/ui/root.cpp`
-  - `src/ui/ui_system.cpp`
-  - `src/ui/composites/window.hpp`
-  - `src/ui/composites/dialog.hpp`
-  - `src/ui/composites/menu_bar.hpp`
-  - `src/ui/composites/dropdown.hpp`
-- 功能：
-  - `Layer` 是死代码，重写 `layer()` 不会改变绘制/命中/模态行为；
-  - 容易让后续开发者误以为改 `layer()` 就能调整层级；
-  - 与 overlay / z-index / 模态栈三套机制并存，语义重叠。
-- 测试：
-  - 没有针对 Layer 绘制顺序、命中优先级、跨层遮挡的测试。
-
-### 建议
-
-方案 A：补全 Layer
-
-1. 在 `UIRoot` / `UISystem` 的绘制与命中排序中引入 Layer：`Content` → `Floating` → `Modal`。
-2. 把 overlay / modal 映射到 Layer，而不是维持两套平行机制。
-3. 让 `Window`、`Dialog`、`Scrim`、`Menu`、`Dropdown` 明确返回对应 Layer。
-4. 明确 `z_index` 是 Layer 内排序还是跨 Layer 覆盖。
-5. 补测试：不同 Layer 的绘制顺序、命中优先级、模态遮挡。
-
-方案 B：删除 Layer
-
-- 删除 `Layer` 枚举与 `layer()`，以及 `Scrim` 的重写；
-- 统一使用 overlay / z-index / 模态栈，避免误导。
-
-> 已解决（UI-20）：Layer 现在是跨 `children_`/`overlays_` 的唯一主排序键（`Widget::layer_paint_order()`），
-> 绘制/命中/Tab 三处消费；`z_index` 仅层内生效；各控件归属已落地（Scrim→Modal、模态 Window→Modal、
-> DialogHost/Menu/Dropdown/Tooltip→Floating）；新增 `test/test_ui_layer.cpp`。详见 `docs/ui_architecture.md` §3。
+| 项 | 理由 |
+|---|---|
+| ScrollView 保持二维独立滚动 | ScrollState 是一维，扩成二维会什么都装 |
+| Window 标题栏不复用 CollapsibleHeader | 拖动/关闭叉/双击最大化/无标题拖动，套进去更绕 |
+| Widget 不拆分 | 显式契约已缓解；拆分回归面覆盖全部控件 |
+| menu_bar.hpp 不拆 | 菜单语义的合理复杂度 |
+| ui_lab 不进 ctest | 实验代码，进 ctest 锁死迭代速度 |
+| 性能优化暂缓 | 无实测数据，先 instrumentation（UI-15） |
+| TextInput 不接 ScrollState | 只有一条 clamp_scroll，收益为零 |

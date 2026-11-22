@@ -211,4 +211,4 @@ crc32       u32（仅当 flags.bit1 = 1）  覆盖 header 起到 end_marker（�
 2. 压缩 codec 选型（zstd / lz4 / 无）。
 3. 是否需要「增量保存 / 撤销记录落盘」。
 
-以上三项在 M6.5（资源）与 M6.6（导出）之前给出决策，并追加到 `.design/DECISIONS.log`。
+以上三项在 M6.5（资源）与 M6.6（导出）之前给出决策，并记入 `docs/todo.md`。
