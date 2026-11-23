@@ -148,7 +148,9 @@ Rect ScrollView::scrollbar_thumb_rect(bool vertical) const
 glm::vec2 ScrollView::measure(glm::vec2 constraints)
 {
     update_metrics(constraints);
-    return viewport_;
+    // 控件自身占满父给的可用空间；viewport_ 只是内容可视区（已扣除滚动条），
+    // 不能当控件尺寸返回——否则父级按窄尺寸摆放，arrange() 里再扣一次。
+    return constraints;
 }
 
 void ScrollView::place_content()

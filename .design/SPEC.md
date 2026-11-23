@@ -50,6 +50,7 @@ assets/         shader、字体
 
 - `children_` + `adopt()` 是唯一挂载入口；`parent` 非拥有指针。
 - 布局契约：`measure(constraints)` / `arrange(slot)`；`fixed_size()` 忽略约束；`fills_parent()` 铺满父容器。
+- `measure()` 返回**控件自身**尺寸，不得返回内部派生量（如 `ScrollView` 的内容区）；否则父级按小尺寸摆放，`arrange()` 里会再扣一次。
 - `UIRoot` 是自由画布：子控件保留局部坐标。
 
 ### 层级与排序

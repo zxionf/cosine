@@ -202,6 +202,7 @@ dispatch(InputEvent)
 | 基元 | 职责 | 使用者 |
 |---|---|---|
 | `ScrollState` | 一维滚动：值/目标/平滑（指数衰减）+ Fast 加速 + snap + range 夹取 | `Table` / `TreeView` |
+| `ScrollView` | 二维滚动容器；`measure()` 返回控件自身尺寸，`viewport_size()` 才是扣除滚动条后的内容区 | `ScrollPanel` |
 | `ListView` | 行列表：滚动/选中/键盘/可见行窗口/像素对齐/行循环/滚动条；子类只实现 `item_count()` + `draw_row()` | `Table`（`FileBrowser` 经 Table 受益）、`TreeView` |
 | `CollapsibleHeader` | 折叠标题条：`panel_bg` 底 + 三角 + 标题 | `Section` |
 | `Scrim` | 全屏遮罩（alpha/layer 可配），吞掉指针/滚轮/点击/右键/双击/长按，不参与 Tab | `UIRoot` 模态栈、下拉 |
