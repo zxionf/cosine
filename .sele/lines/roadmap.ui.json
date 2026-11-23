@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 34,
+      "skipped_count": 45,
       "status": "paused",
       "steps": [
         {
@@ -1712,6 +1712,751 @@
       ],
       "title": "UI-23 UI 冗余收敛：文本度量 + 滚动条 + 遮罩 + 删 list.hpp",
       "uid": "tsk_01M81SAWRXM6D7EP4WMH0AKDVS"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "ScrollView::measure 返回父给的可用尺寸（控件自身尺寸），viewport_ 仅表示内容可视区",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T08:34:32Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "滚动条出现时控件宽度不变，内容区只扣一次 scrollbar_width+2",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T08:34:32Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "新增回归测试：Vbox(top_center) 中 ScrollView 出现滚动条前后宽度不变、viewport 只扣一次",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T08:34:32Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ctest 全绿 + 渲染快照无差异",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T08:34:32Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-23T08:31:20Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-23T08:47:48Z",
+      "goal": "UI-24 ScrollView measure 返回控件尺寸，修双重扣除滚动条宽度",
+      "id": "T18",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "ScrollView::measure 返回 constraints（控件自身尺寸），viewport_ 只作内容可视区"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "新增回归测试：Vbox(top_center) 中 ScrollView 滚动条出现前后宽度不变、viewport 只扣一次"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档 + ctest 全绿 + 渲染快照无差异"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-24）"
+        }
+      ],
+      "title": "UI-24 ScrollView measure 返回控件尺寸，修双重扣除滚动条宽度",
+      "uid": "tsk_01M83RFXCXQTK7VHJ98BTGR3Q3"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Window 声明 clips_children()=true，绘制裁剪与命中裁剪一致",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:32:51Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "折叠态关闭叉的绘制与命中一致（要么可关、要么不画）",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:32:51Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "set_modal(false) 后 always_on_top 还原为打开前的值，不再永久置顶",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:32:51Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "Esc 只对请求关闭成功的窗口生效，且不吞掉被拒绝的 Esc；request_close 不产生悬空访问",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:32:51Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "删除 has_focus_ 重复状态，统一用基类 focused()",
+          "id": "A5",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:32:51Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ctest 全绿（含新增 window 行为测试）",
+          "id": "A6",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:32:51Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-23T09:17:02Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-23T09:32:51Z",
+      "goal": "UI-25 Window 行为正确性修复（P0+P1）",
+      "id": "T19",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Window 覆写 clips_children()=true：内容裁剪与命中裁剪一致"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "折叠态关闭叉：统一绘制与命中（collapsed 时不画叉且不命中，或允许关闭）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "set_modal 记录打开前 always_on_top，release_modal 时还原，修粘性置顶"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Esc/关闭叉语义：request_close 返回值生效（被拒绝不吞事件）；close/destroy 不产生悬空访问"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "删除 has_focus_，append_to 的强调边框改用基类 focused()"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "补 test_ui_window 用例：clips_children、折叠态关闭、always_on_top 还原、Esc 拒绝、焦点强调"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档 + ctest 全绿"
+        }
+      ],
+      "title": "UI-25 Window 行为正确性修复（P0+P1）",
+      "uid": "tsk_01M83V3K4PSTAFXFPGWJJZB43R"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Window 声明 fixed_size()=true，arrange 不再按父容器 slot 覆盖自身尺寸",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:44:16Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "raise() 改为移动到 children_ 末尾（插入序语义），不再重写兄弟 z_index；配套 UIRoot 删除 API",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:44:16Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "窗口 chrome 尺寸（标题高/图标区/抓取带/关闭与折叠矩形）收为从 Theme 派生的 WindowChrome，绘制与命中共用同一套几何",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:44:16Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ctest 全绿 + 渲染快照无差异",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:44:16Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-23T09:17:21Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M83V3K4PSTAFXFPGWJJZB43R"
+        }
+      ],
+      "finished_at": "2026-11-23T09:44:16Z",
+      "goal": "UI-26 Window 契约与结构收敛（P2）",
+      "id": "T20",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Window 声明 fixed_size()=true；arrange 统一用自身尺寸，删 self_sized 分支"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "UIRoot 新增 remove(Widget*) 延迟销毁（与 remove_overlay 一致），Window::destroy 走它"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "raise() 改为把自身挪到 children_ 末尾（插入序），不改写兄弟 z_index"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "WindowChrome 结构：title_h/glyph_zone/close_box/collapse_box/grip/grip_edge 从 Theme 派生"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "绘制与命中共用 WindowChrome 几何，消除坐标各写一遍"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "测试：fixed_size 下 Vbox 不拉伸窗口、raise 插入序、chrome 几何一致"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档 + ctest 全绿 + 渲染快照无差异"
+        },
+        {
+          "desc": "",
+          "id": "S8",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "标题栏高度跟随字体行高（FontAtlas::line_height(theme.text_size) + padding），不再硬编码 32"
+        }
+      ],
+      "title": "UI-26 Window 契约与结构收敛（P2）",
+      "uid": "tsk_01M83V45DKTJD4Q53F7CAEY4N7"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "标题高度 = 字体行高 + 上下 inset（无硬下限 32），主题字号/密度/DPI 变化时标题高随之变化",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:52:42Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "折叠态与展开态图标均为 45° 夹角（两臂 |dx| == |dy|），由 chrome 图标框派生",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:52:42Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "test_ui_window 覆盖：标题高随主题字号变大、chrome 几何自洽",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:52:42Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "ctest 全绿",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T09:52:42Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-23T09:52:34Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-23T12:37:02Z",
+      "goal": "UI-27 Window 标题栏真正跟随行高 + 折叠/展开图标 45° 统一",
+      "id": "T21",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "chrome()：title = ceil(line_height + 2*inset)，inset 由主题 padding 派生，删除 32 硬下限；icon = title - 2*inset"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "折叠/展开图标统一 45°：展开 ▼（顶点下中）与折叠 ▶（顶点右中），两臂 |dx|==|dy|==arm"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "test_ui_window：标题跟随主题字号变大 + chrome 几何自洽；ctest 全绿"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-25/26/27 Window 优化）"
+        }
+      ],
+      "title": "UI-27 Window 标题栏真正跟随行高 + 折叠/展开图标 45° 统一",
+      "uid": "tsk_01M83X4NF07MNVAP59XY4F31TH"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Window::set_grip_edge(px)/grip_edge() 可调；默认 0",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T13:20:05Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "grip=0 时内容区贴满窗口且边缘不设 resize 热区；grip>0 时作为内容边带与八向命中带",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T13:20:05Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "test_ui_window 覆盖默认 0 与显式设大两种情形；ctest 全绿",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T13:20:05Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-23T13:19:55Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-23T13:20:05Z",
+      "goal": "UI-28 Window grip_edge 可配置，默认 0",
+      "id": "T22",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "chrome().grip 改读成员 grip_edge_（默认 0）；删 kGripEdge 常量，保留 kDefaultGripEdge 作为推荐值"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "resize_edges：grip<=0 直接返回 0（不产生 1px 偶然命中）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "test_ui_window：新增默认 0 用例（内容贴满 + 边缘不命中），resize 用例显式开 6px"
+        }
+      ],
+      "title": "UI-28 Window grip_edge 可配置，默认 0",
+      "uid": "tsk_01M8490AXSXHE87JJR912GHX8X"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "内容边带 content_inset 默认 0（内容贴满窗口），resize 命中带 resize_margin 独立（Theme 派生，默认 4px）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T14:29:17Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "Widget 新增 resize_edges_at(pos) 虚函数；UISystem down 时 resize 热区优先于内容子控件命中",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T14:29:17Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "hover 到窗口 resize 边时切换 GLFW resize 光标，离开恢复箭头",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T14:29:17Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "删除 set_grip_edge/grip_edge/kGripEdge 等旧接口，不向后兼容",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T14:29:17Z",
+          "verified_by": "agent"
+        },
+        {
+          "desc": "test_ui_window 覆盖：内容贴边 + 边缘 resize 优先 + 光标切换；ctest 全绿 + 冒烟无 validation",
+          "id": "A5",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-23T14:29:17Z",
+          "verified_by": "agent"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-23T14:06:29Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-23T15:35:37Z",
+      "goal": "UI-29 Window resize 解耦（content_inset + resize_margin）+ resize 光标",
+      "id": "T23",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui",
+        "backend"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Theme 增加 resize_margin（默认 4）；backend::Window 增加 Cursor 枚举 + set_cursor"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Widget 增加 resize_edges_at(pos) 虚函数（默认 0）；边标志常量上移到 Widget"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Window 拆参数：content_inset（默认 0，layout 用）+ resize_margin（resize_edges_at 用）；删 set_grip_edge/grip_edge/kGripEdge/kDefaultGripEdge"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "UISystem down 时 resize 热区优先（find_resize_target 扫描）；hover 时切换 resize 光标"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "test_ui_window：内容贴边 + resize 优先命中 + 光标切换；文档 + ctest 全绿 + 冒烟"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-29）"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交代码（UI-29 resize 检测回归 Window）"
+        }
+      ],
+      "title": "UI-29 Window resize 解耦（content_inset + resize_margin）+ resize 光标",
+      "uid": "tsk_01M84BNK3YZ2TG74TKKB76A999"
     }
   ]
 }
