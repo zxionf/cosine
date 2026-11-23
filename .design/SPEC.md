@@ -66,6 +66,16 @@ assets/         shader、字体
 - `pop_modal`：恢复快照（仍在树中且不在被弹出子树内才恢复，否则清空）。
 - `dispatch_key`/`dispatch_char` 限定最上层模态子树；`DialogHost` 经 `push_modal(host, with_scrim=false)` 纳入作用域。
 - `Scrim`：全屏遮罩（`alpha`/`layer` 可配，`alpha=0` 作透明遮罩），吞掉指针/滚轮/点击/右键/双击/长按，不参与 Tab；`set_on_dismiss` 在点击/滚轮时触发。
+- `Window::set_modal` 的置顶与 Esc 是**临时**的：打开前快照，`release_modal` 时还原（不粘住）。
+
+### 窗口
+
+- `Window` 是固定尺寸的浮层：`fixed_size()=true`（`arrange` 只用 slot 定位，不拿 slot.size 覆盖自身）；`clips_children()=true`（绘制与命中裁剪一致）；支持拖动 / 8 向 resize / 折叠 / 最大化。
+- 几何统一由 `Window::chrome()` 派生：**标题高 = 字体 line box 高度**（不加 padding），`glyph`/`icon`/`inset`/`grip`/`keep_visible` 同源；**绘制与命中共用这份几何**；折叠/展开图标两臂均为 45°。
+- 置顶是插入序语义：`raise()` 把自己移到父容器子项末尾（`Widget::raise_child`），不改写兄弟的 `z_index`。
+- 关闭：`close()` 只隐藏；`destroy()` 交给 `on_destroy_`，未注册时从 root 延迟移除；`request_close()` 先问 `on_close_`，通过后**延迟到下一次 `layout()`** 才真正 `destroy()`（避免事件派发期间销毁自身）。
+- Esc 只在 `esc_closable()` 为真时关闭（模态窗口自动开启，普通窗口默认关闭）。
+- 模态期间的置顶与 Esc 是临时的：打开前快照，`release_modal` 时还原。
 
 ### 滚动与列表
 

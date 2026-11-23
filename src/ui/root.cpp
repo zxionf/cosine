@@ -45,6 +45,19 @@ void UIRoot::add(std::unique_ptr<Widget> child)
     adopt(std::move(child));
 }
 
+void UIRoot::remove(Widget* child)
+{
+    if (!child) return;
+    for (auto it = children_.begin(); it != children_.end(); ++it) {
+        if (it->get() == child) {
+            trash_.push_back(std::move(*it));
+            children_.erase(it);
+            mark_layout_dirty();
+            return;
+        }
+    }
+}
+
 void UIRoot::set_focus_hooks(FocusGetter getter, FocusSetter setter)
 {
     focus_getter_ = std::move(getter);

@@ -163,7 +163,7 @@ virtual float viewport_height() const { return global_.size.y; }
 |---|---|
 | `hit_testable() = true` | 命中到此为止，`path` 末端是它自己（可点、可拖） |
 | `hit_testable() = false` | 继续向下找子项；子项都没命中时它也不接（`Vbox` 用这个让点击冒泡） |
-| `clips_children() = true` | 子项绘制/命中裁剪到自身 `bounds`（`Panel` / `ScrollView` / `Table`） |
+| `clips_children() = true` | 子项绘制/命中裁剪到自身 `bounds`（`Panel` / `Window` / `ScrollView` / `Table` / `TreeView`） |
 | `focusable() = true` | 参与 Tab 顺序，可被 `set_focus` 获得键盘事件 |
 
 ## 三、生命周期

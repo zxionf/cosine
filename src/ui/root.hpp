@@ -17,6 +17,9 @@ public:
     ~UIRoot() = default;
 
     void add(std::unique_ptr<Widget> child) override;
+    // 延迟移除普通子项（与 remove_overlay 同语义）：事件派发期间仍可能持有指针，
+    // 实际析构发生在下一次 layout() 的 purge_trash()。
+    void remove(Widget* child);
     // overlay 按加入顺序叠放，后加入的在上层；尺寸由 measure 决定。
     void add_overlay(std::unique_ptr<Widget> child);
     // 延迟移除：事件派发过程中可能仍持有目标指针，实际销毁发生在下一次 layout()。

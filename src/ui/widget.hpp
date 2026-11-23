@@ -78,6 +78,23 @@ public:
         mark_layout_dirty();
     }
 
+    // 把已有子项移到 children_ 末尾（插入序置顶）：
+    // layer_paint_order 在同 layer 同 z 时按加入顺序排序，因此移动位置即可“提到最上”。
+    // 不修改任何控件的 z_index，不会破坏调用方显式设置的层叠关系。
+    void raise_child(Widget* child)
+    {
+        if (!child) return;
+        for (auto it = children_.begin(); it != children_.end(); ++it) {
+            if (it->get() != child) continue;
+            if (std::next(it) == children_.end()) return; // 已在末尾
+            auto owned = std::move(*it);
+            children_.erase(it);
+            children_.push_back(std::move(owned));
+            mark_layout_dirty();
+            return;
+        }
+    }
+
     // 生命周期令牌：容器可能直接销毁子控件（如 clear_children），
     // UISystem 用 weak_ptr 判断保存的指针是否仍然有效，避免悬垂解引用。
     const std::shared_ptr<const bool>& alive_token() const { return alive_token_; }

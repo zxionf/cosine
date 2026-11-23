@@ -29,17 +29,20 @@ namespace xel::ui
 class Window : public Widget
 {
 public:
+    // 标题栏最小高度：实际值由 chrome() 按字体行高与主题 padding 派生，不低于此值。
+    static constexpr float kDefaultTitleHeight = 16;
+
     Window(std::string title, glm::vec2 pos, glm::vec2 size)
         : title_(std::move(title))
     {
         set_size(size);
-        set_min_size({160.0f, kTitleHeight + 48.0f});
+        set_min_size({160.0f, kDefaultTitleHeight + 48.0f});
         set_max_size({1.0e6f, 1.0e6f});
         // 两个坐标系必须同时初始化：UIRoot 的自由画布读 local_.pos，Vbox 读 absolute_pos。
         set_pos(pos);
         set_absolute_pos(pos);
 
-        auto body = std::make_unique<Vbox>(0.0f, 0.0f, size.x, size.y - kTitleHeight);
+        auto body = std::make_unique<Vbox>(0.0f, 0.0f, size.x, size.y - kDefaultTitleHeight);
         body_ = body.get();
         // 走 adopt()：这里漏设 parent 会让冒泡链断在 body_，只能拖标题栏。
         adopt(std::move(body));
@@ -77,7 +80,12 @@ public:
     void set_always_on_top(bool on)
     {
         always_on_top_ = on;
-        if (on) set_z_index(kOnTopZ);
+        if (on) {
+            set_z_index(kOnTopZ);
+        } else if (z_index() == kOnTopZ) {
+            // 关闭置顶时必须把 z 降回来，否则窗口仍会永远画在最上面。
+            set_z_index(0);
+        }
     }
     bool always_on_top() const { return always_on_top_; }
 
@@ -87,6 +95,10 @@ public:
         if (modal_ == on) return;
         if (on) {
             modal_ = true;
+            // 记录打开前的置顶 / Esc 状态，release_modal 时还原（否则会永久生效）。
+            always_on_top_before_modal_ = always_on_top_;
+            esc_closable_before_modal_ = esc_closable_;
+            esc_closable_ = true;
             set_always_on_top(true);
             if (auto* root = find_root_widget()) root->push_modal(this);
         } else {
@@ -103,7 +115,43 @@ public:
     void set_collapsible(bool on) { collapsible_ = on; }
     bool collapsible() const { return collapsible_; }
 
-    float title_height() const { return title_bar_visible_ ? kTitleHeight : 0.0f; }
+    // Esc 是否关闭窗口。默认 false，模态窗口在 set_modal(true) 时自动开启。
+    void set_esc_closable(bool on) { esc_closable_ = on; }
+    bool esc_closable() const { return esc_closable_; }
+
+    // 窗口装饰几何：从主题与字体行高派生，绘制与命中共用同一份。
+    // 标题高度跟随字体行高（行高 + 上下 padding），不再硬编码常量。
+    struct Chrome
+    {
+        float title = 0.0f;                // 标题栏高 = 字体 line box 高度（无标题栏时为 0）
+        float glyph = 0.0f;                // 标题文字左侧留白（折叠图标占位）
+        float icon = 24.0f;                // 折叠/关闭图标的命中方块边长
+        float inset = 4.0f;                // 图标距标题栏边缘
+        float grip = 6.0f;                 // resize 抓取带宽
+        float keep_visible = 48.0f;        // 拖动时保证留在视口内的最小可见量
+    };
+
+    Chrome chrome() const
+    {
+        const auto& t = ui_theme();
+        auto* atlas = font_atlas();
+        // 标题高 = 字体 line box 高度（不额外加 padding）。
+        const float line = atlas != nullptr ? atlas->line_height(t.text_size) : t.text_size * 1.2f;
+        Chrome c;
+        c.inset = std::max(2.0f, std::round(line * 0.15f));
+        c.title = line;
+        // 图标方块在标题栏内垂直居中：高度 = 标题高 − 上下 inset。
+        c.icon = std::max(8.0f, c.title - c.inset * 2.0f);
+        c.glyph = c.icon + c.inset * 2.0f;
+        c.grip = kGripEdge;
+        c.keep_visible = kKeepVisible;
+        return c;
+    }
+
+    float title_height() const
+    {
+        return title_bar_visible_ ? chrome().title : 0.0f;
+    }
 
     // 字体 debug：标题文字与内容区边框都跟着画（Label、Button 各自也支持）。
     void set_text_debug(graphics::TextDebugOptions options) { debug_ = options; }
@@ -114,16 +162,16 @@ public:
         if (collapsed_ == collapsed) return;
         if (collapsed) {
             expanded_height_ = height();
-            set_size(width(), kTitleHeight);
+            set_size(width(), title_height());
         } else {
-            set_size(width(), std::max(expanded_height_, kTitleHeight + 48.0f));
+            set_size(width(), std::max(expanded_height_, title_height() + 48.0f));
         }
         collapsed_ = collapsed;
         mark_layout_dirty();
     }
     bool collapsed() const { return collapsed_; }
 
-    // 两种关闭：close() 只隐藏；destroy() 交给外部销毁（未注册回调则退化为隐藏）。
+    // 两种关闭：close() 只隐藏；destroy() 交给外部销毁（未注册回调则从 root 延迟移除）。
     void close()
     {
         release_modal();
@@ -134,8 +182,11 @@ public:
         release_modal();
         if (on_destroy_) {
             on_destroy_();
+        } else if (auto* root = find_root_widget()) {
+            // 未注册回调：从 root 的子项中延迟移除（不再退化为“隐藏但留在树上”）。
+            root->remove(this);
         } else {
-            close();
+            set_visible(false);
         }
     }
     void set_on_destroy(std::function<void()> handler) { on_destroy_ = std::move(handler); }
@@ -145,11 +196,13 @@ public:
 
     // 关闭前确认：返回 false 则拒绝关闭（Esc 与点叉都走这里）。
     void set_on_close(std::function<bool()> handler) { on_close_ = std::move(handler); }
+    // 请求关闭：on_close_ 拒绝时返回 false 且不吞事件。
+    // 实际 destroy() 延迟到下一次 layout()：事件派发/冒泡期间销毁自身会留下悬垂指针。
     bool request_close()
     {
         if (on_close_ && !on_close_()) return false;
-        // 保持原语义：点叉是外部销毁（未注册回调时退化为隐藏）。
-        destroy();
+        pending_destroy_ = true;
+        mark_layout_dirty();
         return true;
     }
 
@@ -183,20 +236,11 @@ public:
     bool dragging() const { return mode_ == Mode::Drag; }
     bool resizing() const { return mode_ == Mode::Resize; }
 
-    // 置顶：提到同级最大 z + 1，然后按 paint 顺序归一化 1..N。
+    // 置顶：把自身移到父容器子项末尾（插入序）。不改写兄弟的 z_index。
     void raise()
     {
-        Widget* p = parent();
-        if (p == nullptr) return;
-        int max_z = 0;
-        for (const auto& sibling : p->children()) {
-            if (sibling.get() == this) continue;
-            max_z = std::max(max_z, sibling->z_index());
-        }
-        set_z_index(max_z + 1);
-        int next = 1;
-        for (Widget* widget : p->paint_order()) widget->set_z_index(next++);
-        // 归一化会把自己的 z 也改成 1..N，置顶窗口在这里重新拉高。
+        if (Widget* p = parent()) p->raise_child(this);
+        // 显式置顶的窗口仍需最高 z（模态帧的 z 由 UIRoot::layout 统一分配）。
         if (always_on_top_) set_z_index(kOnTopZ);
     }
 
@@ -207,24 +251,31 @@ public:
 
     glm::vec2 measure(glm::vec2) override
     {
-        // 绝对定位控件不参与父容器的测量协商：尺寸只由自己（拖动/resize）维护。
+        // 尺寸由自己（拖动/resize）维护，不参与父容器的测量协商。
         return {width(), height()};
     }
+    // 与 measure 一致：忽略 constraints，尺寸取自身 min/max（Table/FileBrowser 同契约）。
+    bool fixed_size() const override { return true; }
 
     void arrange(Rect slot) override
     {
         set_pos(slot.pos);
-        // 注意：absolute_pos_ 保持「相对父内容区」语义，这里不能写 slot.pos，
-        // 否则下次 arrange 会再叠一次父偏移。两个坐标系的一致性在拖动时维护。
-        const bool self_sized = absolute();
-        global_ = {slot.pos, self_sized ? glm::vec2{width(), height()} : slot.size};
-        if (!self_sized) set_size(slot.size);
+        // 窗口是固定尺寸控件：只用 slot 定位，不拿 slot.size 覆盖自身尺寸，
+        // 否则被放进 Vbox 时会被拉伸。absolute_pos_ 保持「相对父内容区」语义。
+        global_ = {slot.pos, {width(), height()}};
         layout();
     }
 
     void layout() override
     {
+        // 延迟销毁的落地点：layout 在事件派发之外，且 UIRoot 已用 trash_ 延迟实际析构。
+        if (pending_destroy_) {
+            pending_destroy_ = false;
+            destroy();
+            return;
+        }
         if (body_ == nullptr) return;
+        const Chrome c = chrome();
         const float title = title_height();
         float footer_h = 0.0f;
         if (footer_ != nullptr && footer_->visible()) {
@@ -234,9 +285,9 @@ public:
         body_->set_visible(!collapsed_);
         // 有 footer 时内容区全宽（footer 已覆盖底部抓取带），否则右侧留 resize 抓取带。
         const float body_w = footer_ != nullptr ? global_.size.x
-                                                : std::max(0.0f, global_.size.x - kGripEdge);
+                                                : std::max(0.0f, global_.size.x - c.grip);
         // footer 已覆盖底部，body 不再为底部抓取带留空，避免中间 box 与 footer 之间出现缝。
-        const float body_grip = footer_ != nullptr ? 0.0f : kGripEdge;
+        const float body_grip = footer_ != nullptr ? 0.0f : c.grip;
         body_->arrange({{global_.pos.x + body_grip, global_.pos.y + title},
                         {body_w - body_grip, std::max(0.0f, body_h - body_grip)}});
         if (footer_ != nullptr) {
@@ -258,13 +309,15 @@ public:
         graphics::append_rounded_rect(list, bounds, radius, t.elevated);
         // 边框统一走圆角 ring：classic 下 radius = 0 时自动退化为直边，
         // 不再额外画直角矩形，避免圆角模式下露出尖角。
-        const bool emphasized = has_focus_ || active;
+        // 焦点强调用基类的 is_focused()，不再自存一份状态。
+        const bool emphasized = is_focused() || active;
         const glm::vec4 border_color = emphasized ? t.accent : t.elevated_border;
         graphics::append_rounded_ring(list, bounds, radius, emphasized ? 2.0f : 1.0f,
                                       border_color);
 
         // 标题栏（无标题栏窗口跳过）。
         const float title = title_height();
+        const Chrome c = chrome();
         auto* atlas = font_atlas();
         if (title > 0.0f) {
             const glm::vec4 bar{bounds.x, bounds.y, bounds.z, title};
@@ -273,36 +326,49 @@ public:
             if (atlas != nullptr) {
                 // 用字体行高而不是字号：行框通常比字号高，按字号算文字会整体偏下。
                 const float text_y = atlas->centered_text_y(t.text_size, bar.y, title);
-                atlas->append_text(list, bar.x + kGlyphZone, text_y, t.text_size, title_, t.text);
+                atlas->append_text(list, bar.x + c.glyph, text_y, t.text_size, title_, t.text);
                 // debug 是叠加层，不能替代字形本身。
                 if (debug_.any()) {
-                    graphics::append_text_debug(list, *atlas, bar.x + kGlyphZone, text_y,
+                    graphics::append_text_debug(list, *atlas, bar.x + c.glyph, text_y,
                                                 t.text_size, title_, debug_);
                 }
             }
 
-            // 折叠三角（左）与关闭叉（右）。
+            // 折叠/展开箭头（左）：两臂均为 45°（|dx| == |dy|），展开朝下、折叠朝右。
             const glm::vec4 glyph_color = t.text_muted;
-            const float cy = bar.y + title * 0.5f;
             // 不可收起的窗口不画折叠三角（标题仍可拖动）。
             if (collapsible_) {
+                const Rect box = collapse_rect();
+                const float cx = box.pos.x + box.size.x * 0.5f;
+                const float cy = box.pos.y + box.size.y * 0.5f;
+                // 臂长（每轴）：图标方块的四分之一，45° 即 dx == dy == arm。
+                const float arm = std::min(box.size.x, box.size.y) * 0.25f;
+                const float half = arm * 0.5f;
                 if (collapsed_) {
-                    graphics::Line{bar.x + 8.0f, cy - 4.0f, bar.x + 16.0f, cy, 1.5f, glyph_color}
-                        .append_to(list);
-                    graphics::Line{bar.x + 16.0f, cy, bar.x + 8.0f, cy + 4.0f, 1.5f, glyph_color}
-                        .append_to(list);
+                    // 朝右 “▶”：顶点在右中，两臂往左上下 45°。
+                    const glm::vec2 tip{cx + half, cy};
+                    const glm::vec2 up{cx - half, cy - arm};
+                    const glm::vec2 down{cx - half, cy + arm};
+                    graphics::Line{up.x, up.y, tip.x, tip.y, 1.5f, glyph_color}.append_to(list);
+                    graphics::Line{tip.x, tip.y, down.x, down.y, 1.5f, glyph_color}.append_to(list);
                 } else {
-                    graphics::Line{bar.x + 8.0f, cy + 3.0f, bar.x + 16.0f, cy - 4.0f, 1.5f, glyph_color}
-                        .append_to(list);
-                    graphics::Line{bar.x + 16.0f, cy - 4.0f, bar.x + 24.0f, cy + 3.0f, 1.5f, glyph_color}
-                        .append_to(list);
+                    // 朝下 “▼”：顶点在下中，两臂往左上/右上 45°。
+                    const glm::vec2 tip{cx, cy + half};
+                    const glm::vec2 left{cx - arm, cy - half};
+                    const glm::vec2 right{cx + arm, cy - half};
+                    graphics::Line{left.x, left.y, tip.x, tip.y, 1.5f, glyph_color}.append_to(list);
+                    graphics::Line{tip.x, tip.y, right.x, right.y, 1.5f, glyph_color}.append_to(list);
                 }
             }
-            const float cx = bar.x + bar.z - 16.0f;
-            graphics::Line{cx - 5.0f, cy - 5.0f, cx + 5.0f, cy + 5.0f, 1.5f, glyph_color}
-                .append_to(list);
-            graphics::Line{cx + 5.0f, cy - 5.0f, cx - 5.0f, cy + 5.0f, 1.5f, glyph_color}
-                .append_to(list);
+            // 关闭叉：与 hit_close 保持同一可见性条件（折叠/无标题栏时不画也不命中）。
+            if (closable()) {
+                const Rect box = close_rect();
+                const float cx = box.pos.x + box.size.x * 0.5f;
+                const float cy = box.pos.y + box.size.y * 0.5f;
+                const float s = std::min(box.size.x, box.size.y) * 0.2f;
+                graphics::Line{cx - s, cy - s, cx + s, cy + s, 1.5f, glyph_color}.append_to(list);
+                graphics::Line{cx + s, cy - s, cx - s, cy + s, 1.5f, glyph_color}.append_to(list);
+            }
         }
 
         // 内容区。
@@ -334,23 +400,25 @@ public:
         }
     }
 
+    // append_to 把标题/内容/底栏都裁剪到窗口 bounds；命中必须同步裁剪，
+    // 否则布局到窗口外的子项画不出来却能点得到。
+    bool clips_children() const override { return true; }
+
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (key != event::KeyCode::Escape) return false;
-        request_close();
-        return true;
+        // Esc 关闭需要显式开启（模态窗口默认开启），否则普通窗口里的 Esc 会误关窗口。
+        if (key != event::KeyCode::Escape || !esc_closable_) return false;
+        return request_close();
     }
 
     void on_focus_gained() override
     {
         Widget::on_focus_gained();
-        has_focus_ = true;
         mark_layout_dirty();
     }
     void on_focus_lost() override
     {
         Widget::on_focus_lost();
-        has_focus_ = false;
         mark_layout_dirty();
     }
 
@@ -470,8 +538,6 @@ private:
         Resize,
     };
 
-    static constexpr float kTitleHeight = 32.0f;
-    static constexpr float kGlyphZone = 32.0f; // 折叠三角占位，标题文字从这里开始
     static constexpr float kKeepVisible = 48.0f;
     UIRoot* find_root_widget() const
     {
@@ -488,9 +554,11 @@ private:
         if (!modal_) return;
         modal_ = false;
         if (auto* root = find_root_widget()) root->pop_modal(this);
+        // 还原模态前的置顶 / Esc 状态：模态期间的置顶与 Esc 是临时的，不能粘住。
+        set_always_on_top(always_on_top_before_modal_);
+        esc_closable_ = esc_closable_before_modal_;
     }
 
-    static constexpr float kGripSize = 12.0f;
     static constexpr float kGripEdge = 6.0f;
     static constexpr int kOnTopZ = 10000;
     static constexpr int kEdgeRight = 1;
@@ -500,20 +568,26 @@ private:
 
     Rect close_rect() const
     {
-        return {{global_.pos.x + global_.size.x - 28.0f, global_.pos.y + 4.0f}, {24.0f, 24.0f}};
+        const Chrome c = chrome();
+        return {{global_.pos.x + global_.size.x - c.inset - c.icon, global_.pos.y + c.inset},
+                {c.icon, c.icon}};
     }
     Rect collapse_rect() const
     {
-        return {{global_.pos.x + 4.0f, global_.pos.y + 4.0f}, {24.0f, 24.0f}};
+        const Chrome c = chrome();
+        return {{global_.pos.x + c.inset, global_.pos.y + c.inset}, {c.icon, c.icon}};
     }
     Rect title_rect() const
     {
         return {{global_.pos.x, global_.pos.y}, {global_.size.x, title_height()}};
     }
 
+    // 关闭叉可见/可命中：标题栏可见且未折叠。绘制与命中共用这一条判据。
+    bool closable() const { return title_bar_visible_ && !collapsed_; }
+
     bool hit_close(glm::vec2 pos) const
     {
-        if (collapsed_ || !title_bar_visible_) return false;
+        if (!closable()) return false;
         return close_rect().contains(pos);
     }
     bool hit_collapse(glm::vec2 pos) const
@@ -530,12 +604,13 @@ private:
         const float top = global_.pos.y;
         const float right = left + global_.size.x;
         const float bottom = top + global_.size.y;
+        const float grip = chrome().grip;
 
-        const bool in_left = pos.x <= left + kGripEdge;
-        const bool in_right = pos.x >= right - kGripEdge;
+        const bool in_left = pos.x <= left + grip;
+        const bool in_right = pos.x >= right - grip;
         // 顶边只留 6px：再宽就会把标题栏的拖动区一起吃进去。
-        const bool in_top = pos.y <= top + kGripEdge;
-        const bool in_bottom = pos.y >= bottom - kGripEdge;
+        const bool in_top = pos.y <= top + grip;
+        const bool in_bottom = pos.y >= bottom - grip;
 
         int edges = 0;
         if (in_left) edges |= kEdgeLeft;
@@ -547,11 +622,14 @@ private:
 
     glm::vec2 clamp_position(glm::vec2 pos) const
     {
+        const auto& t = ui_theme();
+        (void)t;
+        const float keep = chrome().keep_visible;
         const glm::vec2 area = parent() != nullptr ? glm::vec2{parent()->width(), parent()->height()}
                                                    : glm::vec2{1280.0f, 800.0f};
-        const float max_x = std::max(0.0f, area.x - kKeepVisible);
-        const float min_x = kKeepVisible - std::max(kKeepVisible, global_.size.x);
-        const float max_y = std::max(0.0f, area.y - (title_height() > 0.0f ? title_height() : kKeepVisible));
+        const float max_x = std::max(0.0f, area.x - keep);
+        const float min_x = keep - std::max(keep, global_.size.x);
+        const float max_y = std::max(0.0f, area.y - (title_height() > 0.0f ? title_height() : keep));
         return {std::clamp(pos.x, min_x, max_x), std::clamp(pos.y, 0.0f, max_y)};
     }
 
@@ -565,10 +643,13 @@ private:
     bool resizable_ = true;
     bool title_bar_visible_ = true;
     bool always_on_top_ = false;
+    bool always_on_top_before_modal_ = false;
+    bool esc_closable_before_modal_ = false;
     bool modal_ = false;
     bool collapsible_ = true;
+    bool esc_closable_ = false;
+    bool pending_destroy_ = false;
     bool maximized_ = false;
-    bool has_focus_ = false;
     graphics::TextDebugOptions debug_{};
     float expanded_height_ = 0.0f;
     glm::vec2 resize_start_pos_{0.0f, 0.0f};

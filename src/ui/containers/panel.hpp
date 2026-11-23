@@ -32,6 +32,8 @@ public:
     }
 
     bool hit_testable() const override { return true; }
+    // append_to 已把子项裁剪到自身 bounds；命中必须同步裁剪，否则不可见的子项仍可点击。
+    bool clips_children() const override { return true; }
 
     void append_to(graphics::DrawList& list) const override
     {
