@@ -9,14 +9,15 @@ Hbox::Hbox(float x, float y, float width, float height)
 {
     set_pos(x, y);
     set_size(width, height);
-    set_padding(4.0f);
+    // 默认内边距 4：结构性默认值，不锁主题（见 Widget::set_default_padding）。
+    set_default_padding(4.0f);
 }
 
 Hbox::Hbox(glm::vec2 pos, glm::vec2 size)
 {
     set_pos(pos);
     set_size(size);
-    set_padding(4.0f);
+    set_default_padding(4.0f);
 }
 
 Hbox::~Hbox() = default;

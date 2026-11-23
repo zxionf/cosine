@@ -71,6 +71,11 @@ Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys, backend::vulkan::Renderer&
     // 验证用：COSINE_EDITOR_OPEN=1 启动即打开项目对话框（便于离屏截图检查布局）。
     if (std::getenv("COSINE_EDITOR_OPEN") != nullptr) open_project_dialog();
 
+    // 验证用：COSINE_EDITOR_DEBUG=1 启动即显示 Debug Window（便于离屏截图检查窗口内边距）。
+    if (std::getenv("COSINE_EDITOR_DEBUG") != nullptr && debug_window_ != nullptr) {
+        debug_window_->show();
+    }
+
     // 验证用：COSINE_EDITOR_IMAGE=<png> 启动时导入一张图（CO-2 第一段的自测入口）。
     if (const char* image = std::getenv("COSINE_EDITOR_IMAGE")) import_image(image);
 }

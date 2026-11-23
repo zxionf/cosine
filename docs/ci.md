@@ -34,6 +34,9 @@ COSINE_EXIT_AFTER=3 ./cosine 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
 
 # 离屏导出界面（不依赖窗口截图，1280×840）
 COSINE_EXPORT_PNG=/tmp/editor.png ./cosine
+
+# 同上，但启动即显示 Debug Window（检查窗口内边距/标签页是否贴满）
+COSINE_EDITOR_DEBUG=1 COSINE_EXPORT_PNG=/tmp/editor-debug.png ./cosine
 ```
 
 计数为 0 即通过。**不要用 `timeout` 强杀**——会跳过析构，掩盖资源释放问题。

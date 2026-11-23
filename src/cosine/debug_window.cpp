@@ -144,6 +144,8 @@ bool DebugWindow::is_own(const ui::Widget* widget) const
 void DebugWindow::build()
 {
     ui::Vbox* content = window_->content();
+    // body 是 Vbox，构造函数默认 padding = 4；不清零的话窗口内四周会留 4px 边。
+    // 显式 set_padding 会锁住该值，主题重刷（density/明暗切换）不会再覆盖回 theme.padding。
     content->set_padding(4.0f);
     content->set_spacing(0.0f);
     content->set_cross_align(ui::Align::top_left());
@@ -155,18 +157,22 @@ void DebugWindow::build()
     view->set_max_size({10000.0f, 10000.0f});
     ui::TabView* view_ptr = view.get();
     content->add(std::move(view));
-    // Window::add 会经 set_context 重新套 theme padding，这里覆盖回 0。
+    // Window::add 会经 set_context 套 theme padding；这里覆盖回 0（显式值优先后不会被再次覆盖）。
     view_ptr->set_padding(0.0f);
+    // 标签栏与页面之间不留缝：页面 Panel 自己就是窗口内容区。
+    view_ptr->set_tab_gap(4.0f);
 
     auto widget_page = std::make_unique<ui::ScrollPanel>(0.0f, 0.0f, 0.0f, 0.0f);
-    widget_page->set_padding(0.0f);
+    // 页面贴满标签内容区：显式 0 在 add_page 的 set_context 之后仍然生效。
+    widget_page->set_padding(4.0f);
     widget_page->set_min_size({0.0f, 0.0f});
     widget_page->set_max_size({10000.0f, 10000.0f});
     build_widget_page(*widget_page);
     view_ptr->add_page("Widget", std::move(widget_page));
 
     auto font_page = std::make_unique<ui::ScrollPanel>(0.0f, 0.0f, 0.0f, 0.0f);
-    font_page->set_padding(0.0f);
+    // 同 Widget 页：显式 0 优先后主题只会影响未设定过的面板。
+    font_page->set_padding(4.0f);
     font_page->set_min_size({0.0f, 0.0f});
     font_page->set_max_size({10000.0f, 10000.0f});
     build_font_page(*font_page);

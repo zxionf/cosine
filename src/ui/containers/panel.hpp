@@ -16,7 +16,7 @@ public:
     Panel(float x, float y, float width, float height)
         : Vbox(x, y, width, height)
     {
-        set_padding(ui_theme().padding);
+        apply_theme_padding(ui_theme().padding);
         set_spacing(ui_theme().spacing);
     }
 
@@ -26,7 +26,9 @@ public:
     {
         Widget::set_context(context);
         if (context) {
-            set_padding(context->theme.padding);
+            // 只对没显式设过 padding 的面板套主题值：贴满父容器的页面（例如窗口里的
+            // ScrollPanel 页）用 set_padding(0) 锁住，主题切换后不会再长回 8px。
+            apply_theme_padding(context->theme.padding);
             set_spacing(context->theme.spacing);
         }
     }

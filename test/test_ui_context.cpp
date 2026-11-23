@@ -45,6 +45,20 @@ int main()
     assert(label_ptr->text_size() == 12.0f);
     assert(label_ptr->font_atlas() == nullptr);
 
+    // 显式 set_padding 锁住内边距：主题重刷不再覆盖（CO-7）。
+    auto pinned = std::make_unique<xel::ui::Panel>(0.0f, 0.0f, 100.0f, 50.0f);
+    pinned->set_padding(0.0f);
+    auto* pinned_ptr = pinned.get();
+    vbox_ptr->add(std::move(pinned));
+    assert(pinned_ptr->padding_override());
+    assert(pinned_ptr->padding().left == 0.0f);
+
+    xel::ui::UIContext third;
+    third.theme.padding = 30.0f;
+    root->set_context(&third);
+    assert(pinned_ptr->padding().left == 0.0f);   // 显式值优先，不被主题掤回
+    assert(panel_ptr->padding().left == 30.0f);   // 未显式设过的面板跟随主题
+
     std::cout << "ui context tests passed\n";
     return 0;
 }

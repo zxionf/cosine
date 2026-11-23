@@ -106,10 +106,20 @@ public:
     }
     bool page_fill() const { return page_fill_; }
 
+    // 标签栏与页面之间的距离：负值 = 跟随主题 spacing（默认）。
+    // 页需要贴着标签栏铺满时（例如窗口内的调试页）设 0，否则会露出一条窗口底色缝。
+    void set_tab_gap(float gap)
+    {
+        tab_gap_ = gap;
+        mark_layout_dirty();
+    }
+    float tab_gap() const { return tab_gap_ >= 0.0f ? tab_gap_ : ui_theme().spacing; }
+
     void set_context(UIContext* context) override
     {
         Widget::set_context(context);
-        if (context) set_padding(context->theme.padding);
+        // 与 Panel 同规则：显式 set_padding() 过就不再用主题值覆盖。
+        if (context) apply_theme_padding(context->theme.padding);
     }
 
     void invalidate_measure() override
@@ -122,7 +132,6 @@ public:
     {
         if (measure_valid_ && constraints == cached_constraints_) return cached_measure_;
 
-        const auto& t = ui_theme();
         const float pad = padding_left() + padding_right();
         const float pad_v = padding_top() + padding_bottom();
         const glm::vec2 bar = tab_bar().measure(constraints);
@@ -136,9 +145,10 @@ public:
 
         cached_constraints_ = constraints;
         const bool side = bar_position_ == BarPosition::Left || bar_position_ == BarPosition::Right;
+        const float gap = tab_gap();
         cached_measure_ = side
-            ? glm::vec2{bar.x + t.spacing + content.x + pad, std::max(bar.y, content.y) + pad_v}
-            : glm::vec2{std::max(bar.x, content.x) + pad, bar.y + t.spacing + content.y + pad_v};
+            ? glm::vec2{bar.x + gap + content.x + pad, std::max(bar.y, content.y) + pad_v}
+            : glm::vec2{std::max(bar.x, content.x) + pad, bar.y + gap + content.y + pad_v};
         measure_valid_ = true;
         return cached_measure_;
     }
@@ -149,11 +159,11 @@ public:
         set_pos(slot.pos);
         set_size(slot.size);
 
-        const auto& t = ui_theme();
         const float pad_l = padding_left();
         const float pad_t = padding_top();
         const float inner_w = std::max(0.0f, slot.size.x - pad_l - padding_right());
         const float inner_h = std::max(0.0f, slot.size.y - pad_t - padding_bottom());
+        const float gap = tab_gap();
 
         const glm::vec2 bar_size = tab_bar().measure({inner_w, inner_h});
         Rect bar_slot{};
@@ -163,14 +173,14 @@ public:
             case BarPosition::Top: {
                 const float bar_h = std::min(bar_size.y, inner_h);
                 bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t}, {inner_w, bar_h}};
-                content = {{slot.pos.x + pad_l, slot.pos.y + pad_t + bar_h + t.spacing},
-                           {inner_w, std::max(0.0f, inner_h - bar_h - t.spacing)}};
+                content = {{slot.pos.x + pad_l, slot.pos.y + pad_t + bar_h + gap},
+                           {inner_w, std::max(0.0f, inner_h - bar_h - gap)}};
                 break;
             }
             case BarPosition::Bottom: {
                 const float bar_h = std::min(bar_size.y, inner_h);
                 content = {{slot.pos.x + pad_l, slot.pos.y + pad_t},
-                           {inner_w, std::max(0.0f, inner_h - bar_h - t.spacing)}};
+                           {inner_w, std::max(0.0f, inner_h - bar_h - gap)}};
                 bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t + inner_h - bar_h},
                             {inner_w, bar_h}};
                 break;
@@ -179,15 +189,15 @@ public:
                 const float bar_w = std::min(bar_size.x, inner_w);
                 const float bar_h = std::min(bar_size.y, inner_h);
                 bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t}, {bar_w, bar_h}};
-                content = {{slot.pos.x + pad_l + bar_w + t.spacing, slot.pos.y + pad_t},
-                           {std::max(0.0f, inner_w - bar_w - t.spacing), inner_h}};
+                content = {{slot.pos.x + pad_l + bar_w + gap, slot.pos.y + pad_t},
+                           {std::max(0.0f, inner_w - bar_w - gap), inner_h}};
                 break;
             }
             case BarPosition::Right: {
                 const float bar_w = std::min(bar_size.x, inner_w);
                 const float bar_h = std::min(bar_size.y, inner_h);
                 content = {{slot.pos.x + pad_l, slot.pos.y + pad_t},
-                           {std::max(0.0f, inner_w - bar_w - t.spacing), inner_h}};
+                           {std::max(0.0f, inner_w - bar_w - gap), inner_h}};
                 bar_slot = {{slot.pos.x + pad_l + inner_w - bar_w, slot.pos.y + pad_t},
                             {bar_w, bar_h}};
                 break;
@@ -255,6 +265,8 @@ private:
 
     std::function<void(int)> on_change_;
     BarPosition bar_position_ = BarPosition::Top;
+    // 负值 = 跟随主题 spacing。见 set_tab_gap()。
+    float tab_gap_ = -1.0f;
     glm::vec2 cached_constraints_{};
     glm::vec2 cached_measure_{};
     bool measure_valid_ = false;

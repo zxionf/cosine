@@ -4,6 +4,7 @@
 #include "ui/ui_system.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -189,6 +190,31 @@ int main()
         return event;
     }());
     assert(side_ptr->selected() == 0);
+
+    // set_tab_gap(0) + set_padding(0)：页面紧贴标签栏，且窗口内无内缩（CO-7）。
+    auto tight = std::make_unique<xel::ui::TabView>();
+    tight->set_padding(0.0f);
+    tight->set_tab_gap(0.0f);
+    tight->add_page("Tight", page_with_label("tight"));
+    auto* tight_ptr = tight.get();
+    ui.root()->add(std::move(tight));
+    ui.tick();
+
+    assert(tight_ptr->tab_gap() == 0.0f);
+    assert(tight_ptr->padding().left == 0.0f);
+    // 主题重刷（set_theme 会全树 set_context）后显式值不被覆盖。
+    ui.context()->theme.padding = 20.0f;
+    ui.root()->set_theme(ui.context()->theme);
+    assert(tight_ptr->padding().left == 0.0f);
+
+    const auto tight_bounds = tight_ptr->global_bounds();
+    const auto tight_bar = tight_ptr->tab_bar().global_bounds();
+    const auto tight_page = tight_ptr->page(0)->global_bounds();
+    assert(std::fabs(tight_bar.pos.x - tight_bounds.pos.x) < 0.01f);
+    assert(std::fabs(tight_bar.pos.y - tight_bounds.pos.y) < 0.01f);
+    assert(std::fabs(tight_page.pos.x - tight_bounds.pos.x) < 0.01f);
+    // 页面顶边 = 标签栏底边（不再插 theme.spacing 的缝）。
+    assert(std::fabs(tight_page.pos.y - (tight_bar.pos.y + tight_bar.size.y)) < 0.01f);
 
     std::cout << "tab view tests passed\n";
     return 0;

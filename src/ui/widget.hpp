@@ -162,9 +162,21 @@ public:
     void set_align(Align a) { align_self_ = a; has_align_ = true; mark_layout_dirty(); }
     std::optional<Align> align_self() const { return has_align_ ? std::optional<Align>(align_self_) : std::nullopt; }
 
-    void    set_padding(Edges edges)    { padding_ = edges; mark_layout_dirty(); }
-    void    set_padding(float all)      { padding_ = {all, all, all, all}; mark_layout_dirty(); }
+    // 内边距：显式调用即「锁住」该值，主题重刷（set_context / UIRoot::set_theme）不再覆盖。
+    // 容器把主题值套进来时走 apply_theme_padding()，那条路径会跳过已锁定的控件。
+    void    set_padding(Edges edges)    { padding_ = edges; padding_override_ = true; mark_layout_dirty(); }
+    void    set_padding(float all)      { set_padding(Edges{all, all, all, all}); }
     Edges   padding() const             { return padding_; }
+    bool    padding_override() const    { return padding_override_; }
+    // 交还给主题：之后 apply_theme_padding() 才会重新生效。
+    void    clear_padding_override()    { padding_override_ = false; }
+    // 主题套用入口（Panel / TabView 的 set_context 用）：显式设定过的内边距不覆盖。
+    void    apply_theme_padding(float all)
+    {
+        if (padding_override_) return;
+        padding_ = {all, all, all, all};
+        mark_layout_dirty();
+    }
     void    set_margin(Edges edges)     { margin_ = edges; mark_layout_dirty(); }
     void    set_margin(float all)       { margin_ = {all, all, all, all}; mark_layout_dirty(); }
     Edges   margin() const              { return margin_; }
@@ -326,6 +338,10 @@ public:
     virtual void invalidate_measure() {}
 
 protected:
+    // 构造期的结构性默认内边距（Vbox/Hbox 的 4px）：不锁定，主题仍可接管。
+    // 与 set_padding() 的区别就在于此——后者是调用方的显式意图。
+    void set_default_padding(float all) { padding_ = {all, all, all, all}; }
+
     Rect global_;
     Rect local_;
     Align align_self_ = Align::top_left();
@@ -336,6 +352,7 @@ protected:
     UIContext* context_ = nullptr;
     std::shared_ptr<const bool> alive_token_ = std::make_shared<const bool>(true);
     Edges padding_{};
+    bool padding_override_ = false;
     Edges margin_{};
     float flex_grow_ = 0.0f;
     bool absolute_ = false;

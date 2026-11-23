@@ -166,6 +166,23 @@ virtual float viewport_height() const { return global_.size.y; }
 | `clips_children() = true` | 子项绘制/命中裁剪到自身 `bounds`（`Panel` / `Window` / `ScrollView` / `Table` / `TreeView`） |
 | `focusable() = true` | 参与 Tab 顺序，可被 `set_focus` 获得键盘事件 |
 
+### 6. 内边距：显式值优先，主题只填空白
+
+```cpp
+void set_padding(float all);          // 显式意图：锁定，主题重刷不再覆盖
+void apply_theme_padding(float all);  // 主题套用入口：跳过已锁定的控件
+bool padding_override() const;        // 查询是否已锁定
+void clear_padding_override();        // 交还主题
+```
+
+- `Vbox` / `Hbox` 构造期的 4px 是**结构性默认值**（`set_default_padding`），不锁定；
+  所以没显式设过的 `Panel` / `TabView` 照旧跟着 `theme.padding` 走。
+- `Panel` / `TabView` 的 `set_context` 走 `apply_theme_padding`：既要「主题能注入」，
+  又不能把调用方写死的 0 冲掉。`UIRoot::set_theme` 会全树 `set_context`，这是唯一被重刷的时机。
+- 典型用法：窗口内容页要贴满时 `panel->set_padding(0.0f)` 一次即可，之后切 density / 明暗仍为 0。
+- 相关：`TabView::set_tab_gap(0)` 去掉标签栏与页面之间的 `theme.spacing` 缝（负值 = 跟随主题）。
+- 验收点：`test_ui_context`（Panel 锁定）、`test_ui_tab_view`（tab gap 与 `set_theme` 后不漂移）。
+
 ## 三、生命周期
 
 ### 构建 → 布局 → 绘制
