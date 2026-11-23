@@ -203,9 +203,15 @@ public:
     }
     float content_inset() const { return content_inset_; }
 
+    // resize 边位标志（UISystem 用它们做光标映射）。
+    static constexpr int kEdgeRight = 1;
+    static constexpr int kEdgeBottom = 2;
+    static constexpr int kEdgeLeft = 4;
+    static constexpr int kEdgeTop = 8;
+
     // resize 命中带：四边 + 四角，角比边优先。margin 来自 theme（不占内容布局）。
-    // 这是 Widget::resize_edges_at 的覆写，UISystem 用它让边缘交互优先于内容子控件。
-    int resize_edges_at(glm::vec2 pos) override
+    // UISystem 用它让边缘交互优先于内容子控件。
+    int resize_edges_at(glm::vec2 pos) const
     {
         if (!resizable_) return 0;
         const float left = global_.pos.x;
@@ -221,10 +227,10 @@ public:
         const bool in_bottom = pos.y <= bottom && pos.y >= bottom - margin;
 
         int edges = 0;
-        if (in_left) edges |= kResizeLeft;
-        if (in_right) edges |= kResizeRight;
-        if (in_top) edges |= kResizeTop;
-        if (in_bottom) edges |= kResizeBottom;
+        if (in_left) edges |= kEdgeLeft;
+        if (in_right) edges |= kEdgeRight;
+        if (in_top) edges |= kEdgeTop;
+        if (in_bottom) edges |= kEdgeBottom;
         return edges;
     }
 
@@ -518,27 +524,27 @@ public:
             const glm::vec2 delta = pos - grab_;
             glm::vec2 next_pos = resize_start_pos_;
             glm::vec2 next_size = resize_start_size_;
-            if ((edges_ & kResizeLeft) != 0) {
+            if ((edges_ & kEdgeLeft) != 0) {
                 next_pos.x += delta.x;
                 next_size.x -= delta.x;
             }
-            if ((edges_ & kResizeTop) != 0) {
+            if ((edges_ & kEdgeTop) != 0) {
                 next_pos.y += delta.y;
                 next_size.y -= delta.y;
             }
-            if ((edges_ & kResizeRight) != 0) next_size.x += delta.x;
-            if ((edges_ & kResizeBottom) != 0) next_size.y += delta.y;
+            if ((edges_ & kEdgeRight) != 0) next_size.x += delta.x;
+            if ((edges_ & kEdgeBottom) != 0) next_size.y += delta.y;
 
             // 夹到最小/最大尺寸：把左/上边被推回的那部分偿还给位置，避免窗口向右下飘。
             const float min_w = std::max(160.0f, min_size().x);
             const float min_h = collapsed_ ? title_height()
                                            : std::max(title_height() + 48.0f, min_size().y);
             if (next_size.x < min_w) {
-                if ((edges_ & kResizeLeft) != 0) next_pos.x -= min_w - next_size.x;
+                if ((edges_ & kEdgeLeft) != 0) next_pos.x -= min_w - next_size.x;
                 next_size.x = min_w;
             }
             if (next_size.y < min_h) {
-                if ((edges_ & kResizeTop) != 0) next_pos.y -= min_h - next_size.y;
+                if ((edges_ & kEdgeTop) != 0) next_pos.y -= min_h - next_size.y;
                 next_size.y = min_h;
             }
             next_size.x = std::min(next_size.x, max_size().x);

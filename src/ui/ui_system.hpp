@@ -10,6 +10,8 @@ namespace xel::backend { class Window; }
 
 namespace xel::ui
 {
+class Window;
+
 class UISystem
 {
 public:
@@ -99,8 +101,8 @@ private:
     void dispatch_key(const event::InputEvent& event);
     void dispatch_char(const event::InputEvent& event);
 
-    // resize 热区扫描：沿树（z 降序）找第一个 resize_edges_at != 0 的控件。
-    Widget* find_resize_target(Widget* widget, glm::vec2 pos) const;
+    // resize 热区扫描：沿树（z 降序）找第一个 resize 边命中的 Window。
+    Window* find_resize_target(Widget* widget, glm::vec2 pos) const;
     // 根据当前指针位置切换窗口 resize 光标（无热区时恢复箭头）。
     void update_resize_cursor(glm::vec2 pos);
 

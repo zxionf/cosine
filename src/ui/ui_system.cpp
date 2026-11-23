@@ -1,5 +1,6 @@
 #include "ui/ui_system.hpp"
 #include "backend/window.hpp"
+#include "ui/composites/window.hpp"
 #include "ui/theme.hpp"
 
 #include <algorithm>
@@ -316,34 +317,36 @@ void UISystem::focus_next(bool backwards)
     set_focus(tabbable[index].widget);
 }
 
-Widget* UISystem::find_resize_target(Widget* widget, glm::vec2 pos) const
+Window* UISystem::find_resize_target(Widget* widget, glm::vec2 pos) const
 {
     if (!widget || !widget->visible()) return nullptr;
     // 子控件（z 降序，顶层优先）先于自身，与命中顺序一致。
     const auto order = widget->layer_paint_order();
     for (auto it = order.rbegin(); it != order.rend(); ++it) {
-        if (Widget* w = find_resize_target(*it, pos)) return w;
+        if (Window* w = find_resize_target(*it, pos)) return w;
     }
-    if (widget->resize_edges_at(pos) != 0) return widget;
+    if (auto* win = dynamic_cast<Window*>(widget)) {
+        if (win->resize_edges_at(pos) != 0) return win;
+    }
     return nullptr;
 }
 
 void UISystem::update_resize_cursor(glm::vec2 pos)
 {
     if (!window_) return;
-    Widget* w = find_resize_target(root_.get(), pos);
+    Window* w = find_resize_target(root_.get(), pos);
     if (w == nullptr) {
         window_->set_cursor(backend::Window::Cursor::Arrow);
         return;
     }
     const int edges = w->resize_edges_at(pos);
-    const bool h = (edges & Widget::kResizeLeft) != 0 || (edges & Widget::kResizeRight) != 0;
-    const bool v = (edges & Widget::kResizeTop) != 0 || (edges & Widget::kResizeBottom) != 0;
+    const bool h = (edges & Window::kEdgeLeft) != 0 || (edges & Window::kEdgeRight) != 0;
+    const bool v = (edges & Window::kEdgeTop) != 0 || (edges & Window::kEdgeBottom) != 0;
     backend::Window::Cursor cursor;
     if (h && v) {
-        // 对角线：左上↔右下 或 右上↔左下。
-        const bool nwse = ((edges & Widget::kResizeLeft) != 0 && (edges & Widget::kResizeBottom) != 0)
-                        || ((edges & Widget::kResizeRight) != 0 && (edges & Widget::kResizeTop) != 0);
+        // 对角线：左上↔右下（NWSE）或 右上↔左下（NESW）。
+        const bool nwse = ((edges & Window::kEdgeLeft) != 0 && (edges & Window::kEdgeTop) != 0)
+                        || ((edges & Window::kEdgeRight) != 0 && (edges & Window::kEdgeBottom) != 0);
         cursor = nwse ? backend::Window::Cursor::ResizeNWSE
                       : backend::Window::Cursor::ResizeNESW;
     } else if (h) {
