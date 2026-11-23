@@ -116,6 +116,17 @@ public:
     // 容器是否把子控件裁剪在自身范围内（命中测试与渲染共用同一语义）
     virtual bool clips_children() const { return false; }
 
+    // resize 边命中：返回命中的边（位组合 kResize*），0 表示不在 resize 热区。
+    // 用于窗口这类「边缘交互优先于内容」的控件：UISystem 在派发 down 前先扫它，
+    // 命中时把窗口作为 resize 目标，而不是先命中内容子控件。默认不参与。
+    virtual int resize_edges_at(glm::vec2 pos) { (void)pos; return 0; }
+
+    // resize 边的位标志（由 resize_edges_at 组合返回）。
+    static constexpr int kResizeRight  = 1;
+    static constexpr int kResizeBottom = 2;
+    static constexpr int kResizeLeft   = 4;
+    static constexpr int kResizeTop    = 8;
+
     bool visible() const { return visible_; }
     bool is_hovered() const { return hovered_; }
     void set_hovered(bool hovered) { hovered_ = hovered; }

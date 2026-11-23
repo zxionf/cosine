@@ -12,6 +12,7 @@
 #include <glm/glm.hpp>
 
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <functional>
 
@@ -42,6 +43,33 @@ public:
     void reset_window_resized_flag() { framebuffer_resized_ = false; }
     GLFWwindow* get_glfw_window() { return window_; }
 
+    // 系统光标形状（UI 层用，避免把 GLFW 常量泄漏到 ui）。
+    enum class Cursor
+    {
+        Arrow,
+        ResizeEW,     // 左右
+        ResizeNS,     // 上下
+        ResizeNWSE,   // 左上 ↔ 右下
+        ResizeNESW,   // 右上 ↔ 左下
+    };
+    void set_cursor(Cursor cursor)
+    {
+        int shape = GLFW_ARROW_CURSOR;
+        switch (cursor) {
+            case Cursor::Arrow:      shape = GLFW_ARROW_CURSOR; break;
+            case Cursor::ResizeEW:   shape = GLFW_RESIZE_EW_CURSOR; break;
+            case Cursor::ResizeNS:   shape = GLFW_RESIZE_NS_CURSOR; break;
+            case Cursor::ResizeNWSE: shape = GLFW_RESIZE_NWSE_CURSOR; break;
+            case Cursor::ResizeNESW: shape = GLFW_RESIZE_NESW_CURSOR; break;
+        }
+        // 内联：UI 层（cosine_ui）不链接 backend 库，需在头文件提供实现。
+        auto it = cursor_cache_.find(shape);
+        if (it == cursor_cache_.end()) {
+            it = cursor_cache_.emplace(shape, glfwCreateStandardCursor(shape)).first;
+        }
+        glfwSetCursor(window_, it->second);
+    }
+
     // 光标/坐标换算：窗口坐标 → framebuffer 物理像素（× DPR）。
     // 属于 UI 层，不在这里做。
     glm::vec2 cursor_pos();
@@ -64,5 +92,6 @@ private:
 
     std::string window_name_;
     GLFWwindow* window_ = nullptr;
+    std::unordered_map<int, GLFWcursor*> cursor_cache_;
 };
 }

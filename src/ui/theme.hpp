@@ -129,6 +129,8 @@ struct Theme
     float slider_handle_radius = 7.0f;
     float scrollbar_width = 8.0f;
     float scrollbar_min_thumb = 20.0f;
+    // 窗口 resize 命中带（像素）：边缘该范围内的鼠标命中 resize，而非内容。
+    float resize_margin = 4.0f;
     // 全局默认滚动模式；ScrollView 未显式覆盖时采用。
     ScrollMode scroll_mode = ScrollMode::Smooth;
 

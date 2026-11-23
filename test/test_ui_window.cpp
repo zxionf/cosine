@@ -4,6 +4,7 @@
 #include "ui/containers/hbox.hpp"
 #include "ui/containers/vbox.hpp"
 #include "ui/core/button.hpp"
+#include "ui/core/color_rect.hpp"
 #include "ui/core/label.hpp"
 #include "ui/core/spacer.hpp"
 #include "ui/root.hpp"
@@ -94,7 +95,7 @@ void test_raise_on_press()
     a->on_mouse_up({20.0f, 10.0f}, 0);
 }
 
-// 右下角同时改宽高；右边只改宽；下边只改高。
+// 右下角同时改宽高；右边只改宽；下边只改高。resize_margin 默认 4（theme）。
 void test_resize_grips()
 {
     Fixture f;
@@ -103,13 +104,13 @@ void test_resize_grips()
     const float right = bounds.pos.x + bounds.size.x;
     const float bottom = bounds.pos.y + bounds.size.y;
 
-    // 右下角：宽高一起变（抓取偏移 -6，拖动 +100 即尺寸 +100）。
-    assert(f.window->on_mouse_down({right - 6.0f, bottom - 6.0f}, 0));
+    // 右下角：宽高一起变（margin 4px 内命中，拖动 +100 即尺寸 +100）。
+    assert(f.window->on_mouse_down({right - 2.0f, bottom - 2.0f}, 0));
     assert(f.window->resizing());
-    f.window->on_mouse_move({right + 94.0f, bottom + 94.0f});
+    f.window->on_mouse_move({right + 98.0f, bottom + 98.0f});
     assert(std::fabs(f.window->width() - 420.0f) < kEps);
     assert(std::fabs(f.window->height() - 300.0f) < kEps);
-    f.window->on_mouse_up({right + 94.0f, bottom + 94.0f}, 0);
+    f.window->on_mouse_up({right + 98.0f, bottom + 98.0f}, 0);
 
     // 右边中间：只改宽（先重排一次，让 global_bounds 跟上新的尺寸）。
     f.parent.mark_layout_dirty();
@@ -117,11 +118,11 @@ void test_resize_grips()
     const auto grown = f.window->global_bounds();
     const float edge = grown.pos.x + grown.size.x;
     const float height_before = f.window->height();
-    assert(f.window->on_mouse_down({edge - 3.0f, grown.pos.y + 100.0f}, 0));
-    f.window->on_mouse_move({edge + 47.0f, grown.pos.y + 100.0f});
+    assert(f.window->on_mouse_down({edge - 2.0f, grown.pos.y + 100.0f}, 0));
+    f.window->on_mouse_move({edge + 48.0f, grown.pos.y + 100.0f});
     assert(std::fabs(f.window->width() - 470.0f) < kEps);
     assert(std::fabs(f.window->height() - height_before) < kEps);
-    f.window->on_mouse_up({edge + 47.0f, grown.pos.y + 100.0f}, 0);
+    f.window->on_mouse_up({edge + 48.0f, grown.pos.y + 100.0f}, 0);
 }
 
 // 折叠只留标题栏，展开恢复原高度；关闭两种语义都要能走通。
@@ -373,6 +374,73 @@ void test_fixed_size_not_stretched()
     assert(std::fabs(win->global_bounds().size.x - 300.0f) < kEps);
 }
 
+// content_inset 默认 0：内容贴满窗口；resize 命中带仍独立存在（theme.resize_margin）。
+void test_content_inset_defaults_to_zero()
+{
+    Fixture f;
+    assert(std::fabs(f.window->content_inset()) < kEps);
+
+    f.window->layout();
+    const auto wb = f.window->global_bounds();
+    const auto body = f.window->content()->global_bounds();
+
+    // 无 footer 时：body 横向贴满窗口。
+    assert(std::fabs(body.pos.x - wb.pos.x) < kEps);
+    assert(std::fabs(body.size.x - wb.size.x) < kEps);
+
+    // resize 热区仍存在：边缘 4px 内命中 resize（与内容贴边不冲突）。
+    const glm::vec2 corner{wb.pos.x + wb.size.x - 2.0f, wb.pos.y + wb.size.y - 2.0f};
+    assert(f.window->resize_edges_at(corner) != 0);
+    assert(f.window->on_mouse_down(corner, 0));
+    assert(f.window->resizing());
+    f.window->on_mouse_up(corner, 0);
+
+    // 显式设 content_inset：内容让出边带（视觉留白，与 resize 无关）。
+    f.window->set_content_inset(6.0f);
+    f.window->layout();
+    const auto body2 = f.window->content()->global_bounds();
+    assert(std::fabs(body2.pos.x - (wb.pos.x + 6.0f)) < kEps);
+    assert(std::fabs(body2.size.x - (wb.size.x - 12.0f)) < kEps);
+}
+
+// resize 热区优先于内容子控件：内容铺满窗口时，边缘仍触发 resize 而非内容命中。
+void test_resize_priority_over_content()
+{
+    auto root = std::make_unique<xel::ui::UIRoot>(0.0f, 0.0f, 800.0f, 600.0f);
+    xel::ui::UISystem ui{std::move(root)};
+
+    auto win = std::make_unique<Window>("W", glm::vec2{100.0f, 100.0f}, glm::vec2{300.0f, 200.0f});
+    Window* w = win.get();
+    // 铺满窗口的内容（覆盖右下角边缘），ColorRect 固定尺寸 300×200。
+    auto fill = std::make_unique<xel::ui::ColorRect>(0.0f, 0.0f, 300.0f, 200.0f, glm::vec4{1.0f});
+    fill->set_absolute(true);
+    fill->set_absolute_pos({0.0f, 0.0f});
+    xel::ui::ColorRect* fill_ptr = fill.get();
+    win->add(std::move(fill));
+    ui.root()->add(std::move(win));
+    ui.tick();
+
+    const auto b = w->global_bounds();
+    // 右下角边缘（resize_margin=4 内）。
+    const glm::vec2 corner{b.pos.x + b.size.x - 2.0f, b.pos.y + b.size.y - 2.0f};
+    assert(fill_ptr->global_bounds().contains(corner)); // 内容确实覆盖了该点
+
+    xel::event::InputEvent down;
+    down.type = xel::event::InputEvent::Type::MouseButtonDown;
+    down.mouse_pos = corner;
+    down.mouse_button = 0;
+    ui.dispatch(down);
+
+    // 边缘命中 resize，而不是内容子控件。
+    assert(w->resizing());
+
+    xel::event::InputEvent up;
+    up.type = xel::event::InputEvent::Type::MouseButtonUp;
+    up.mouse_pos = corner;
+    up.mouse_button = 0;
+    ui.dispatch(up);
+}
+
 } // namespace
 
 int main()
@@ -390,6 +458,8 @@ int main()
     test_title_follows_line_height();
     test_chrome_hit_rects_consistent();
     test_fixed_size_not_stretched();
+    test_content_inset_defaults_to_zero();
+    test_resize_priority_over_content();
     std::printf("test_ui_window: all passed\n");
     return 0;
 }

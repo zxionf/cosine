@@ -316,6 +316,46 @@ void UISystem::focus_next(bool backwards)
     set_focus(tabbable[index].widget);
 }
 
+Widget* UISystem::find_resize_target(Widget* widget, glm::vec2 pos) const
+{
+    if (!widget || !widget->visible()) return nullptr;
+    // 子控件（z 降序，顶层优先）先于自身，与命中顺序一致。
+    const auto order = widget->layer_paint_order();
+    for (auto it = order.rbegin(); it != order.rend(); ++it) {
+        if (Widget* w = find_resize_target(*it, pos)) return w;
+    }
+    if (widget->resize_edges_at(pos) != 0) return widget;
+    return nullptr;
+}
+
+void UISystem::update_resize_cursor(glm::vec2 pos)
+{
+    if (!window_) return;
+    Widget* w = find_resize_target(root_.get(), pos);
+    if (w == nullptr) {
+        window_->set_cursor(backend::Window::Cursor::Arrow);
+        return;
+    }
+    const int edges = w->resize_edges_at(pos);
+    const bool h = (edges & Widget::kResizeLeft) != 0 || (edges & Widget::kResizeRight) != 0;
+    const bool v = (edges & Widget::kResizeTop) != 0 || (edges & Widget::kResizeBottom) != 0;
+    backend::Window::Cursor cursor;
+    if (h && v) {
+        // 对角线：左上↔右下 或 右上↔左下。
+        const bool nwse = ((edges & Widget::kResizeLeft) != 0 && (edges & Widget::kResizeBottom) != 0)
+                        || ((edges & Widget::kResizeRight) != 0 && (edges & Widget::kResizeTop) != 0);
+        cursor = nwse ? backend::Window::Cursor::ResizeNWSE
+                      : backend::Window::Cursor::ResizeNESW;
+    } else if (h) {
+        cursor = backend::Window::Cursor::ResizeEW;
+    } else if (v) {
+        cursor = backend::Window::Cursor::ResizeNS;
+    } else {
+        cursor = backend::Window::Cursor::Arrow;
+    }
+    window_->set_cursor(cursor);
+}
+
 void UISystem::dispatch_mouse_move(const event::InputEvent& event)
 {
     // 拖动时：优先发给捕获目标
@@ -347,6 +387,9 @@ void UISystem::dispatch_mouse_move(const event::InputEvent& event)
             return widget->on_mouse_move(event.mouse_pos);
         });
     }
+
+    // 悬停时更新 resize 光标（拖动分支会提前 return，保持当前形状）。
+    update_resize_cursor(event.mouse_pos);
 }
 
 void UISystem::dispatch_mouse_button(const event::InputEvent& event)
@@ -357,8 +400,14 @@ void UISystem::dispatch_mouse_button(const event::InputEvent& event)
     // 让控件能读到 Shift/Ctrl：鼠标回调本身不携带修饰键。
     if (auto* ctx = context()) ctx->modifiers = event.mods;
 
+    // resize 热区优先：鼠标在窗口边缘 resize_margin 内时，目标直接是窗口而非内容子控件。
     const auto path = hit_path(root_.get(), event.mouse_pos);
     Widget* target = path.empty() ? nullptr : path.back();
+    if (is_down) {
+        if (Widget* resize = find_resize_target(root_.get(), event.mouse_pos)) {
+            target = resize;
+        }
+    }
 
     if (is_down) {
         pressed_ = target;

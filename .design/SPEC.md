@@ -71,7 +71,9 @@ assets/         shader、字体
 ### 窗口
 
 - `Window` 是固定尺寸的浮层：`fixed_size()=true`（`arrange` 只用 slot 定位，不拿 slot.size 覆盖自身）；`clips_children()=true`（绘制与命中裁剪一致）；支持拖动 / 8 向 resize / 折叠 / 最大化。
-- 几何统一由 `Window::chrome()` 派生：**标题高 = 字体 line box 高度**（不加 padding），`glyph`/`icon`/`inset`/`grip`/`keep_visible` 同源；**绘制与命中共用这份几何**；折叠/展开图标两臂均为 45°。
+- 几何统一由 `Window::chrome()` 派生：**标题高 = 字体 line box 高度**（不加 padding），`glyph`/`icon`/`inset`/`resize_margin`/`keep_visible` 同源；**绘制与命中共用这份几何**；折叠/展开图标两臂均为 45°。
+- `set_content_inset(px)`（默认 **0**）：内容相对窗口边框的内缩，纯视觉布局。
+- resize 命中带由 `theme.resize_margin`（默认 **4px**）决定：不占用内容布局，靠 `Widget::resize_edges_at(pos)` + `UISystem` 在派发 down 前扫描，**优先于内容子控件命中**；hover 到边缘时切换 GLFW resize 光标。
 - 置顶是插入序语义：`raise()` 把自己移到父容器子项末尾（`Widget::raise_child`），不改写兄弟的 `z_index`。
 - 关闭：`close()` 只隐藏；`destroy()` 交给 `on_destroy_`，未注册时从 root 延迟移除；`request_close()` 先问 `on_close_`，通过后**延迟到下一次 `layout()`** 才真正 `destroy()`（避免事件派发期间销毁自身）。
 - Esc 只在 `esc_closable()` 为真时关闭（模态窗口自动开启，普通窗口默认关闭）。

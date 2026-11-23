@@ -12,6 +12,10 @@ Window::Window(int width, int height, std::string name) : width_{width}, height_
 
 Window::~Window()
 {
+    for (auto& [shape, cursor] : cursor_cache_) {
+        glfwDestroyCursor(cursor);
+    }
+    cursor_cache_.clear();
     glfwDestroyWindow(window_);
     glfwTerminate();
 }

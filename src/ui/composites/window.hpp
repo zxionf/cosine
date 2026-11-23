@@ -127,7 +127,7 @@ public:
         float glyph = 0.0f;                // 标题文字左侧留白（折叠图标占位）
         float icon = 24.0f;                // 折叠/关闭图标的命中方块边长
         float inset = 4.0f;                // 图标距标题栏边缘
-        float grip = 6.0f;                 // resize 抓取带宽
+        float resize_margin = 4.0f;        // resize 命中带（theme，不占内容布局）
         float keep_visible = 48.0f;        // 拖动时保证留在视口内的最小可见量
     };
 
@@ -143,7 +143,7 @@ public:
         // 图标方块在标题栏内垂直居中：高度 = 标题高 − 上下 inset。
         c.icon = std::max(8.0f, c.title - c.inset * 2.0f);
         c.glyph = c.icon + c.inset * 2.0f;
-        c.grip = kGripEdge;
+        c.resize_margin = t.resize_margin;
         c.keep_visible = kKeepVisible;
         return c;
     }
@@ -193,6 +193,40 @@ public:
 
     void set_resizable(bool resizable) { resizable_ = resizable; }
     bool resizable() const { return resizable_; }
+
+    // 内容区边带（像素）：内容相对窗口边框的内缩，默认 0（内容贴满窗口）。
+    // 与 resize 命中带无关——resize 热区由 theme.resize_margin 决定，不占用内容布局。
+    void set_content_inset(float pixels)
+    {
+        content_inset_ = std::max(0.0f, pixels);
+        mark_layout_dirty();
+    }
+    float content_inset() const { return content_inset_; }
+
+    // resize 命中带：四边 + 四角，角比边优先。margin 来自 theme（不占内容布局）。
+    // 这是 Widget::resize_edges_at 的覆写，UISystem 用它让边缘交互优先于内容子控件。
+    int resize_edges_at(glm::vec2 pos) override
+    {
+        if (!resizable_) return 0;
+        const float left = global_.pos.x;
+        const float top = global_.pos.y;
+        const float right = left + global_.size.x;
+        const float bottom = top + global_.size.y;
+        const float margin = chrome().resize_margin;
+
+        const bool in_left = pos.x >= left && pos.x <= left + margin;
+        const bool in_right = pos.x <= right && pos.x >= right - margin;
+        // 顶边只留 margin：再宽就会把标题栏的拖动区一起吃进去。
+        const bool in_top = pos.y >= top && pos.y <= top + margin;
+        const bool in_bottom = pos.y <= bottom && pos.y >= bottom - margin;
+
+        int edges = 0;
+        if (in_left) edges |= kResizeLeft;
+        if (in_right) edges |= kResizeRight;
+        if (in_top) edges |= kResizeTop;
+        if (in_bottom) edges |= kResizeBottom;
+        return edges;
+    }
 
     // 关闭前确认：返回 false 则拒绝关闭（Esc 与点叉都走这里）。
     void set_on_close(std::function<bool()> handler) { on_close_ = std::move(handler); }
@@ -275,7 +309,6 @@ public:
             return;
         }
         if (body_ == nullptr) return;
-        const Chrome c = chrome();
         const float title = title_height();
         float footer_h = 0.0f;
         if (footer_ != nullptr && footer_->visible()) {
@@ -283,13 +316,14 @@ public:
         }
         const float body_h = collapsed_ ? 0.0f : std::max(0.0f, height() - title - footer_h);
         body_->set_visible(!collapsed_);
-        // 有 footer 时内容区全宽（footer 已覆盖底部抓取带），否则右侧留 resize 抓取带。
+        // 内容边带（默认 0 → 内容贴满窗口）；resize 命中带不参与布局。
+        const float ins = content_inset_;
         const float body_w = footer_ != nullptr ? global_.size.x
-                                                : std::max(0.0f, global_.size.x - c.grip);
+                                                : std::max(0.0f, global_.size.x - ins);
         // footer 已覆盖底部，body 不再为底部抓取带留空，避免中间 box 与 footer 之间出现缝。
-        const float body_grip = footer_ != nullptr ? 0.0f : c.grip;
-        body_->arrange({{global_.pos.x + body_grip, global_.pos.y + title},
-                        {body_w - body_grip, std::max(0.0f, body_h - body_grip)}});
+        const float body_ins = footer_ != nullptr ? 0.0f : ins;
+        body_->arrange({{global_.pos.x + body_ins, global_.pos.y + title},
+                        {body_w - body_ins, std::max(0.0f, body_h - body_ins)}});
         if (footer_ != nullptr) {
             footer_->set_visible(!collapsed_ && visible());
             footer_->arrange({{global_.pos.x, global_.pos.y + height() - footer_h},
@@ -379,13 +413,13 @@ public:
             // debug 时把内容区（Vbox）的布局框也画出来。
             if (debug_.any()) {
                 const Rect& box = body_->global_bounds();
-                const glm::vec4 c = debug_.color;
+                const glm::vec4 dbg_color = debug_.color;
                 const float th = debug_.thickness;
-                graphics::Rectangle{box.pos.x, box.pos.y, box.size.x, th, c}.append_to(list);
-                graphics::Rectangle{box.pos.x, box.pos.y + box.size.y - th, box.size.x, th, c}
+                graphics::Rectangle{box.pos.x, box.pos.y, box.size.x, th, dbg_color}.append_to(list);
+                graphics::Rectangle{box.pos.x, box.pos.y + box.size.y - th, box.size.x, th, dbg_color}
                     .append_to(list);
-                graphics::Rectangle{box.pos.x, box.pos.y, th, box.size.y, c}.append_to(list);
-                graphics::Rectangle{box.pos.x + box.size.x - th, box.pos.y, th, box.size.y, c}
+                graphics::Rectangle{box.pos.x, box.pos.y, th, box.size.y, dbg_color}.append_to(list);
+                graphics::Rectangle{box.pos.x + box.size.x - th, box.pos.y, th, box.size.y, dbg_color}
                     .append_to(list);
             }
             list.pop_clip();
@@ -446,7 +480,7 @@ public:
             return true;
         }
         if (resizable_ && !collapsed_) {
-            const int edges = resize_edges(pos);
+            const int edges = resize_edges_at(pos);
             if (edges != 0) {
                 mode_ = Mode::Resize;
                 edges_ = edges;
@@ -484,27 +518,27 @@ public:
             const glm::vec2 delta = pos - grab_;
             glm::vec2 next_pos = resize_start_pos_;
             glm::vec2 next_size = resize_start_size_;
-            if ((edges_ & kEdgeLeft) != 0) {
+            if ((edges_ & kResizeLeft) != 0) {
                 next_pos.x += delta.x;
                 next_size.x -= delta.x;
             }
-            if ((edges_ & kEdgeTop) != 0) {
+            if ((edges_ & kResizeTop) != 0) {
                 next_pos.y += delta.y;
                 next_size.y -= delta.y;
             }
-            if ((edges_ & kEdgeRight) != 0) next_size.x += delta.x;
-            if ((edges_ & kEdgeBottom) != 0) next_size.y += delta.y;
+            if ((edges_ & kResizeRight) != 0) next_size.x += delta.x;
+            if ((edges_ & kResizeBottom) != 0) next_size.y += delta.y;
 
             // 夹到最小/最大尺寸：把左/上边被推回的那部分偿还给位置，避免窗口向右下飘。
             const float min_w = std::max(160.0f, min_size().x);
             const float min_h = collapsed_ ? title_height()
                                            : std::max(title_height() + 48.0f, min_size().y);
             if (next_size.x < min_w) {
-                if ((edges_ & kEdgeLeft) != 0) next_pos.x -= min_w - next_size.x;
+                if ((edges_ & kResizeLeft) != 0) next_pos.x -= min_w - next_size.x;
                 next_size.x = min_w;
             }
             if (next_size.y < min_h) {
-                if ((edges_ & kEdgeTop) != 0) next_pos.y -= min_h - next_size.y;
+                if ((edges_ & kResizeTop) != 0) next_pos.y -= min_h - next_size.y;
                 next_size.y = min_h;
             }
             next_size.x = std::min(next_size.x, max_size().x);
@@ -559,12 +593,7 @@ private:
         esc_closable_ = esc_closable_before_modal_;
     }
 
-    static constexpr float kGripEdge = 6.0f;
     static constexpr int kOnTopZ = 10000;
-    static constexpr int kEdgeRight = 1;
-    static constexpr int kEdgeBottom = 2;
-    static constexpr int kEdgeLeft = 4;
-    static constexpr int kEdgeTop = 8;
 
     Rect close_rect() const
     {
@@ -597,29 +626,6 @@ private:
     }
     bool hit_title(glm::vec2 pos) const { return title_rect().contains(pos); }
 
-    // 四边 + 四角，角比边优先（8px 抓取带）。
-    int resize_edges(glm::vec2 pos) const
-    {
-        const float left = global_.pos.x;
-        const float top = global_.pos.y;
-        const float right = left + global_.size.x;
-        const float bottom = top + global_.size.y;
-        const float grip = chrome().grip;
-
-        const bool in_left = pos.x <= left + grip;
-        const bool in_right = pos.x >= right - grip;
-        // 顶边只留 6px：再宽就会把标题栏的拖动区一起吃进去。
-        const bool in_top = pos.y <= top + grip;
-        const bool in_bottom = pos.y >= bottom - grip;
-
-        int edges = 0;
-        if (in_left) edges |= kEdgeLeft;
-        if (in_right) edges |= kEdgeRight;
-        if (in_top) edges |= kEdgeTop;
-        if (in_bottom) edges |= kEdgeBottom;
-        return edges;
-    }
-
     glm::vec2 clamp_position(glm::vec2 pos) const
     {
         const auto& t = ui_theme();
@@ -641,6 +647,7 @@ private:
     glm::vec2 grab_{0.0f, 0.0f};
     bool collapsed_ = false;
     bool resizable_ = true;
+    float content_inset_ = 0.0f;
     bool title_bar_visible_ = true;
     bool always_on_top_ = false;
     bool always_on_top_before_modal_ = false;
