@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 45,
+      "skipped_count": 48,
       "status": "paused",
       "steps": [
         {
@@ -2464,33 +2464,33 @@
           "desc": "test_ui_layout_contract 任一契约失败时退出码非 0；当前契约全绿",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-24T16:29:19Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "新增 >=7 条布局契约用例（超约束/pct 预算/Splitter/local_ 陈旧/隐藏占位/缓存命中/主题切换）",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-24T16:29:19Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "除常量定义外无 1e8/1e9 字面量；Section 内 pct_y 生效（非 0 高）",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-24T16:29:19Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿 + cosine 冒烟 exit=0 且 validation 0",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-24T16:29:19Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -2498,7 +2498,7 @@
       "created_at": "2026-11-24T16:06:52Z",
       "current_step": null,
       "depends": [],
-      "finished_at": null,
+      "finished_at": "2026-11-24T16:29:19Z",
       "goal": "UI-30 布局契约安全网 + 无界约束统一（可失败测试、探针入库、kUnbounded/is_bounded）",
       "id": "T24",
       "line": "ui",
@@ -2512,7 +2512,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
+      "status": "done",
       "steps": [
         {
           "desc": "",
@@ -2522,7 +2522,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "test_ui_layout_contract：check() 改为累计失败、main() 返回非 0；现有 7 条改为真正的断言"
         },
         {
@@ -2533,7 +2533,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "新增布局探针用例：Wrap 超约束、2x pct_y / 3x pct_x 预算、Splitter 不 measure、容器 local_ 陈旧、隐藏仍占位、缓存跨布局命中、主题切换后嵌套尺寸"
         },
         {
@@ -2544,7 +2544,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "加文字测量计数夹具（Counted/FontAtlas 包装）并记录当前 baseline，供 UI-34 验收对比"
         },
         {
@@ -2555,7 +2555,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "定义 kUnbounded + is_bounded()（ui/layout_metrics.hpp 或 widget.hpp），文档化 -1 / 1e8 / 1e9 的统一语义"
         },
         {
@@ -2566,7 +2566,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "替换全部哨兵：widget/label/grid/wrap/scroll_panel/scroll_view/section + 各 cached_constraints 初值"
         },
         {
@@ -2577,7 +2577,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Section::measure 由 -1.0f 改传 kUnbounded，修 pct_y 得 0 高的问题"
         },
         {
@@ -2588,7 +2588,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "补用例：Section 内 pct_y 生效、Wrap unbounded、ScrollPanel 有界、Label wrap 宽度"
         },
         {
@@ -2599,7 +2599,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "负向验证：临时破坏一条契约确认 ctest 变红再恢复；ctest + 冒烟"
         }
       ],
@@ -2612,33 +2612,33 @@
           "desc": "容器 local_bounds() 与 global_bounds() 一致；arrange 后调用 layout() 不再回退到构造矩形",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T10:30:51Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "UIRoot/TabView/ScrollPanel/DialogHost/Splitter 不再裸调 child->measure()；pct+margin 不溢出",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T10:30:51Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "5 处隐式 fill 不再返回 >= 约束；无界下不返回 1e8；产品 12 处 {1,0} 已迁移",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T10:30:51Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "settings/resource browser 离屏 PNG 与改造前一致；ctest 全绿 + 冒烟 exit=0",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T10:30:51Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -2651,7 +2651,7 @@
           "uid": "tsk_01M874YQJWCQY6CVVYBEZNRD56"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-25T10:30:51Z",
       "goal": "UI-31 几何与测量入口统一：set_geometry、local_、measure_child 唯一入口、margin 全轴、Fill 模式",
       "id": "T25",
       "line": "ui",
@@ -2665,7 +2665,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
+      "status": "done",
       "steps": [
         {
           "desc": "",
@@ -2675,7 +2675,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Widget::set_geometry(Rect)（不 mark_layout_dirty）+ 语义说明；用例：arrange 后 local_bounds()==slot"
         },
         {
@@ -2686,7 +2686,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Vbox/Hbox/Grid/Wrap 的 arrange 写 local_；Window/Splitter/Table 等固定尺寸控件写明例外"
         },
         {
@@ -2697,7 +2697,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Vbox/Hbox/Grid/Wrap::layout() 改为 arrange(global_)（或删除）；DebugWindow 的 Pos/Size 改读 global_bounds()"
         },
         {
@@ -2708,7 +2708,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "measure_child 契约化：入参 content rect + margin + pct/aspect/clamp，并写进 docs/ui_architecture.md"
         },
         {
@@ -2719,7 +2719,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "接入 5 个宿主：UIRoot::layout_child、TabView::measure/arrange、ScrollPanel::measure、DialogHost::measure、Splitter::arrange"
         },
         {
@@ -2730,7 +2730,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "四容器主轴 margin 扣减（Vbox 扣 mt/mb、Hbox 扣 ml/mr，Grid/Wrap 同步）+ pct+margin 用例"
         },
         {
@@ -2741,7 +2741,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Fill 规格（fill_x/fill_y 或 SizeSpec::Fill）：measure_child/arrange 语义 + 用例"
         },
         {
@@ -2752,7 +2752,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "改造 5 处隐式 fill：Wrap / Section / CollapsibleHeader / ScrollView / DialogHost"
         },
         {
@@ -2763,7 +2763,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "产品 12 处 set_size_percent({1,0}) 迁到 Fill；settings 与 resource browser 离屏 PNG 对比；ctest + 冒烟"
         }
       ],
@@ -3479,6 +3479,61 @@
       ],
       "title": "UI-36 内核抽取、API 收敛与布局调试面板：LinearLayout、LayoutUtils、LayoutSpec、baseline",
       "uid": "tsk_01M874ZH48RF7KRRH79NWWTT0X"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "提交内容只含 T24/T25 的源码、测试与文档；不含 .sele 之外无关改动",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T10:48:02Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "提交后 sele check 通过、git health 无漂移告警",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T10:48:02Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T10:46:20Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-25T10:48:02Z",
+      "goal": "UI-30/31 提交记账：布局契约收敛（可失败契约测试 + 几何/测量统一）",
+      "id": "T31",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "提交 T24/T25 实现（sele git commit）"
+        }
+      ],
+      "title": "UI-30/31 提交记账：布局契约收敛（可失败契约测试 + 几何/测量统一）",
+      "uid": "tsk_01M8950J0HDMAD20QVMZN9R63J"
     }
   ]
 }
