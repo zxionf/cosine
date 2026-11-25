@@ -56,7 +56,7 @@ public:
     {
         // 面板变窄时跟随可用宽度，避免数值被挤出可视区。
         const float available = constraints.x;
-        const float width = (available > 0.0f && available < 1.0e8f)
+        const float width = (is_bounded(available) && available > 0.0f)
                                 ? std::min(preferred_width_, available)
                                 : preferred_width_;
         return {width, ui_theme().control_height};

@@ -29,7 +29,8 @@ void Vbox::add(std::unique_ptr<Widget> child)
 
 void Vbox::layout()
 {
-    arrange(local_bounds());
+    // 重排用最近一次 arrange 的矩形，不要用 local_（历史坑：local_ 陈旧会把布局打回构造尺寸）。
+    arrange(global_);
 }
 
 void Vbox::append_to(graphics::DrawList& list) const
@@ -76,7 +77,8 @@ glm::vec2 Vbox::measure(glm::vec2 constraints)
         const float mt = child->margin_top();
         const float mb = child->margin_bottom();
 
-        const glm::vec2 cs = Widget::measure_child(*child, {std::max(0.0f, inner_w - ml - mr), inner_h});
+        // 子项测量：constraints 是容器内容区（已扣 padding），margin 由 measure_child 内部扣。
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
         // flex 子项的主轴高度不取内容测量值：内容高度可能大于容器，
         // 若计入 natural_h 会让 extra 变负，flex 永远不分配（例如 ScrollPanel）。
         // 主轴只保留 min_size，剩余空间交给 arrange 的 flex 分配。
@@ -96,7 +98,7 @@ glm::vec2 Vbox::measure(glm::vec2 constraints)
 
 void Vbox::arrange(Rect slot)
 {
-    global_ = slot;
+    set_geometry(slot);
     if (children_.empty()) return;
 
     const float pad_l = padding_left();
@@ -128,7 +130,7 @@ void Vbox::arrange(Rect slot)
         const float mr = child->margin_right();
         const float mb = child->margin_bottom();
 
-        const glm::vec2 cs = Widget::measure_child(*child, {std::max(0.0f, inner_w - ml - mr), inner_h});
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
         // 与 measure() 一致：flex 子项主轴只保留 min_size，不把内容高度计入 natural_h。
         const glm::vec2 item_size = {
             cs.x,

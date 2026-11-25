@@ -69,7 +69,7 @@ private:
     Align cell_align_ = Align::h_stretch();
 
     mutable glm::vec2 cached_measure_{0.0f, 0.0f};
-    mutable glm::vec2 cached_constraints_{-1.0f, -1.0f};
+    mutable glm::vec2 cached_constraints_{kUnbounded, kUnbounded};
     mutable bool measure_valid_ = false;
 
 };

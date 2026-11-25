@@ -137,10 +137,16 @@ public:
         const glm::vec2 bar = tab_bar().measure(constraints);
 
         glm::vec2 content{0.0f, 0.0f};
+        // 无界轴保持无界（减 pad 会把它变成“有界”）。
+        const glm::vec2 inner{is_bounded(constraints.x) ? std::max(0.0f, constraints.x - pad)
+                                                        : constraints.x,
+                              is_bounded(constraints.y) ? std::max(0.0f, constraints.y - pad_v)
+                                                        : constraints.y};
         for (const auto& child : children_) {
             if (child.get() == &tab_bar()) continue;
-            content.x = std::max(content.x, child->measure(constraints).x);
-            content.y = std::max(content.y, child->measure(constraints).y);
+            const glm::vec2 cs = Widget::measure_child(*child, inner);
+            content.x = std::max(content.x, cs.x);
+            content.y = std::max(content.y, cs.y);
         }
 
         cached_constraints_ = constraints;
@@ -155,9 +161,7 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
 
         const float pad_l = padding_left();
         const float pad_t = padding_top();
@@ -210,7 +214,7 @@ public:
             auto& child = children_[i];
             glm::vec2 size = content.size;
             if (!page_fill_) {
-                const glm::vec2 measured = child->measure({content.size.x, content.size.y});
+                const glm::vec2 measured = Widget::measure_child(*child, content.size);
                 size = {std::min(measured.x, content.size.x), std::min(measured.y, content.size.y)};
             }
             child->arrange({content.pos, size});

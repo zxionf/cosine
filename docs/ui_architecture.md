@@ -118,7 +118,40 @@ virtual bool fixed_size() const { return false; }
 
 - `constraints.x` 是父容器给的**可用宽度**，返回值宽度不得超过它（`min_size` 强制除外）
 - `fixed_size() = true` 表示忽略 `constraints`，尺寸由 `min/max` 决定（`Table`、`FileBrowser`）
-- `invalidate_measure()` 会沿 `parent` 链向上传播；已失效则不再重复向上
+- `invalidate_measure()` 会沿 `parent` 链向上传播
+
+**子项测量的唯一入口**（UI-31 起）：
+
+```cpp
+static glm::vec2 Widget::measure_child(Widget& child, glm::vec2 content);
+```
+
+- `content` 是父容器**内容区**的可用尺寸（已扣 padding，**未扣 margin**）
+- `margin` 在函数内部全轴扣除；`size_percent` 在扣完 margin 的可用尺寸上计算
+- 轴无界（`!is_bounded(v)`）时百分比不生效；无界值不能减 margin（否则 1e8 减去后会被当成"有界"）
+- 顺序固定：`margin → pct → measure → aspect_ratio → clamp(min/max)`
+- 宿主（`UIRoot::layout_child`、`TabView`、`ScrollPanel`、`DialogHost`、`Splitter`）一律走这个入口，
+  不允许自己直接调 `child->measure()`
+
+**几何写入**（UI-31 起）：
+
+```cpp
+void Widget::set_geometry(Rect slot);      // arrange 内使用：local_ 与 global_ 同时写，不触发脏标记
+void Widget::set_arranged_pos(glm::vec2);  // 固定尺寸控件（Window）只跟随位置
+```
+
+- `arrange()` 只能用这两个入口写几何；`set_pos/set_size` 代表"外部请求"，会把树标脏
+- 容器必须写 `local_`：`local_bounds()` 等于最近一次 `arrange` 的 slot（DebugWindow/调试面板依赖这一点）
+- 容器 `layout()` 用 `global_` 重排，不能用 `local_`（陈旧值会把布局打回构造尺寸）
+- 整轮 `UIRoot::layout()` 处于 `LayoutPassScope` 内：期间的脏标记只失效缓存、不重新标脏，
+  所以布局结束时 `root->layout_dirty()` 为 false
+
+**无界约束**：
+
+```cpp
+ui::kUnbounded          // 1e8；constraints 轴 >= 它即无界
+ui::is_bounded(float)   // [0, 1e8) 为有界；负值（历史上的 -1）也算无界
+```
 
 ### 3. 层级：`fills_parent()` + `Layer`
 

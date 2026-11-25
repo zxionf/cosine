@@ -1,5 +1,6 @@
 #include "ui/containers/scroll_view.hpp"
 
+#include "ui/layout_metrics.hpp"
 #include "ui/style.hpp"
 #include "graphics/box.hpp"
 #include "graphics/rectangle.hpp"
@@ -9,6 +10,12 @@
 
 namespace xel::ui
 {
+ScrollView::ScrollView()
+{
+    // 双轴 fill：视口总是占据父级给的空间（内容超出时由内部滚动）。
+    set_fill(true, true);
+}
+
 void ScrollView::set_content(std::unique_ptr<Widget> c)
 {
     children_.clear();
@@ -22,11 +29,10 @@ void ScrollView::set_content(std::unique_ptr<Widget> c)
 
 glm::vec2 ScrollView::content_constraints(glm::vec2 constraints) const
 {
-    constexpr float kInf = 1e9f;
     switch (axis_) {
-        case Axis::Vertical:   return {constraints.x, kInf};
-        case Axis::Horizontal: return {kInf, constraints.y};
-        case Axis::Both:       return {kInf, kInf};
+        case Axis::Vertical:   return {constraints.x, kUnbounded};
+        case Axis::Horizontal: return {kUnbounded, constraints.y};
+        case Axis::Both:       return {kUnbounded, kUnbounded};
     }
     return constraints;
 }
@@ -148,9 +154,8 @@ Rect ScrollView::scrollbar_thumb_rect(bool vertical) const
 glm::vec2 ScrollView::measure(glm::vec2 constraints)
 {
     update_metrics(constraints);
-    // 控件自身占满父给的可用空间；viewport_ 只是内容可视区（已扣除滚动条），
-    // 不能当控件尺寸返回——否则父级按窄尺寸摆放，arrange() 里再扣一次。
-    return constraints;
+    // 报“自然尺寸”（内容尺寸）；双轴 fill 由 measure_child 在布置前覆成可用尺寸。
+    return content_size_;
 }
 
 void ScrollView::place_content()

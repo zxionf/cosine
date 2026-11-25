@@ -1,6 +1,7 @@
 // 阶段 1 安全网（下半）：布局测量契约。
-// 当前实现里有些行为尚未统一（FileBrowser 忽略 constraints、缓存不向上传播），
-// 这些用 [KNOWN] 报告而不 assert；阶段 3 落地后改成 assert。
+// UI-30 起：本文件是"会失败"的契约测试——任何一条不满足都让 ctest 变红。
+// 已知偏差不再用 [KNOWN] 放行；未修复的行为在 test_ui_layout_probe 里以 DEBT 用例显式锁定，
+// 修好后由对应任务把断言翻转过来。
 #include "graphics/drawable.hpp"
 #include "ui/views/file_browser.hpp"
 #include "ui/core/label.hpp"
@@ -18,17 +19,17 @@ using namespace xel;
 namespace
 {
 int g_passed = 0;
-int g_known = 0;
+int g_failed = 0;
 
 void check(bool ok, const char* name, const char* detail)
 {
     if (ok) {
         ++g_passed;
         std::printf("ok      %s\n", name);
-    } else {
-        ++g_known;
-        std::printf("[KNOWN] %s -- %s\n", name, detail);
+        return;
     }
+    ++g_failed;
+    std::printf("FAIL    %s -- %s\n", name, detail);
 }
 
 bool near(float a, float b)
@@ -46,7 +47,7 @@ void test_measure_respects_constraints()
           ("measure.x = " + std::to_string(size.x)).c_str());
 }
 
-// 2) 固定尺寸控件会忽略 constraints —— 记录为已知偏差（阶段 3 用 fixed_size() 显式化）。
+// 2) 固定尺寸控件会忽略 constraints（fixed_size 声明与行为一致）。
 void test_fixed_size_control_ignores_constraints()
 {
     ui::FileBrowser browser(glm::vec2{560.0f, 372.0f});
@@ -69,7 +70,7 @@ void test_measure_cache_invalidates_on_add()
               .c_str());
 }
 
-// 4) 缓存失效是否沿 parent 链传播（当前不传播 —— Section 切页不刷新的根因）。
+// 4) 缓存失效沿 parent 链传播（Section 切页不刷新曾是这个缺陷的根因）。
 void test_invalidate_propagates_to_parent()
 {
     ui::Vbox parent(0.0f, 0.0f, 300.0f, 400.0f);
@@ -87,7 +88,7 @@ void test_invalidate_propagates_to_parent()
               .c_str());
 }
 
-// 5) Section 重建内容后，自身高度要跟着变（今天修过的路径，应为绿）。
+// 5) Section 重建内容后，自身高度要跟着变。
 void test_section_rebuild_updates_measure()
 {
     ui::Section section("S");
@@ -114,6 +115,6 @@ int main()
     test_invalidate_propagates_to_parent();
     test_section_rebuild_updates_measure();
 
-    std::printf("layout contract: %d passed, %d known deviations\n", g_passed, g_known);
-    return 0;
+    std::printf("layout contract: %d passed, %d failed\n", g_passed, g_failed);
+    return g_failed == 0 ? 0 : 1;
 }

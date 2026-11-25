@@ -3,6 +3,7 @@
 #include "ui/containers/panel.hpp"
 #include "ui/containers/scroll_view.hpp"
 #include "ui/containers/vbox.hpp"
+#include "ui/layout_metrics.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -43,18 +44,18 @@ public:
     {
         const float pad_h = padding_left() + padding_right();
         const float pad_v = padding_top() + padding_bottom();
-        const float available_w = constraints.x > 0.0f && constraints.x < 1.0e8f
+        // 宽度有界时按可用宽测量（内容可换行），否则交给内容自然宽。
+        const float available_w = is_bounded(constraints.x)
             ? std::max(0.0f, constraints.x - pad_h)
-            : 1.0e8f;
-        const glm::vec2 inner = content_->measure({available_w, 1.0e9f});
+            : kUnbounded;
+        // 高度总是无界：内容高度由内容决定，视口高度由父级安排（ScrollPanel 必须放在有界父容器里）。
+        const glm::vec2 inner = Widget::measure_child(*content_, {available_w, kUnbounded});
         return {inner.x + pad_h, inner.y + pad_v};
     }
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
         if (!scroll_) return;
 
         const float pad_l = padding_left();

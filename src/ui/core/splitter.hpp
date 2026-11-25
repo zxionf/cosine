@@ -86,27 +86,37 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
+        set_geometry(slot);
         const auto limits = ratio_limits();
         ratio_ = std::clamp(ratio_, limits.first, limits.second);
         const float handle = handle_size();
         if (children_.size() < 2) {
-            if (!children_.empty()) children_[0]->arrange(slot);
+            if (!children_.empty()) {
+                // 单 pane 也要走一遍测量：子项（ScrollView / Table）要靠它更新内部度量。
+                Widget::measure_child(*children_[0], slot.size);
+                children_[0]->arrange(slot);
+            }
             return;
         }
 
+        // 先测量（让孩子项按分配到的尺寸算内部度量），再按 pane 几何安排。
+        // Splitter 不参与协商：它给的就是最终尺寸（overflow 策略在 UI-33 里定义）。
         if (orientation_ == Orientation::Horizontal) {
             const float usable = std::max(0.0f, slot.size.x - handle);
             const float first_w = resolved_first();
+            const glm::vec2 second_w{std::max(0.0f, usable - first_w), slot.size.y};
+            Widget::measure_child(*children_[0], {first_w, slot.size.y});
+            Widget::measure_child(*children_[1], second_w);
             children_[0]->arrange({{slot.pos.x, slot.pos.y}, {first_w, slot.size.y}});
-            children_[1]->arrange({{slot.pos.x + first_w + handle, slot.pos.y},
-                                   {usable - first_w, slot.size.y}});
+            children_[1]->arrange({{slot.pos.x + first_w + handle, slot.pos.y}, second_w});
         } else {
             const float usable = std::max(0.0f, slot.size.y - handle);
             const float first_h = resolved_first();
+            const glm::vec2 second_h{slot.size.x, std::max(0.0f, usable - first_h)};
+            Widget::measure_child(*children_[0], {slot.size.x, first_h});
+            Widget::measure_child(*children_[1], second_h);
             children_[0]->arrange({{slot.pos.x, slot.pos.y}, {slot.size.x, first_h}});
-            children_[1]->arrange({{slot.pos.x, slot.pos.y + first_h + handle},
-                                   {slot.size.x, usable - first_h}});
+            children_[1]->arrange({{slot.pos.x, slot.pos.y + first_h + handle}, second_h});
         }
     }
 

@@ -12,7 +12,7 @@ class ScrollView : public Widget {
 public:
     enum class Axis { Vertical, Horizontal, Both };
 
-    ScrollView() = default;
+    ScrollView();
     ~ScrollView() override = default;
 
     void set_axis(Axis a)          { axis_ = a; mark_layout_dirty(); }

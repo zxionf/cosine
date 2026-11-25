@@ -63,7 +63,7 @@ void SettingsWindow::build()
 
     auto view = std::make_unique<ui::TabView>();
     view->set_bar_position(ui::TabView::BarPosition::Left);
-    view->set_size_percent({1.0f, 0.0f});
+    view->set_fill(true, false);
     view->set_flex_grow(1.0f);
     view->set_min_size({0.0f, 0.0f});
     view->set_max_size({10000.0f, 10000.0f});
@@ -92,7 +92,7 @@ void SettingsWindow::build()
         group->set_padding(12.0f);
         group->set_spacing(10.0f);
         group->set_cross_align(ui::Align::top_left());
-        group->set_size_percent({1.0f, 0.0f});
+        group->set_fill(true, false);
         group->set_min_size({0.0f, 0.0f});
         group->set_max_size({10000.0f, 10000.0f});
 
@@ -122,7 +122,7 @@ void SettingsWindow::build_general(ui::Vbox& group)
         row->set_padding(0.0f);
         row->set_spacing(8.0f);
         row->set_cross_align(ui::Align::center_left());
-        row->set_size_percent({1.0f, 0.0f});
+        row->set_fill(true, false);
         row->add(std::make_unique<ui::Label>(text, 16.0f));
         // 标签靠左、控件靠右：中间用可伸缩 Spacer 吃掉剩余宽度。
         auto push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
@@ -161,7 +161,7 @@ void SettingsWindow::build_general(ui::Vbox& group)
     row->set_padding(0.0f);
     row->set_spacing(8.0f);
     row->set_cross_align(ui::Align::center_left());
-    row->set_size_percent({1.0f, 0.0f});
+    row->set_fill(true, false);
     row->add(std::make_unique<ui::Label>("UI text size", 16.0f));
     auto push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     push->set_flex_grow(1.0f);
@@ -235,7 +235,7 @@ void SettingsWindow::build_preview(ui::Vbox& group)
     size_row->set_padding(0.0f);
     size_row->set_spacing(8.0f);
     size_row->set_cross_align(ui::Align::center_left());
-    size_row->set_size_percent({1.0f, 0.0f});
+    size_row->set_fill(true, false);
     size_row->add(std::make_unique<ui::Label>("Canvas", 16.0f));
     auto canvas_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     canvas_push->set_flex_grow(1.0f);
@@ -285,7 +285,7 @@ void SettingsWindow::build_export(ui::Vbox& group)
     size_row->set_padding(0.0f);
     size_row->set_spacing(8.0f);
     size_row->set_cross_align(ui::Align::center_left());
-    size_row->set_size_percent({1.0f, 0.0f});
+    size_row->set_fill(true, false);
     size_row->add(std::make_unique<ui::Label>("Size", 16.0f));
     auto size_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     size_push->set_flex_grow(1.0f);
@@ -310,7 +310,7 @@ void SettingsWindow::build_export(ui::Vbox& group)
     fps_row->set_padding(0.0f);
     fps_row->set_spacing(8.0f);
     fps_row->set_cross_align(ui::Align::center_left());
-    fps_row->set_size_percent({1.0f, 0.0f});
+    fps_row->set_fill(true, false);
     fps_row->add(std::make_unique<ui::Label>("FPS", 16.0f));
     auto fps_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     fps_push->set_flex_grow(1.0f);
@@ -335,7 +335,7 @@ void SettingsWindow::build_export(ui::Vbox& group)
     dir_row->set_padding(0.0f);
     dir_row->set_spacing(8.0f);
     dir_row->set_cross_align(ui::Align::center_left());
-    dir_row->set_size_percent({1.0f, 0.0f});
+    dir_row->set_fill(true, false);
     dir_row->add(std::make_unique<ui::Label>("Output", 16.0f));
     auto dir_push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
     dir_push->set_flex_grow(1.0f);

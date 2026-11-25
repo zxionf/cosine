@@ -97,7 +97,7 @@ public:
 
         // 换行宽度取「可用宽度」与控件最大宽度中较小者，
         // 这样测量与 arrange 后的实际宽度一致。
-        const bool wrapping = wrap_ && constraints.x > 0.0f && constraints.x < 1.0e8f;
+        const bool wrapping = wrap_ && is_bounded(constraints.x) && constraints.x > 0.0f;
         float wrap_width = -1.0f;
         if (wrapping) {
             wrap_width = constraints.x;

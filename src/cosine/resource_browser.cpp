@@ -107,7 +107,7 @@ void ResourceBrowser::build()
     auto top = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, kTopHeight);
     top->set_padding(ui::Edges{8.0f, 0.0f, 8.0f, 0.0f});
     top->set_spacing(4.0f);
-    top->set_size_percent({1.0f, 0.0f});
+    top->set_fill(true, false);
     top->set_min_size({0.0f, kTopHeight});
     top->set_max_size({10000.0f, kTopHeight});
     top->set_cross_align(ui::Align::center_left());
@@ -163,7 +163,7 @@ void ResourceBrowser::build()
     auto middle = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 0.0f);
     middle->set_padding(0.0f);
     middle->set_spacing(12.0f);
-    middle->set_size_percent({1.0f, 0.0f});
+    middle->set_fill(true, false);
     middle->set_min_size({0.0f, 0.0f});
     middle->set_max_size({10000.0f, 10000.0f});
     middle->set_flex_grow(1.0f);

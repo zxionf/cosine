@@ -1,5 +1,7 @@
 #include "ui/containers/grid.hpp"
 
+#include "ui/layout_metrics.hpp"
+
 #include <algorithm>
 #include <vector>
 
@@ -7,9 +9,6 @@ namespace xel::ui
 {
 namespace
 {
-// 与 Widget::measure 的约定一致：约束 >= 该值视为无界。
-constexpr float kUnbounded = 1.0e8f;
-
 int column_count(const std::vector<float>& widths)
 {
     return widths.empty() ? 1 : static_cast<int>(widths.size());
@@ -39,7 +38,7 @@ void Grid::add(std::unique_ptr<Widget> child)
 
 void Grid::layout()
 {
-    arrange(local_bounds());
+    arrange(global_);
 }
 
 void Grid::append_to(graphics::DrawList& list) const
@@ -151,7 +150,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
     const float inner_w = std::max(0.0f, constraints.x - pad_l - pad_r);
 
     ColumnLayout layout;
-    const bool unbounded_w = constraints.x >= kUnbounded;
+    const bool unbounded_w = !is_bounded(constraints.x);
     if (unbounded_w) {
         // 无界约束下弹性列取该列子项的自然宽最大值，使「内容自适应」可用。
         std::vector<float> natural(static_cast<std::size_t>(cols), 0.0f);
@@ -180,7 +179,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
     }
 
     std::vector<float> row_h(static_cast<std::size_t>(rows), 0.0f);
-    const float inner_h = constraints.y >= kUnbounded
+    const float inner_h = !is_bounded(constraints.y)
         ? kUnbounded
         : std::max(0.0f, constraints.y - pad_t - pad_b);
 
@@ -193,7 +192,8 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
         ++flow;
         const std::size_t ci = static_cast<std::size_t>(col);
 
-        const float cell_w = std::max(0.0f, layout.width[ci] - child->margin_left() - child->margin_right());
+        // cell_w 是列宽；margin 由 measure_child 内部扣，这里不再预先扣一次。
+        const float cell_w = layout.width[ci];
         const glm::vec2 cs = Widget::measure_child(*child, {cell_w, inner_h});
         const float need = child->margin_top() + cs.y + child->margin_bottom();
         row_h[static_cast<std::size_t>(row)] =
@@ -214,7 +214,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
 
 void Grid::arrange(Rect slot)
 {
-    global_ = slot;
+    set_geometry(slot);
     if (children_.empty()) return;
 
     const int cols = column_count(widths_);
@@ -247,8 +247,7 @@ void Grid::arrange(Rect slot)
         const int col = static_cast<int>(k % static_cast<std::size_t>(cols));
         const std::size_t ci = static_cast<std::size_t>(col);
 
-        const float cell_w =
-            std::max(0.0f, layout.width[ci] - child->margin_left() - child->margin_right());
+        const float cell_w = layout.width[ci];
         glm::vec2 cs = Widget::measure_child(*child, {cell_w, kUnbounded});
         cs.x = std::min(cs.x, cell_w);
         cell_size[k] = cs;

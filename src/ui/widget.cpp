@@ -11,6 +11,27 @@
 
 namespace xel::ui
 {
+namespace
+{
+// 布局阶段深度：>0 时 mark_layout_dirty 只失效缓存、不重新标记脏。
+int g_layout_pass_depth = 0;
+} // namespace
+
+bool in_layout_pass()
+{
+    return g_layout_pass_depth > 0;
+}
+
+LayoutPassScope::LayoutPassScope()
+{
+    ++g_layout_pass_depth;
+}
+
+LayoutPassScope::~LayoutPassScope()
+{
+    --g_layout_pass_depth;
+}
+
 Widget::Widget() = default;
 
 Widget::~Widget() = default;

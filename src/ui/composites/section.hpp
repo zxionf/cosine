@@ -2,6 +2,7 @@
 
 #include "graphics/box.hpp"
 #include "graphics/line.hpp"
+#include "ui/layout_metrics.hpp"
 #include "ui/theme.hpp"
 #include "ui/core/collapsible_header.hpp"
 #include "ui/containers/vbox.hpp"
@@ -28,6 +29,8 @@ public:
         content_ = std::make_unique<Vbox>(0.0f, 0.0f, 0.0f, 0.0f);
         content_->set_spacing(6.0f);
         content_->set_cross_align(Align::top_left());
+        // Section 横向铺满父级（标题栏/内容卡都是全宽）。
+        set_fill(true, false);
     }
 
     void add(std::unique_ptr<Widget> child) override
@@ -69,20 +72,25 @@ public:
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        float width = constraints.x;
-        if (width < 0.0f) width = local_.size.x;
+        // 报“自然尺寸”：宽度 = 标题与内容的最大自然宽（实际宽度由 fill_x 在 arrange 里拉满）。
+        const float avail_w = is_bounded(constraints.x) ? constraints.x : local_.size.x;
+        const glm::vec2 head = header_.measure({avail_w, kUnbounded});
+        float natural_w = head.x;
         float body = 0.0f;
-        if (expanded_) body = content_->measure({width, -1.0f}).y;
-        return {width, header_height() + body};
+        // 内容高度永远由内容决定（无界），不能传 -1 让子项把百分比算成负值。
+        if (expanded_) {
+            const glm::vec2 inner = content_->measure({avail_w, kUnbounded});
+            body = inner.y;
+            natural_w = std::max(natural_w, inner.x);
+        }
+        return {natural_w, head.y + body};
     }
 
     void layout() override {}
 
     void arrange(Rect slot) override
     {
-        set_pos(slot.pos);
-        set_size(slot.size);
-        global_ = slot;
+        set_geometry(slot);
         const float hh = header_height();
         // header_ 不在 children_ 里，不会有人替它设 context——必须自己传。
         header_.set_context(context());

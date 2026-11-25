@@ -18,7 +18,11 @@ namespace xel::ui
 class CollapsibleHeader : public Widget
 {
 public:
-    explicit CollapsibleHeader(std::string title = {}) : title_(std::move(title)) {}
+    explicit CollapsibleHeader(std::string title = {}) : title_(std::move(title))
+    {
+        // 标题栏横向铺满父级（与 Section 一致）。
+        set_fill(true, false);
+    }
 
     void set_title(std::string title)
     {
@@ -45,15 +49,19 @@ public:
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        float width = constraints.x;
-        if (width < 0.0f) width = local_.size.x;
+        // 报“自然宽”（标题文字宽 + 左侧留白）；实际宽度由 fill_x 在 arrange 里拉满。
+        const auto& t = ui_theme();
+        const float text_w = font_atlas() != nullptr
+            ? font_atlas()->measure_width(title_, t.text_size)
+            : graphics::FontAtlas::estimate_text_width(title_, t.text_size);
+        const float natural = text_w + 30.0f + t.padding;
+        const float width = is_bounded(constraints.x) ? std::min(constraints.x, natural) : natural;
         return {width, height()};
     }
 
     void arrange(Rect slot) override
     {
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
         global_ = {slot.pos, {slot.size.x, height()}};
     }
 

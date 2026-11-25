@@ -151,7 +151,7 @@ void DebugWindow::build()
     content->set_cross_align(ui::Align::top_left());
 
     auto view = std::make_unique<ui::TabView>();
-    view->set_size_percent({1.0f, 0.0f});
+    view->set_fill(true, false);
     view->set_flex_grow(1.0f);
     view->set_min_size({0.0f, 0.0f});
     view->set_max_size({10000.0f, 10000.0f});
@@ -202,7 +202,7 @@ void DebugWindow::build_widget_page(ui::ScrollPanel& page)
         row->set_padding(0.0f);
         row->set_spacing(6.0f);
         row->set_cross_align(ui::Align::center_left());
-        row->set_size_percent({1.0f, 0.0f});
+        row->set_fill(true, false);
         row->add(std::make_unique<ui::Label>(name, 16.0f));
         auto drag = std::make_unique<ui::DragFloat>("", 100.0f);
         drag->set_range(-1.0e5f, 1.0e5f);
@@ -216,28 +216,28 @@ void DebugWindow::build_widget_page(ui::ScrollPanel& page)
 
     pos_x_ = add_drag("Pos X", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
-        auto pos = target_->local_bounds().pos;
+        auto pos = target_->global_bounds().pos;
         pos.x = value;
         target_->set_pos(pos);
         notify_layout(target_);
     });
     pos_y_ = add_drag("Pos Y", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
-        auto pos = target_->local_bounds().pos;
+        auto pos = target_->global_bounds().pos;
         pos.y = value;
         target_->set_pos(pos);
         notify_layout(target_);
     });
     size_w_ = add_drag("Size W", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
-        auto size = target_->local_bounds().size;
+        auto size = target_->global_bounds().size;
         size.x = value;
         target_->set_size(size);
         notify_layout(target_);
     });
     size_h_ = add_drag("Size H", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
-        auto size = target_->local_bounds().size;
+        auto size = target_->global_bounds().size;
         size.y = value;
         target_->set_size(size);
         notify_layout(target_);
@@ -375,7 +375,7 @@ void DebugWindow::update_props()
 {
     updating_ = true;
     const bool has = target_ != nullptr;
-    const ui::Rect bounds = has ? target_->local_bounds() : ui::Rect{};
+    const ui::Rect bounds = has ? target_->global_bounds() : ui::Rect{};
 
     if (pos_x_ != nullptr) pos_x_->set_value(bounds.pos.x);
     if (pos_y_ != nullptr) pos_y_->set_value(bounds.pos.y);

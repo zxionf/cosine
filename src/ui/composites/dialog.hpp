@@ -6,12 +6,14 @@
 #include "ui/containers/panel.hpp"
 #include "ui/root.hpp"
 #include "ui/core/scrim.hpp"
+#include "ui/layout_metrics.hpp"
 #include "ui/theme.hpp"
 #include "ui/containers/vbox.hpp"
 #include "graphics/rectangle.hpp"
 
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -29,7 +31,8 @@ public:
         : Panel(0.0f, 0.0f, width, 0.0f)
     {
         set_min_size({width, 0.0f});
-        set_max_size({width, 1.0e9f});
+        // 高度不设上限：用 max 而不是 1e9 哨兵（set_max_size 语义就是钳制上限）。
+        set_max_size({width, std::numeric_limits<float>::max()});
         set_cross_align(Align::top_left());
 
         auto title_label = std::make_unique<Label>(std::move(title), 20.0f);
@@ -69,7 +72,8 @@ public:
         if (!message_) {
             auto label = std::make_unique<Label>(std::move(message), 14.0f);
             label->set_wrap(true);
-            label->set_max_size({width() - padding_left() - padding_right(), 1.0e9f});
+            label->set_max_size({width() - padding_left() - padding_right(),
+                                 std::numeric_limits<float>::max()});
             message_ = label.get();
             body_->add(std::move(label));
             return;
@@ -171,20 +175,28 @@ public:
     }
     bool closed() const { return closed_; }
 
-    glm::vec2 measure(glm::vec2 constraints) override { return constraints; }
+    // 模态宿主铺满 root（布局跳过协商），自身尺寸由下面的 arrange 决定。
+    bool fills_parent() const override { return true; }
+
+    glm::vec2 measure(glm::vec2 constraints) override
+    {
+        // 不返回 constraints（那是“偷填”）；按对话卡片的自然尺寸报。
+        if (!dialog_) return {0.0f, 0.0f};
+        const glm::vec2 outer{is_bounded(constraints.x) ? constraints.x : kUnbounded,
+                              is_bounded(constraints.y) ? constraints.y : kUnbounded};
+        return Widget::measure_child(*dialog_, outer);
+    }
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
         if (!dialog_) return;
 
         const auto& t = ui_theme();
         const float margin = 24.0f;
         const float max_w = std::max(120.0f, slot.size.x - margin * 2.0f);
         const float max_h = std::max(120.0f, slot.size.y - margin * 2.0f);
-        glm::vec2 size = dialog_->measure({max_w, max_h});
+        glm::vec2 size = Widget::measure_child(*dialog_, {max_w, max_h});
         size.x = std::clamp(size.x, 120.0f, max_w);
         size.y = std::clamp(size.y, 80.0f, max_h);
 

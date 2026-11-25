@@ -29,7 +29,7 @@ void Hbox::add(std::unique_ptr<Widget> child)
 
 void Hbox::layout()
 {
-    arrange(local_bounds());
+    arrange(global_);
 }
 
 void Hbox::append_to(graphics::DrawList& list) const
@@ -75,7 +75,7 @@ glm::vec2 Hbox::measure(glm::vec2 constraints)
         const float mt = child->margin_top();
         const float mb = child->margin_bottom();
 
-        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, std::max(0.0f, inner_h - mt - mb)});
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
 
         total_w += ml + cs.x + mr;
         max_h = std::max(max_h, mt + cs.y + mb);
@@ -89,7 +89,7 @@ glm::vec2 Hbox::measure(glm::vec2 constraints)
 
 void Hbox::arrange(Rect slot)
 {
-    global_ = slot;
+    set_geometry(slot);
     if (children_.empty()) return;
 
     const float pad_l = padding_left();
@@ -121,7 +121,7 @@ void Hbox::arrange(Rect slot)
         const float mr = child->margin_right();
         const float mb = child->margin_bottom();
 
-        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, std::max(0.0f, inner_h - mt - mb)});
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
 
         if (!items.empty()) natural_w += spacing_;
         items.push_back({child.get(), cs, ml, mt, mr, mb});

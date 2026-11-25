@@ -299,10 +299,10 @@ public:
 
     void arrange(Rect slot) override
     {
-        set_pos(slot.pos);
         // 窗口是固定尺寸控件：只用 slot 定位，不拿 slot.size 覆盖自身尺寸，
         // 否则被放进 Vbox 时会被拉伸。absolute_pos_ 保持「相对父内容区」语义。
-        global_ = {slot.pos, {width(), height()}};
+        set_arranged_pos(slot.pos);
+        global_.size = {width(), height()};
         layout();
     }
 

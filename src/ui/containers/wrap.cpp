@@ -1,21 +1,22 @@
 #include "ui/containers/wrap.hpp"
 
+#include "ui/layout_metrics.hpp"
+
 #include <algorithm>
 #include <vector>
 
 namespace xel::ui
 {
 namespace
-{
-// 与 Widget::measure 的约定一致：约束 >= 该值视为无界。
-constexpr float kUnbounded = 1.0e8f;
-} // namespace
+{} // namespace
 
 Wrap::Wrap(float x, float y, float w, float height)
 {
     set_pos(x, y);
     set_size(w, height);
     set_padding(4.0f);
+    // 流式容器横向铺满父级：换行以父宽为准。
+    set_fill(true, false);
 }
 
 Wrap::Wrap(glm::vec2 pos, glm::vec2 size)
@@ -23,6 +24,7 @@ Wrap::Wrap(glm::vec2 pos, glm::vec2 size)
     set_pos(pos);
     set_size(size);
     set_padding(4.0f);
+    set_fill(true, false);
 }
 
 Wrap::~Wrap() = default;
@@ -34,7 +36,7 @@ void Wrap::add(std::unique_ptr<Widget> child)
 
 void Wrap::layout()
 {
-    arrange(local_bounds());
+    arrange(global_);
 }
 
 void Wrap::append_to(graphics::DrawList& list) const
@@ -69,8 +71,8 @@ std::vector<Wrap::Row> Wrap::layout_rows(float inner_w, bool unbounded)
         const float mt = child->margin_top();
         const float mb = child->margin_bottom();
 
-        const glm::vec2 cs = Widget::measure_child(
-            *child, {std::max(0.0f, inner_w - ml - mr), kUnbounded});
+        // margin 由 measure_child 内部扣，这里传入容器内容区。
+        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, kUnbounded});
         const float need = ml + cs.x + mr;
         const float item_h = mt + cs.y + mb;
 
@@ -112,7 +114,7 @@ glm::vec2 Wrap::measure(glm::vec2 constraints)
     const float pad_t = padding_top();
     const float pad_b = padding_bottom();
     const float inner_w = std::max(0.0f, constraints.x - pad_l - pad_r);
-    const bool unbounded = constraints.x >= kUnbounded;
+    const bool unbounded = !is_bounded(constraints.x);
 
     const std::vector<Row> rows = layout_rows(inner_w, unbounded);
 
@@ -124,10 +126,10 @@ glm::vec2 Wrap::measure(glm::vec2 constraints)
         total_h += rows[i].height;
     }
 
-    // 折行依赖可用宽：有限约束下直接返回可用宽（内容更宽时返回内容宽），
-    // 保证父容器按 measure 结果 arrange 时宽度不缩、折行结果与 measure 一致。
+    // Wrap 是块级容器：有界时占满可用宽（既有约定，见 test_ui_wrap），
+    // 但绝不超过 constraints（旧实现取 max，子项超宽时会报 300 > 200）。
     const float content_w = max_w + pad_l + pad_r;
-    const float total_w = unbounded ? content_w : std::max(constraints.x, content_w);
+    const float total_w = unbounded ? content_w : constraints.x;
 
     cached_measure_ = clamp_size({total_w, total_h});
     cached_constraints_ = constraints;
@@ -137,7 +139,7 @@ glm::vec2 Wrap::measure(glm::vec2 constraints)
 
 void Wrap::arrange(Rect slot)
 {
-    global_ = slot;
+    set_geometry(slot);
     if (children_.empty()) return;
 
     const float pad_l = padding_left();
@@ -145,7 +147,7 @@ void Wrap::arrange(Rect slot)
     const float pad_t = padding_top();
     const float inner_x = slot.pos.x + pad_l;
     const float inner_w = std::max(0.0f, slot.size.x - pad_l - pad_r);
-    const bool unbounded = inner_w >= kUnbounded;
+    const bool unbounded = !is_bounded(inner_w);
 
     const std::vector<Row> rows = layout_rows(inner_w, unbounded);
 
@@ -181,8 +183,8 @@ void Wrap::arrange(Rect slot)
             const float mr = child->margin_right();
             const float mb = child->margin_bottom();
 
-            glm::vec2 size = Widget::measure_child(
-                *child, {std::max(0.0f, inner_w - ml - mr), kUnbounded});
+            // margin 由 measure_child 内部扣。
+            glm::vec2 size = Widget::measure_child(*child, {inner_w, kUnbounded});
 
             const float avail_h = std::max(0.0f, row.height - mt - mb);
             float cy = 0.0f;

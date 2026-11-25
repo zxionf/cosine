@@ -121,7 +121,7 @@ void UIRoot::layout_child(Widget& child)
         child.arrange({local_.pos, local_.size});
         return;
     }
-    const glm::vec2 child_size = child.clamp_size(child.measure(local_.size));
+    const glm::vec2 child_size = Widget::measure_child(child, local_.size);
     child.arrange({
         {local_.pos.x + child.x(), local_.pos.y + child.y()},
         child_size
@@ -158,6 +158,8 @@ void UIRoot::layout()
             modal_frames_[i].window->set_z_index(static_cast<int>(2 * i + 2));
         }
     }
+    // 整轮布局都在 LayoutPassScope 内：arrange 里的几何写入只失效缓存，不重新标记脏。
+    LayoutPassScope layout_pass;
     for (auto& child : children_) layout_child(*child);
     for (auto& overlay : overlays_) layout_child(*overlay);
 }

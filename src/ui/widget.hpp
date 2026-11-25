@@ -3,6 +3,7 @@
 #include "graphics/drawable.hpp"
 #include "ui/rect.hpp"
 #include "ui/align.hpp"
+#include "ui/layout_metrics.hpp"
 #include "ui/style_types.hpp"
 #include "events/key_code.hpp"
 
@@ -24,6 +25,20 @@ struct UIContext;
 struct Theme;
 struct BoxStyle;
 struct StyleTransition;
+
+// 布局阶段守卫：UIRoot::layout() 期间生效。
+// 目的：把“布局写入”（arrange 里 set_size/set_geometry）与“失效请求”（外部改尺寸）区分开。
+// 实现见 widget.cpp；用全局计数器是因为 mark_layout_dirty() 是头文件内联函数。
+bool in_layout_pass();
+
+class LayoutPassScope
+{
+public:
+    LayoutPassScope();
+    ~LayoutPassScope();
+    LayoutPassScope(const LayoutPassScope&) = delete;
+    LayoutPassScope& operator=(const LayoutPassScope&) = delete;
+};
 
 struct Edges
 {
@@ -56,6 +71,22 @@ public:
     virtual void set_pos(glm::vec2 pos) { local_.pos = pos; mark_layout_dirty(); }
     virtual void set_size(glm::vec2 size) { local_.size = size; mark_layout_dirty(); }
     virtual void set_global_bounds(Rect bounds) { global_ = bounds; }
+
+    // 布局写入入口（只能在 arrange 内用）：只改几何，不触发脏标记。
+    // slot 是全局矩形；local_ 与 global_ 同步，保证 local_bounds() == 最近一次 arrange 的 slot。
+    // 没它的话，arrange 里调 set_pos/set_size 会把整棵树重新弄脏（历史上因此各容器不敢写 local_）。
+    void set_geometry(Rect slot)
+    {
+        local_ = slot;
+        global_ = slot;
+    }
+
+    // 固定尺寸控件的变体：只跟随位置，尺寸由自己维护（Window / Splitter / Table）。
+    void set_arranged_pos(glm::vec2 pos)
+    {
+        local_.pos = pos;
+        global_.pos = pos;
+    }
 
     virtual void add(std::unique_ptr<Widget> child)
     {
@@ -246,26 +277,50 @@ public:
     void set_size_percent(glm::vec2 pct) { size_percent_ = pct; mark_layout_dirty(); }
     void set_size_percent(float x, float y) { set_size_percent({x, y}); }
     glm::vec2 size_percent() const { return size_percent_; }
+
+    // Fill 尺寸模式：沿该轴吃满父级内容区。
+    // 与 size_percent=1 的几何结果相同，但语义显式：
+    //   - measure_child 在扣完 margin 后直接用可用尺寸（不再依赖“返回 constraints”的骗法）；
+    //   - 父级据此知道“这个子项不该把我的自然尺寸撞大”（预算在 UI-32 统一）。
+    void set_fill(bool x, bool y)
+    {
+        fill_x_ = x;
+        fill_y_ = y;
+        mark_layout_dirty();
+    }
+    bool fill_x() const { return fill_x_; }
+    bool fill_y() const { return fill_y_; }
     void set_aspect_ratio(float ratio) { aspect_ratio_ = ratio > 0.0f ? ratio : 0.0f; mark_layout_dirty(); }
     float aspect_ratio() const { return aspect_ratio_; }
 
-    // 容器测量子项的统一入口：先应用百分比与宽高比，再 clamp 到 min/max。
-    // constraints 是父级提供的可用空间；该轴无界（>= 1e8）时百分比不生效。
-    // 宽高比优先用宽推高；只指定了百分比高时用高推宽。
+    // 容器测量子项的统一入口（唯一）：
+    //   - constraints 是父级内容区的可用尺寸（已扣 padding，**未扣 margin**）；
+    //   - margin 在这里统一扣除（全轴）；
+    //   - 该轴无界（!is_bounded）时百分比不生效，且不能用“无界值减 margin”去构造可用尺寸；
+    //   - 宽高比在百分比之后应用，最后 clamp 到 min/max。
     static glm::vec2 measure_child(Widget& child, glm::vec2 constraints)
     {
-        constexpr float kUnbounded = 1.0e8f;
-        const glm::vec2 pct = child.size_percent();
-        const bool pct_x = pct.x > 0.0f && constraints.x < kUnbounded;
-        const bool pct_y = pct.y > 0.0f && constraints.y < kUnbounded;
+        const auto available_axis = [](float extent, float before, float after) {
+            if (!is_bounded(extent)) return extent; // 无界轴保持无界，否则减完 margin 会变成“有界”
+            return std::max(0.0f, extent - before - after);
+        };
+        const glm::vec2 available{
+            available_axis(constraints.x, child.margin_left(), child.margin_right()),
+            available_axis(constraints.y, child.margin_top(), child.margin_bottom())};
 
-        glm::vec2 spec = constraints;
-        if (pct_x) spec.x = constraints.x * pct.x;
-        if (pct_y) spec.y = constraints.y * pct.y;
+        const glm::vec2 pct = child.size_percent();
+        const bool fill_x = child.fill_x() && is_bounded(available.x);
+        const bool fill_y = child.fill_y() && is_bounded(available.y);
+        const bool pct_x = !fill_x && pct.x > 0.0f && is_bounded(available.x);
+        const bool pct_y = !fill_y && pct.y > 0.0f && is_bounded(available.y);
+
+        glm::vec2 spec = available;
+        if (pct_x) spec.x = available.x * pct.x;
+        if (pct_y) spec.y = available.y * pct.y;
 
         glm::vec2 size = child.measure(spec);
-        if (pct_x) size.x = spec.x;
-        if (pct_y) size.y = spec.y;
+        if (fill_x || pct_x) size.x = spec.x;
+        if (fill_y || pct_y) size.y = spec.y;
 
         if (const float ratio = child.aspect_ratio(); ratio > 0.0f) {
             if (pct_y && !pct_x) size.x = size.y * ratio;
@@ -327,9 +382,11 @@ public:
     virtual void on_focus_lost() { focused_ = false; }
 
     // 布局脏标记：任何尺寸/子项变化都会沿 parent 链向上传播，并使测量缓存失效
+    // 布局进行中（LayoutPassScope）时只失效缓存、不重新标记脏：arrange 期间的几何写入是
+    // “布局结果”，不是“请再排一次”的请求，否则每轮布局结束树总是脏的。
     void mark_layout_dirty()
     {
-        layout_dirty_ = true;
+        if (!in_layout_pass()) layout_dirty_ = true;
         invalidate_measure();
         if (parent_) parent_->mark_layout_dirty();
     }
@@ -359,6 +416,8 @@ protected:
     glm::vec2 absolute_pos_{0.0f, 0.0f};
     int z_index_ = 0;
     glm::vec2 size_percent_{-1.0f, -1.0f};
+    bool fill_x_ = false;
+    bool fill_y_ = false;
     float aspect_ratio_ = 0.0f;
     glm::vec2 min_size_{0.0f, 0.0f};
     glm::vec2 max_size_{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};

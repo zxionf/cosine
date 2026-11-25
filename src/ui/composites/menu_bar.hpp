@@ -517,7 +517,8 @@ private:
         popups_[0]->arrange({{x, y}, popups_[0]->local_bounds().size});
 
         auto* root = find_root();
-        const float viewport_w = root ? root->global_bounds().size.x : 1.0e9f;
+        // 无 root 时用"无界"宽度，而不是 1e9 这种另一个哨兵。
+        const float viewport_w = root ? root->global_bounds().size.x : kUnbounded;
 
         for (std::size_t depth = 1; depth < popups_.size(); ++depth) {
             auto* parent = popups_[depth - 1];
