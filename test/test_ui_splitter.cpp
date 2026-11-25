@@ -97,6 +97,44 @@ void test_fixed_first_vertical()
     f.splitter->arrange({{0.0f, 0.0f}, {400.0f, 600.0f}});
     assert(std::fabs(f.first->height() - 300.0f) < kEps);
 }
+
+// UI-33：分配尊重子项 min_size（ratio 由 min_size 推导）。
+void test_min_size_is_respected()
+{
+    Fixture f = make_splitter();
+    f.first->set_min_size({300.0f, 0.0f});
+    f.second->set_min_size({500.0f, 0.0f});
+    f.splitter->arrange({{0.0f, 0.0f}, {1000.0f, 200.0f}});
+    // usable = 994；first 至少 300，second 至少 500。
+    assert(f.first->width() >= 300.0f - kEps);
+    assert(f.second->width() >= 500.0f - kEps);
+    assert(std::fabs(f.first->width() + f.second->width() - 994.0f) < kEps);
+
+    // 固定像素超出可用空间时被 min_size 夹住，不把另一侧挤成负数。
+    f.splitter->set_fixed_first(900.0f);
+    f.splitter->arrange({{0.0f, 0.0f}, {1000.0f, 200.0f}});
+    assert(f.second->width() >= 500.0f - kEps);
+}
+
+// UI-33：Splitter 先 measure 再 arrange；measure 不再无视约束而返回固定推荐值。
+void test_measure_follows_children()
+{
+    Fixture f = make_splitter();
+    const glm::vec2 m = f.splitter->measure({1000.0f, 200.0f});
+    // 自然宽 = first 文字宽 + second 文字宽 + handle（6）；至少不是构造期的 400。
+    assert(m.x > 0.0f && m.x < 400.0f);
+    assert(m.y <= 200.0f);
+}
+
+// UI-33：Splitter 声明 Clip，内容不溢出时 content_overflows() 为假。
+void test_overflow_declaration()
+{
+    Fixture f = make_splitter();
+    assert(f.splitter->overflow() == xel::ui::Widget::Overflow::Clip);
+    assert(f.splitter->clips_children());
+    f.splitter->arrange({{0.0f, 0.0f}, {400.0f, 300.0f}});
+    assert(!f.splitter->content_overflows());
+}
 } // namespace
 
 int main()
@@ -105,6 +143,9 @@ int main()
     test_fixed_first();
     test_fixed_second();
     test_fixed_first_vertical();
+    test_min_size_is_respected();
+    test_measure_follows_children();
+    test_overflow_declaration();
     std::printf("test_ui_splitter: all passed\n");
     return 0;
 }

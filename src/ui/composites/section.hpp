@@ -98,8 +98,9 @@ public:
         header_.set_expanded(expanded_);
         header_.arrange({slot.pos, {slot.size.x, hh}});
         if (!expanded_) return;
-        content_->arrange({{slot.pos.x + kContentInset, slot.pos.y + hh},
-                           {std::max(0.0f, slot.size.x - kContentInset * 2.0f),
+        const float inset = ui_theme().section_inset;
+        content_->arrange({{slot.pos.x + inset, slot.pos.y + hh},
+                           {std::max(0.0f, slot.size.x - inset * 2.0f),
                             std::max(0.0f, slot.size.y - hh)}});
     }
 
@@ -121,8 +122,6 @@ public:
     bool hit_testable() const override { return true; }
 
 private:
-    static constexpr float kContentInset = 12.0f;
-
     std::string title_;
     CollapsibleHeader header_;
     bool expanded_ = true;

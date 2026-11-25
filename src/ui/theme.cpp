@@ -19,6 +19,9 @@ Theme Theme::with_density(Density target) const
     theme_value.scrollbar_width *= metric;
     theme_value.scrollbar_min_thumb *= metric;
     theme_value.inset_shadow_size *= metric;
+    theme_value.dialog_margin *= metric;
+    theme_value.splitter_handle *= metric;
+    theme_value.section_inset *= metric;
 
     theme_value.text_size *= text_scale;
     theme_value.small_text_size *= text_scale;

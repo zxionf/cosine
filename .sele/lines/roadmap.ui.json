@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 48,
+      "skipped_count": 53,
       "status": "paused",
       "steps": [
         {
@@ -2776,33 +2776,33 @@
           "desc": "两个 pct_y=1 不再溢出；stretch 不超 max_size、不破 aspect_ratio；fixed_size 不被 stretch",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:10:51Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "容器缩小时内容收缩而非溢出；拉伸后再次 measure 不把放大值当自然尺寸（可回缩）",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:10:51Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "Hbox/Vbox 对 flex 子项的自然尺寸定义一致（对偶用例）",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:10:51Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿 + cosine 冒烟 exit=0",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:10:51Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -2815,7 +2815,7 @@
           "uid": "tsk_01M874YQQ2XHX0KVR2TWN2PQJV"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-25T13:10:57Z",
       "goal": "UI-32 主轴分配与尺寸语义：pct 预算、stretch/aspect/clamp、fixed_size、flex shrink、叶子自然尺寸、Hbox 对齐",
       "id": "T26",
       "line": "ui",
@@ -2829,7 +2829,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
+      "status": "done",
       "steps": [
         {
           "desc": "",
@@ -2839,7 +2839,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "pct 主轴预算解析（先 pct 后 flex，总和 <= 可用），或显式禁止同轴多 pct 并加断言"
         },
         {
@@ -2850,7 +2850,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Vbox/Hbox/Grid/Wrap 统一使用预算接口，删除各自的 extra 分配副本"
         },
         {
@@ -2861,7 +2861,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "stretch 后重新 clamp_size，并文档化 stretch 与 size_percent 的互斥规则"
         },
         {
@@ -2872,7 +2872,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "aspect 与 clamp 一致求解（clamp 后回算另一轴，不再破坏比例）"
         },
         {
@@ -2883,7 +2883,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "fixed_size() 在 stretch 前短路 + 容器消费 fixed_size（与 Window::arrange 语义统一）"
         },
         {
@@ -2894,7 +2894,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "负 extra 的 flex shrink（下限 = min_size）+ 用例"
         },
         {
@@ -2905,7 +2905,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "9 个叶子改用构造期 preferred 自然尺寸：ColorRect/Image/ListView/SceneView/TimelineView/TreeView/CollapsibleHeader/Dropdown 列表/MenuBar 列表"
         },
         {
@@ -2916,7 +2916,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Hbox::measure 的 flex 主轴规则与 Vbox 对齐 + 对偶用例"
         },
         {
@@ -2927,7 +2927,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "组合用例（pct+margin / stretch+max / shrink+min / 拉伸后回缩）+ ctest + 冒烟 + 截图确认"
         }
       ],
@@ -2940,33 +2940,33 @@
           "desc": "隐藏子项不占位且显隐不留空洞；absolute 子项保持 Positioned 语义",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:21:20Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "TabView 页面切换后 measure 与 arrange 一致，不可见页不被测量",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:21:20Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "Splitter 子项被 measure；溢出按 Clip/Scroll/Shrink 声明表现",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:21:20Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿 + cosine 冒烟 exit=0",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:21:20Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -2979,7 +2979,7 @@
           "uid": "tsk_01M874YQQ2XHX0KVR2TWN2PQJV"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-25T13:21:20Z",
       "goal": "UI-33 可见性与溢出：display 三态、TabView 只测当前页、overflow 策略、Splitter 接入 measure",
       "id": "T27",
       "line": "ui",
@@ -2993,7 +2993,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
+      "status": "done",
       "steps": [
         {
           "desc": "",
@@ -3003,7 +3003,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Widget 增加 display（Flow/Positioned/Hidden），兼容 absolute/visible 的现有调用"
         },
         {
@@ -3014,7 +3014,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "四容器跳过 Hidden；absolute 保持 Positioned；补显隐与命中用例"
         },
         {
@@ -3025,7 +3025,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "TabView::measure 只测当前页（page_fill 下直接用 slot）+ 页面切换用例"
         },
         {
@@ -3036,7 +3036,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Widget 增加 overflow（Clip/Scroll/Shrink）与 content_overflows() 查询；clips_children 由 overflow 派生"
         },
         {
@@ -3047,7 +3047,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Splitter 先 measure 子项再 arrange；ratio 由 min_size 推导"
         },
         {
@@ -3058,7 +3058,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Panel/ScrollView/Splitter 的 overflow 声明迁移 + 溢出用例"
         },
         {
@@ -3069,7 +3069,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "ctest + 冒烟 + 视觉确认（Splitter 内 Table/FileBrowser 不再异常）"
         }
       ],
@@ -3082,33 +3082,33 @@
           "desc": "主题/密度/字号切换后嵌套容器与内容尺寸一致（用例）",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:37:33Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "mark_layout_dirty 早退后可失败契约测试全绿；布局结束后脏状态一致",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:37:33Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "文字测量次数相对 UI-30 基线下降，或 measure 缓存被移除且无回退",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:37:33Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿 + 四档 density 冒烟 exit=0",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:37:33Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -3121,7 +3121,7 @@
           "uid": "tsk_01M874YQJWCQY6CVVYBEZNRD56"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-25T13:37:33Z",
       "goal": "UI-34 缓存与脏标记：measure 缓存决策、mark_layout_dirty 早退、主题/密度切换一致性",
       "id": "T28",
       "line": "ui",
@@ -3135,7 +3135,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
+      "status": "done",
       "steps": [
         {
           "desc": "",
@@ -3145,7 +3145,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "决策并记录（sele decision record）：删除 measure 缓存 vs 加 (theme_revision, 子树版本) 版本键"
         },
         {
@@ -3156,7 +3156,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "落实决策：要么删掉 5 份缓存三元组与 ScrollPanel 死字段，要么补 revision 字段并在 set_theme 时递归失效"
         },
         {
@@ -3167,7 +3167,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "mark_layout_dirty 以 measure_valid_ 为判据早退（不能直接用 layout_dirty_），并保证 layout 后状态一致"
         },
         {
@@ -3178,7 +3178,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "用例：主题/密度/字号切换后嵌套容器与内容尺寸一致"
         },
         {
@@ -3189,7 +3189,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "用例：文字测量计数相对基线下降（或缓存移除后无回退）"
         },
         {
@@ -3200,7 +3200,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "四档 density 冒烟 + ctest + 冒烟"
         }
       ],
@@ -3213,33 +3213,33 @@
           "desc": "顶层菜单/工具栏/分割器/状态栏位置与改造前一致（PNG 对比）；resize 正确、无 last_w_/last_h_ 残留",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:52:14Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "裸容器随 theme.padding/spacing 变化，且显式 set_padding(0)/set_spacing(0) 不被主题冲掉",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:52:14Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "布局字面量全部来自 Theme/LayoutMetrics（grep 断言）",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:52:14Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿 + 四档 density 冒烟 exit=0",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T13:52:14Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -3252,7 +3252,7 @@
           "uid": "tsk_01M874YQQ2XHX0KVR2TWN2PQJV"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-25T13:52:14Z",
       "goal": "UI-35 顶层布局与主题度量统一：root Fill/Flow、Editor 瘦身、裸容器接主题、字面量收口",
       "id": "T29",
       "line": "ui",
@@ -3266,7 +3266,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
+      "status": "done",
       "steps": [
         {
           "desc": "",
@@ -3276,7 +3276,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "UIRoot 增加可选 fill/flow 模式（顶层 Vbox 铺满 root；fills_parent 语义保留给 Scrim）"
         },
         {
@@ -3287,7 +3287,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Editor::layout() 删除 7 处手写 place(...) 与 last_w_/last_h_ resize 逻辑"
         },
         {
@@ -3298,7 +3298,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "裸容器（Vbox/Hbox/Grid/Wrap）的 set_context 走 apply_theme_padding/spacing（复用 padding_override_）"
         },
         {
@@ -3309,7 +3309,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "CO-7 语义回归：显式 set_padding(0)/set_spacing(0) 在主题重刷后保持（含 Panel/TabView）"
         },
         {
@@ -3320,7 +3320,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "字面量收口：DialogHost 24/120/80、Window 160/48/16、Splitter handle、Section inset -> Theme/LayoutMetrics"
         },
         {
@@ -3331,7 +3331,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "四档 density 冒烟 + 顶层布局 PNG 对比 + ctest"
         }
       ],
@@ -3344,9 +3344,9 @@
           "desc": "Vbox/Hbox 对偶测试全绿，行为零变化；Grid/Wrap/Section/TabView/ScrollPanel 复用 LayoutUtils",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T14:13:18Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "LayoutSpec 生效且旧 setter 行为不变；Widget 布局 setter 从 17 降到 <=10",
@@ -3360,23 +3360,23 @@
           "desc": "布局调试面板可看到 constraints/measured/arranged/overflow/dirty，且不引起布局抖动",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T14:13:18Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿 + 四档 density + cosine/ui_gallery 冒烟 exit=0",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-25T14:13:18Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
       "archived_git_head": null,
       "created_at": "2026-11-24T16:07:18Z",
-      "current_step": null,
+      "current_step": "S8",
       "depends": [
         {
           "type": "task",
@@ -3397,7 +3397,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
+      "status": "in_progress",
       "steps": [
         {
           "desc": "",
@@ -3407,7 +3407,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "先写 Vbox/Hbox 对偶测试（同一组子项换轴后几何镜像）"
         },
         {
@@ -3418,7 +3418,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "LinearLayout(axis) 内核；Vbox/Hbox 退化为薄封装（行为零变化）"
         },
         {
@@ -3429,7 +3429,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "LayoutUtils：content_rect / place_absolute_children / measure_flow_child，替换 Grid/Wrap/Section/TabView/ScrollPanel 的重复实现"
         },
         {
@@ -3440,7 +3440,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "LayoutSpec 收敛 align/flex/pct/aspect/fill；旧 setter 保留为转发"
         },
         {
@@ -3451,7 +3451,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "Align::baseline 与 per-child 主轴对齐；标签+按钮行改用 baseline"
         },
         {
@@ -3462,7 +3462,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "布局调试面板：Widget 只读访问器（constraints/measured/arranged/overflow/dirty）+ DebugWindow Layout 页"
         },
         {
@@ -3473,8 +3473,19 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "todo",
+          "status": "done",
           "title": "全量回归：ctest + 四档 density + cosine/ui_gallery 冒烟 + 更新 docs/ui_architecture.md 布局契约"
+        },
+        {
+          "desc": "",
+          "id": "S8",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "in_progress",
+          "title": "提交改动（T26–T30 合并提交）"
         }
       ],
       "title": "UI-36 内核抽取、API 收敛与布局调试面板：LinearLayout、LayoutUtils、LayoutSpec、baseline",
@@ -3534,6 +3545,49 @@
       ],
       "title": "UI-30/31 提交记账：布局契约收敛（可失败契约测试 + 几何/测量统一）",
       "uid": "tsk_01M8950J0HDMAD20QVMZN9R63J"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Widget 布局 setter 从 17 降到 <=10（合并 pos/size/padding/margin 重载、min/max 合并），全仓 src/examples/test 调用点迁移完成",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "行为零变化：ctest 全绿 + cosine/ui_gallery 冒烟 exit=0 + 改造前后离屏 PNG 对比无差异",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T14:17:33Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-37 Widget 布局 setter 收敛：LayoutSpec 迁移（布局入口 ≤10）",
+      "id": "T32",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-37 Widget 布局 setter 收敛：LayoutSpec 迁移（布局入口 ≤10）",
+      "uid": "tsk_01M89H39S31YDK5ECJ762BJE03"
     }
   ]
 }

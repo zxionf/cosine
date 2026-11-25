@@ -8,6 +8,7 @@
 #include "events/key_code.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -39,6 +40,12 @@ public:
     LayoutPassScope(const LayoutPassScope&) = delete;
     LayoutPassScope& operator=(const LayoutPassScope&) = delete;
 };
+
+// 布局轮次（UI-34）：UIRoot::layout() 每轮推进一次。
+// 容器的 measure 缓存带这个版本键：只有“同一轮布局内”才会命中，
+// 这样既能让 arrange 复用 measure 结果（少测一次），又不会跨轮读到旧值。
+std::uint64_t layout_epoch();
+void advance_layout_epoch();
 
 struct Edges
 {
@@ -144,8 +151,50 @@ public:
     }
     const Theme& ui_theme() const;
     graphics::FontAtlas* font_atlas() const;
-    // 容器是否把子控件裁剪在自身范围内（命中测试与渲染共用同一语义）
-    virtual bool clips_children() const { return false; }
+
+    // 可见性三态（UI-33）：
+    //   Flow       参与流式布局（默认）
+    //   Positioned 绝对定位：不占位，但仍 arrange（相当于旧的 absolute）
+    //   Hidden     完全不参与布局，也不绘制
+    // set_visible(false) 等价于 Hidden；set_absolute(true) 等价于 Positioned。
+    enum class Display
+    {
+        Flow,
+        Positioned,
+        Hidden,
+    };
+    Display display() const { return !visible_ ? Display::Hidden : display_; }
+    void set_display(Display value)
+    {
+        display_ = value == Display::Hidden ? Display::Flow : value;
+        visible_ = value != Display::Hidden;
+        mark_layout_dirty();
+    }
+
+    // 溢出策略（UI-33）：
+    //   Visible 内容可以超出自身（默认）
+    //   Clip    绘制/命中裁剪到自身 bounds
+    //   Scroll  自带滚动（ScrollView）
+    // clips_children() 由它派生，不再各控件各写一份。
+    enum class Overflow
+    {
+        Visible,
+        Clip,
+        Scroll,
+    };
+    virtual Overflow overflow() const { return Overflow::Visible; }
+    // 容器是否把子控件裁剪在自身范围内（命中测试与渲染共用同一语义）。
+    // Clip 与 Scroll 都裁剪，区别只是 Scroll 自带滚动条。
+    virtual bool clips_children() const { return overflow() != Overflow::Visible; }
+
+    // 内容实际占用的尺寸（容器在 arrange 里写入）；用于判断是否溢出。
+    glm::vec2 content_extent() const { return content_extent_; }
+    // 内容是否超出自身尺寸（仅在容器 arrange 后有意义）。
+    bool content_overflows() const
+    {
+        constexpr float kEps = 0.5f;
+        return content_extent_.x > global_.size.x + kEps || content_extent_.y > global_.size.y + kEps;
+    }
 
     bool visible() const { return visible_; }
     bool is_hovered() const { return hovered_; }
@@ -193,6 +242,35 @@ public:
     void set_align(Align a) { align_self_ = a; has_align_ = true; mark_layout_dirty(); }
     std::optional<Align> align_self() const { return has_align_ ? std::optional<Align>(align_self_) : std::nullopt; }
 
+    // 尺寸与对齐规格的不可变快照（UI-36）：把 align / flex / pct / aspect / fill 收敛成一份数据，
+    // 便于调试面板展示与测试断言。存储仍然是「单一真相」的分散字段，set_layout_spec() 是转发。
+    struct LayoutSpec
+    {
+        std::optional<Align> align;
+        float flex_grow = 0.0f;
+        glm::vec2 size_percent{-1.0f, -1.0f};
+        float aspect_ratio = 0.0f;
+        bool fill_x = false;
+        bool fill_y = false;
+        glm::vec2 min_size{0.0f, 0.0f};
+        glm::vec2 max_size{0.0f, 0.0f};
+    };
+    LayoutSpec layout_spec() const
+    {
+        return {align_self(), flex_grow_, size_percent_, aspect_ratio_,
+                fill_x_, fill_y_, min_size_, max_size_};
+    }
+    void set_layout_spec(const LayoutSpec& spec)
+    {
+        if (spec.align) set_align(*spec.align);
+        set_flex_grow(spec.flex_grow);
+        set_size_percent(spec.size_percent);
+        set_aspect_ratio(spec.aspect_ratio);
+        set_fill(spec.fill_x, spec.fill_y);
+        set_min_size(spec.min_size);
+        set_max_size(spec.max_size);
+    }
+
     // 内边距：显式调用即「锁住」该值，主题重刷（set_context / UIRoot::set_theme）不再覆盖。
     // 容器把主题值套进来时走 apply_theme_padding()，那条路径会跳过已锁定的控件。
     void    set_padding(Edges edges)    { padding_ = edges; padding_override_ = true; mark_layout_dirty(); }
@@ -218,18 +296,18 @@ public:
     // 绝对定位：脱离流式布局，按 (x, y) 相对父内容区定位；容器不计入其尺寸。
     void set_absolute(bool value)
     {
-        if (value && !absolute_) absolute_pos_ = local_.pos; // 兼容：从当前位置开始
-        absolute_ = value;
+        if (value && display_ != Display::Positioned) absolute_pos_ = local_.pos; // 兼容：从当前位置开始
+        display_ = value ? Display::Positioned : Display::Flow;
         mark_layout_dirty();
     }
-    bool absolute() const { return absolute_; }
+    bool absolute() const { return display_ == Display::Positioned; }
 
     // 相对偏移与全局位置分离：arrange 会改写 local_.pos（全局），
     // 若 absolute 子项读 x()/y() 会每帧累加父偏移。
     void set_absolute_pos(glm::vec2 pos)
     {
         absolute_pos_ = pos;
-        absolute_ = true;
+        display_ = Display::Positioned;
         mark_layout_dirty();
     }
     glm::vec2 absolute_pos() const { return absolute_pos_; }
@@ -273,6 +351,20 @@ public:
     glm::vec2 max_size() const { return max_size_; }
     glm::vec2 clamp_size(glm::vec2 size) const { return glm::clamp(size, min_size_, max_size_); }
 
+    // 叶子的自然尺寸（UI-32）：构造期确定的 preferred size，与 arrange 的几何分离。
+    // measure() 用它而不是 local_.size —— 后者是最近一次 arrange 的结果，被 stretch
+    // 之后会「记住」放大值，再也缩不回去（P1-6）。
+    void set_preferred_size(glm::vec2 size) { preferred_size_ = size; mark_layout_dirty(); }
+    glm::vec2 preferred_size() const { return preferred_size_; }
+
+    // 外部显式指定尺寸：几何与自然尺寸一起改。
+    // 调试面板这类「用户改 Size」用它；布局内部的 arrange 不要调（arrange 只写几何）。
+    void request_size(glm::vec2 size)
+    {
+        preferred_size_ = size;
+        set_size(size);
+    }
+
     // 尺寸规格：每轴占父级可用空间的比例（>0 启用）与宽高比（>0 启用）。
     void set_size_percent(glm::vec2 pct) { size_percent_ = pct; mark_layout_dirty(); }
     void set_size_percent(float x, float y) { set_size_percent({x, y}); }
@@ -297,9 +389,12 @@ public:
     //   - constraints 是父级内容区的可用尺寸（已扣 padding，**未扣 margin**）；
     //   - margin 在这里统一扣除（全轴）；
     //   - 该轴无界（!is_bounded）时百分比不生效，且不能用“无界值减 margin”去构造可用尺寸；
-    //   - 宽高比在百分比之后应用，最后 clamp 到 min/max。
+    //   - 宽高比在百分比之后应用，最后 clamp 到 min/max；
+    //   - 结果带 (constraints, 布局轮次) 缓存（UI-34）：同一轮内重复调用（measure → arrange）不重测。
     static glm::vec2 measure_child(Widget& child, glm::vec2 constraints)
     {
+        if (child.measure_cache_hit(constraints)) return child.measure_cached();
+
         const auto available_axis = [](float extent, float before, float after) {
             if (!is_bounded(extent)) return extent; // 无界轴保持无界，否则减完 margin 会变成“有界”
             return std::max(0.0f, extent - before - after);
@@ -322,11 +417,16 @@ public:
         if (fill_x || pct_x) size.x = spec.x;
         if (fill_y || pct_y) size.y = spec.y;
 
+        glm::vec2 result = child.clamp_size(size);
         if (const float ratio = child.aspect_ratio(); ratio > 0.0f) {
             if (pct_y && !pct_x) size.x = size.y * ratio;
             else size.y = size.x / ratio;
+            // aspect 与 clamp 一起求解（UI-32）：clamp 截断任一轴后回算另一轴保持比例。
+            result = apply_aspect_clamp(size, ratio, child.min_size(), child.max_size());
         }
-        return child.clamp_size(size);
+        child.mark_measured(); // 已测量：失效传播早退的不变量
+        child.store_measure(constraints, result);
+        return result;
     }
 
     // 单控件圆角覆盖：默认用样式角色解析出的档位，个别控件可单独指定。
@@ -345,6 +445,11 @@ public:
     virtual float margin_right()   const { return margin_.right; }
     virtual float margin_top()     const { return margin_.top; }
     virtual float margin_bottom()  const { return margin_.bottom; }
+
+    // 文字基线相对控件顶边的偏移（UI-36）：默认无文本 → 用高度一半（居中）。
+    // Label/Button 这类有文字的控件覆写 baseline_offset_for()，供 Align::baseline_align() 使用。
+    virtual float baseline_offset_for(float h) const { return h * 0.5f; }
+    float baseline_offset() const { return baseline_offset_for(height()); }
 
     // 三个布尔决定交互行为，组合语义（clips_children 见上方）：
     //   hit_testable=true   命中到此为止，path 末端是它自己（可接点击、可拖）
@@ -381,23 +486,75 @@ public:
     virtual void on_focus_gained() { focused_ = true; }
     virtual void on_focus_lost() { focused_ = false; }
 
-    // 布局脏标记：任何尺寸/子项变化都会沿 parent 链向上传播，并使测量缓存失效
+    // 布局脏标记：任何尺寸/子项变化都会沿 parent 链向上传播，并使测量缓存失效。
     // 布局进行中（LayoutPassScope）时只失效缓存、不重新标记脏：arrange 期间的几何写入是
-    // “布局结果”，不是“请再排一次”的请求，否则每轮布局结束树总是脏的。
+    // “布局结果”，不是“请再排一次”的请求。
+    //
+    // 早退（UI-34）：不变量是“子树已通知过祖先链”——通知过就不再重复向上走。
+    //   - 通知发生：mark_layout_dirty 向父级传递时置位 `notified_`；
+    //   - 通知重置：本控件（或它的宿主）本轮被测量/被统计时清位（mark_measured）；
+    //   - 整轮 UIRoot::layout() 收尾统一清位（clear_layout_dirty_recursive）。
+    // 不能拿 layout_dirty_ 做判据：它表示“本轮请求重排”，与失效传播不是一回事。
     void mark_layout_dirty()
     {
         if (!in_layout_pass()) layout_dirty_ = true;
         invalidate_measure();
+        if (notified_) return;
+        notified_ = true;
         if (parent_) parent_->mark_layout_dirty();
     }
     bool layout_dirty() const { return layout_dirty_; }
     void clear_layout_dirty() { layout_dirty_ = false; }
-    virtual void invalidate_measure() {}
+    // 递归清除脏标记：UIRoot::layout() 收尾时用。
+    void clear_layout_dirty_recursive()
+    {
+        layout_dirty_ = false;
+        notified_ = false;
+        for (const auto& child : children_) child->clear_layout_dirty_recursive();
+        for (const auto& overlay : overlays()) overlay->clear_layout_dirty_recursive();
+    }
+    // 测量缓存失效（单节点）。派生类只管自己的派生度量。
+    virtual void invalidate_measure() { measure_valid_ = false; }
+    // 递归失效：主题/密度/字号切换后必须走这个（否则容器拿旧缓存 + 新主题 = 尺寸错位）。
+    void invalidate_measure_recursive()
+    {
+        invalidate_measure();
+        for (const auto& child : children_) child->invalidate_measure_recursive();
+        for (const auto& overlay : overlays()) overlay->invalidate_measure_recursive();
+    }
+
+    // 测量缓存的三个入口（派生类 measure() 用）：
+    //   - 命中条件：仍有效、同一轮布局、约束相同；
+    //   - 布局轮次是唯一跨轮失效手段，不依赖子项是否在 arrange 里标脏。
+    bool measure_cache_hit(glm::vec2 constraints) const
+    {
+        return measure_valid_ && measure_epoch_ == layout_epoch()
+            && constraints == measure_constraints_;
+    }
+    glm::vec2 measure_cached() const { return measure_cache_; }
+    void store_measure(glm::vec2 constraints, glm::vec2 result)
+    {
+        measure_cache_ = result;
+        measure_constraints_ = constraints;
+        measure_epoch_ = layout_epoch();
+        measure_valid_ = true;
+    }
+    // 测量已失效（调试面板与断言用）。
+    bool measure_valid() const { return measure_valid_; }
+    // 本轮已统计过（测过或按规则跳过）：清除“已通知祖先”标记，下次变更重新传播。
+    // 容器对该轮不参与流式的子项（Hidden / Positioned）也要调用它。
+    void mark_measured()
+    {
+        measure_valid_ = true;
+        notified_ = false;
+    }
 
 protected:
     // 构造期的结构性默认内边距（Vbox/Hbox 的 4px）：不锁定，主题仍可接管。
     // 与 set_padding() 的区别就在于此——后者是调用方的显式意图。
     void set_default_padding(float all) { padding_ = {all, all, all, all}; }
+    // 容器 arrange 时记录内容实际占用尺寸，供 content_overflows() 查询。
+    void set_content_extent(glm::vec2 extent) { content_extent_ = extent; }
 
     Rect global_;
     Rect local_;
@@ -412,7 +569,7 @@ protected:
     bool padding_override_ = false;
     Edges margin_{};
     float flex_grow_ = 0.0f;
-    bool absolute_ = false;
+    Display display_ = Display::Flow;
     glm::vec2 absolute_pos_{0.0f, 0.0f};
     int z_index_ = 0;
     glm::vec2 size_percent_{-1.0f, -1.0f};
@@ -421,6 +578,7 @@ protected:
     float aspect_ratio_ = 0.0f;
     glm::vec2 min_size_{0.0f, 0.0f};
     glm::vec2 max_size_{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
+    glm::vec2 preferred_size_{0.0f, 0.0f};
 
 public:
     // 每帧钩子：推进状态过渡，再交给控件自己的动画钩子。
@@ -453,6 +611,14 @@ private:
     std::optional<float> radius_override_;
     bool layout_dirty_ = true;
     int tab_order_ = 0;
+    glm::vec2 content_extent_{0.0f, 0.0f};
+    // measure 缓存（UI-34）：约束 + 布局轮次双重键。
+    mutable glm::vec2 measure_cache_{0.0f, 0.0f};
+    mutable glm::vec2 measure_constraints_{0.0f, 0.0f};
+    mutable std::uint64_t measure_epoch_ = 0;
+    mutable bool measure_valid_ = false;
+    // 本轮是否已把“失效”告知祖先链（UI-34 早退）。
+    bool notified_ = false;
     // visual_style() 在 const 的 append_to 中惰性更新过渡状态。
     mutable std::unique_ptr<StyleTransition> transition_;
 };

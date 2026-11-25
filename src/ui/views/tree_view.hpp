@@ -35,6 +35,7 @@ public:
     {
         set_min_size({width, height});
         set_max_size({width, height});
+        set_preferred_size({width, height});
         set_row_height(26.0f);
     }
 
@@ -176,7 +177,7 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        return clamp_size(global_.size.x > 0.0f ? global_.size : local_.size);
+        return clamp_size(preferred_size());
     }
 
     void arrange(Rect slot) override
@@ -218,7 +219,7 @@ public:
 
     bool hit_testable() const override { return true; }
     bool focusable() const override { return true; }
-    bool clips_children() const override { return true; }
+    Overflow overflow() const override { return Overflow::Clip; }
 
     void on_mouse_enter() override { hovered_ = row_at(last_mouse_); }
     void on_mouse_leave() override { hovered_ = -1; }

@@ -75,9 +75,7 @@ public:
     glm::vec2 measure(glm::vec2 size) override { return size; }
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
     void append_to(graphics::DrawList& list) const override
     {
@@ -119,9 +117,10 @@ public:
         // 尺寸由 arrange() 直接写入 local_；不要设置 min/max_size，
         // 否则 clamp_size 会把后续尺寸锁死在创建时的值上。
         local_ = {{0.0f, 0.0f}, {width, height}};
+        set_preferred_size({width, height});
     }
 
-    glm::vec2 measure(glm::vec2) override { return local_.size; }
+    glm::vec2 measure(glm::vec2) override { return clamp_size(preferred_size()); }
     // 直接写 local_/global_：宿主布局时每帧都会重新定位弹层，
     // 走 set_pos/set_size 会持续标脏并触发整树重排。
     void arrange(Rect slot) override
@@ -144,6 +143,9 @@ public:
         hovered_ = -1;
         keyboard_highlight_ = -1;
         const glm::vec2 size = {content_width(), content_height()};
+        // 自然尺寸随内容走（浮层不用 measure 协商，measure() 报这个值）：
+        // 不更新 preferred 的话，root 重排会把浮层按构造期的 0 高摆放。
+        set_preferred_size(size);
         local_ = {global_.pos, size};
         global_ = local_;
     }
@@ -267,9 +269,7 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
         if (is_open()) update_popup_geometry();
     }
 

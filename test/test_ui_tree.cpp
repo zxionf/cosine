@@ -119,7 +119,7 @@ int main()
     ui.dispatch(key(KeyCode::Home));
     assert(tree_ptr->selected_path() == std::vector<int>{0});
     ui.dispatch(key(KeyCode::Down));
-    assert(tree_ptr->selected_path() == std::vector<int>{0, 0});
+    assert((tree_ptr->selected_path() == std::vector<int>{0, 0}));
     ui.dispatch(key(KeyCode::End));
     assert(tree_ptr->selected_path() == std::vector<int>{2});
     ui.dispatch(key(KeyCode::Up));
@@ -128,7 +128,7 @@ int main()
 
     // Right：已展开则进入第一个子节点。
     ui.dispatch(key(KeyCode::Right));
-    assert(tree_ptr->selected_path() == std::vector<int>{0, 0});
+    assert((tree_ptr->selected_path() == std::vector<int>{0, 0}));
     // Left：折叠状态下跳到父节点。
     ui.dispatch(key(KeyCode::Left));
     assert(tree_ptr->selected_path() == std::vector<int>{0});

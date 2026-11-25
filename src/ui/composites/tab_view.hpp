@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/core/tab_bar.hpp"
+#include "ui/layout_utils.hpp"
 #include "ui/uicontext.hpp"
 #include "ui/theme.hpp"
 #include "ui/widget.hpp"
@@ -124,13 +125,13 @@ public:
 
     void invalidate_measure() override
     {
-        measure_valid_ = false;
-        for (const auto& child : children_) child->invalidate_measure();
+        // 子项无需递归：measure 缓存带布局轮次键，下一轮自然重算。
+        Widget::invalidate_measure();
     }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        if (measure_valid_ && constraints == cached_constraints_) return cached_measure_;
+        if (measure_cache_hit(constraints)) return measure_cached();
 
         const float pad = padding_left() + padding_right();
         const float pad_v = padding_top() + padding_bottom();
@@ -142,31 +143,41 @@ public:
                                                         : constraints.x,
                               is_bounded(constraints.y) ? std::max(0.0f, constraints.y - pad_v)
                                                         : constraints.y};
-        for (const auto& child : children_) {
-            if (child.get() == &tab_bar()) continue;
-            const glm::vec2 cs = Widget::measure_child(*child, inner);
-            content.x = std::max(content.x, cs.x);
-            content.y = std::max(content.y, cs.y);
+        // 只测当前页（UI-33）：非当前页不参与尺寸协商否则页面切回来时尺寸漂移。
+        // page_fill 下当前页直接吃满内容区，不必测。
+        for (std::size_t i = 1; i < children_.size(); ++i) {
+            if (static_cast<int>(i) - 1 != selected()) children_[i]->mark_measured();
         }
+        if (Widget* current = page(selected())) {
+            if (page_fill_ && is_bounded(inner.x) && is_bounded(inner.y)) {
+                content = inner;
+            } else {
+                const glm::vec2 cs = Widget::measure_child(*current, inner);
+                content = {std::min(cs.x, is_bounded(inner.x) ? inner.x : cs.x),
+                           std::min(cs.y, is_bounded(inner.y) ? inner.y : cs.y)};
+            }
+        }
+        // 标签栏占交叉轴尺寸（侧边栏时为宽）。
+        const bool side_bar = bar_position_ == BarPosition::Left || bar_position_ == BarPosition::Right;
+        if (side_bar && page_fill_ && is_bounded(inner.y)) content.y = std::max(content.y, inner.y);
+        if (!side_bar && page_fill_ && is_bounded(inner.x)) content.x = std::max(content.x, inner.x);
 
-        cached_constraints_ = constraints;
         const bool side = bar_position_ == BarPosition::Left || bar_position_ == BarPosition::Right;
         const float gap = tab_gap();
-        cached_measure_ = side
+        const glm::vec2 result = side
             ? glm::vec2{bar.x + gap + content.x + pad, std::max(bar.y, content.y) + pad_v}
             : glm::vec2{std::max(bar.x, content.x) + pad, bar.y + gap + content.y + pad_v};
-        measure_valid_ = true;
-        return cached_measure_;
+        store_measure(constraints, result);
+        return result;
     }
 
     void arrange(Rect slot) override
     {
         set_geometry(slot);
 
-        const float pad_l = padding_left();
-        const float pad_t = padding_top();
-        const float inner_w = std::max(0.0f, slot.size.x - pad_l - padding_right());
-        const float inner_h = std::max(0.0f, slot.size.y - pad_t - padding_bottom());
+        const Rect inner = layout::content_rect(*this, slot);
+        const float inner_w = inner.size.x;
+        const float inner_h = inner.size.y;
         const float gap = tab_gap();
 
         const glm::vec2 bar_size = tab_bar().measure({inner_w, inner_h});
@@ -176,34 +187,30 @@ public:
         switch (bar_position_) {
             case BarPosition::Top: {
                 const float bar_h = std::min(bar_size.y, inner_h);
-                bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t}, {inner_w, bar_h}};
-                content = {{slot.pos.x + pad_l, slot.pos.y + pad_t + bar_h + gap},
+                bar_slot = {inner.pos, {inner_w, bar_h}};
+                content = {{inner.pos.x, inner.pos.y + bar_h + gap},
                            {inner_w, std::max(0.0f, inner_h - bar_h - gap)}};
                 break;
             }
             case BarPosition::Bottom: {
                 const float bar_h = std::min(bar_size.y, inner_h);
-                content = {{slot.pos.x + pad_l, slot.pos.y + pad_t},
-                           {inner_w, std::max(0.0f, inner_h - bar_h - gap)}};
-                bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t + inner_h - bar_h},
-                            {inner_w, bar_h}};
+                content = {inner.pos, {inner_w, std::max(0.0f, inner_h - bar_h - gap)}};
+                bar_slot = {{inner.pos.x, inner.pos.y + inner_h - bar_h}, {inner_w, bar_h}};
                 break;
             }
             case BarPosition::Left: {
                 const float bar_w = std::min(bar_size.x, inner_w);
                 const float bar_h = std::min(bar_size.y, inner_h);
-                bar_slot = {{slot.pos.x + pad_l, slot.pos.y + pad_t}, {bar_w, bar_h}};
-                content = {{slot.pos.x + pad_l + bar_w + gap, slot.pos.y + pad_t},
+                bar_slot = {inner.pos, {bar_w, bar_h}};
+                content = {{inner.pos.x + bar_w + gap, inner.pos.y},
                            {std::max(0.0f, inner_w - bar_w - gap), inner_h}};
                 break;
             }
             case BarPosition::Right: {
                 const float bar_w = std::min(bar_size.x, inner_w);
                 const float bar_h = std::min(bar_size.y, inner_h);
-                content = {{slot.pos.x + pad_l, slot.pos.y + pad_t},
-                           {std::max(0.0f, inner_w - bar_w - gap), inner_h}};
-                bar_slot = {{slot.pos.x + pad_l + inner_w - bar_w, slot.pos.y + pad_t},
-                            {bar_w, bar_h}};
+                content = {inner.pos, {std::max(0.0f, inner_w - bar_w - gap), inner_h}};
+                bar_slot = {{inner.pos.x + inner_w - bar_w, inner.pos.y}, {bar_w, bar_h}};
                 break;
             }
         }
@@ -250,7 +257,7 @@ public:
     }
 
     bool hit_testable() const override { return false; }
-    bool clips_children() const override { return true; }
+    Overflow overflow() const override { return Overflow::Clip; }
 
 
 private:
@@ -271,9 +278,6 @@ private:
     BarPosition bar_position_ = BarPosition::Top;
     // 负值 = 跟随主题 spacing。见 set_tab_gap()。
     float tab_gap_ = -1.0f;
-    glm::vec2 cached_constraints_{};
-    glm::vec2 cached_measure_{};
-    bool measure_valid_ = false;
     bool page_fill_ = true;
 };
 } // namespace xel::ui

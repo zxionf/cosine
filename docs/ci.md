@@ -37,6 +37,10 @@ COSINE_EXPORT_PNG=/tmp/editor.png ./cosine
 
 # 同上，但启动即显示 Debug Window（检查窗口内边距/标签页是否贴满）
 COSINE_EDITOR_DEBUG=1 COSINE_EXPORT_PNG=/tmp/editor-debug.png ./cosine
+
+# 密度 / 字号冒烟（0=compact 1=normal 2=spacious；text size 单位 px）
+COSINE_EDITOR_DENSITY=0 COSINE_EXPORT_PNG=/tmp/editor-compact.png ./cosine
+COSINE_EDITOR_DENSITY=2 COSINE_EDITOR_TEXT_SIZE=22 COSINE_EXPORT_PNG=/tmp/editor-spacious.png ./cosine
 ```
 
 计数为 0 即通过。**不要用 `timeout` 强杀**——会跳过析构，掩盖资源释放问题。
@@ -53,7 +57,7 @@ COSINE_UI_SCALE=2 COSINE_EXIT_AFTER=3 ./ui_gallery
 验证重点是界面整体放大、字形清晰（按 `字号×比例` 重新栅格化）、
 tooltip 与应用内命中位置不偏移。
 
-当前测试规模：`ctest` 共 **68** 个用例（含 ASAN 构建，同一份源码）。
+当前测试规模：`ctest` 共 **72** 个用例（含 ASAN 构建，同一份源码）。
 
 ## lavapipe 冒烟
 

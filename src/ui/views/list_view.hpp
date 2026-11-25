@@ -61,17 +61,15 @@ public:
     // （Widget 继承自 Drawable，append_to 是纯虚，这里必须给一个空实现）
     void append_to(graphics::DrawList&) const override {}
 
-    // 子类决定尺寸来源（Table 用 min_size，TreeView 可能用父宽）。
+    // 子类决定尺寸来源（Table 用 min_size，TreeView 用 min/max）。
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        return clamp_size(local_.size);
+        return clamp_size(preferred_size());
     }
     void arrange(Rect slot) override
     {
-        set_pos(slot.pos);
-        set_size(slot.size);
-        global_ = slot;
+        set_geometry(slot);
     }
 
     bool on_scroll(glm::vec2 pos, glm::vec2 delta) override

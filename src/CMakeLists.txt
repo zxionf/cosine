@@ -35,6 +35,7 @@ add_library(cosine_ui STATIC
     ui/ui_system.cpp
     ui/containers/vbox.cpp
     ui/containers/hbox.cpp
+    ui/containers/linear_layout.cpp
     ui/containers/grid.cpp
     ui/containers/wrap.cpp
     ui/containers/scroll_view.cpp

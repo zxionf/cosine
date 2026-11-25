@@ -52,9 +52,7 @@ public:
 
     void arrange(xel::ui::Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
 
         const float footer_h = footer_visible_ ? std::min(footer_height_, slot.size.y) : 0.0f;
         const float main_h = std::max(0.0f, slot.size.y - footer_h);

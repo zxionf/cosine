@@ -17,7 +17,7 @@ public:
     explicit RadioGroup(float width = 200.0f)
         : Vbox(0.0f, 0.0f, width, 0.0f)
     {
-        set_spacing(ui_theme().spacing);
+        apply_theme_spacing(ui_theme().spacing);
         set_cross_align(Align::top_left());
     }
 

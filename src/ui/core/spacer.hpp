@@ -20,9 +20,7 @@ public:
     glm::vec2 measure(glm::vec2) override { return preferred_; }
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
     void append_to(graphics::DrawList&) const override {}
     bool hit_testable() const override { return false; }

@@ -102,6 +102,8 @@ void UIRoot::set_theme(const Theme& value)
     // 主题变化后让所有控件的样式过渡缓存立即失效。
     bump_theme_revision();
     set_context(&context_storage_);
+    // 度量缓存也要递归失效：主题会改变控件尺寸（行高/内边距/间距）。
+    invalidate_measure_recursive();
     mark_layout_dirty();
 }
 
@@ -116,8 +118,16 @@ void UIRoot::append_to(graphics::DrawList& list) const
 
 void UIRoot::layout_child(Widget& child)
 {
+    // 隐藏子项完全不参与布局（仍保留已有几何，重新可见时会被重排）。
+    if (child.display() == Widget::Display::Hidden) return;
     // 铺满父容器的控件（如模态遮罩）不做测量协商。
     if (child.fills_parent()) {
+        child.arrange({local_.pos, local_.size});
+        return;
+    }
+    // 顶层 Fill 模式（UI-35）：同时声明 fill_x/fill_y 的子项（顶层 Vbox 外壳）直接铺满 root，
+    // 不再依赖 local_.pos 的自由画布定位；其余子项（窗口/弹层）保留原有坐标语义。
+    if (child.fill_x() && child.fill_y()) {
         child.arrange({local_.pos, local_.size});
         return;
     }
@@ -159,9 +169,13 @@ void UIRoot::layout()
         }
     }
     // 整轮布局都在 LayoutPassScope 内：arrange 里的几何写入只失效缓存，不重新标记脏。
+    // 轮次推进（UI-34）：measure 缓存以它为键，保证只在本轮内命中。
+    advance_layout_epoch();
     LayoutPassScope layout_pass;
     for (auto& child : children_) layout_child(*child);
     for (auto& overlay : overlays_) layout_child(*overlay);
+    // 收尾：清除整棵树的本轮脏标记（早退传播依赖它）。
+    clear_layout_dirty_recursive();
 }
 
 void UIRoot::push_modal(Widget* window, bool with_scrim)
@@ -234,9 +248,7 @@ glm::vec2 UIRoot::measure(glm::vec2 constraints)
 
 void UIRoot::arrange(Rect slot)
 {
-    global_ = slot;
-    set_pos(slot.pos);
-    set_size(slot.size);
+    set_geometry(slot);
     layout();
 }
 } // namespace xel::ui

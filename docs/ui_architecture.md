@@ -118,7 +118,7 @@ virtual bool fixed_size() const { return false; }
 
 - `constraints.x` 是父容器给的**可用宽度**，返回值宽度不得超过它（`min_size` 强制除外）
 - `fixed_size() = true` 表示忽略 `constraints`，尺寸由 `min/max` 决定（`Table`、`FileBrowser`）
-- `invalidate_measure()` 会沿 `parent` 链向上传播
+- `invalidate_measure()` 只失效本控件的缓存；`invalidate_measure_recursive()` 才递归（主题切换等全树变更用）
 
 **子项测量的唯一入口**（UI-31 起）：
 
@@ -129,9 +129,113 @@ static glm::vec2 Widget::measure_child(Widget& child, glm::vec2 content);
 - `content` 是父容器**内容区**的可用尺寸（已扣 padding，**未扣 margin**）
 - `margin` 在函数内部全轴扣除；`size_percent` 在扣完 margin 的可用尺寸上计算
 - 轴无界（`!is_bounded(v)`）时百分比不生效；无界值不能减 margin（否则 1e8 减去后会被当成"有界"）
-- 顺序固定：`margin → pct → measure → aspect_ratio → clamp(min/max)`
+- 顺序固定：`margin → pct/fill → measure → aspect_ratio + clamp（一起求解）`
 - 宿主（`UIRoot::layout_child`、`TabView`、`ScrollPanel`、`DialogHost`、`Splitter`）一律走这个入口，
   不允许自己直接调 `child->measure()`
+
+**主轴预算**（UI-32 起，`src/ui/layout_budget.hpp`）：
+
+```cpp
+struct MainAxisItem { pct; fill; fixed; flex; natural; margin_before/after; min_size; max_size; };
+std::vector<float> resolve_main_axis(float available, float spacing,
+                                     const std::vector<MainAxisItem>& items,
+                                     bool distribute_flex = true);
+```
+
+- `Vbox`（主轴 y）/ `Hbox`（主轴 x）共用一个解算器，不再各写一份 extra 分配
+- **预算先于 flex**：`pct` / `fill` 先认领主轴空间，`fill` 等价于 `pct = 1`；
+  多个预算子项超出可用空间时按认领额等比压缩，保证总和 ≤ 可用（旧实现每个 pct 各拿整高）
+- 预算按 `pct × (available − 自身主轴 margin)` 计价，所以 `pct + margin` 不再溢出
+- 非预算子项取自然尺寸；`flex_grow > 0` 的子项主轴自然尺寸取 `min_size`（不取内容尺寸），
+  否则 `ScrollPanel` 这类内容远大于可视区的控件会把容器撑爆
+- 剩余空间再按 `flex` 分配：`extra > 0` 增长（上限 `max_size`）、`extra < 0` 收缩（下限 `min_size`），
+  迭代到边界后剩余归零
+- `measure()` 用 `distribute_flex = false`：容器自然尺寸不含 flex 撑开；`arrange()` 才分配
+- 无界主轴直接返回自然尺寸（clamp），不做预算与 flex 分配
+
+**stretch 与尺寸规格的互斥规则**：
+
+| 子项声明 | 交叉轴 stretch | 说明 |
+|---|---|---|
+| `size_percent`（该轴 > 0） | 跳过 | 百分比已显式定了尺寸 |
+| `fill_x/fill_y` | 跳过 | Fill 就是"拉满"的显式写法 |
+| `fixed_size()` | 跳过 | 固定尺寸控件不吃父级拉伸 |
+| 其它 | 生效 | 拉满后**重新** `clamp_size` |
+
+- `aspect_ratio` 与 `clamp` 一起求解（`apply_aspect_clamp`）：任一轴被 `min/max` 截断后回算另一轴，
+  不再出现"先算比例再 clamp 把比例破坏"；stretch 的结果同样走这一步
+
+**叶子的自然尺寸**（UI-32 起）：
+
+```cpp
+void Widget::set_preferred_size(glm::vec2);   // 构造期确定的自然尺寸
+glm::vec2 Widget::preferred_size() const;
+```
+
+- `measure()` 读 `preferred_size()`，**不读** `local_.size` / `local_bounds().size`
+  （后者是最近一次 `arrange` 的结果，被 stretch 放大后会让控件"只涨不缩"）
+- 已迁移：`ColorRect` / `Image` / `ListView` / `SceneView` / `TimelineView` / `TreeView` /
+  `CollapsibleHeader`（按标题文字算）/ `DropdownList` / `MenuPopup`
+- 浮层（`DropdownList` / `MenuPopup`）在内容变化时同步 `set_preferred_size`，
+  这样 root 重排时不会把它们按构造尺寸摆放
+- 例外：`Table` / `FileBrowser` / `Window` 走 `fixed_size()` + `min/max`，语义不变
+
+**measure 缓存与脏标记**（UI-34 起）：
+
+```cpp
+std::uint64_t layout_epoch();          // UIRoot::layout() 每轮 +1
+bool    Widget::measure_cache_hit(constraints);   // 有效 && 同轮 && 约束相同
+glm::vec2 Widget::measure_cached();
+void    Widget::store_measure(constraints, result);
+void    Widget::mark_measured();       // 本轮已统计（测过或用规则跳过），清“已通知”标记
+void    Widget::invalidate_measure_recursive();   // set_theme / 密度 / 字号切换用
+```
+
+- 缓存键是**（约束，布局轮次）**：只在同一轮内命中，跨轮必然重算——不会读到旧值，
+  但同轮内 `parent.measure()` 与 `parent.arrange()` 共享一次测量（文字测量从每控件 2 次降到 1 次）
+- 缓存统一在 `Widget` 里（子类不再各持三元组）；`measure_child()` 也走同一缓存，
+  所以嵌套容器的重复测量同样被合并
+- `UIRoot::set_theme()` 递归 `invalidate_measure()`：主题/密度/字号切换后下一轮数值立即一致
+- `arrange()` 一律用 `set_geometry()` 写几何（不再 `set_pos/set_size`）：布局过程不制造脏状态、不清缓存
+- `mark_layout_dirty()` 早退：以“本次变更新鲜度”标记 `notified_` 为判据（`invalidate_measure()` 之后若已通知过祖先就直接返回）；
+  `UIRoot::layout()` 收尾 `clear_layout_dirty_recursive()` 同时清 `layout_dirty_` 与 `notified_`
+- 验收点：`test_ui_layout_probe`（缓存命中 / 主题刷新 / 文字测量基线）、`test_ui_theme_relayout`（密度循环 / 字号 / 明暗主题一致性）
+
+**可见性三态**（UI-33 起）:
+
+```cpp
+enum class Display { Flow, Positioned, Hidden };
+Display display() const;                 // visible_ 为假时恒为 Hidden
+void    set_display(Display);
+set_visible(false)  == Hidden             // 不占位、不绘制、不参与命中
+set_absolute(true)  == Positioned         // 不占流式空间，但仍 arrange（absolute_pos）
+```
+
+- 四个流式容器（`Vbox`/`Hbox`/`Grid`/`Wrap`）在 measure/arrange 里只处理 `Flow`，
+  随后单独摆 `Positioned`；`Hidden` 完全跳过
+- `UIRoot::layout_child` 也跳过 `Hidden`（保留旧几何，重新可见会重排）
+- `TabView` 的页切换继续用 `set_visible`，但 `measure` 只算当前页，因此切页不会让尺寸漂移
+
+**溢出策略**（UI-33 起）:
+
+```cpp
+enum class Overflow { Visible, Clip, Scroll };
+virtual Overflow overflow() const;               // 默认 Visible
+virtual bool clips_children() const;             // = overflow() != Visible（唯一实现）
+glm::vec2 content_extent() const;                // 容器 arrange 时记录的内容尺寸
+bool content_overflows() const;                  // 内容 > 自身尺寸（任意轴）
+```
+
+| 控件 | overflow |
+|---|---|
+| `Panel` / `TabView` / `Window` / `Splitter` / `Table` / `TreeView` | `Clip` |
+| `ScrollView` | `Scroll`（同样裁剪，但自带滚动条） |
+| 其它（含四个流式容器） | `Visible` |
+
+- `clips_children()` 不再由各控件覆写，只由 `overflow()` 派生，避免绘制/命中口径分叉
+- `content_overflows()` 用于“内容放不下”的诊断与后续布局调试面板（T30）
+- `Splitter`：`measure()` 由两个 pane 的自然尺寸推导；`arrange()` 分配像素时两侧都
+  尊重子项 `min_size`（`clamp_first`），不再把一侧挤成负数
 
 **几何写入**（UI-31 起）：
 
@@ -154,7 +258,6 @@ ui::is_bounded(float)   // [0, 1e8) 为有界；负值（历史上的 -1）也�
 ```
 
 ### 3. 层级：`fills_parent()` + `Layer`
-
 ```cpp
 virtual bool fills_parent() const { return false; }
 enum class Layer { Content, Floating, Modal };
@@ -196,7 +299,7 @@ virtual float viewport_height() const { return global_.size.y; }
 |---|---|
 | `hit_testable() = true` | 命中到此为止，`path` 末端是它自己（可点、可拖） |
 | `hit_testable() = false` | 继续向下找子项；子项都没命中时它也不接（`Vbox` 用这个让点击冒泡） |
-| `clips_children() = true` | 子项绘制/命中裁剪到自身 `bounds`（`Panel` / `Window` / `ScrollView` / `Table` / `TreeView`） |
+| `overflow() = Clip/Scroll` | 子项绘制/命中裁剪到自身 `bounds`（`Panel` / `Window` / `ScrollView` / `Table` / `TreeView` / `Splitter`） |
 | `focusable() = true` | 参与 Tab 顺序，可被 `set_focus` 获得键盘事件 |
 
 ### 6. 内边距：显式值优先，主题只填空白
@@ -206,15 +309,52 @@ void set_padding(float all);          // 显式意图：锁定，主题重刷不
 void apply_theme_padding(float all);  // 主题套用入口：跳过已锁定的控件
 bool padding_override() const;        // 查询是否已锁定
 void clear_padding_override();        // 交还主题
+void set_spacing(float spacing);      // UI-35：间距同语义（锁定）
+void apply_theme_spacing(float s);    // 主题套用入口
+bool spacing_override() const;
 ```
 
 - `Vbox` / `Hbox` 构造期的 4px 是**结构性默认值**（`set_default_padding`），不锁定；
-  所以没显式设过的 `Panel` / `TabView` 照旧跟着 `theme.padding` 走。
+  所以没显式设过的 `Panel` / `TabView` / **裸容器**照旧跟着 `theme.padding` 走。
+- **裸容器也接主题**（UI-35）：`Vbox` / `Hbox` / `Grid` / `Wrap` 的 `set_context` 会
+  `apply_theme_padding` + `apply_theme_spacing`（定义在 .cpp，避开头文件拖入 UIContext）。
+  显式 `set_padding(0)` / `set_spacing(0)` 仍然优先，主题切换/密度切换不漂移。
 - `Panel` / `TabView` 的 `set_context` 走 `apply_theme_padding`：既要「主题能注入」，
   又不能把调用方写死的 0 冲掉。`UIRoot::set_theme` 会全树 `set_context`，这是唯一被重刷的时机。
 - 典型用法：窗口内容页要贴满时 `panel->set_padding(0.0f)` 一次即可，之后切 density / 明暗仍为 0。
 - 相关：`TabView::set_tab_gap(0)` 去掉标签栏与页面之间的 `theme.spacing` 缝（负值 = 跟随主题）。
-- 验收点：`test_ui_context`（Panel 锁定）、`test_ui_tab_view`（tab gap 与 `set_theme` 后不漂移）。
+- 验收点：`test_ui_context`（Panel/Vbox 锁定 + 裸容器跟随）、`test_ui_tab_view`（tab gap 与 `set_theme` 后不漂移）。
+
+### 7. 布局内核与工具（UI-36）
+
+```cpp
+// src/ui/containers/linear_layout.hpp
+class LinearLayout : public Widget { enum class Axis { Vertical, Horizontal }; ... };
+class Vbox : public LinearLayout;   // Axis::Vertical，cross_align 默认 top_center
+class Hbox : public LinearLayout;   // Axis::Horizontal，cross_align 默认 center_left
+
+// src/ui/layout_utils.hpp
+Rect content_rect(const Widget&, Rect slot);                       // 扣 padding 的内容区
+void place_positioned_children(Widget&, Rect content, vec2 cons);  // 摆 Positioned 子项
+```
+
+- 主轴解算、margin、cross 轴 stretch、主轴对齐（Start/Center/End/SpaceBetween）、
+  绝对定位子项全部只写一次；`Vbox`/`Hbox` 只剩“选轴 + 交叉轴默认值”
+- `Grid`/`Wrap`/`LinearLayout` 的绝对定位子项摆放共用 `layout::place_positioned_children`
+- 尺寸/对齐规格快照（不新增存储，只是转发）：
+
+```cpp
+Widget::LayoutSpec spec = w.layout_spec();   // align / flex / pct / aspect / fill / min / max
+w.set_layout_spec(spec);                      // 回写，等价于逐个 setter
+```
+
+- **基线对齐**：`Align::baseline_align()` + `Widget::baseline_offset_for(h)`（Label/Button 覆写）。
+  Hbox 先算行内最大基线，再把子项对齐到它；Settings 的“标签 + 控件”行已改用基线对齐
+- **布局调试面板**：DebugWindow 第三页 `Layout`（只读）：global/local bounds、临时 measure、
+  display/overflow/overflows/dirty/measure_valid/baseline、content extent、clips、LayoutSpec。
+  验证钩子：`COSINE_DEBUG_TAB=layout`、`COSINE_DEBUG_TARGET=1`
+- `content_extent` 只由 `arrange` 写入（子项包围盒），是 `content_overflows()` 的诊断依据；
+  `measure()` 不得污染它
 
 ## 三、生命周期
 
@@ -225,10 +365,20 @@ add/adopt  ──▶  measure(constraints)  ──▶  arrange(slot)  ──▶ 
                  缓存结果                设置 global_         排子项        写顶点
 ```
 
-- `mark_layout_dirty()` 沿 `parent` 链传播到 `UIRoot`
+- `mark_layout_dirty()` 沿 `parent` 链传播到 `UIRoot`；已通知过的子树会早退（UI-34，见上方“measure 缓存与脏标记”）
 - `UISystem::tick()` 里：`if (resized || root_->layout_dirty()) { root_->layout(); root_->clear_layout_dirty(); }`
 - **自由画布语义**：`UIRoot::layout_child` 用 `child.x()/y()`（即 `local_.pos`）定位，所以绝对定位控件必须**同时**维护 `local_.pos` 与 `absolute_pos`
 - `fills_parent()` 的控件跳过协商，直接 `arrange({parent.pos, parent.size})`
+- **顶层 Fill 模式**（UI-35）：同时声明 `fill_x && fill_y` 的顶层子项（应用的 `chrome_` Vbox）直接铺满 root；
+  窗口/弹层等其余子项仍走自由画布定位。editor 因此不再手写 `place(...)`，也不再在 tick 里比较 `last_w_/last_h_`。
+
+```
+chrome_ (Vbox, padding 0, spacing 0, cross_align = h_stretch, fill_x+fill_y)
+  ├─ menu_row (Panel, 高 = kMenuHeight)      └─ menu (MenuBar, absolute + fill)
+  ├─ toolbar_row (Panel, 高 = kToolbarHeight)└─ toolbar (Hbox, absolute + fill)
+  ├─ root_splitter (Splitter, flex_grow 1, h_stretch)
+  └─ status_row (Panel, 高 = kStatusHeight)  └─ status (Label, absolute + fill)
+```
 
 ### 事件
 
@@ -288,6 +438,10 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 - 颜色按 **sRGB 直觉值书写**（`srgb_hex(0xRRGGBB)`），**存储为线性**；渲染目标是 `*_SRGB`，硬件做编码
 - 强调色拆两个：`accent`（填充/边框/焦点环）与 `accent_text`（当文字，对比度更高）
 - `StyleRole` + `ControlState` 提供「语义样式」，`Theme` 的裸颜色字段仍可直接读；两者并存，对照表见 UI-11
+- **布局字面量收口**（UI-35）：原先散在各控件里的魔法数字进了 `Theme`，并随 `with_density` 缩放——
+  `dialog_margin / dialog_min_width / dialog_min_height`（DialogHost）、
+  `window_min_width / window_min_extra_height / window_keep_visible`（Window）、
+  `splitter_handle`（Splitter 手柄）、`section_inset`（Section 内容内缩）。
 
 ## 七、绘制
 

@@ -538,7 +538,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
         sw->set_on_change([&lab](float value) {
             if (lab.widget_updating || lab.widget_target == nullptr) return;
             const auto b = lab.widget_target->local_bounds();
-            lab.widget_target->set_size(value, b.size.y);
+            lab.widget_target->request_size({value, b.size.y});
         });
         size_row->add(std::move(sw));
         auto sh = std::make_unique<DragFloat>("", 90.0f);
@@ -547,7 +547,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
         sh->set_on_change([&lab](float value) {
             if (lab.widget_updating || lab.widget_target == nullptr) return;
             const auto b = lab.widget_target->local_bounds();
-            lab.widget_target->set_size(b.size.x, value);
+            lab.widget_target->request_size({b.size.x, value});
         });
         size_row->add(std::move(sh));
         scroll_ptr->content()->add(std::move(size_row));

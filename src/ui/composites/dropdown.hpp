@@ -29,14 +29,13 @@ public:
     {
         set_min_size({width, height});
         set_max_size({width, height});
+        set_preferred_size({width, height});
     }
 
-    glm::vec2 measure(glm::vec2) override { return local_.size; }
+    glm::vec2 measure(glm::vec2) override { return clamp_size(preferred_size()); }
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
     void append_to(graphics::DrawList& list) const override;
     bool on_mouse_move(glm::vec2 pos) override;
@@ -148,9 +147,7 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
 
     void append_to(graphics::DrawList& list) const override

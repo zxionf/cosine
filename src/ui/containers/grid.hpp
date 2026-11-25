@@ -25,7 +25,6 @@ public:
     bool hit_testable() const override { return false; }
     glm::vec2 measure(glm::vec2 constraints) override;
     void arrange(Rect slot) override;
-    void invalidate_measure() override { measure_valid_ = false; }
 
     // 等分列；等价于 set_column_widths(count 个 -1)。count <= 0 回退 1 列。
     void set_columns(int count);
@@ -39,10 +38,25 @@ public:
     {
         spacing_x_ = dx;
         spacing_y_ = dy;
+        spacing_override_ = true;
         mark_layout_dirty();
     }
+    // 主题套用：只填未锁定的空白（UI-35）。
+    void apply_theme_spacing(float spacing)
+    {
+        if (spacing_override_) return;
+        if (spacing_x_ == spacing && spacing_y_ == spacing) return;
+        spacing_x_ = spacing;
+        spacing_y_ = spacing;
+        mark_layout_dirty();
+    }
+    bool spacing_override() const { return spacing_override_; }
+    void clear_spacing_override() { spacing_override_ = false; }
     float spacing_x() const { return spacing_x_; }
     float spacing_y() const { return spacing_y_; }
+
+    // 裸容器也要跟随主题度量：显式设过的值仍然优先。定义在 .cpp。
+    void set_context(UIContext* context) override;
 
     // 单元格内对齐；子项可用 set_align() 单独覆盖。默认横向填满、纵向靠上。
     void set_cell_align(Align a)
@@ -66,11 +80,7 @@ private:
     std::vector<float> widths_{-1.0f};
     float spacing_x_ = 4.0f;
     float spacing_y_ = 4.0f;
+    bool spacing_override_ = false;
     Align cell_align_ = Align::h_stretch();
-
-    mutable glm::vec2 cached_measure_{0.0f, 0.0f};
-    mutable glm::vec2 cached_constraints_{kUnbounded, kUnbounded};
-    mutable bool measure_valid_ = false;
-
 };
 } // namespace xel::ui

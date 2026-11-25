@@ -42,16 +42,6 @@ constexpr float kRadToDeg = 180.0f / 3.14159265358979323846f;
 constexpr float kStatusHeight = 24.0f;
 
 // 固定尺寸 + 固定位置：UIRoot 的自由画布布局会尊重子项的 pos/size。
-void place(ui::Widget* widget, float x, float y, float width, float height)
-{
-    if (widget == nullptr) return;
-    const glm::vec2 size{width, height};
-    widget->set_min_size(size);
-    widget->set_max_size(size);
-    widget->set_size(size);
-    widget->set_pos(x, y);
-    widget->mark_layout_dirty();
-}
 } // namespace
 
 Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys, backend::vulkan::Renderer& renderer)
@@ -59,6 +49,14 @@ Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys, backend::vulkan::Renderer&
 {
     // 验证用：COSINE_EDITOR_ROUNDED=1 启动即启用实验性圆角样式。
     if (std::getenv("COSINE_EDITOR_ROUNDED") != nullptr) settings_.rounded_style = true;
+    // 验证用：COSINE_EDITOR_DENSITY=0|1|2 / COSINE_EDITOR_TEXT_SIZE=<px> 便于离屏核对各档密度。
+    if (const char* density = std::getenv("COSINE_EDITOR_DENSITY")) {
+        settings_.density = std::clamp(std::atoi(density), 0, 2);
+    }
+    if (const char* text_size = std::getenv("COSINE_EDITOR_TEXT_SIZE")) {
+        const float size = static_cast<float>(std::atof(text_size));
+        if (size >= 8.0f && size <= 48.0f) settings_.ui_text_size = size;
+    }
 
     build_demo_content();
     // Player 只持引用，Project 先于它存在且生命周期更长。
@@ -82,6 +80,16 @@ Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys, backend::vulkan::Renderer&
 
 void Editor::build()
 {
+    // 顶层垂直外壳（UI-35）：菜单 / 工具栏 / 工作区 / 状态条。
+    // fill_x + fill_y 让 UIRoot 直接把它铺满，不再依靠手写坐标。
+    auto chrome = std::make_unique<ui::Vbox>(0.0f, 0.0f, 1280.0f, 840.0f);
+    chrome->set_padding(0.0f);
+    chrome->set_spacing(0.0f);
+    chrome->set_cross_align(ui::Align::h_stretch());
+    chrome->set_fill(true, true);
+    chrome_ = chrome.get();
+    root_->add(std::move(chrome));
+
     build_backdrop();
     build_menu();
     build_toolbar();
@@ -148,14 +156,22 @@ void Editor::redo()
 
 void Editor::build_backdrop()
 {
-    // 菜单栗 / 工具栏的底色条：先 add，保证绘制在内容之下。
+    // 菜单/工具栏的底色就是它们所在的行（Panel），不再是单独的 overlay 层。
     auto menu_bg = std::make_unique<ui::Panel>(0.0f, 0.0f, 1280.0f, kMenuHeight);
+    menu_bg->set_padding(0.0f);
+    menu_bg->set_spacing(0.0f);
+    menu_bg->set_min_size({0.0f, kMenuHeight});
+    menu_bg->set_max_size({1.0e6f, kMenuHeight});
     menu_bg_ = menu_bg.get();
-    root_->add(std::move(menu_bg));
+    chrome_->add(std::move(menu_bg));
 
     auto toolbar_bg = std::make_unique<ui::Panel>(0.0f, 0.0f, 1280.0f, kToolbarHeight);
+    toolbar_bg->set_padding(0.0f);
+    toolbar_bg->set_spacing(0.0f);
+    toolbar_bg->set_min_size({0.0f, kToolbarHeight});
+    toolbar_bg->set_max_size({1.0e6f, kToolbarHeight});
     toolbar_bg_ = toolbar_bg.get();
-    root_->add(std::move(toolbar_bg));
+    chrome_->add(std::move(toolbar_bg));
 }
 
 void Editor::build_menu()
@@ -214,7 +230,10 @@ void Editor::build_menu()
         }),
     });
 
-    root_->add(std::move(menu));
+    // 菜单条作为菜单行（Panel）的绝对定位子项：铺满该行。
+    menu->set_absolute_pos({0.0f, 0.0f});
+    menu->set_fill(true, true);
+    menu_bg_->add(std::move(menu));
 }
 
 void Editor::build_toolbar()
@@ -222,6 +241,8 @@ void Editor::build_toolbar()
     auto toolbar = std::make_unique<ui::Hbox>(0.0f, 0.0f, 520.0f, kToolbarHeight);
     toolbar->set_spacing(6.0f);
     toolbar->set_cross_align(ui::Align::center_left()); // 垂直居中，避免按钮顶到条边
+    toolbar->set_absolute_pos({0.0f, 0.0f});
+    toolbar->set_fill(true, true);
     toolbar_ = toolbar.get();
 
     auto add = [&toolbar](std::string label, std::function<void()> action) {
@@ -241,7 +262,7 @@ void Editor::build_toolbar()
     add("Add Shape", [this] { add_shape_node(); });
     // add("Style", [this] { toggle_rounded_style(); });
 
-    root_->add(std::move(toolbar));
+    toolbar_bg_->add(std::move(toolbar));
 }
 
 void Editor::build_panels()
@@ -346,12 +367,25 @@ void Editor::build_panels()
     // 首帧 root 尺寸可能还是 0（Editor::layout 会 early return）：
     // 给一个非零下限，避免 clamp_size 得到 0 尺寸后 ScrollView 轨道长度为 0。
     root_split->set_min_size({400.0f, 300.0f});
+    // 工作区吃满垂直剩余空间（UI-35）：flex + 横向 stretch，不再手写高度。
+    root_split->set_flex_grow(1.0f);
+    root_split->set_align(ui::Align::h_stretch());
     root_splitter_ = root_split.get();
-    root_->add(std::move(root_split));
+    chrome_->add(std::move(root_split));
+
+    auto status_row = std::make_unique<ui::Panel>(0.0f, 0.0f, 1280.0f, kStatusHeight);
+    status_row->set_padding(0.0f);
+    status_row->set_spacing(0.0f);
+    status_row->set_min_size({0.0f, kStatusHeight});
+    status_row->set_max_size({1.0e6f, kStatusHeight});
+    status_row_ = status_row.get();
 
     auto status = std::make_unique<ui::Label>("ready", 16.0f);
+    status->set_absolute_pos({0.0f, 0.0f});
+    status->set_fill(true, true);
     status_ = status.get();
-    root_->add(std::move(status));
+    status_row->add(std::move(status));
+    chrome_->add(std::move(status_row));
 
     refresh_scene_tree();
 
@@ -920,21 +954,9 @@ void Editor::apply_theme()
 
 void Editor::layout()
 {
-    const float width = root_->width();
-    const float height = root_->height();
-    if (width <= 0.0f || height <= 0.0f) return;
-
-    const float body_top = kMenuHeight + kToolbarHeight;
-    const float status_y = height - kStatusHeight;
-
-    place(menu_bg_, 0.0f, 0.0f, width, kMenuHeight);
-    place(menu_, 0.0f, 0.0f, width, kMenuHeight);
-    place(toolbar_bg_, 0.0f, kMenuHeight, width, kToolbarHeight);
-    place(toolbar_, 0.0f, kMenuHeight, width, kToolbarHeight);
-    // 工作区与时间轴由 Splitter 分配，这里只给分割器整体定位。
-    place(root_splitter_, 0.0f, body_top, width, std::max(240.0f, status_y - body_top));
-    place(status_, 0.0f, status_y, width, kStatusHeight);
-
+    // 顶层布局已交给 chrome_（Vbox，铺满 root，UI-35）：菜单/工具栏/工作区/状态条
+    // 全部由流布局与 flex 决定，这里只提醒预览重算。
+    if (chrome_ != nullptr) chrome_->mark_layout_dirty();
     if (preview_ != nullptr) preview_->mark_layout_dirty();
 }
 
@@ -949,14 +971,6 @@ void Editor::tick(float dt)
             if (preview_ruler_->duration() != duration) preview_ruler_->set_duration(duration);
             preview_ruler_->set_time(time_);
         }
-    }
-
-    const float width = root_->width();
-    const float height = root_->height();
-    if (width != last_w_ || height != last_h_) {
-        last_w_ = width;
-        last_h_ = height;
-        layout();
     }
 
     if (debug_window_ != nullptr) debug_window_->update(*uisys_, dt);

@@ -30,6 +30,11 @@ int main()
             root->set_global_bounds({{0.0f, 0.0f}, {kExportW, kExportH}});
             root->mark_layout_dirty();
 
+            // 先定型一轮几何：Editor::tick 里的调试面板读的是当前布局结果，
+            // 不先 layout 的话首帧会显示构造期的坐标（global 还是 0）。
+            root->layout();
+            root->clear_layout_dirty();
+
             editor.tick(1.0f / 60.0f);
 
             // 可选：先推进 N 秒再导出，用于验证 Player 驱动预览。

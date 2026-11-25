@@ -1,6 +1,8 @@
 #include "ui/containers/grid.hpp"
 
 #include "ui/layout_metrics.hpp"
+#include "ui/layout_utils.hpp"
+#include "ui/uicontext.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -19,17 +21,26 @@ Grid::Grid(float x, float y, float w, float height)
 {
     set_pos(x, y);
     set_size(w, height);
-    set_padding(4.0f);
+    // 结构性默认值，不锁主题（UI-35）。
+    set_default_padding(4.0f);
 }
 
 Grid::Grid(glm::vec2 pos, glm::vec2 size)
 {
     set_pos(pos);
     set_size(size);
-    set_padding(4.0f);
+    set_default_padding(4.0f);
 }
 
 Grid::~Grid() = default;
+
+void Grid::set_context(UIContext* context)
+{
+    Widget::set_context(context);
+    if (context == nullptr) return;
+    apply_theme_padding(context->theme.padding);
+    apply_theme_spacing(context->theme.spacing);
+}
 
 void Grid::add(std::unique_ptr<Widget> child)
 {
@@ -128,16 +139,20 @@ Grid::ColumnLayout Grid::resolve_columns(float inner_w) const
 
 glm::vec2 Grid::measure(glm::vec2 constraints)
 {
-    if (measure_valid_ && constraints == cached_constraints_) {
-        return cached_measure_;
+    if (measure_cache_hit(constraints)) {
+        return measure_cached();
     }
 
     const int cols = column_count(widths_);
 
-    // 绝对定位子项不占格：行数只按流式子项计算。
+    // 隐藏与绝对定位子项不占格：行数只按流式子项计算。
     std::size_t flow_count = 0;
     for (const auto& child : children_) {
-        if (!child->absolute()) ++flow_count;
+        if (child->display() == Display::Flow) {
+            ++flow_count;
+        } else {
+            child->mark_measured(); // 本轮按规则跳过
+        }
     }
     const int rows = flow_count == 0
         ? 0
@@ -157,7 +172,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
         std::size_t flow = 0;
         for (std::size_t i = 0; i < children_.size(); ++i) {
             const auto& child = children_[i];
-            if (child->absolute()) continue;
+            if (child->display() != Display::Flow) continue;
             const int col = static_cast<int>(flow % static_cast<std::size_t>(cols));
             ++flow;
             const glm::vec2 cs = Widget::measure_child(*child, {kUnbounded, kUnbounded});
@@ -186,7 +201,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
     std::size_t flow = 0;
     for (std::size_t i = 0; i < children_.size(); ++i) {
         const auto& child = children_[i];
-        if (child->absolute()) continue;
+        if (child->display() != Display::Flow) continue;
         const int row = static_cast<int>(flow / static_cast<std::size_t>(cols));
         const int col = static_cast<int>(flow % static_cast<std::size_t>(cols));
         ++flow;
@@ -206,10 +221,10 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
     float total_h = pad_t + pad_b + spacing_y_ * static_cast<float>(rows > 0 ? rows - 1 : 0);
     for (float h : row_h) total_h += h;
 
-    cached_measure_ = clamp_size({total_w, total_h});
-    cached_constraints_ = constraints;
-    measure_valid_ = true;
-    return cached_measure_;
+    // content_extent 只在 arrange 写（真实占用）。
+    const glm::vec2 result = clamp_size({total_w, total_h});
+    store_measure(constraints, result);
+    return result;
 }
 
 void Grid::arrange(Rect slot)
@@ -227,11 +242,11 @@ void Grid::arrange(Rect slot)
 
     const ColumnLayout layout = resolve_columns(inner_w);
 
-    // 流式子项索引：绝对定位子项不占格。
+    // 流式子项索引：隐藏与绝对定位子项不占格。
     std::vector<std::size_t> flow;
     flow.reserve(children_.size());
     for (std::size_t i = 0; i < children_.size(); ++i) {
-        if (!children_[i]->absolute()) flow.push_back(i);
+        if (children_[i]->display() == Display::Flow) flow.push_back(i);
     }
     const int rows = flow.empty()
         ? 0
@@ -277,7 +292,13 @@ void Grid::arrange(Rect slot)
             float cx = 0.0f;
             float cy = 0.0f;
 
-            if (a.stretch_x && child->size_percent().x <= 0.0f) {
+            // 百分比 / fill / fixed_size 不参与 stretch（UI-32）。
+            const bool pct_x = child->size_percent().x > 0.0f || child->fill_x();
+            const bool pct_y = child->size_percent().y > 0.0f || child->fill_y();
+            const bool stretch_x = a.stretch_x && !pct_x && !child->fixed_size();
+            const bool stretch_y = a.stretch_y && !pct_y && !child->fixed_size();
+
+            if (stretch_x) {
                 size.x = avail_w;
                 cx = layout.offset[ci] + child->margin_left();
             } else {
@@ -285,7 +306,7 @@ void Grid::arrange(Rect slot)
                 cx = layout.offset[ci] + child->margin_left() + (avail_w - size.x) * a.x;
             }
 
-            if (a.stretch_y && child->size_percent().y <= 0.0f) {
+            if (stretch_y) {
                 size.y = avail_h;
                 cy = child->margin_top();
             } else {
@@ -293,17 +314,22 @@ void Grid::arrange(Rect slot)
                 cy = child->margin_top() + (avail_h - size.y) * a.y;
             }
 
+            // stretch 后重 clamp，aspect 与 clamp 一起求解（UI-32）。
+            const float ratio = child->aspect_ratio();
+            if (ratio > 0.0f) {
+                size = apply_aspect_clamp(size, ratio, child->min_size(), child->max_size());
+            } else {
+                size = child->clamp_size(size);
+            }
+
             child->arrange({{slot.pos.x + pad_l + cx, y + cy}, size});
         }
         y += cell_h + spacing_y_;
     }
 
+    set_content_extent({inner_w, y - slot.pos.y - pad_t});
+
     // 绝对定位子项：按自身坐标相对内容区放置，尺寸走同一套测量规则。
-    for (const auto& child : children_) {
-        if (!child->absolute()) continue;
-        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
-        child->arrange({{slot.pos.x + pad_l + child->absolute_pos().x,
-                         slot.pos.y + pad_t + child->absolute_pos().y}, cs});
-    }
+    layout::place_positioned_children(*this, layout::content_rect(*this, slot), {inner_w, inner_h});
 }
 } // namespace xel::ui

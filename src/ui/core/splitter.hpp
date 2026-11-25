@@ -31,7 +31,7 @@ public:
     }
 
     bool hit_testable() const override { return true; }
-    bool clips_children() const override { return true; }
+    Overflow overflow() const override { return Overflow::Clip; }
 
     void set_ratio(float ratio)
     {
@@ -80,8 +80,29 @@ public:
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
-        (void)constraints;
-        return {preferred_width_, preferred_height_};
+        // 自然尺寸 = 两个 pane 的自然主轴尺寸 + handle（交叉轴取最大）。
+        // 它只是给父级参考；实际尺寸由 arrange 的 slot 决定。
+        const float handle = handle_size();
+        const bool horizontal = orientation_ == Orientation::Horizontal;
+        float first = 0.0f;
+        float second = 0.0f;
+        float cross = 0.0f;
+        if (children_.size() >= 1) {
+            const glm::vec2 cs = Widget::measure_child(*children_[0], constraints);
+            first = horizontal ? cs.x : cs.y;
+            cross = std::max(cross, horizontal ? cs.y : cs.x);
+        }
+        if (children_.size() >= 2) {
+            const glm::vec2 cs = Widget::measure_child(*children_[1], constraints);
+            second = horizontal ? cs.x : cs.y;
+            cross = std::max(cross, horizontal ? cs.y : cs.x);
+        }
+        const glm::vec2 natural = horizontal
+            ? glm::vec2{first + second + handle, cross}
+            : glm::vec2{cross, first + second + handle};
+        // 没有任何 pane 时退回构造期推荐尺寸。
+        if (children_.empty()) return {preferred_width_, preferred_height_};
+        return clamp_size(natural);
     }
 
     void arrange(Rect slot) override
@@ -95,15 +116,16 @@ public:
                 // 单 pane 也要走一遍测量：子项（ScrollView / Table）要靠它更新内部度量。
                 Widget::measure_child(*children_[0], slot.size);
                 children_[0]->arrange(slot);
+                set_content_extent(slot.size);
             }
             return;
         }
 
         // 先测量（让孩子项按分配到的尺寸算内部度量），再按 pane 几何安排。
-        // Splitter 不参与协商：它给的就是最终尺寸（overflow 策略在 UI-33 里定义）。
+        // 分配时两边都尊重子项 min_size（UI-33：ratio 由 min_size 推导）。
         if (orientation_ == Orientation::Horizontal) {
             const float usable = std::max(0.0f, slot.size.x - handle);
-            const float first_w = resolved_first();
+            const float first_w = clamp_first(resolved_first(), usable, slot.size.y);
             const glm::vec2 second_w{std::max(0.0f, usable - first_w), slot.size.y};
             Widget::measure_child(*children_[0], {first_w, slot.size.y});
             Widget::measure_child(*children_[1], second_w);
@@ -111,13 +133,14 @@ public:
             children_[1]->arrange({{slot.pos.x + first_w + handle, slot.pos.y}, second_w});
         } else {
             const float usable = std::max(0.0f, slot.size.y - handle);
-            const float first_h = resolved_first();
+            const float first_h = clamp_first(resolved_first(), usable, slot.size.x);
             const glm::vec2 second_h{slot.size.x, std::max(0.0f, usable - first_h)};
             Widget::measure_child(*children_[0], {slot.size.x, first_h});
             Widget::measure_child(*children_[1], second_h);
             children_[0]->arrange({{slot.pos.x, slot.pos.y}, {slot.size.x, first_h}});
             children_[1]->arrange({{slot.pos.x, slot.pos.y + first_h + handle}, second_h});
         }
+        set_content_extent(slot.size);
     }
 
     void append_to(graphics::DrawList& list) const override
@@ -187,7 +210,22 @@ public:
     }
 
 private:
-    float handle_size() const { return 6.0f; }
+    // 手柄厚度来自主题（UI-35 收口）：density 变化时跟着缩放。
+    float handle_size() const { return std::max(1.0f, ui_theme().splitter_handle); }
+
+    // 把第一块像素尺寸夹到 [first_min, usable - second_min]，两侧都尊重 min_size。
+    float clamp_first(float first, float usable, float cross_extent) const
+    {
+        if (children_.size() < 2) return std::clamp(first, 0.0f, usable);
+        const bool horizontal = orientation_ == Orientation::Horizontal;
+        const glm::vec2 a = children_[0]->min_size();
+        const glm::vec2 b = children_[1]->min_size();
+        const float first_min = horizontal ? a.x : a.y;
+        const float second_min = horizontal ? b.x : b.y;
+        (void)cross_extent;
+        const float upper = std::max(first_min, usable - second_min);
+        return std::clamp(first, std::min(first_min, upper), upper);
+    }
 
     // 第一块的像素尺寸：固定模式优先，否则按比例。
     float resolved_first() const

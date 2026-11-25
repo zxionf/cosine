@@ -12,6 +12,7 @@ public:
     {
         set_pos(pos);
         set_size(size);
+        set_preferred_size(size);
         color_ = color;
     }
 
@@ -19,6 +20,7 @@ public:
     {
         set_pos(x, y);
         set_size(width, height);
+        set_preferred_size({width, height});
         color_ = color;
     }
 
@@ -34,14 +36,12 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        return local_bounds().size;
+        return clamp_size(preferred_size());
     }
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
 
     void on_mouse_enter() override

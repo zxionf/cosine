@@ -121,13 +121,16 @@ void SettingsWindow::build_general(ui::Vbox& group)
         auto row = std::make_unique<ui::Hbox>(0.0f, 0.0f, 0.0f, 40.0f);
         row->set_padding(0.0f);
         row->set_spacing(8.0f);
-        row->set_cross_align(ui::Align::center_left());
+        // 标签与控件按文字基线对齐（UI-36）：混排字号/控件高度时不会上下错位。
+        row->set_cross_align(ui::Align::baseline_align());
         row->set_fill(true, false);
         row->add(std::make_unique<ui::Label>(text, 16.0f));
         // 标签靠左、控件靠右：中间用可伸缩 Spacer 吃掉剩余宽度。
         auto push = std::make_unique<ui::Spacer>(0.0f, 0.0f);
         push->set_flex_grow(1.0f);
+        push->set_align(ui::Align::baseline_align());
         row->add(std::move(push));
+        control->set_align(ui::Align::baseline_align());
         row->add(std::move(control));
         group.add(std::move(row));
     };

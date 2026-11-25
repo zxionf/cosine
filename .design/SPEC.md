@@ -51,7 +51,23 @@ assets/         shader、字体
 - `children_` + `adopt()` 是唯一挂载入口；`parent` 非拥有指针。
 - 布局契约：`measure(constraints)` / `arrange(slot)`；`fixed_size()` 忽略约束；`fills_parent()` 铺满父容器。
 - `measure()` 返回**控件自身**尺寸，不得返回内部派生量（如 `ScrollView` 的内容区）；否则父级按小尺寸摆放，`arrange()` 里会再扣一次。
-- `UIRoot` 是自由画布：子控件保留局部坐标。
+- 主轴（`Vbox`/`Hbox`）尺寸由 `ui/layout_budget.hpp` 的 `resolve_main_axis` 统一解算：
+  `pct`/`fill` 先认领预算（总和按认领额压缩到 ≤ 可用），再按 `flex` 分配剩余
+  （正增长 / 负收缩，夹在 `min/max`），`margin` 全轴参加计价。
+- `stretch` 与 `size_percent`/`fill`/`fixed_size` 互斥；拉伸结果重新 `clamp`，
+  `aspect_ratio` 与 `clamp` 一起求解（`apply_aspect_clamp`）。
+- 叶子控件用构造期 `preferred_size` 作自然尺寸，`measure()` 不读 `local_.size`（避免拉伸后只涨不缩）。
+- 可见性三态 `Display{Flow, Positioned, Hidden}`：`set_visible(false)` 等价 Hidden（不占位），
+  `set_absolute(true)` 等价 Positioned（不占流式空间但仍 arrange）。
+- 溢出策略 `Overflow{Visible, Clip, Scroll}`；`clips_children()` 由它派生，`content_overflows()` 报告溢出。
+- `TabView::measure` 只算当前页；`Splitter::measure` 由 pane 自然尺寸推导，分配尊重子项 `min_size`。
+- measure 缓存键是（constraints, 布局轮次）：同轮内 `measure`/`arrange` 共用一次测量，跨轮必然重算；
+  `set_theme` 递归失效；`arrange` 只用 `set_geometry` 写几何（不标脏），脏标记传播带早退。
+- `UIRoot` 是自由画布：子控件保留局部坐标；顶层同时声明 `fill_x+fill_y` 的子项（应用外壳 Vbox）会直接铺满 root。
+- 裸容器（Vbox/Hbox/Grid/Wrap）也跟随 `theme.padding/spacing`，显式 `set_padding/set_spacing` 仍优先。
+- 布局字面量收进 `Theme`（dialog/window/splitter/section 一组度量），随 density 缩放。
+- 布局内核：`LinearLayout(axis)` 被 `Vbox`/`Hbox` 复用；`ui/layout_utils.hpp` 收敛内容区与 Positioned 子项摆放。
+- `Widget::LayoutSpec` 是 align/flex/pct/aspect/fill 的只读快照 + 回写转发；`Align::baseline_align()` 支持文字基线对齐。
 
 ### 层级与排序
 

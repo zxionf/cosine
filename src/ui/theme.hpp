@@ -131,6 +131,19 @@ struct Theme
     float scrollbar_min_thumb = 20.0f;
     // 窗口 resize 命中带（像素）：边缘该范围内的鼠标命中 resize，而非内容。
     float resize_margin = 4.0f;
+    // 布局字面量（UI-35 收口）：以前散在各控件里的“魔法数字”。
+    //   dialog_*：DialogHost 的外边距与对话框最小/最大尺寸
+    //   window_*：窗口最小宽、标题之外的最小内容高、拖动时保留的最小可见量
+    //   splitter_handle：Splitter 手柄厚度
+    //   section_inset：Section 内容相对标题条的内缩
+    float dialog_margin = 24.0f;
+    float dialog_min_width = 120.0f;
+    float dialog_min_height = 80.0f;
+    float window_min_width = 160.0f;
+    float window_min_extra_height = 48.0f;
+    float window_keep_visible = 48.0f;
+    float splitter_handle = 6.0f;
+    float section_inset = 12.0f;
     // 全局默认滚动模式；ScrollView 未显式覆盖时采用。
     ScrollMode scroll_mode = ScrollMode::Smooth;
 

@@ -141,9 +141,7 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
         // 视口/内容变化后重新夹取，保留平滑目标（只按新范围收紧）。
         scroll_.set_range(body_height(), content_height());
     }
@@ -207,7 +205,7 @@ public:
 
     bool hit_testable() const override { return true; }
     bool focusable() const override { return true; }
-    bool clips_children() const override { return true; }
+    Overflow overflow() const override { return Overflow::Clip; }
 
     void on_mouse_enter() override { hovered_ = hovered_row(last_mouse_); }
     void on_mouse_leave() override { hovered_ = -1; }

@@ -193,19 +193,18 @@ public:
         if (!dialog_) return;
 
         const auto& t = ui_theme();
-        const float margin = 24.0f;
-        const float max_w = std::max(120.0f, slot.size.x - margin * 2.0f);
-        const float max_h = std::max(120.0f, slot.size.y - margin * 2.0f);
+        const float margin = t.dialog_margin;
+        const float max_w = std::max(t.dialog_min_width, slot.size.x - margin * 2.0f);
+        const float max_h = std::max(t.dialog_min_width, slot.size.y - margin * 2.0f);
         glm::vec2 size = Widget::measure_child(*dialog_, {max_w, max_h});
-        size.x = std::clamp(size.x, 120.0f, max_w);
-        size.y = std::clamp(size.y, 80.0f, max_h);
+        size.x = std::clamp(size.x, t.dialog_min_width, max_w);
+        size.y = std::clamp(size.y, t.dialog_min_height, max_h);
 
         const glm::vec2 pos{
             slot.pos.x + (slot.size.x - size.x) * 0.5f,
             slot.pos.y + (slot.size.y - size.y) * 0.5f
         };
         dialog_->arrange({pos, size});
-        (void)t;
     }
 
     void append_to(graphics::DrawList& list) const override

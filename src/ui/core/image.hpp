@@ -30,6 +30,7 @@ public:
     {
         set_pos(0.0f, 0.0f);
         set_size(width, height);
+        set_preferred_size({width, height});
     }
 
     explicit Image(glm::vec2 size) : Image(size.x, size.y) {}
@@ -122,14 +123,12 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        return clamp_size(local_bounds().size);
+        return clamp_size(preferred_size());
     }
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
 
     void append_to(graphics::DrawList& list) const override

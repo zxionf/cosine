@@ -55,9 +55,28 @@ int main()
 
     xel::ui::UIContext third;
     third.theme.padding = 30.0f;
+    third.theme.spacing = 11.0f;
     root->set_context(&third);
     assert(pinned_ptr->padding().left == 0.0f);   // 显式值优先，不被主题掤回
     assert(panel_ptr->padding().left == 30.0f);   // 未显式设过的面板跟随主题
+
+    // UI-35：裸容器（Vbox/Hbox/Grid/Wrap）也接主题 padding/spacing；显式值仍然优先。
+    assert(vbox_ptr->padding().left == 30.0f);
+    assert(!vbox_ptr->padding_override());
+    auto pinned_box = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 100.0f, 50.0f);
+    pinned_box->set_padding(0.0f);
+    pinned_box->set_spacing(0.0f);
+    auto* pinned_box_ptr = pinned_box.get();
+    vbox_ptr->add(std::move(pinned_box));
+    assert(pinned_box_ptr->padding_override() && pinned_box_ptr->spacing_override());
+
+    xel::ui::UIContext fourth;
+    fourth.theme.padding = 14.0f;
+    fourth.theme.spacing = 9.0f;
+    root->set_context(&fourth);
+    assert(vbox_ptr->padding().left == 14.0f);
+    assert(pinned_box_ptr->padding().left == 0.0f);
+    assert(pinned_box_ptr->spacing_override());
 
     std::cout << "ui context tests passed\n";
     return 0;

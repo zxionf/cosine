@@ -16,8 +16,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <format>
 #include <functional>
+#include <string_view>
 #include <utility>
 
 namespace xel::editor
@@ -117,6 +119,12 @@ DebugWindow::DebugWindow(ui::UIRoot& root) : root_(&root)
     root.add(std::move(window));
     window_->set_visible(false);
     build();
+
+    // 验证用：COSINE_DEBUG_TARGET=1 直接抓 root 的第一个子项作为目标（离屏截图核对 Layout 页）。
+    if (std::getenv("COSINE_DEBUG_TARGET") != nullptr && !root.children().empty()) {
+        target_ = root.children().front().get();
+        rebuild_children();
+    }
 }
 
 DebugWindow::~DebugWindow() = default;
@@ -178,7 +186,20 @@ void DebugWindow::build()
     build_font_page(*font_page);
     view_ptr->add_page("Font", std::move(font_page));
 
-    view_ptr->set_selected(0);
+    auto layout_page = std::make_unique<ui::ScrollPanel>(0.0f, 0.0f, 0.0f, 0.0f);
+    layout_page->set_padding(4.0f);
+    layout_page->set_min_size({0.0f, 0.0f});
+    layout_page->set_max_size({10000.0f, 10000.0f});
+    build_layout_page(*layout_page);
+    view_ptr->add_page("Layout", std::move(layout_page));
+
+    // 验证用：COSINE_DEBUG_TAB=widget|font|layout 选初始页（离屏截图核对用）。
+    int initial = 0;
+    if (const char* tab = std::getenv("COSINE_DEBUG_TAB")) {
+        if (std::string_view(tab) == "font") initial = 1;
+        else if (std::string_view(tab) == "layout") initial = 2;
+    }
+    view_ptr->set_selected(initial);
 }
 
 void DebugWindow::build_widget_page(ui::ScrollPanel& page)
@@ -232,14 +253,14 @@ void DebugWindow::build_widget_page(ui::ScrollPanel& page)
         if (updating_ || target_ == nullptr) return;
         auto size = target_->global_bounds().size;
         size.x = value;
-        target_->set_size(size);
+        target_->request_size(size);
         notify_layout(target_);
     });
     size_h_ = add_drag("Size H", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
         auto size = target_->global_bounds().size;
         size.y = value;
-        target_->set_size(size);
+        target_->request_size(size);
         notify_layout(target_);
     });
     z_ = add_drag("Z", 0.0f, [this](float value) {
@@ -304,6 +325,26 @@ void DebugWindow::build_widget_page(ui::ScrollPanel& page)
     inner->add(std::move(children));
 
     rebuild_children();
+}
+
+void DebugWindow::build_layout_page(ui::ScrollPanel& page)
+{
+    ui::Vbox* inner = page.content();
+    inner->set_padding(0.0f);
+    inner->set_spacing(6.0f);
+    inner->set_cross_align(ui::Align::top_left());
+
+    auto add_line = [inner](const std::string& text) {
+        auto label = std::make_unique<ui::Label>(text, 16.0f);
+        ui::Label* ptr = label.get();
+        inner->add(std::move(label));
+        return ptr;
+    };
+    layout_bounds_ = add_line("bounds: -");
+    layout_size_ = add_line("measured: -");
+    layout_state_ = add_line("state: -");
+    layout_content_ = add_line("content: -");
+    layout_spec_ = add_line("spec: -");
 }
 
 void DebugWindow::build_font_page(ui::ScrollPanel& page)
@@ -389,6 +430,73 @@ void DebugWindow::update_props()
     updating_ = false;
 }
 
+void DebugWindow::update_layout_page()
+{
+    const bool has = target_ != nullptr;
+    if (layout_bounds_ != nullptr) {
+        if (!has) {
+            layout_bounds_->set_text("bounds: -");
+        } else {
+            const auto b = target_->global_bounds();
+            const auto l = target_->local_bounds();
+            layout_bounds_->set_text(std::format(
+                "bounds: global {:.0f},{:.0f} {:.0f}x{:.0f}   local {:.0f},{:.0f} {:.0f}x{:.0f}",
+                b.pos.x, b.pos.y, b.size.x, b.size.y,
+                l.pos.x, l.pos.y, l.size.x, l.size.y));
+        }
+    }
+    if (layout_size_ != nullptr) {
+        if (!has) {
+            layout_size_->set_text("measured: -");
+        } else {
+            // measure 是 const 语义上的缓存查询：同轮已测过就直接取缓存，不会重算。
+            const glm::vec2 m = target_->measure({target_->width(), target_->height()});
+            layout_size_->set_text(std::format("measured: {:.0f}x{:.0f}", m.x, m.y));
+        }
+    }
+    if (layout_state_ != nullptr) {
+        if (!has) {
+            layout_state_->set_text("state: -");
+        } else {
+            const char* display = target_->display() == ui::Widget::Display::Flow ? "flow"
+                : target_->display() == ui::Widget::Display::Positioned        ? "positioned"
+                                                                                : "hidden";
+            const char* overflow = target_->overflow() == ui::Widget::Overflow::Visible ? "visible"
+                : target_->overflow() == ui::Widget::Overflow::Clip                      ? "clip"
+                                                                                          : "scroll";
+            layout_state_->set_text(std::format(
+                "state: display {}  overflow {}  overflows {}  dirty {}  measure_valid {}  baseline {:.1f}",
+                display, overflow, target_->content_overflows() ? "yes" : "no",
+                target_->layout_dirty() ? "yes" : "no", target_->measure_valid() ? "yes" : "no",
+                target_->baseline_offset()));
+        }
+    }
+    if (layout_content_ != nullptr) {
+        if (!has) {
+            layout_content_->set_text("content: -");
+        } else {
+            const glm::vec2 c = target_->content_extent();
+            layout_content_->set_text(std::format(
+                "content: {:.0f}x{:.0f}  children {}  clips {}", c.x, c.y,
+                target_->children().size(), target_->clips_children() ? "yes" : "no"));
+        }
+    }
+    if (layout_spec_ != nullptr) {
+        if (!has) {
+            layout_spec_->set_text("spec: -");
+        } else {
+            const auto spec = target_->layout_spec();
+            const auto align = spec.align;
+            layout_spec_->set_text(std::format(
+                "spec: flex {:.2f}  pct {:.2f},{:.2f}  aspect {:.2f}  fill {}x{}  min {:.0f},{:.0f}  max {:.0f},{:.0f}  align {}",
+                spec.flex_grow, spec.size_percent.x, spec.size_percent.y, spec.aspect_ratio,
+                spec.fill_x ? 1 : 0, spec.fill_y ? 1 : 0, spec.min_size.x, spec.min_size.y,
+                spec.max_size.x, spec.max_size.y,
+                align ? std::format("{:.2f},{:.2f}", align->x, align->y) : std::string("inherit")));
+        }
+    }
+}
+
 void DebugWindow::update(const ui::UISystem& uisys, float dt)
 {
     if (window_ == nullptr || !window_->visible()) return;
@@ -436,5 +544,6 @@ void DebugWindow::update(const ui::UISystem& uisys, float dt)
         }
     }
     update_props();
+    update_layout_page();
 }
 } // namespace xel::editor

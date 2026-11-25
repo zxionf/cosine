@@ -36,7 +36,8 @@ public:
         : title_(std::move(title))
     {
         set_size(size);
-        set_min_size({160.0f, kDefaultTitleHeight + 48.0f});
+        set_min_size({ui_theme().window_min_width,
+                      kDefaultTitleHeight + ui_theme().window_min_extra_height});
         set_max_size({1.0e6f, 1.0e6f});
         // 两个坐标系必须同时初始化：UIRoot 的自由画布读 local_.pos，Vbox 读 absolute_pos。
         set_pos(pos);
@@ -125,10 +126,10 @@ public:
     {
         float title = 0.0f;                // 标题栏高 = 字体 line box 高度（无标题栏时为 0）
         float glyph = 0.0f;                // 标题文字左侧留白（折叠图标占位）
-        float icon = 24.0f;                // 折叠/关闭图标的命中方块边长
-        float inset = 4.0f;                // 图标距标题栏边缘
-        float resize_margin = 4.0f;        // resize 命中带（theme，不占内容布局）
-        float keep_visible = 48.0f;        // 拖动时保证留在视口内的最小可见量
+        float icon = 0.0f;                 // 折叠/关闭图标的命中方块边长（由标题高派生）
+        float inset = 0.0f;                // 图标距标题栏边缘（由行高派生）
+        float resize_margin = 0.0f;        // resize 命中带（theme，不占内容布局）
+        float keep_visible = 0.0f;         // 拖动时保证留在视口内的最小可见量（theme）
     };
 
     Chrome chrome() const
@@ -144,7 +145,7 @@ public:
         c.icon = std::max(8.0f, c.title - c.inset * 2.0f);
         c.glyph = c.icon + c.inset * 2.0f;
         c.resize_margin = t.resize_margin;
-        c.keep_visible = kKeepVisible;
+        c.keep_visible = t.window_keep_visible;
         return c;
     }
 
@@ -164,7 +165,8 @@ public:
             expanded_height_ = height();
             set_size(width(), title_height());
         } else {
-            set_size(width(), std::max(expanded_height_, title_height() + 48.0f));
+            set_size(width(), std::max(expanded_height_,
+                                       title_height() + ui_theme().window_min_extra_height));
         }
         collapsed_ = collapsed;
         mark_layout_dirty();
@@ -442,7 +444,7 @@ public:
 
     // append_to 把标题/内容/底栏都裁剪到窗口 bounds；命中必须同步裁剪，
     // 否则布局到窗口外的子项画不出来却能点得到。
-    bool clips_children() const override { return true; }
+    Overflow overflow() const override { return Overflow::Clip; }
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
@@ -536,9 +538,11 @@ public:
             if ((edges_ & kEdgeBottom) != 0) next_size.y += delta.y;
 
             // 夹到最小/最大尺寸：把左/上边被推回的那部分偿还给位置，避免窗口向右下飘。
-            const float min_w = std::max(160.0f, min_size().x);
+            const auto& t = ui_theme();
+            const float min_w = std::max(t.window_min_width, min_size().x);
             const float min_h = collapsed_ ? title_height()
-                                           : std::max(title_height() + 48.0f, min_size().y);
+                                           : std::max(title_height() + t.window_min_extra_height,
+                                                      min_size().y);
             if (next_size.x < min_w) {
                 if ((edges_ & kEdgeLeft) != 0) next_pos.x -= min_w - next_size.x;
                 next_size.x = min_w;
@@ -578,7 +582,6 @@ private:
         Resize,
     };
 
-    static constexpr float kKeepVisible = 48.0f;
     UIRoot* find_root_widget() const
     {
         Widget* node = const_cast<Window*>(this);

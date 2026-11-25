@@ -190,6 +190,12 @@ target_link_libraries(test_ui_layout_contract PRIVATE cosine_ui cosine_text)
 
 add_executable(test_ui_layout_probe test_ui_layout_probe.cpp)
 target_link_libraries(test_ui_layout_probe PRIVATE cosine_ui cosine_text)
+
+add_executable(test_ui_main_axis test_ui_main_axis.cpp)
+target_link_libraries(test_ui_main_axis PRIVATE cosine_ui cosine_text)
+
+add_executable(test_ui_theme_relayout test_ui_theme_relayout.cpp)
+target_link_libraries(test_ui_theme_relayout PRIVATE cosine_ui cosine_text)
 add_executable(test_ui_scroll_state test_ui_scroll_state.cpp)
 target_link_libraries(test_ui_scroll_state PRIVATE cosine_ui)
 
@@ -267,6 +273,8 @@ set(COSINE_TEST_TARGETS
     test_ui_scroll_measure
     test_ui_layout_contract
     test_ui_layout_probe
+    test_ui_main_axis
+    test_ui_theme_relayout
     test_ui_scroll_state
     test_ui_list_view
     test_font_atlas_metrics
@@ -356,6 +364,8 @@ add_test(NAME ui_scale COMMAND test_ui_scale)
 add_test(NAME ui_scroll_measure COMMAND test_ui_scroll_measure)
 add_test(NAME ui_layout_contract COMMAND test_ui_layout_contract)
 add_test(NAME ui_layout_probe COMMAND test_ui_layout_probe)
+add_test(NAME ui_main_axis COMMAND test_ui_main_axis)
+add_test(NAME ui_theme_relayout COMMAND test_ui_theme_relayout)
 add_test(NAME ui_scroll_state COMMAND test_ui_scroll_state)
 add_test(NAME ui_list_view COMMAND test_ui_list_view)
 add_test(NAME font_atlas_metrics COMMAND test_font_atlas_metrics)

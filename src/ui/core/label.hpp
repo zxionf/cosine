@@ -120,9 +120,7 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
 
     void append_to(graphics::DrawList& list) const override
@@ -166,6 +164,17 @@ public:
         list.pop_clip();
     }
     bool hit_testable() const override { return false; }
+
+    // 基线对齐（UI-36）：文字行框在控件内垂直居中，基线按行高 80% 估算
+    // （无精确 ascent/descent 数据时的经验值，与字形渲染色块比例一致）。
+    float baseline_offset_for(float h) const override
+    {
+        auto* atlas = font_atlas();
+        const float size = text_size();
+        const float line = atlas != nullptr ? atlas->line_height(size) : size;
+        const float top = std::max(0.0f, (h - line) * 0.5f);
+        return top + line * 0.8f;
+    }
 
 private:
     struct MeasureKey

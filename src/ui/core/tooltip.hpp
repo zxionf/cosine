@@ -80,9 +80,7 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
 
     void append_to(graphics::DrawList& list) const override

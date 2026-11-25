@@ -8,6 +8,15 @@
 #include <memory>
 #include <vector>
 
+// Release（NDEBUG）下 assert 会被裁掉；带副作用的调用不能直接写进 assert，
+// 否则测试在 Release 构建里什么都不做，甚至因后续空指针崩溃。
+#define CHECK(expr)            \
+    do {                       \
+        const bool ok__ = (expr); \
+        (void)ok__;            \
+        assert(ok__);          \
+    } while (false)
+
 namespace
 {
 using namespace xel;
@@ -113,7 +122,7 @@ void test_click_leaf_runs_action_and_closes_all()
 
     auto* video_popup = f.popup_at(3);
     const auto video_bounds = video_popup->global_bounds();
-    assert(video_popup->on_click({video_bounds.pos.x + 10.0f, video_popup->item_top(0) + 5.0f}, 0));
+    CHECK(video_popup->on_click({video_bounds.pos.x + 10.0f, video_popup->item_top(0) + 5.0f}, 0));
 
     assert(f.mp4_count == 1);
     assert(f.png_count == 0);
@@ -129,7 +138,7 @@ void test_keyboard_enter_and_leave_submenus()
 
     auto* top = f.popup_at(1);
     top->set_keyboard_highlight(1); // Export
-    assert(f.bar->on_key_down(event::KeyCode::Right, event::Modifier::None));
+    CHECK(f.bar->on_key_down(event::KeyCode::Right, event::Modifier::None));
     assert(f.bar->submenu_depth() == 1);
     assert(f.overlay_count() == 3);
 
@@ -139,7 +148,7 @@ void test_keyboard_enter_and_leave_submenus()
 
     // Right 进入 Video，Left 只退一层。
     export_popup->set_keyboard_highlight(1);
-    assert(f.bar->on_key_down(event::KeyCode::Right, event::Modifier::None));
+    CHECK(f.bar->on_key_down(event::KeyCode::Right, event::Modifier::None));
     assert(f.bar->submenu_depth() == 2);
     assert(f.overlay_count() == 4);
 
@@ -147,12 +156,12 @@ void test_keyboard_enter_and_leave_submenus()
     assert(f.bar->submenu_depth() == 1);
     assert(f.overlay_count() == 3);
 
-    assert(f.bar->on_key_down(event::KeyCode::Left, event::Modifier::None));
+    CHECK(f.bar->on_key_down(event::KeyCode::Left, event::Modifier::None));
     assert(f.bar->submenu_depth() == 0);
     assert(f.overlay_count() == 2);
 
     // Esc 关闭整条链。
-    assert(f.bar->on_key_down(event::KeyCode::Escape, event::Modifier::None));
+    CHECK(f.bar->on_key_down(event::KeyCode::Escape, event::Modifier::None));
     assert(f.overlay_count() == 0);
     assert(!f.bar->is_open());
 }
@@ -165,7 +174,7 @@ void test_enter_on_leaf_closes()
 
     auto* top = f.popup_at(1);
     top->set_keyboard_highlight(0); // New
-    assert(f.bar->on_key_down(event::KeyCode::Enter, event::Modifier::None));
+    CHECK(f.bar->on_key_down(event::KeyCode::Enter, event::Modifier::None));
     assert(f.new_count == 1);
     assert(f.overlay_count() == 0);
 }

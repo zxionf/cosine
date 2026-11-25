@@ -14,6 +14,7 @@
 #include "ui/core/button.hpp"
 #include "ui/core/color_rect.hpp"
 #include "ui/core/label.hpp"
+#include "ui/containers/panel.hpp"
 #include "ui/core/splitter.hpp"
 #include "ui/layout_metrics.hpp"
 #include "ui/root.hpp"
@@ -198,8 +199,10 @@ void contract_text_measure_baseline()
     box.arrange({{0.0f, 0.0f}, {300.0f, 200.0f}});
     int total = 0;
     for (auto* label : labels) total += label->measures;
-    // 基线（UI-30）：父 measure 一次 + 父 arrange 一次 → 每个 Label 2 次。
-    check(total == 6, "text measure baseline: 2 per label per layout", std::to_string(total));
+    // UI-34 后的基线：同一轮内 measure 结果被缓存，父 measure + 父 arrange 只测一次 → 每个 Label 1 次。
+    // （UI-30 时的基线是 6 = 每个 2 次；条数下降是本轮优化的验收点。）
+    check(total == 3, "text measure baseline: 1 per label per layout (was 2)",
+          std::to_string(total));
 }
 
 // 9) Section 内容按无界高度测量：pct_y 子项不再被算成 0 高（UI-30 修 -1 哨兵）。
@@ -325,8 +328,22 @@ void contract_wrap_measure_within_constraints()
 
 // D1 → UI-31 已修：见 contract_wrap_measure_within_constraints。
 
-// D2 pct 不共享预算：两个 pct_y=1 各拿整高（ui-v3 P0-2 / 由 UI-32 修）。
-void debt_pct_has_no_budget()
+// D2 → UI-32 已修：见 contract_pct_budget。
+
+// D3 → UI-31 已修：见 contract_splitter_measures_panes。
+
+// D4 → UI-31 已修：见 contract_container_local_bounds_follows_slot。
+
+// D5 → UI-33 已修：见 contract_hidden_child_does_not_reserve_space。
+
+// D6 → UI-34 已修：见 contract_measure_cache_reused_in_epoch。
+
+// D7 → UI-34 已修：见 contract_theme_change_refreshes_measure。
+
+// D8 → UI-31 已修：见 contract_layout_does_not_leave_tree_dirty。
+
+// 17) pct 主轴预算：两个 pct_y=1 按权重各拿一半（UI-32 修 P0-2）。
+void contract_pct_budget()
 {
     ui::Vbox box(0.0f, 0.0f, 400.0f, 300.0f);
     box.set_padding(0.0f);
@@ -337,17 +354,14 @@ void debt_pct_has_no_budget()
     b->set_size_percent({0.0f, 1.0f});
     const glm::vec2 m = box.measure({400.0f, 300.0f});
     box.arrange({{0.0f, 0.0f}, {400.0f, 300.0f}});
-    check(m.y > 300.0f && b->global_bounds().pos.y >= 300.0f,
-          "DEBT(P0-2/T26): 2x pct_y=1 overflows the container",
-          std::to_string(m.y));
+    check(near(m.y, 300.0f) && near(a->height(), 150.0f) && near(b->height(), 150.0f)
+              && b->global_bounds().pos.y + b->height() <= 300.0f + 0.01f,
+          "pct budget: 2x pct_y=1 -> 150/150, no overflow",
+          std::to_string(a->height()) + "/" + std::to_string(b->height()));
 }
 
-// D3 → UI-31 已修：见 contract_splitter_measures_panes。
-
-// D4 → UI-31 已修：见 contract_container_local_bounds_follows_slot。
-
-// D5 隐藏子项仍占位（ui-v3 P1-8 / 由 UI-33 修）。
-void debt_hidden_child_still_occupied()
+// 19) display 三态（UI-33）：Hidden 不占位，Positioned 不占位但仍 arrange。
+void contract_hidden_child_does_not_reserve_space()
 {
     ui::Vbox box(0.0f, 0.0f, 200.0f, 300.0f);
     box.set_padding(0.0f);
@@ -357,26 +371,72 @@ void debt_hidden_child_still_occupied()
     const float before = box.measure({200.0f, 300.0f}).y;
     b->set_visible(false);
     const float after = box.measure({200.0f, 300.0f}).y;
-    check(near(before, after), "DEBT(P1-8/T27): hidden child still reserves space",
+    check(near(before, 40.0f) && near(after, 20.0f),
+          "display=Hidden: child no longer reserves space",
           std::to_string(before) + " -> " + std::to_string(after));
+
+    // 重新可见后恢复占位，且 display 回到 Flow。
+    b->set_visible(true);
+    check(near(box.measure({200.0f, 300.0f}).y, 40.0f) && b->display() == ui::Widget::Display::Flow,
+          "display=Flow restored after set_visible(true)",
+          std::to_string(box.measure({200.0f, 300.0f}).y));
 }
 
-// D6 measure 缓存跨布局不命中（ui-v3 P1-4 / 由 UI-34 决策）。
-void debt_measure_cache_not_reused()
+void contract_positioned_not_in_flow_but_arranged()
+{
+    ui::Vbox box(0.0f, 0.0f, 200.0f, 300.0f);
+    box.set_padding(0.0f);
+    box.set_spacing(0.0f);
+    auto* a = add_counted(box, {10.0f, 20.0f});
+    auto* p = add_counted(box, {10.0f, 20.0f});
+    p->set_absolute_pos({30.0f, 40.0f});
+    check(p->display() == ui::Widget::Display::Positioned && p->absolute(),
+          "set_absolute_pos -> display=Positioned");
+    box.arrange({{0.0f, 0.0f}, {200.0f, 300.0f}});
+    check(near(box.measure({0.0f, 300.0f}).y, 20.0f) && near(p->x(), 30.0f) && near(p->y(), 40.0f),
+          "Positioned child: no flow space, arranged at absolute_pos",
+          std::to_string(p->x()) + "," + std::to_string(p->y()));
+    (void)a;
+}
+
+void contract_overflow_policy()
+{
+    ui::Vbox plain(0.0f, 0.0f, 100.0f, 100.0f);
+    check(plain.overflow() == ui::Widget::Overflow::Visible && !plain.clips_children(),
+          "default overflow = Visible (no clip)");
+
+    ui::Panel panel(0.0f, 0.0f, 100.0f, 100.0f);
+    check(panel.overflow() == ui::Widget::Overflow::Clip && panel.clips_children(),
+          "Panel overflow = Clip -> clips_children");
+
+    // content_overflows：内容比容器高时报告溢出。
+    ui::Vbox tall(0.0f, 0.0f, 100.0f, 40.0f);
+    tall.set_padding(0.0f);
+    add_counted(tall, {10.0f, 90.0f});
+    tall.arrange({{0.0f, 0.0f}, {100.0f, 40.0f}});
+    check(tall.content_overflows(), "content_overflows reports taller content",
+          std::to_string(tall.content_extent().y));
+}
+
+// 20) measure 缓存：同一轮布局内命中（UI-34）——父 measure + arrange 不再测两遍。
+void contract_measure_cache_reused_in_epoch()
 {
     ui::Vbox box(0.0f, 0.0f, 300.0f, 200.0f);
     box.set_padding(0.0f);
     auto* child = add_counted(box);
-    box.measure({300.0f, 200.0f});                    // 1
-    box.arrange({{0.0f, 0.0f}, {300.0f, 200.0f}});    // 2
-    box.measure({300.0f, 200.0f});                    // 期望命中 → 仍是 2
-    check(child->measures == 3, "DEBT(P1-4/T28): measure cache never hits across layouts",
+    box.measure({300.0f, 200.0f});                 // 1
+    box.arrange({{0.0f, 0.0f}, {300.0f, 200.0f}}); // 命中 → 仍 1
+    check(child->measures == 1, "measure cache hits within an epoch (arrange reuses measure)",
+          std::to_string(child->measures));
+
+    // 换约束则重算。
+    box.measure({150.0f, 200.0f});
+    check(child->measures == 2, "different constraints recompute",
           std::to_string(child->measures));
 }
 
-// D7 主题切换后 measure 缓存仍是旧值，且单遍布局会留下"容器 30 高、内容 60 高"
-//    （ui-v3 P1-4 / 由 UI-34 修）。
-void debt_theme_change_leaves_stale_measure()
+// 21) 主题切换后 measure 立即反映新度量（UI-34：set_theme 递归失效）。
+void contract_theme_change_refreshes_measure()
 {
     auto root = std::make_unique<ui::UIRoot>(0.0f, 0.0f, 400.0f, 300.0f);
     auto outer = std::make_unique<ui::Vbox>(0.0f, 0.0f, 400.0f, 300.0f);
@@ -389,24 +449,69 @@ void debt_theme_change_leaves_stale_measure()
     root->add(std::move(outer));
     root->layout();
 
-    // 关键：两次 layout 之间有人 measure 过 → 缓存被填充，且没有版本键。
     const float before = outer_ptr->measure({400.0f, 300.0f}).y;
 
     ui::Theme theme = root->ui_theme();
     theme.control_height = 60.0f;
     root->set_theme(theme);
-    const float stale = outer_ptr->measure({400.0f, 300.0f}).y;
+    const float after = outer_ptr->measure({400.0f, 300.0f}).y;
 
-    root->invalidate_measure();
     root->layout();
-    check(near(before, 30.0f) && near(stale, 30.0f) && near(button_ptr->height(), 60.0f),
-          "DEBT(P1-4/T28): cached measure survives a theme change (no revision key)",
-          std::to_string(before) + " -> " + std::to_string(stale));
+    check(near(before, 30.0f) && near(after, 60.0f) && near(button_ptr->height(), 60.0f),
+          "theme change refreshes measure (30 -> 60, no stale cache)",
+          std::to_string(before) + " -> " + std::to_string(after));
 }
 
-// D8 → UI-31 已修：见 contract_layout_does_not_leave_tree_dirty。
+// 22) 顶层 Fill 模式（UI-35）：同时 fill_x+fill_y 的子项直接铺满 root；
+//     内部 Vbox 的行按固定高 / flex 依次切开，不需要手写坐标。
+void contract_root_fill_child()
+{
+    auto root = std::make_unique<ui::UIRoot>(0.0f, 0.0f, 400.0f, 300.0f);
+    auto chrome = std::make_unique<ui::Vbox>(0.0f, 0.0f, 10.0f, 10.0f);
+    chrome->set_padding(0.0f);
+    chrome->set_spacing(0.0f);
+    chrome->set_cross_align(ui::Align::h_stretch());
+    chrome->set_fill(true, true);
+    ui::Vbox* chrome_ptr = chrome.get();
 
-// 17) Splitter 安排前先测量 panes（UI-31；ratio/overflow 仍属 UI-33）。
+    auto row = [&](float h) {
+        auto r = std::make_unique<Counted>();
+        r->natural = {10.0f, h};
+        r->set_min_size({0.0f, h});
+        r->set_max_size({1.0e6f, h});
+        chrome->add(std::move(r));
+    };
+    row(24.0f);
+    row(32.0f);
+    auto* workspace = add_counted(*chrome_ptr, {10.0f, 200.0f});
+    workspace->set_flex_grow(1.0f);
+    workspace->set_min_size({0.0f, 100.0f});
+    row(24.0f);
+
+    root->add(std::move(chrome));
+    root->layout();
+
+    const auto& rows = chrome_ptr->children();
+    check(near(chrome_ptr->width(), 400.0f) && near(chrome_ptr->height(), 300.0f),
+          "root fill child covers the whole root", std::to_string(chrome_ptr->width()) + "x" +
+              std::to_string(chrome_ptr->height()));
+    check(near(chrome_ptr->global_bounds().pos.x, 0.0f)
+              && near(chrome_ptr->global_bounds().pos.y, 0.0f)
+              && near(chrome_ptr->global_bounds().size.x, 400.0f)
+              && near(chrome_ptr->global_bounds().size.y, 300.0f),
+          "fill child global bounds equal the root rect",
+          std::to_string(chrome_ptr->global_bounds().size.x) + "x"
+              + std::to_string(chrome_ptr->global_bounds().size.y));
+    check(near(rows[0]->y(), 0.0f) && near(rows[0]->height(), 24.0f)
+              && near(rows[1]->y(), 24.0f) && near(rows[1]->height(), 32.0f)
+              && near(rows[2]->y(), 56.0f) && near(rows[2]->height(), 220.0f)
+              && near(rows[3]->y(), 276.0f) && near(rows[3]->height(), 24.0f),
+          "chrome rows tile the root (24 / 32 / flex / 24)",
+          std::to_string(rows[2]->y()) + "/" + std::to_string(rows[2]->height()));
+    check(near(rows[0]->width(), 400.0f), "cross_align h_stretch fills row width",
+          std::to_string(rows[0]->width()));
+}
+
 void contract_splitter_measures_panes()
 {
     ui::Splitter splitter(400.0f, 300.0f, ui::Splitter::Orientation::Horizontal);
@@ -441,11 +546,13 @@ int main()
     contract_margin_on_main_axis();
     contract_splitter_measures_panes();
     contract_wrap_measure_within_constraints();
-
-    debt_pct_has_no_budget();
-    debt_hidden_child_still_occupied();
-    debt_measure_cache_not_reused();
-    debt_theme_change_leaves_stale_measure();
+    contract_pct_budget();
+    contract_hidden_child_does_not_reserve_space();
+    contract_positioned_not_in_flow_but_arranged();
+    contract_overflow_policy();
+    contract_measure_cache_reused_in_epoch();
+    contract_theme_change_refreshes_measure();
+    contract_root_fill_child();
 
     std::printf("layout probe: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;

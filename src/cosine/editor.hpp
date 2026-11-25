@@ -16,6 +16,7 @@
 #include "ui/core/label.hpp"
 #include "ui/composites/menu_bar.hpp"
 #include "ui/containers/panel.hpp"
+#include "ui/containers/vbox.hpp"
 #include "ui/core/preview_ruler.hpp"
 #include "ui/root.hpp"
 #include "ui/views/scene_view.hpp"
@@ -116,6 +117,11 @@ private:
     ui::Widget* toolbar_ = nullptr;
     ui::Button* play_button_ = nullptr;
 
+    // 顶层垂直流：菜单 / 工具栏 / 工作区（弹性）/ 状态条（UI-35）。
+    // 它是 root 里唯一的 fill 子项（铺满 root），所以不再需要手写 place()。
+    ui::Vbox* chrome_ = nullptr;
+    ui::Panel* status_row_ = nullptr;
+
     // 可拖分区：上下（工作区 / 时间轴）、左右（树 / 右区）、左右（预览 / 属性）。
     // 嵌套顺序保证「拖属性条」只改预览与属性的宽度，树宽不变。
     ui::Splitter* root_splitter_ = nullptr;
@@ -152,8 +158,6 @@ private:
     scene::NodeId demo_card_ = scene::kInvalidNode;
 
     EditorSettings settings_;
-    float last_w_ = 0.0f;
-    float last_h_ = 0.0f;
     float time_ = 0.0f;
     int shape_counter_ = 0;
 };

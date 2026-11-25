@@ -26,15 +26,25 @@ public:
     bool hit_testable() const override { return false; }
     glm::vec2 measure(glm::vec2 constraints) override;
     void arrange(Rect slot) override;
-    void invalidate_measure() override { measure_valid_ = false; }
 
     void set_spacing(float all) { set_spacing(all, all); }
     void set_spacing(float dx, float dy)
     {
         spacing_x_ = dx;
         spacing_y_ = dy;
+        spacing_override_ = true;
         mark_layout_dirty();
     }
+    void apply_theme_spacing(float spacing)
+    {
+        if (spacing_override_) return;
+        if (spacing_x_ == spacing && spacing_y_ == spacing) return;
+        spacing_x_ = spacing;
+        spacing_y_ = spacing;
+        mark_layout_dirty();
+    }
+    bool spacing_override() const { return spacing_override_; }
+    void clear_spacing_override() { spacing_override_ = false; }
     float spacing_x() const { return spacing_x_; }
     float spacing_y() const { return spacing_y_; }
 
@@ -56,6 +66,9 @@ public:
 
     Align resolve_align(const Widget& child) const;
 
+    // 裸容器也要跟随主题度量：显式设过的值仍然优先。定义在 .cpp。
+    void set_context(UIContext* context) override;
+
 private:
     struct Row
     {
@@ -69,12 +82,8 @@ private:
 
     float spacing_x_ = 4.0f;
     float spacing_y_ = 4.0f;
+    bool spacing_override_ = false;
     MainAlign row_align_ = MainAlign::Start;
     Align cross_align_ = Align::center_left();
-
-    mutable glm::vec2 cached_measure_{0.0f, 0.0f};
-    mutable glm::vec2 cached_constraints_{kUnbounded, kUnbounded};
-    mutable bool measure_valid_ = false;
-
 };
 } // namespace xel::ui

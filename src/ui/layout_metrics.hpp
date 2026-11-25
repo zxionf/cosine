@@ -25,4 +25,21 @@ inline bool is_bounded(glm::vec2 extent)
 {
     return is_bounded(extent.x) && is_bounded(extent.y);
 }
+
+// 宽高比与 min/max 一起求解（UI-32）：先按比例算出尺寸，再 clamp；
+// 若某一轴被 min/max 截断，回算另一轴以保持比例，最后再 clamp 一次。
+// 两轴约束同时与比例冲突时以宽为准（可满足不了时退化为 clamp）。
+// ratio = width / height。
+inline glm::vec2 apply_aspect_clamp(glm::vec2 size, float ratio, glm::vec2 min_size, glm::vec2 max_size)
+{
+    if (ratio <= 0.0f) return glm::clamp(size, min_size, max_size);
+    const glm::vec2 clamped = glm::clamp(size, min_size, max_size);
+    glm::vec2 out = clamped;
+    if (clamped.x != size.x) {
+        out.y = clamped.x / ratio; // 宽被截断 → 回算高
+    } else if (clamped.y != size.y) {
+        out.x = clamped.y * ratio; // 高被截断 → 回算宽
+    }
+    return glm::clamp(out, min_size, max_size);
+}
 } // namespace xel::ui

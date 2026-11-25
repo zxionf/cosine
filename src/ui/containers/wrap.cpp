@@ -1,6 +1,8 @@
 #include "ui/containers/wrap.hpp"
 
 #include "ui/layout_metrics.hpp"
+#include "ui/layout_utils.hpp"
+#include "ui/uicontext.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -14,7 +16,8 @@ Wrap::Wrap(float x, float y, float w, float height)
 {
     set_pos(x, y);
     set_size(w, height);
-    set_padding(4.0f);
+    // 结构性默认值，不锁主题（UI-35）。
+    set_default_padding(4.0f);
     // 流式容器横向铺满父级：换行以父宽为准。
     set_fill(true, false);
 }
@@ -23,11 +26,19 @@ Wrap::Wrap(glm::vec2 pos, glm::vec2 size)
 {
     set_pos(pos);
     set_size(size);
-    set_padding(4.0f);
+    set_default_padding(4.0f);
     set_fill(true, false);
 }
 
 Wrap::~Wrap() = default;
+
+void Wrap::set_context(UIContext* context)
+{
+    Widget::set_context(context);
+    if (context == nullptr) return;
+    apply_theme_padding(context->theme.padding);
+    apply_theme_spacing(context->theme.spacing);
+}
 
 void Wrap::add(std::unique_ptr<Widget> child)
 {
@@ -64,8 +75,11 @@ std::vector<Wrap::Row> Wrap::layout_rows(float inner_w, bool unbounded)
 
     for (std::size_t i = 0; i < children_.size(); ++i) {
         const auto& child = children_[i];
-        // 绝对定位子项不参与折行。
-        if (child->absolute()) continue;
+        // 隐藏子项与绝对定位子项不参与折行。
+        if (child->display() != Display::Flow) {
+            child->mark_measured();
+            continue;
+        }
         const float ml = child->margin_left();
         const float mr = child->margin_right();
         const float mt = child->margin_top();
@@ -105,8 +119,8 @@ std::vector<Wrap::Row> Wrap::layout_rows(float inner_w, bool unbounded)
 
 glm::vec2 Wrap::measure(glm::vec2 constraints)
 {
-    if (measure_valid_ && constraints == cached_constraints_) {
-        return cached_measure_;
+    if (measure_cache_hit(constraints)) {
+        return measure_cached();
     }
 
     const float pad_l = padding_left();
@@ -131,10 +145,10 @@ glm::vec2 Wrap::measure(glm::vec2 constraints)
     const float content_w = max_w + pad_l + pad_r;
     const float total_w = unbounded ? content_w : constraints.x;
 
-    cached_measure_ = clamp_size({total_w, total_h});
-    cached_constraints_ = constraints;
-    measure_valid_ = true;
-    return cached_measure_;
+    // content_extent 只在 arrange 写（真实占用）。
+    const glm::vec2 result = clamp_size({total_w, total_h});
+    store_measure(constraints, result);
+    return result;
 }
 
 void Wrap::arrange(Rect slot)
@@ -188,12 +202,22 @@ void Wrap::arrange(Rect slot)
 
             const float avail_h = std::max(0.0f, row.height - mt - mb);
             float cy = 0.0f;
-            if (a.stretch_y && child->size_percent().y <= 0.0f) {
+            const bool pct_y = child->size_percent().y > 0.0f || child->fill_y();
+            const bool stretch_y = a.stretch_y && !pct_y && !child->fixed_size();
+            if (stretch_y) {
                 size.y = avail_h;
                 cy = y + mt;
             } else {
                 size.y = std::min(size.y, avail_h);
                 cy = y + mt + (avail_h - size.y) * a.y;
+            }
+
+            // stretch 后重 clamp，aspect 与 clamp 一起求解（UI-32）。
+            const float ratio = child->aspect_ratio();
+            if (ratio > 0.0f) {
+                size = apply_aspect_clamp(size, ratio, child->min_size(), child->max_size());
+            } else {
+                size = child->clamp_size(size);
             }
 
             // 水平位置由流式排布决定：Wrap 不按 a.x 拉伸/偏移子项。
@@ -204,12 +228,10 @@ void Wrap::arrange(Rect slot)
         y += row.height + spacing_y_;
     }
 
+    set_content_extent({inner_w, y - slot.pos.y - pad_t});
+
     // 绝对定位子项：按自身坐标相对内容区放置，尺寸走同一套测量规则。
-    for (const auto& child : children_) {
-        if (!child->absolute()) continue;
-        const glm::vec2 cs = Widget::measure_child(*child, {inner_w, slot.size.y});
-        child->arrange({{inner_x + child->absolute_pos().x,
-                         slot.pos.y + pad_t + child->absolute_pos().y}, cs});
-    }
+    layout::place_positioned_children(*this, layout::content_rect(*this, slot),
+                                      {inner_w, slot.size.y});
 }
 } // namespace xel::ui

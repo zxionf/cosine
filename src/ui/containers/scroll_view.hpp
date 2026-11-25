@@ -62,7 +62,7 @@ public:
     void on_update(float dt) override;
 
     bool hit_testable() const override { return true; }
-    bool clips_children() const override { return true; }
+    Overflow overflow() const override { return Overflow::Scroll; }
 
 
     void append_to(graphics::DrawList& list) const override;

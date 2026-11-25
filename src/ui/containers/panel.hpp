@@ -17,7 +17,7 @@ public:
         : Vbox(x, y, width, height)
     {
         apply_theme_padding(ui_theme().padding);
-        set_spacing(ui_theme().spacing);
+        apply_theme_spacing(ui_theme().spacing);
     }
 
     explicit Panel(glm::vec2 size) : Panel(0.0f, 0.0f, size.x, size.y) {}
@@ -29,13 +29,13 @@ public:
             // 只对没显式设过 padding 的面板套主题值：贴满父容器的页面（例如窗口里的
             // ScrollPanel 页）用 set_padding(0) 锁住，主题切换后不会再长回 8px。
             apply_theme_padding(context->theme.padding);
-            set_spacing(context->theme.spacing);
+            apply_theme_spacing(context->theme.spacing);
         }
     }
 
     bool hit_testable() const override { return true; }
     // append_to 已把子项裁剪到自身 bounds；命中必须同步裁剪，否则不可见的子项仍可点击。
-    bool clips_children() const override { return true; }
+    Overflow overflow() const override { return Overflow::Clip; }
 
     void append_to(graphics::DrawList& list) const override
     {

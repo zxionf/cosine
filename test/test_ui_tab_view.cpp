@@ -1,3 +1,4 @@
+#include "ui/core/color_rect.hpp"
 #include "ui/core/label.hpp"
 #include "ui/containers/panel.hpp"
 #include "ui/composites/tab_view.hpp"
@@ -215,6 +216,33 @@ int main()
     assert(std::fabs(tight_page.pos.x - tight_bounds.pos.x) < 0.01f);
     // 页面顶边 = 标签栏底边（不再插 theme.spacing 的缝）。
     assert(std::fabs(tight_page.pos.y - (tight_bar.pos.y + tight_bar.size.y)) < 0.01f);
+
+    // UI-33：measure 只算当前页（page_fill=false 时按页面自然尺寸）。
+    {
+        auto sized = std::make_unique<xel::ui::TabView>();
+        sized->set_page_fill(false);
+        sized->add_page("Small", std::make_unique<xel::ui::ColorRect>(0.0f, 0.0f, 120.0f, 60.0f, glm::vec4{1.0f}));
+        sized->add_page("Large", std::make_unique<xel::ui::ColorRect>(0.0f, 0.0f, 300.0f, 200.0f, glm::vec4{1.0f}));
+        auto* sized_ptr = sized.get();
+        ui.root()->add(std::move(sized));
+        ui.tick();
+
+        const glm::vec2 small = sized_ptr->measure({600.0f, 400.0f});
+        sized_ptr->set_selected(1);
+        const glm::vec2 large = sized_ptr->measure({600.0f, 400.0f});
+        // 不测非当前页：切到大页后 measure 变大；反之不因隐藏大页而虚高。
+        assert(large.x > small.x + 100.0f);
+        assert(large.y > small.y + 100.0f);
+        // page_fill=true（默认）下页面吃满内容区。
+        auto fill = std::make_unique<xel::ui::TabView>();
+        fill->add_page("F", std::make_unique<xel::ui::ColorRect>(0.0f, 0.0f, 10.0f, 10.0f, glm::vec4{1.0f}));
+        auto* fill_ptr = fill.get();
+        ui.root()->add(std::move(fill));
+        ui.tick();
+        const glm::vec2 filled = fill_ptr->measure({500.0f, 300.0f});
+        assert(filled.x >= 500.0f - 0.01f);
+        assert(filled.y >= 300.0f - 0.01f);
+    }
 
     std::cout << "tab view tests passed\n";
     return 0;

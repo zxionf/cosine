@@ -45,9 +45,17 @@ public:
 
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
+    }
+
+    // 基线对齐（UI-36）：按钮文字在控件内垂直居中，按行高 80% 估算基线。
+    float baseline_offset_for(float h) const override
+    {
+        const auto& t = ui_theme();
+        auto* atlas = font_atlas();
+        const float line = atlas != nullptr ? atlas->line_height(t.text_size) : t.text_size;
+        const float top = std::max(0.0f, (h - line) * 0.5f);
+        return top + line * 0.8f;
     }
 
     void append_to(graphics::DrawList& list) const override

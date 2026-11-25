@@ -35,8 +35,10 @@ private:
     void build();
     void build_widget_page(ui::ScrollPanel& page);
     void build_font_page(ui::ScrollPanel& page);
+    void build_layout_page(ui::ScrollPanel& page);
     void rebuild_children();
     void update_props();
+    void update_layout_page();
     void apply_text_debug(bool enabled, bool glyph_only);
     bool is_own(const ui::Widget* widget) const;
 
@@ -65,5 +67,12 @@ private:
     ui::Checkbox* debug_ = nullptr;
     ui::Checkbox* debug_children_ = nullptr;
     ui::Checkbox* follow_box_ = nullptr;
+
+    // Layout 页（UI-36）：只读展示目标控件的布局状态（不提供编辑）。
+    ui::Label* layout_bounds_ = nullptr;
+    ui::Label* layout_size_ = nullptr;
+    ui::Label* layout_state_ = nullptr;
+    ui::Label* layout_spec_ = nullptr;
+    ui::Label* layout_content_ = nullptr;
 };
 } // namespace xel::editor

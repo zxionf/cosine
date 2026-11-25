@@ -4,6 +4,7 @@
 #include "ui/containers/scroll_view.hpp"
 #include "ui/containers/vbox.hpp"
 #include "ui/layout_metrics.hpp"
+#include "ui/layout_utils.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -42,6 +43,7 @@ public:
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
+        if (measure_cache_hit(constraints)) return measure_cached();
         const float pad_h = padding_left() + padding_right();
         const float pad_v = padding_top() + padding_bottom();
         // 宽度有界时按可用宽测量（内容可换行），否则交给内容自然宽。
@@ -50,28 +52,22 @@ public:
             : kUnbounded;
         // 高度总是无界：内容高度由内容决定，视口高度由父级安排（ScrollPanel 必须放在有界父容器里）。
         const glm::vec2 inner = Widget::measure_child(*content_, {available_w, kUnbounded});
-        return {inner.x + pad_h, inner.y + pad_v};
+        const glm::vec2 result{inner.x + pad_h, inner.y + pad_v};
+        store_measure(constraints, result);
+        return result;
     }
 
     void arrange(Rect slot) override
     {
         set_geometry(slot);
         if (!scroll_) return;
-
-        const float pad_l = padding_left();
-        const float pad_t = padding_top();
-        const Rect inner{
-            {slot.pos.x + pad_l, slot.pos.y + pad_t},
-            {std::max(0.0f, slot.size.x - pad_l - padding_right()),
-             std::max(0.0f, slot.size.y - pad_t - padding_bottom())}
-        };
-        scroll_->arrange(inner);
+        scroll_->arrange(layout::content_rect(*this, slot));
     }
 
     void invalidate_measure() override
     {
-        measure_valid_ = false;
-        if (content_) content_->invalidate_measure();
+        // 内容无需递归：measure 缓存带布局轮次键（UI-34）。
+        Widget::invalidate_measure();
     }
 
 private:
@@ -80,7 +76,7 @@ private:
         auto box = std::make_unique<Vbox>(0.0f, 0.0f, 0.0f, 0.0f);
         box->set_cross_align(Align::top_left());
         box->set_padding(0.0f);
-        box->set_spacing(ui_theme().spacing);
+        box->apply_theme_spacing(ui_theme().spacing);
         content_ = box.get();
 
         auto scroll = std::make_unique<ScrollView>();
@@ -93,6 +89,5 @@ private:
 
     ScrollView* scroll_ = nullptr;
     Vbox* content_ = nullptr;
-    bool measure_valid_ = false;
 };
 } // namespace xel::ui
