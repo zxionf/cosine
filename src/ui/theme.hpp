@@ -45,7 +45,8 @@ struct BoxStyle
     float radius = 0.0f;
     glm::vec4 text{1.0f, 1.0f, 1.0f, 1.0f};
     float text_size = 16.0f;
-    glm::vec4 focus_ring{1.0f, 1.0f, 1.0f, 1.0f};
+    // 字号档位（UI-41）：角色想表达「这类控件用小字」时读它，而不是让控件直读 small_text_size。
+    TextSize text_size_role = TextSize::Body;
 };
 
 // 颜色书写约定（UI-3）：
@@ -86,18 +87,15 @@ struct Theme
     glm::vec4 button_hover{srgb_hex(0x4C525A)};
     glm::vec4 button_pressed{srgb_hex(0x363B42)};
     glm::vec4 button_disabled{srgb_hex(0x30343A)};
-    glm::vec4 focus_ring{srgb_hex(0x3D8EE8)};
     // 强调色：焦点环、勾选、滑动填充、进度填充的唯一来源。
     glm::vec4 accent{srgb_hex(0x3D8EE8)};
     // 强调色当**文字**时用更亮的一档：蓝底上写蓝色文字只有 4.1:1，不够读。
     glm::vec4 accent_text{srgb_hex(0x6FB0F2)};
-
-    glm::vec4 checkbox_bg{srgb_hex(0x2F343A)};
-    glm::vec4 checkbox_border{srgb_hex(0x4A5058)};
-    glm::vec4 checkbox_fill{srgb_hex(0x3D8EE8)};
+    // accent 填充上的文字色（UI-39）：深色主题下深字、浅色主题下白字。
+    // 对比度要求 >= 4.5:1（WCAG AA 正文级），由 test_ui_style 断言。
+    glm::vec4 accent_on{srgb_hex(0x0F1419)};
 
     glm::vec4 slider_track{srgb_hex(0x3A3F45)};
-    glm::vec4 slider_fill{srgb_hex(0x3D8EE8)};
     glm::vec4 slider_handle{srgb_hex(0xD8DDE3)};
     // 滑轨 hover 态底色（轨道是 Track 角色，hover 只提亮一档，不用按钮色）。
     glm::vec4 track_hover{srgb_hex(0x4A5058)};
@@ -109,10 +107,8 @@ struct Theme
     glm::vec4 text_input_border_hover{srgb_hex(0x5A6169)};
 
     glm::vec4 tooltip_bg{srgb_hex(0x2C3034, 0.97f)};
-    glm::vec4 scrollbar_track{srgb_hex(0x2E3238)};
-    glm::vec4 scrollbar_thumb{srgb_hex(0x5A6169)};
 
-    // 内阴影：只用于 Surface 上缘与 Tooltip 内缘，多层半透明条模拟。
+    // 内阴影：只用于 Surface 上缘（Panel），多层半透明条模拟。
     glm::vec4 inset_shadow{0.0f, 0.0f, 0.0f, 0.06f};
     float inset_shadow_size = 6.0f;
 
@@ -151,7 +147,6 @@ struct Theme
     float radius = 6.0f;
     float radius_small = 3.0f;
     float radius_medium = 6.0f;
-    float radius_large = 10.0f;
     float radius_panel = 8.0f;
     // 胶囊/圆形圆角：取值故意很大，绘制时 clamp 到短边一半；classic 样式归零后变直角。
     // Slider 轨道与手柄、Progress、Radio 用它，保证「圆形控件」也随圆角开关变化。
@@ -176,6 +171,16 @@ struct Theme
 
     // 解析「角色 + 状态」到具体外观；实现见 ui/style.hpp。
     BoxStyle style(StyleRole role, ControlState state) const;
+    // 字号档位 → 像素（UI-41）：角色内部用它，控件需要单点小字号（如菜单快捷键）也可直接问。
+    float text_size_of(TextSize tier) const
+    {
+        switch (tier) {
+            case TextSize::Small:   return small_text_size;
+            case TextSize::Heading: return heading_text_size;
+            case TextSize::Body:    break;
+        }
+        return text_size;
+    }
     // 返回换了密度档位的副本；已处于目标档位时原样返回（幂等）。
     Theme with_density(Density target) const;
     // 圆角与焦点风格的整组开关：rounded=false 时所有圆角归零并改用贴边焦点框（经典样式）。
@@ -212,38 +217,11 @@ inline float density_text_factor(Density density)
     return 1.0f;
 }
 
-inline Theme& mutable_theme()
-{
-    static Theme value = Theme::dark();
-    return value;
-}
-
+// 无 UIContext 时的只读回退主题（控件在独立测试/离屏工具里可能没有 context）。
+// 注意：主题改动只能经 `UIContext::set_theme()`；全局 version 已移除（UI-42）。
 inline const Theme& theme()
 {
-    return mutable_theme();
-}
-
-// 主题版本号：每次应用新主题都自增。控件用它让样式过渡缓存立即失效，
-// 否则切换主题/圆角/密度后控件会继续用旧主题解析出的颜色，直到下次状态变化。
-inline std::uint64_t& mutable_theme_revision()
-{
-    static std::uint64_t value = 0;
+    static const Theme value = Theme::dark();
     return value;
-}
-
-inline std::uint64_t theme_revision()
-{
-    return mutable_theme_revision();
-}
-
-inline void bump_theme_revision()
-{
-    ++mutable_theme_revision();
-}
-
-inline void set_theme(const Theme& value)
-{
-    mutable_theme() = value;
-    bump_theme_revision();
 }
 } // namespace xel::ui

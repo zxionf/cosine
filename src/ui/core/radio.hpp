@@ -67,18 +67,21 @@ public:
         // 单选标记：modern 为圆形（radius_pill 被 clamp 到半宽），classic 为方形。
         const float radius = corner_radius(t.radius_pill);
 
-        graphics::append_rounded_rect(list, box_bounds, radius, t.checkbox_bg);
-        const glm::vec4 border_color = is_hovered() && enabled_ ? t.accent : t.checkbox_border;
-        graphics::append_rounded_ring(list, box_bounds, radius, t.border, border_color);
+        // UI-40：框体走 Input 角色（与 Checkbox 一致），不再直读 checkbox_bg/border。
+        const BoxStyle frame = visual_style(StyleRole::Input,
+                                            control_state(enabled_, is_hovered(), false));
+        graphics::append_rounded_rect(list, box_bounds, radius, frame.fill);
+        graphics::append_rounded_ring(list, box_bounds, radius, t.border, frame.border);
 
         if (selected_) {
             // 菱形：两个三角形拼成，作为单选标记。
             const float cx = bx + box * 0.5f;
             const float cy = by + box * 0.5f;
             const float r = box * 0.28f;
-            // 与 Checkbox 同理：不要用 visual_style(Accent)，否则会覆盖本控件的
-            // 样式过渡缓存，label 文字颜色被 Accent 的深色污染。
-            const glm::vec4 marker = enabled_ ? t.checkbox_fill : t.text_disabled;
+            // UI-38 起过渡按角色分槽，这里可以安全地再请求 Accent（不再污染 label 的 Control 过渡）。
+            const BoxStyle accent = visual_style(StyleRole::Accent,
+                                                 enabled_ ? ControlState::Normal : ControlState::Disabled);
+            const glm::vec4 marker = accent.fill;
             graphics::Triangle upper{cx, cy - r, cx + r, cy, cx, cy + r, marker};
             graphics::Triangle lower{cx, cy - r, cx - r, cy, cx, cy + r, marker};
             upper.append_to(list);

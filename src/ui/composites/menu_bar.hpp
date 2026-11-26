@@ -812,17 +812,23 @@ inline void MenuPopup::append_to(graphics::DrawList& list) const
                                           corner_radius(style.radius), style.fill);
         }
 
-        const glm::vec4 color = item.enabled ? t.text : t.text_disabled;
+        // UI-43：菜单项的文字色/字号统一从 MenuItem 角色取（Disabled 由角色自动切 text_disabled）。
+        const BoxStyle item_style = t.style(StyleRole::MenuItem,
+                                            item.enabled ? ControlState::Normal : ControlState::Disabled);
+        const glm::vec4 color = item_style.text;
         const float arrow_space = item.has_submenu() ? t.control_height * 0.5f : 0.0f;
         if (atlas) {
             const float text_y = y + (row - line_h) * 0.5f;
             atlas->append_text(list, global_.pos.x + t.padding * 2.0f, text_y,
-                               t.text_size, item.label, color);
+                               item_style.text_size, item.label, color);
             if (!item.shortcut.empty()) {
-                const float shortcut_w = atlas->measure(item.shortcut, t.text_size).x;
+                // UI-41：快捷键属于辅助信息，用 Small 档（以前只能与正文同字号）。
+                const float sc_size = t.text_size_of(TextSize::Small);
+                const float shortcut_w = atlas->measure(item.shortcut, sc_size).x;
+                const float sc_y = y + (row - atlas->line_height(sc_size)) * 0.5f;
                 atlas->append_text(list,
                                    global_.pos.x + global_.size.x - t.padding * 2.0f - arrow_space - shortcut_w,
-                                   text_y, t.text_size, item.shortcut, t.text_disabled);
+                                   sc_y, sc_size, item.shortcut, t.text_disabled);
             }
         }
 

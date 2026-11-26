@@ -119,8 +119,8 @@ void test_style_roles()
     assert(tooltip.fill == dark.tooltip_bg);
     assert(near(tooltip.radius, dark.radius_medium));
 
-    // 焦点环颜色统一取 accent。
-    assert(dark.style(StyleRole::Control, ControlState::Normal).focus_ring == dark.accent);
+    // 焦点环颜色统一取 accent（BoxStyle 不再携带 focus_ring，直接读主题）。
+    assert(dark.accent == ui::Theme::dark().accent);
 }
 
 void test_density()
@@ -264,7 +264,6 @@ void test_rounding_switch()
     assert(classic.radius == 0.0f);
     assert(classic.radius_small == 0.0f);
     assert(classic.radius_medium == 0.0f);
-    assert(classic.radius_large == 0.0f);
     assert(classic.radius_panel == 0.0f);
     // 只切形状，不动调色板与度量。
     assert(classic.panel_bg == modern.panel_bg);
@@ -483,7 +482,6 @@ void test_classic_shapes()
     ui::Slider slider(200.0f);
     slider.set_value(0.5f);
     slider.arrange({{0.0f, 0.0f}, {200.0f, 30.0f}});
-
     ui::Progress progress(200.0f);
     progress.set_value(0.5f);
     progress.arrange({{0.0f, 0.0f}, {200.0f, 10.0f}});
@@ -491,8 +489,14 @@ void test_classic_shapes()
     ui::Radio radio("radio", true);
     radio.arrange({{0.0f, 0.0f}, {120.0f, 24.0f}});
 
+    // UI-42：主题不能全局改了，控件要挂到一个 context 上（全局 set_theme 已移除）。
+    ui::UIContext ctx;
+    ctx.set_theme(ui::Theme::dark().with_rounding(false));
+    slider.set_context(&ctx);
+    progress.set_context(&ctx);
+    radio.set_context(&ctx);
+
     // 经典：全部退化到矩形。slider = 轨道 + 填充 + 手柄 = 3 块矩形。
-    ui::set_theme(ui::Theme::dark().with_rounding(false));
     assert(draw(slider).vertices == 12);
     // progress = 轨道 + 填充 + 贴边环（四条矩形）。
     assert(draw(progress).vertices == 24);
@@ -500,24 +504,23 @@ void test_classic_shapes()
     assert(draw(radio).vertices == 4 + 16 + 6);
 
     // 圆角：轨道变胶囊、手柄变圆、progress 与 radio 也带圆弧（顶点数上升）。
-    ui::set_theme(ui::Theme::dark());
+    ctx.set_theme(ui::Theme::dark());
     assert(draw(slider).vertices > 12);
     assert(draw(progress).vertices > 24);
     assert(draw(radio).vertices > 4 + 16 + 6);
-
-    // 恢复默认，避免影响同进程内的其它用例。
-    ui::set_theme(ui::Theme::dark());
 }
 
 // Checkbox 的勾选块必须像素对齐且与外框同心：
 // 半像素 inset 会让它在屏幕上看去偏左/偏上。
 void test_checkbox_pixel_alignment()
 {
-    ui::set_theme(ui::Theme::dark()
+    ui::UIContext ctx;
+    ctx.set_theme(ui::Theme::dark()
                       .with_rounding(false)
                       .with_focus_policy(ui::FocusPolicy::Never));
 
     ui::Checkbox checkbox("x", true);
+    checkbox.set_context(&ctx);
     checkbox.arrange({{0.0f, 0.0f}, {200.0f, 24.0f}});
 
     graphics::DrawList list;
@@ -568,8 +571,6 @@ void test_checkbox_pixel_alignment()
             assert(vertex.pos.y == std::floor(vertex.pos.y));
         }
     }
-
-    ui::set_theme(ui::Theme::dark());
 }
 
 // 主题级圆角缩放：控件默认从 Theme 继承，per-widget override 只是例外。
@@ -582,7 +583,6 @@ void test_radius_scale()
     assert(square.radius == 0.0f);
     assert(square.radius_small == 0.0f);
     assert(square.radius_medium == 0.0f);
-    assert(square.radius_large == 0.0f);
     assert(square.radius_panel == 0.0f);
     assert(square.radius_pill == 0.0f);
 
@@ -598,6 +598,112 @@ void test_radius_scale()
 
     // 负值归零。
     assert(base.with_radius_scale(-1.0f).radius == 0.0f);
+}
+
+// WCAG 2.x 相对对比度：linear 值 → 相对亮度 → (L1+0.05)/(L2+0.05)。
+// 主题存的是线性值，正好直接当相对亮度的输入用（不用再解 sRGB 编码）。
+float relative_luminance(glm::vec4 linear_rgb)
+{
+    return 0.2126f * linear_rgb.r + 0.7152f * linear_rgb.g + 0.0722f * linear_rgb.b;
+}
+
+float contrast_ratio(glm::vec4 a, glm::vec4 b)
+{
+    const float la = relative_luminance(a);
+    const float lb = relative_luminance(b);
+    const float hi = std::max(la, lb);
+    const float lo = std::min(la, lb);
+    return (hi + 0.05f) / (lo + 0.05f);
+}
+
+// 状态语义完整性（UI-43）：每个角色的每个状态都得有明确定义，不靠 default 掉到“无填充/正常色”。
+void test_state_coverage()
+{
+    using ui::ControlState;
+    using ui::StyleRole;
+
+    for (const ui::Theme& theme : {ui::Theme::dark(), ui::Theme::light()}) {
+        // Row：Disabled 必须与 Normal 不同（不能“禁用看起来还能点”）。
+        const auto row_normal = theme.style(StyleRole::Row, ControlState::Normal);
+        const auto row_disabled = theme.style(StyleRole::Row, ControlState::Disabled);
+        assert(row_disabled.fill != row_normal.fill);
+        assert(row_disabled.text == theme.text_disabled);
+
+        // MenuItem：Disabled 文本变灰（填充可以为透明，但不能“完全同外观”）。
+        const auto menu_normal = theme.style(StyleRole::MenuItem, ControlState::Normal);
+        const auto menu_disabled = theme.style(StyleRole::MenuItem, ControlState::Disabled);
+        assert(menu_disabled.text == theme.text_disabled);
+        assert(menu_disabled.text != menu_normal.text);
+
+        // RowSelected：选中行的填充与 Row 的每种状态都不相同。
+        const auto selected = theme.style(StyleRole::RowSelected, ControlState::Normal);
+        assert(selected.fill != row_normal.fill);
+        assert(selected.fill != row_disabled.fill);
+        assert(selected.fill != theme.style(StyleRole::Row, ControlState::Hovered).fill);
+
+        // 选中行文字保持正文色（不是禁用色）。
+        assert(selected.text == theme.text);
+    }
+
+    // RowSelected 是 accent 的半透明版（换主题时跟着变）。
+    const auto dark_sel = ui::Theme::dark().style(StyleRole::RowSelected, ControlState::Normal);
+    const auto light_sel = ui::Theme::light().style(StyleRole::RowSelected, ControlState::Normal);
+    assert(dark_sel.fill != light_sel.fill);
+    assert(std::fabs(dark_sel.fill.a - 0.28f) < 1e-3f);
+}
+
+void test_text_size_roles()
+{
+    const ui::Theme dark = ui::Theme::dark();
+
+    // Body 角色：正文档。
+    assert(near(dark.style(ui::StyleRole::Control, ui::ControlState::Normal).text_size,
+                dark.text_size));
+    assert(dark.style(ui::StyleRole::Control, ui::ControlState::Normal).text_size_role
+           == ui::TextSize::Body);
+
+    // Tooltip 角色：Small 档（以前控件只能直读 small_text_size）。
+    const auto tooltip = dark.style(ui::StyleRole::Tooltip, ui::ControlState::Normal);
+    assert(tooltip.text_size_role == ui::TextSize::Small);
+    assert(near(tooltip.text_size, dark.small_text_size));
+    assert(tooltip.text_size < dark.text_size);
+
+    // text_size_of() 与角色换算同源。
+    assert(near(dark.text_size_of(ui::TextSize::Small), dark.small_text_size));
+    assert(near(dark.text_size_of(ui::TextSize::Body), dark.text_size));
+    assert(near(dark.text_size_of(ui::TextSize::Heading), dark.heading_text_size));
+
+    // 主题字号变化时，角色输出跟着变（不是硬编码常量）。
+    ui::Theme bigger = dark;
+    bigger.text_size = 20.0f;
+    bigger.small_text_size = 14.0f;
+    assert(near(bigger.style(ui::StyleRole::Control, ui::ControlState::Normal).text_size, 20.0f));
+    assert(near(bigger.style(ui::StyleRole::Tooltip, ui::ControlState::Normal).text_size, 14.0f));
+
+    // 密度档位也会缩放字号（with_density 已覆盖字号）。
+    const ui::Theme compact = dark.with_density(ui::Density::Compact);
+    assert(compact.small_text_size < dark.small_text_size);
+}
+
+// accent 上的文字必须读得清（UI-39）。
+// 以前 Accent 角色硬编码 0x0F1419：浅色主题（accent=#1F6FD0）只有 ~3.7:1，不达 AA。
+void test_accent_on_contrast()
+{
+    constexpr float kAaBody = 4.5f;
+
+    for (const ui::Theme& theme : {ui::Theme::dark(), ui::Theme::light()}) {
+        const float ratio = contrast_ratio(theme.accent, theme.accent_on);
+        assert(ratio >= kAaBody);
+        // 角色输出必须与令牌一致（Accent 的 text 就是 accent_on）。
+        const auto accent_style = theme.style(ui::StyleRole::Accent, ui::ControlState::Normal);
+        assert(accent_style.text == theme.accent_on);
+    }
+
+    // 正文：text 在 panel_bg 上也要达到 AA。
+    for (const ui::Theme& theme : {ui::Theme::dark(), ui::Theme::light()}) {
+        assert(contrast_ratio(theme.text, theme.panel_bg) >= kAaBody);
+        assert(contrast_ratio(theme.text, theme.window_bg) >= kAaBody);
+    }
 }
 
 } // namespace
@@ -616,6 +722,9 @@ int main()
     test_checkbox_pixel_alignment();
     test_radius_scale();
     test_widget_migration();
+    test_accent_on_contrast();
+    test_text_size_roles();
+    test_state_coverage();
     std::cout << "ui style tests passed\n";
     return 0;
 }

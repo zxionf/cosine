@@ -53,10 +53,11 @@ public:
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const float radius = corner_radius(t.radius_pill);
 
-        const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
+        // UI-38 起过渡按角色分槽：Progress 也能拿到颜色过渡（之前绕开是为了避开串色）。
+        const BoxStyle track_style = visual_style(StyleRole::Track, ControlState::Normal);
         graphics::append_rounded_rect(list, bounds, radius, track_style.fill);
 
-        const BoxStyle fill_style = t.style(StyleRole::Accent, ControlState::Normal);
+        const BoxStyle fill_style = visual_style(StyleRole::Accent, ControlState::Normal);
         if (indeterminate_) {
             // 条带保持完整宽度滑出，超出部分交给裁剪；
             // 注意 x 是相对控件左边缘的偏移，必须加上 bounds.x 才是绝对坐标。

@@ -438,10 +438,36 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 - 颜色按 **sRGB 直觉值书写**（`srgb_hex(0xRRGGBB)`），**存储为线性**；渲染目标是 `*_SRGB`，硬件做编码
 - 强调色拆两个：`accent`（填充/边框/焦点环）与 `accent_text`（当文字，对比度更高）
 - `StyleRole` + `ControlState` 提供「语义样式」，`Theme` 的裸颜色字段仍可直接读；两者并存，对照表见 UI-11
+- **状态过渡按角色分槽**（UI-38）：`StyleTransition` 是 `std::array<StyleSlot, 8>`，每个 `StyleRole`
+  独立维护 `from/to/progress`。一个控件一帧内可安全请求多个角色（`Slider` 的 Track + Accent + Tooltip、
+  `Checkbox`/`Radio` 的 Control + Accent、`Progress` 的 Track + Accent），不会再把上一个角色的颜色
+  当成起点。主题 `revision` 变化时**所有槽**一起重建（逐槽重置，整组刷新）。
+  - 反例（UI-38 之前）：单槽共享 → Slider 轨道被染成强调色；
+    `Checkbox`/`Radio`/`Progress` 因绕不开这个问题而分别写了三套绕行方案。
+  - 验收点：`test_ui_style_snapshot`（角色不串色的语义断言 + 480×320 整幅像素哈希）
 - **布局字面量收口**（UI-35）：原先散在各控件里的魔法数字进了 `Theme`，并随 `with_density` 缩放——
   `dialog_margin / dialog_min_width / dialog_min_height`（DialogHost）、
   `window_min_width / window_min_extra_height / window_keep_visible`（Window）、
   `splitter_handle`（Splitter 手柄）、`section_inset`（Section 内容内缩）。
+
+### 主题可变性边界（UI-42）
+
+```cpp
+struct UIContext {
+    const Theme& theme() const;            // 只读（不再有 public 可变字段）
+    void         set_theme(const Theme&);  // 唯一写入口：同时推进本 context 的 revision
+    std::uint64_t theme_revision() const;  // 依赖主题的派生缓存都用它做失效键
+};
+```
+
+- **不再有进程级 `theme_revision()` / `ui::set_theme()`**：revision 挂在 context 上，
+  多 root / ui_lab / 测试各自推进，互不打断对方的样式过渡缓存
+- 主题重刷走 `UIRoot::set_theme(const Theme&)`（内部 `context_storage_.set_theme` + 全树
+  `set_context` + `invalidate_measure_recursive` + `mark_layout_dirty`）
+- 控件拿不到 context 时（离屏工具、单元测试里的裸控件）回退到 `ui::theme()`
+  的**只读默认主题**；要变主题就给控件 `set_context(&ctx)`
+- 验收点：`test_ui_theme_boundary`（revision 推进、两 root 隔离、派生量即时刷新、无 context 回退）、
+  `test_ui_theme_relayout`（密度/字号/明暗切换后尺寸一致）
 
 ## 七、绘制
 

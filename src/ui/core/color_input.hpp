@@ -90,7 +90,7 @@ public:
             const float line = atlas->line_height(t.text_size);
             atlas->append_text(list, global_.pos.x + pad,
                                global_.pos.y + (global_.size.y - line) * 0.5f, t.text_size,
-                               label_, enabled_ ? t.text : t.text_disabled);
+                               label_, style.text);
         }
 
         // 色块矩形统一走 swatch_rect()：像素取整，避免 2px 环落在半像素上造成厚薄不均。
@@ -114,7 +114,7 @@ public:
                 const float line = atlas->line_height(t.text_size);
                 atlas->append_text(list, right - text_width,
                                    global_.pos.y + (global_.size.y - line) * 0.5f, t.text_size,
-                                   text, enabled_ ? t.text : t.text_disabled);
+                                   text, style.text);
             }
         }
     }

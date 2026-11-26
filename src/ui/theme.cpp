@@ -29,7 +29,6 @@ Theme Theme::with_density(Density target) const
     theme_value.radius *= text_scale;
     theme_value.radius_small *= text_scale;
     theme_value.radius_medium *= text_scale;
-    theme_value.radius_large *= text_scale;
     theme_value.radius_panel *= text_scale;
     theme_value.radius_pill *= text_scale;
     return theme_value;
@@ -42,7 +41,6 @@ Theme Theme::with_radius_scale(float scale) const
     theme_value.radius *= k;
     theme_value.radius_small *= k;
     theme_value.radius_medium *= k;
-    theme_value.radius_large *= k;
     theme_value.radius_panel *= k;
     // pill 是「足够大 + clamp 到短边一半」的语义值：保持大值，只在 0 时变成直角。
     if (k <= 0.0f) theme_value.radius_pill = 0.0f;
@@ -73,7 +71,6 @@ Theme Theme::with_rounding(bool rounded) const
     theme_value.radius = 0.0f;
     theme_value.radius_small = 0.0f;
     theme_value.radius_medium = 0.0f;
-    theme_value.radius_large = 0.0f;
     theme_value.radius_panel = 0.0f;
     theme_value.radius_pill = 0.0f;
     // 内阴影属于圆角视觉的一部分：classic 完全回到旧观感。
@@ -101,16 +98,12 @@ Theme Theme::light()
     t.button_hover    = srgb_hex(0xDCE0E5);
     t.button_pressed  = srgb_hex(0xB4B9C0);
     t.button_disabled = srgb_hex(0xE0E3E7);
-    t.focus_ring      = srgb_hex(0x1F6FD0);
     t.accent          = srgb_hex(0x1F6FD0);
     t.accent_text     = srgb_hex(0x1A5FB4);
-
-    t.checkbox_bg     = srgb_hex(0xF7F8FA);
-    t.checkbox_border = srgb_hex(0x9EA3AA);
-    t.checkbox_fill   = srgb_hex(0x1F6FD0);
+    // 浅色主题的 accent 是深蓝（#1F6FD0），上面写白字才能到 4.5:1。
+    t.accent_on       = srgb_hex(0xFFFFFF);
 
     t.slider_track    = srgb_hex(0xC7CBD1);
-    t.slider_fill     = srgb_hex(0x1F6FD0);
     t.slider_handle   = srgb_hex(0x292D33);
     t.track_hover     = srgb_hex(0xADB2B9);
 
@@ -121,8 +114,6 @@ Theme Theme::light()
     t.text_input_border_hover = srgb_hex(0x727880);
 
     t.tooltip_bg      = srgb_hex(0xF7F8FA, 0.98f);
-    t.scrollbar_track = srgb_hex(0xCCD0D5);
-    t.scrollbar_thumb = srgb_hex(0x8C9299);
     t.inset_shadow    = {0.0f, 0.0f, 0.0f, 0.05f};
     return t;
 }

@@ -28,8 +28,8 @@ public:
         if (context) {
             // 只对没显式设过 padding 的面板套主题值：贴满父容器的页面（例如窗口里的
             // ScrollPanel 页）用 set_padding(0) 锁住，主题切换后不会再长回 8px。
-            apply_theme_padding(context->theme.padding);
-            apply_theme_spacing(context->theme.spacing);
+            apply_theme_padding(context->theme().padding);
+            apply_theme_spacing(context->theme().spacing);
         }
     }
 
@@ -41,14 +41,14 @@ public:
     {
         const auto& t = ui_theme();
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
-        const BoxStyle style = t.style(StyleRole::Surface, ControlState::Normal);
+        // UI-40：hover 不再手写三元式，统一走 control_state + Surface:Hovered。
+        const BoxStyle style = visual_style(StyleRole::Surface,
+                                            control_state(true, is_hovered(), false));
         const float radius = corner_radius(style.radius);
 
         graphics::append_rounded_rect(list, bounds, radius, style.fill);
         if (style.border_width > 0.0f) {
-            // hover 时用强调色提示可交互（与迁移前一致）。
-            const glm::vec4 border_color = is_hovered() ? t.accent : style.border;
-            graphics::append_rounded_ring(list, bounds, radius, style.border_width, border_color);
+            graphics::append_rounded_ring(list, bounds, radius, style.border_width, style.border);
         }
         graphics::append_inset_shadow(list, bounds, radius, t.inset_shadow_size, t.inset_shadow);
 

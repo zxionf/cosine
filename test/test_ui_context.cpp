@@ -14,8 +14,13 @@ int main()
     xel::graphics::FontAtlas atlas;
 
     auto root = std::make_unique<xel::ui::UIRoot>(0.0f, 0.0f, 400.0f, 300.0f);
-    root->context()->theme.text_size = 32.0f;
-    root->context()->theme.padding = 20.0f;
+    // UI-42：主题只能经 set_theme() 修改（它会推进 context 的 theme revision）。
+    {
+        xel::ui::Theme t = root->context()->theme();
+        t.text_size = 32.0f;
+        t.padding = 20.0f;
+        root->set_theme(t);
+    }
     root->context()->font_atlas = &atlas;
 
     auto vbox = std::make_unique<xel::ui::Vbox>(0.0f, 0.0f, 300.0f, 200.0f);
@@ -39,7 +44,11 @@ int main()
     assert(panel_ptr->padding().left == 20.0f);
 
     xel::ui::UIContext other;
-    other.theme.text_size = 12.0f;
+    {
+        xel::ui::Theme t = other.theme();
+        t.text_size = 12.0f;
+        other.set_theme(t);
+    }
     root->set_context(&other);
     assert(label_ptr->context() == &other);
     assert(label_ptr->text_size() == 12.0f);
@@ -54,8 +63,12 @@ int main()
     assert(pinned_ptr->padding().left == 0.0f);
 
     xel::ui::UIContext third;
-    third.theme.padding = 30.0f;
-    third.theme.spacing = 11.0f;
+    {
+        xel::ui::Theme t = third.theme();
+        t.padding = 30.0f;
+        t.spacing = 11.0f;
+        third.set_theme(t);
+    }
     root->set_context(&third);
     assert(pinned_ptr->padding().left == 0.0f);   // 显式值优先，不被主题掤回
     assert(panel_ptr->padding().left == 30.0f);   // 未显式设过的面板跟随主题
@@ -71,8 +84,12 @@ int main()
     assert(pinned_box_ptr->padding_override() && pinned_box_ptr->spacing_override());
 
     xel::ui::UIContext fourth;
-    fourth.theme.padding = 14.0f;
-    fourth.theme.spacing = 9.0f;
+    {
+        xel::ui::Theme t = fourth.theme();
+        t.padding = 14.0f;
+        t.spacing = 9.0f;
+        fourth.set_theme(t);
+    }
     root->set_context(&fourth);
     assert(vbox_ptr->padding().left == 14.0f);
     assert(pinned_box_ptr->padding().left == 0.0f);

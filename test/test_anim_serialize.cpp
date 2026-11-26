@@ -380,12 +380,18 @@ void test_file_round_trip()
     assert(restored != nullptr && restored->keys().size() == 2);
     assert(std::fabs(restored->keys()[1].time - 1.5f) < 1.0e-6f);
 
-    std::ifstream in(path, std::ios::binary);
-    const std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(in)),
-                                          std::istreambuf_iterator<char>());
-    assert(bytes == xel::anim::serialize(source));
+    // 读回字节：必须限定作用域，Windows 下句柄未关时 std::filesystem::remove 会失败（
+    // Linux 允许删除打开中的文件，所以这个缺陷以前只在 Windows + assert 生效时才暴露）。
+    {
+        std::ifstream in(path, std::ios::binary);
+        const std::vector<std::uint8_t> bytes((std::istreambuf_iterator<char>(in)),
+                                              std::istreambuf_iterator<char>());
+        assert(bytes == xel::anim::serialize(source));
+    }
 
-    std::filesystem::remove(path);
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
+    assert(!ec);
 }
 
 // 打不开的文件要给可读原因，而不是静默失败。

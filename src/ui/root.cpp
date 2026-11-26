@@ -98,9 +98,9 @@ void UIRoot::purge_trash()
 
 void UIRoot::set_theme(const Theme& value)
 {
-    context_storage_.theme = value;
-    // 主题变化后让所有控件的样式过渡缓存立即失效。
-    bump_theme_revision();
+    // 主题可变性的单一入口（UI-42）：set_theme 推进本 context 的 revision，
+    // 所有依赖主题的派生缓存（样式过渡）据此重建。
+    context_storage_.set_theme(value);
     set_context(&context_storage_);
     // 度量缓存也要递归失效：主题会改变控件尺寸（行高/内边距/间距）。
     invalidate_measure_recursive();

@@ -442,9 +442,10 @@ private:
 
         const float row_radius = corner_radius(t.radius_small);
         if (selected) {
-            const glm::vec4 color{t.accent.r, t.accent.g, t.accent.b, 0.28f};
+            // UI-40：选中行走 RowSelected 角色（与 Table 一致）。
+            const BoxStyle sel = t.style(StyleRole::RowSelected, ControlState::Normal);
             graphics::append_rounded_rect(list, {row_rect.pos.x + 2.0f, row_rect.pos.y, row_rect.size.x - 4.0f, row_rect.size.y},
-                                          row_radius, color);
+                                          row_radius, sel.fill);
         } else if (is_hovered) {
             const BoxStyle row_style = t.style(StyleRole::Row, ControlState::Hovered);
             graphics::append_rounded_rect(list, {row_rect.pos.x + 2.0f, row_rect.pos.y, row_rect.size.x - 4.0f, row_rect.size.y},
@@ -469,7 +470,9 @@ private:
         const float text_y = atlas->centered_text_y(t.text_size, row_rect.pos.y, row_rect.size.y);
         const float clip_right = std::max(text_x, row_rect.pos.x + row_rect.size.x - pad * 0.5f);
         list.push_clip({text_x, row_rect.pos.y, std::max(0.0f, clip_right - text_x), row_rect.size.y});
-        atlas->append_text(list, text_x, text_y, t.text_size, row.node->title, t.text);
+        // UI-40：行文字色取 Row 角色（不再直读 t.text）。
+        atlas->append_text(list, text_x, text_y, t.text_size, row.node->title,
+                           t.style(StyleRole::Row, ControlState::Normal).text);
         list.pop_clip();
     }
 

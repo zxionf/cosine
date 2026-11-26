@@ -185,7 +185,8 @@ protected:
         const float track_x = global_.pos.x + global_.size.x - bar_w;
 
         const float bar_radius = corner_radius(t.radius_pill);
-        const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
+        // UI-40：槽与滑块都走 Track 角色（用不同状态区分），不再直读 scrollbar_thumb。
+        const BoxStyle track_style = visual_style(StyleRole::Track, ControlState::Normal);
         graphics::append_rounded_rect(list, {track_x, body_top, bar_w, body_h}, bar_radius, track_style.fill);
 
         const float ratio = std::min(1.0f, body_h / std::max(1.0f, content));
@@ -194,8 +195,9 @@ protected:
         const float thumb_y = body_top +
                               (max_scroll > 0.0f ? travel * (scroll_.offset() / max_scroll) : 0.0f);
 
+        const BoxStyle thumb_style = visual_style(StyleRole::Track, ControlState::Hovered);
         graphics::append_rounded_rect(list, {track_x + 1.0f, thumb_y, std::max(1.0f, bar_w - 2.0f), thumb_h},
-                                      bar_radius, t.scrollbar_thumb);
+                                      bar_radius, thumb_style.fill);
     }
 
     ScrollState scroll_;

@@ -25,8 +25,8 @@ void LinearLayout::set_context(UIContext* context)
 {
     Widget::set_context(context);
     if (context == nullptr) return;
-    apply_theme_padding(context->theme.padding);
-    apply_theme_spacing(context->theme.spacing);
+    apply_theme_padding(context->theme().padding);
+    apply_theme_spacing(context->theme().spacing);
 }
 
 void LinearLayout::apply_theme_spacing(float spacing)

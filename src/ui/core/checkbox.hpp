@@ -58,22 +58,25 @@ public:
         const glm::vec4 box_bounds{bx, by, box, box};
         const float radius = std::round(corner_radius(t.radius_small));
 
-        graphics::append_rounded_rect(list, box_bounds, radius, t.checkbox_bg);
-        // 边框：hover 时用强调色提示可点，平时用 checkbox 专属边框色。
-        const glm::vec4 border_color = is_hovered() && enabled_ ? t.accent : t.checkbox_border;
-        graphics::append_rounded_ring(list, box_bounds, radius, t.border, border_color);
+        // UI-40：框体走 Input 角色（与 TextInput 同为「表单框」），不再直读 checkbox_bg/border，
+        // 也不再手写 is_hovered() ? accent : checkbox_border 的三元式。
+        const BoxStyle frame = visual_style(StyleRole::Input,
+                                            control_state(enabled_, is_hovered(), false));
+        graphics::append_rounded_rect(list, box_bounds, radius, frame.fill);
+        graphics::append_rounded_ring(list, box_bounds, radius, t.border, frame.border);
 
         if (checked_) {
             // inset 取整：勾选块与外框同心，四边留白完全相等且边界落在整像素。
             const float inset = std::round(box * 0.25f);
             const float marker = box - inset * 2.0f;
-            // 直接用 checkbox 专属色：若这里再调 visual_style(Accent)，会覆盖本控件
-            // 的样式过渡缓存，导致 label 文字颜色被 Accent 的深色文字污染（勾选/取消时黑白跳变）。
-            const glm::vec4 marker_color = enabled_ ? t.checkbox_fill : t.text_disabled;
+            // UI-38 起过渡按角色分槽，这里可以安全地再请求 Accent（不会再污染 label 的
+            // Control 过渡），勾选块因此也有了颜色过渡。
+            const BoxStyle accent = visual_style(StyleRole::Accent,
+                                                 enabled_ ? ControlState::Normal : ControlState::Disabled);
             graphics::append_rounded_rect(list,
                                           {bx + inset, by + inset, marker, marker},
                                           radius * 0.5f,
-                                          marker_color);
+                                          accent.fill);
         }
 
         append_focus_ring(list, box_bounds, radius);

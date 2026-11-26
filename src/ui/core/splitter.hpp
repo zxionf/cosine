@@ -157,12 +157,14 @@ public:
         const float h = orientation_ == Orientation::Horizontal ? global_.size.y : handle;
 
         // 手柄：常态用主题的 splitter 色（比面板亮一档），hover 提亮，拖动变强调色。
-        const BoxStyle bar_style = visual_style(StyleRole::Control,
-                                                is_hovered() ? ControlState::Hovered : ControlState::Normal);
+        // UI-40：状态统一由 control_state 推导，不再手写 is_hovered() 三元式；
+        // 拖动（Pressed）用 accent 半透明，与旧观感一致。
+        const ControlState bar_state = control_state(true, is_hovered(), dragging_);
+        const BoxStyle bar_style = visual_style(StyleRole::Control, bar_state);
         glm::vec4 bar_color = t.splitter;
-        if (dragging_) {
+        if (bar_state == ControlState::Pressed) {
             bar_color = with_alpha(t.accent, 0.28f);
-        } else if (is_hovered()) {
+        } else if (bar_state == ControlState::Hovered) {
             bar_color = bar_style.fill;
         }
         const float bar_radius = corner_radius(t.radius_small);

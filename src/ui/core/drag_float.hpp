@@ -94,9 +94,9 @@ public:
         const float line = atlas->line_height(size);
         const float text_y = global_.pos.y + (global_.size.y - line) * 0.5f;
         const float pad = std::max(4.0f, t.padding * 0.5f);
-        const glm::vec4 label_color = enabled_ ? t.text : t.text_disabled;
-        const glm::vec4 value_color = !enabled_ ? t.text_disabled
-                                     : (dragging_ ? t.accent_text : t.text);
+        // UI-40：文字色统一取 style.text（已按 Disabled 切换），不再直读 t.text / t.text_disabled。
+        const glm::vec4 label_color = style.text;
+        const glm::vec4 value_color = dragging_ && enabled_ ? t.accent_text : style.text;
 
         float x = global_.pos.x + pad;
         if (!label_.empty()) {

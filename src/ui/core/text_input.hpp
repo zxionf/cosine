@@ -100,15 +100,16 @@ public:
         const float line = line_height();
 
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
-        const BoxStyle style = visual_style(StyleRole::Input, control_state(enabled_, is_hovered(), false));
+        // 编辑中始终用强调色标出边框（鼠标点击进入编辑也应可见）；
+        // 焦点环只在键盘操作期间叠加，两者职责不同。
+        // UI-40：强调边框由 Input:Checked 表达，不再手写 is_focused() ? accent : border。
+        const BoxStyle style = visual_style(StyleRole::Input,
+                                            control_state(enabled_, is_hovered(), false, is_focused()));
         const float radius = corner_radius(style.radius);
         graphics::append_rounded_rect(list, bounds, radius, style.fill);
 
-        // 编辑中始终用强调色标出边框（鼠标点击进入编辑也应可见）；
-        // 焦点环只在键盘操作期间叠加，两者职责不同。
-        const glm::vec4 border_color = is_focused() ? t.accent : style.border;
         if (style.border_width > 0.0f) {
-            graphics::append_rounded_ring(list, bounds, radius, style.border_width, border_color);
+            graphics::append_rounded_ring(list, bounds, radius, style.border_width, style.border);
         }
         append_focus_ring(list, bounds, radius);
 
@@ -334,6 +335,9 @@ private:
     void draw_single_line(graphics::DrawList& list, float font_size, float pad, float line) const
     {
         const auto& t = ui_theme();
+        // UI-40：文字色取 Input 角色（已按 Disabled 切换），不再直读 t.text / t.text_disabled。
+        const BoxStyle text_style = visual_style(
+            StyleRole::Input, control_state(enabled_, is_hovered(), false, is_focused()));
         auto* atlas = font_atlas();
         // 用字体行高而不是字号来垂直居中；不要再 max(pad, ...)，
         // 否则行高小于可用高度时会被推到偏下的位置。
@@ -362,7 +366,7 @@ private:
 
         if (atlas) {
             atlas->append_text(list, global_.pos.x + pad - scroll, text_y, font_size,
-                               text_, enabled_ ? t.text : t.text_disabled,
+                               text_, text_style.text,
                                {global_.pos.x + pad, global_.pos.y,
                                 global_.pos.x + global_.size.x - pad, global_.pos.y + global_.size.y});
         }
@@ -380,6 +384,8 @@ private:
     void draw_multi_line(graphics::DrawList& list, float font_size, float pad, float line) const
     {
         const auto& t = ui_theme();
+        const BoxStyle text_style = visual_style(
+            StyleRole::Input, control_state(enabled_, is_hovered(), false, is_focused()));
         auto* atlas = font_atlas();
         const std::size_t lines = line_count();
         const std::size_t cursor_line = line_of(cursor_);
@@ -420,7 +426,7 @@ private:
             if (atlas && begin < end) {
                 const std::string slice = text_.substr(begin, end - begin);
                 atlas->append_text(list, global_.pos.x + pad - row_scroll, y, font_size,
-                                   slice, enabled_ ? t.text : t.text_disabled,
+                                   slice, text_style.text,
                                    {global_.pos.x, global_.pos.y,
                                     global_.pos.x + global_.size.x, global_.pos.y + global_.size.y});
             }

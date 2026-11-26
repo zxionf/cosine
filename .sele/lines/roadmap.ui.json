@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 53,
+      "skipped_count": 62,
       "status": "paused",
       "steps": [
         {
@@ -3376,7 +3376,7 @@
       "archived_at": null,
       "archived_git_head": null,
       "created_at": "2026-11-24T16:07:18Z",
-      "current_step": "S8",
+      "current_step": null,
       "depends": [
         {
           "type": "task",
@@ -3397,7 +3397,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "in_progress",
+      "status": "pending_review",
       "steps": [
         {
           "desc": "",
@@ -3484,7 +3484,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "in_progress",
+          "status": "done",
           "title": "提交改动（T26–T30 合并提交）"
         }
       ],
@@ -3588,6 +3588,862 @@
       "steps": [],
       "title": "UI-37 Widget 布局 setter 收敛：LayoutSpec 迁移（布局入口 ≤10）",
       "uid": "tsk_01M89H39S31YDK5ECJ762BJE03"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "StyleTransition 按 StyleRole 分槽（8 槽独立 from/to/progress），revision 变化整组重建",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T15:29:04Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "Slider value>min + transition_ms>0 时 track.fill 与 accent.fill 不同色，且各自收敛到目标",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T15:29:04Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "样式快照基线入库（离屏 PNG + 关键像素断言）；ctest 全绿 + 三入口冒烟",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T15:29:04Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T15:16:41Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-25T15:29:04Z",
+      "goal": "UI-38 多角色过渡槽 + 样式快照安全网",
+      "id": "T33",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "样式快照基线：离屏渲染 Slider/Checkbox/ScrollView/Table + 关键像素断言"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "StyleTransition 改为按 StyleRole 分槽（std::array<Slot,8>）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "visual_style/advance_transition 适配多槽 + revision 整组重建"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Slider 多角色回归用例（8 帧，track.fill != accent.fill）"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "去掉 Progress/Checkbox/Radio 绕开过渡的写法，能走 visual_style 的走回"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "全量回归：ctest + 快照 + cosine/ui_gallery/ui_lab 冒烟"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档（ui_architecture 样式节）与 sele 记账"
+        }
+      ],
+      "title": "UI-38 多角色过渡槽 + 样式快照安全网",
+      "uid": "tsk_01M89MFJJN6B72N6QVDX6T0167"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "docs/ui_theme_tokens.md 覆盖全部 Theme 字段（含布局度量标注），每个样式令牌映射到 ≥1 个角色",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T15:57:43Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "5 个死令牌清零（grep 断言），新增 accent_on 并在浅色主题下 WCAG 对比度 >= 4.5:1",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T15:57:43Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T15:16:49Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-25T15:57:43Z",
+      "goal": "UI-39 令牌对照表 + 死令牌清理 + accent 文字色",
+      "id": "T34",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": {
+        "at": "2026-11-25T15:39:09Z",
+        "current_step": "S1",
+        "git_snapshot": {
+          "branch": "",
+          "dirty_files": [],
+          "head": ""
+        },
+        "reason": "switched to T40",
+        "resume_hint": ""
+      },
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 1,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "统计全部 Theme 字段的读/写位置，产出 docs/ui_theme_tokens.md 骨架"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "删除 5 个死令牌（focus_ring/slider_fill/scrollbar_track/BoxStyle::focus_ring/name 处理）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "新增 accent_on 令牌 + Accent 角色改用（浅色主题对比度 >= 4.5:1）"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "补 WCAG 对比度用例与死令牌 grep 断言"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "全量回归 + 文档收口"
+        }
+      ],
+      "title": "UI-39 令牌对照表 + 死令牌清理 + accent 文字色",
+      "uid": "tsk_01M89MFSZ142V9H9DSR7DDHKPE"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Checkbox/Radio/Slider/Scrollbar/Panel/Window 的专属令牌与手写 mix_color/三元式改为角色+状态",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-26T12:36:37Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "颜色令牌直读数量下降 >= 40%（grep 量化）；逐屏 PNG 对比经人工确认",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-26T12:36:37Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T15:16:49Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-26T12:36:37Z",
+      "goal": "UI-40 控件专属令牌并入角色（Checked/Chrome/RowSelected）",
+      "id": "T35",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "ControlState 增加 Checked；StyleRole 增加 Chrome / RowSelected"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Scrollbar thumb 改走 Track:Hovered/Pressed（ListView + ScrollView）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Slider 手柄改走 Control:Hovered/Pressed，去掉 mix_color 手写"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Checkbox/Radio 框体改走 Control + Checked"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Panel hover 边框 → Surface:Hovered；Window chrome → Chrome 角色"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "行选中 → RowSelected（Table/TreeView）"
+        },
+        {
+          "desc": "",
+          "id": "S7",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "量化验收：直读令牌下降、手写三元式归零 + 全量回归与截图"
+        }
+      ],
+      "title": "UI-40 控件专属令牌并入角色（Checked/Chrome/RowSelected）",
+      "uid": "tsk_01M89MFT1VE1F230CVZC200F2D"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "BoxStyle.text_size 由角色+TextSize 档位决定，style.hpp 不再固定 text_size",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-26T12:47:40Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "Tooltip/MenuItem/TimelineView/PreviewRuler 的 small_text_size 直读归零",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-26T12:47:40Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T15:16:49Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-26T12:47:46Z",
+      "goal": "UI-41 BoxStyle 字号档位",
+      "id": "T36",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "BoxStyle 增加 TextSize 档位（Body/Small/Heading），style() 按角色给字号"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Tooltip 走 Small 档（删掉 3 处 small_text_size 直读）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "MenuItem 快捷键 / TimelineView / PreviewRuler 走角色字号"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "用例：角色字号断言 + 快照；全量回归"
+        }
+      ],
+      "title": "UI-41 BoxStyle 字号档位",
+      "uid": "tsk_01M89MFT4V50SXW91V7C33R7G3"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "UIContext::set_theme() 与 per-context revision；theme 收为 private，旧直写入口删除",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-26T14:35:32Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "两个 root 各自主题交替 tick 不串色（用例）；直接改 theme 字段编译期被阻断",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-26T14:35:32Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T15:16:56Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-26T14:35:32Z",
+      "goal": "UI-42 主题可变性边界闭合（per-context revision）",
+      "id": "T37",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "UIContext 增加 set_theme() + per-context theme revision（去掉进程级全局）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "theme 字段收 private：theme() 只读访问器 + mutable_theme() 过渡期入口"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Widget::visual_style / 主题重刷改读 context revision"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "全仓调用点迁移（src/examples/test）"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "用例：两个 root 各自主题交替 tick 不串色；直接改 theme 被阻断"
+        },
+        {
+          "desc": "",
+          "id": "S6",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档 + 全量回归"
+        }
+      ],
+      "title": "UI-42 主题可变性边界闭合（per-context revision）",
+      "uid": "tsk_01M89MG145G60VF1Z6PRBS1TR9"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "删除 Editor::kDensity 表，密度只走 Theme::with_density()；四档密度截图确认",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-26T14:41:17Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "Row/MenuItem 的 Disabled 与 Selected 由角色定义；手写状态三元式 grep = 0",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-26T14:41:17Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T15:16:56Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-26T14:41:17Z",
+      "goal": "UI-43 密度统一 + 状态语义补齐",
+      "id": "T38",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Editor::apply_theme 删掉 kDensity 表，改用 Theme::with_density"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "四档密度截图对比（compact/normal/spacious + 字号）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "Row/MenuItem 的 Disabled 语义落到角色表"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "统一状态推导：清掉残留手写分支，补 Selected 用例"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "全量回归 + 文档收口"
+        }
+      ],
+      "title": "UI-43 密度统一 + 状态语义补齐",
+      "uid": "tsk_01M89MG179NMHM5NME6GJDJ0QM"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "Theme 字段分组为子结构，调用点迁移完成，行为零变化",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T15:16:56Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-44 Theme 结构整理（Colors/Metrics/Policy，可选）",
+      "id": "T39",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-44 Theme 结构整理（Colors/Metrics/Policy，可选）",
+      "uid": "tsk_01M89MG1A3WD70838RX61YXYQM"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "测试 target 关闭 NDEBUG，assert 在 ctest 中真实生效（负向验证：故意破坏一条断言能变红）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T15:53:29Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "新暴露的真实失败逐个修复或登记 DEBT；ctest 全绿",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T15:53:29Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "文档记录该陷阱（AGENTS/docs/ci.md），防止再犯",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-25T15:53:29Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-25T15:39:04Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-25T15:53:29Z",
+      "goal": "UI-45 测试断言在 Release 下失效（NDEBUG 裁掉 1939 条 assert）",
+      "id": "T40",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui",
+        "project"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "给测试 target 关掉 NDEBUG（-UNDEBUG），负向验证断言能变红"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "全量跑 ctest，记录新暴露的真实失败清单"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "修复/登记失败项（过时断言改期望值，真实缺陷修代码）"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "把关键 assert 型测试改为可失败 check() 计数型"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "文档与账：ci.md 记录 NDEBUG 陷阱，sele 收口"
+        }
+      ],
+      "title": "UI-45 测试断言在 Release 下失效（NDEBUG 裁掉 1939 条 assert）",
+      "uid": "tsk_01M89NRJ783MQ6ZGTV9WZ0SEG5"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "改动经 sele git commit 落到 HEAD，工作区干净",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-26T13:58:59Z",
+      "current_step": "S1",
+      "depends": [],
+      "finished_at": null,
+      "goal": "UI-38..UI-41 + UI-45 提交记账",
+      "id": "T41",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": {
+        "at": "2026-11-26T14:23:04Z",
+        "current_step": "S1",
+        "git_snapshot": {
+          "branch": "",
+          "dirty_files": [],
+          "head": ""
+        },
+        "reason": "sele git 代理无法启动 git（环境问题），提交待用户决定 A/B/C",
+        "resume_hint": "用户授权原生 git 或更换 sele 后 resume"
+      },
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 2,
+      "status": "in_progress",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "in_progress",
+          "title": "sele git commit 提交本批次"
+        }
+      ],
+      "title": "UI-38..UI-41 + UI-45 提交记账",
+      "uid": "tsk_01M8C2E0RXNZHQ3H748RG23KK7"
     }
   ]
 }

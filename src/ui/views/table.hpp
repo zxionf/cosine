@@ -80,9 +80,10 @@ public:
         const float row_radius = corner_radius(t.radius_small);
 
         if (selected) {
-            const glm::vec4 color{t.accent.r, t.accent.g, t.accent.b, 0.28f};
+            // UI-40：选中行走 RowSelected 角色（旧的手写 accent*0.28 收敛到角色表）。
+            const BoxStyle sel = t.style(StyleRole::RowSelected, ControlState::Normal);
             graphics::append_rounded_rect(list, {row.pos.x + 2.0f, row.pos.y, row.size.x - 4.0f, row.size.y},
-                                          row_radius, color);
+                                          row_radius, sel.fill);
         } else if (is_hovered) {
             const BoxStyle row_style = t.style(StyleRole::Row, ControlState::Hovered);
             graphics::append_rounded_rect(list, {row.pos.x + 2.0f, row.pos.y, row.size.x - 4.0f, row.size.y},
@@ -96,9 +97,11 @@ public:
         const auto& cells = rows_[index];
         for (std::size_t col = 0; col < widths_.size(); ++col) {
             const std::string& text = col < cells.size() ? cells[col] : empty_;
+            // UI-40：行文字色取 Row 角色（不再直读 t.text）。
             draw_cell(list, text, x, row.pos.y, widths_[col], row.size.y,
                       col < columns_.size() ? columns_[col].align : TableColumn::Align::Left,
-                      t.text, x, row.pos.x + row.size.x);
+                      t.style(StyleRole::Row, ControlState::Normal).text, x,
+                      row.pos.x + row.size.x);
             x += widths_[col];
         }
     }
@@ -176,7 +179,9 @@ public:
             float x = global_.pos.x;
             for (std::size_t i = 0; i < columns_.size() && i < widths_.size(); ++i) {
                 draw_cell(list, columns_[i].title, x, global_.pos.y, widths_[i], header_h,
-                          columns_[i].align, t.text, x, global_.pos.x + body_w_probe);
+                          columns_[i].align,
+                          t.style(StyleRole::Row, ControlState::Normal).text, x,
+                          global_.pos.x + body_w_probe);
                 x += widths_[i];
             }
             graphics::Rectangle line{global_.pos.x, global_.pos.y + header_h - 1.0f,

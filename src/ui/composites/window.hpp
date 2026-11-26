@@ -351,11 +351,12 @@ public:
         graphics::append_rounded_rect(list, bounds, radius, t.elevated);
         // 边框统一走圆角 ring：classic 下 radius = 0 时自动退化为直边，
         // 不再额外画直角矩形，避免圆角模式下露出尖角。
-        // 焦点强调用基类的 is_focused()，不再自存一份状态。
+        // UI-40：边框与标题栏底色走 Chrome 角色（用 Checked 表示「强调/活跃」），
+        // 不再手写 emphasized ? accent : elevated_border。
         const bool emphasized = is_focused() || active;
-        const glm::vec4 border_color = emphasized ? t.accent : t.elevated_border;
-        graphics::append_rounded_ring(list, bounds, radius, emphasized ? 2.0f : 1.0f,
-                                      border_color);
+        const BoxStyle frame = visual_style(StyleRole::Chrome,
+                                            emphasized ? ControlState::Checked : ControlState::Normal);
+        graphics::append_rounded_ring(list, bounds, radius, emphasized ? 2.0f : 1.0f, frame.border);
 
         // 标题栏（无标题栏窗口跳过）。
         const float title = title_height();
@@ -363,12 +364,12 @@ public:
         auto* atlas = font_atlas();
         if (title > 0.0f) {
             const glm::vec4 bar{bounds.x, bounds.y, bounds.z, title};
-            graphics::append_rounded_rect(list, bar, radius, t.button_hover);
+            graphics::append_rounded_rect(list, bar, radius, frame.fill);
 
             if (atlas != nullptr) {
                 // 用字体行高而不是字号：行框通常比字号高，按字号算文字会整体偏下。
                 const float text_y = atlas->centered_text_y(t.text_size, bar.y, title);
-                atlas->append_text(list, bar.x + c.glyph, text_y, t.text_size, title_, t.text);
+                atlas->append_text(list, bar.x + c.glyph, text_y, t.text_size, title_, frame.text);
                 // debug 是叠加层，不能替代字形本身。
                 if (debug_.any()) {
                     graphics::append_text_debug(list, *atlas, bar.x + c.glyph, text_y,

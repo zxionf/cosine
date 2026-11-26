@@ -925,28 +925,21 @@ void Editor::apply_theme()
                .with_focus_policy(focus)
                .with_transition_ms(transition_ms);
 
-    struct DensityMetrics
-    {
-        float control;
-        float padding;
-        float spacing;
-    };
-    constexpr DensityMetrics kDensity[3] = {
-        {26.0f, 6.0f, 4.0f},  // compact
-        {30.0f, 4.0f, 6.0f},  // normal（与主题默认度量一致）
-        {36.0f, 10.0f, 8.0f}, // spacious
-    };
-    const int density = std::clamp(settings_.density, 0, 2);
+    // UI-43：密度只走 `Theme::with_density()`（单一机制）。
+    // 以前这里还有一张 kDensity[3] 表只改 control/padding/spacing，导致同一档位
+    // 在示例程序里会缩放 checkbox/scrollbar/radius，而设置窗口里不会。
+    const ui::Density density = settings_.density == 0 ? ui::Density::Compact
+        : settings_.density == 2                     ? ui::Density::Spacious
+                                                    : ui::Density::Normal;
 
-    // 使用主题默认度量；density 只在此基础上微调，不再整体放大字号/控件高度。
-    ui::Theme theme = base;
+    ui::Theme theme = base.with_density(density);
+    // 字号仍以用户设置为准（设置里是绝对 px，不是倍率）。
+    // 字号仍以用户设置为准（设置里是绝对 px，不是倍率）；
+    // with_density 已经缩放过度量，这里再用绝对字号覆盖，避免双重缩放。
     const float text_size = settings_.ui_text_size;
     theme.text_size = text_size;
     theme.small_text_size = text_size * 0.75f;
     theme.heading_text_size = text_size * 1.333f;
-    theme.control_height = kDensity[density].control;
-    theme.padding = kDensity[density].padding;
-    theme.spacing = kDensity[density].spacing;
     theme.scroll_mode = static_cast<ui::ScrollMode>(std::clamp(settings_.scroll_mode, 0, 2));
     theme.pixel_snap = settings_.pixel_snap;
     root_->set_theme(theme);

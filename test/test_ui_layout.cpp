@@ -239,7 +239,9 @@ void test_measure_cache_invalidation()
     const glm::vec2 second = box.measure({400.0f, 600.0f});
     assert(nearly(first.x, second.x) && nearly(first.y, second.y));
 
-    child_ptr->set_size(100.0f, 100.0f);
+    // UI-32 后叶子的自然尺寸来自构造期 preferred_size，set_size 只写几何；
+    // 要验证「子项尺寸变化使缓存失效」必须用 request_size（显式改自然尺寸）。
+    child_ptr->request_size({100.0f, 100.0f});
     const glm::vec2 third = box.measure({400.0f, 600.0f});
     assert(nearly(third.y, first.y + 50.0f));
 }

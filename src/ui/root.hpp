@@ -41,7 +41,7 @@ public:
 
     // 切换主题：更新 context 并递归刷新控件缓存的样式值（如 Panel 的 padding/spacing）。
     void set_theme(const Theme& value);
-    const Theme& ui_theme() const { return context_storage_.theme; }
+    const Theme& ui_theme() const { return context_storage_.theme(); }
 
     const std::vector<std::unique_ptr<Widget>>& overlays() const override { return overlays_; }
     bool hit_testable() const override { return false; }

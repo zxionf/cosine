@@ -504,7 +504,10 @@ public:
         if (parent_) parent_->mark_layout_dirty();
     }
     bool layout_dirty() const { return layout_dirty_; }
-    void clear_layout_dirty() { layout_dirty_ = false; }
+    // 清除脏标记与「已通知祖先」标记。
+    // 必须递归（UI-45）：早退依赖 notified_，只清自己的时候子项的 notified_ 仍为 true，
+    // 后续子项变更会被早退吃掉——表现为 set_pos() 后 root 不再是 dirty。
+    void clear_layout_dirty() { clear_layout_dirty_recursive(); }
     // 递归清除脏标记：UIRoot::layout() 收尾时用。
     void clear_layout_dirty_recursive()
     {
@@ -591,7 +594,9 @@ public:
 
     // 状态样式：替代直接 ui_theme().style(...)。
     // 首次调用或 transition_ms == 0 时立即到位；状态变化时从当前插值结果出发，
-    // 中途反向（hover→normal→hover）不会跳变。实现在 widget.cpp。
+    // 中途反向（hover→normal→hover）不会跳变。
+    // 一个控件一帧内可以请求多个角色（如 Slider 的 Track + Accent + Tooltip）：
+    // 每个角色有独立过渡槽，互不影响。实现在 widget.cpp。
     BoxStyle visual_style(StyleRole role, ControlState state) const;
 
     bool transition_active() const;
@@ -601,7 +606,7 @@ protected:
 
 private:
     float transition_duration() const;
-    BoxStyle current_transition_style() const;
+    BoxStyle current_transition_style(StyleRole role) const;
     void advance_transition(float dt);
 
     bool visible_ = true;

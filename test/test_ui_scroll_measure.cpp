@@ -99,7 +99,8 @@ void test_width_stable_across_scrollbar_toggle()
     assert(!view_ptr->scrollbar_visible(true));
 
     // 内容变高 → 滚动条出现。
-    color_ptr->set_size(kOuterW, 400.0f);
+    // UI-32 后 set_size 只写几何；内容自然尺寸要用 request_size（ScrollView 靠 measure 算内容高）。
+    color_ptr->request_size({kOuterW, 400.0f});
     view_ptr->mark_layout_dirty();
     system.tick();
 

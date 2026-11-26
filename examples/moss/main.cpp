@@ -56,7 +56,7 @@ int main()
     while(!app.window_.should_close()) {
         glfwPollEvents();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme.window_bg);
+        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
         app.renderer_.begin();
 
         app.uisys.tick();

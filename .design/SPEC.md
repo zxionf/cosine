@@ -69,6 +69,17 @@ assets/         shader、字体
 - 布局内核：`LinearLayout(axis)` 被 `Vbox`/`Hbox` 复用；`ui/layout_utils.hpp` 收敛内容区与 Positioned 子项摆放。
 - `Widget::LayoutSpec` 是 align/flex/pct/aspect/fill 的只读快照 + 回写转发；`Align::baseline_align()` 支持文字基线对齐。
 
+### 样式
+
+- `StyleRole`（11 种）+ `ControlState`（5 种）+ `TextSize`（3 档）是语义样式入口：
+  `Widget::visual_style(role, state)`；令牌→角色对照表见 `docs/ui_theme_tokens.md`。
+- 过渡按**角色分槽**：`StyleTransition` = `std::array<StyleSlot, 11>`，各角色独立 `from/to/progress`；
+  一个控件一帧内可驱动多个角色而不串色。主题 revision 变化时逐槽重建。
+- `transition_ms = 0` 时立即到位；状态变化从本槽当前插值出发，中途反向不跳变。
+- 快照安全网：`test_ui_style_snapshot`（角色不串色语义断言 + 深浅两套整幅像素哈希）。
+- 主题可变性：`UIContext::set_theme()` 是唯一写入口，revision **per-context**；
+  没有全局 `theme_revision()` / `ui::set_theme()`。无 context 的控件回退到只读默认主题。
+
 ### 层级与排序
 
 - `Layer{Content, Floating, Modal}`；`Widget::layer_paint_order()` 是跨 `children_`/`overlays_` 的唯一排序入口。

@@ -183,7 +183,7 @@ private:
         if (atlas == nullptr) return;
 
         const std::string label = placeholder_text();
-        const float size = t.small_text_size;
+        const float size = ui_theme().text_size_of(TextSize::Small);
         const glm::vec2 text = atlas->measure(label, size);
         if (text.x > bounds.z - 4.0f) return; // 放不下就不画，避免溢出
 

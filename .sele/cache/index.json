@@ -1,0 +1,262 @@
+{
+  "lines": {
+    "roadmap.anim": {
+      "file": "lines/roadmap.anim.json"
+    },
+    "roadmap.backend": {
+      "file": "lines/roadmap.backend.json"
+    },
+    "roadmap.cosine": {
+      "file": "lines/roadmap.cosine.json"
+    },
+    "roadmap.examples": {
+      "file": "lines/roadmap.examples.json"
+    },
+    "roadmap.project": {
+      "file": "lines/roadmap.project.json"
+    },
+    "roadmap.ui": {
+      "file": "lines/roadmap.ui.json"
+    }
+  },
+  "plans": {
+    "roadmap": {
+      "file": "plans/roadmap.json"
+    }
+  },
+  "tasks": {
+    "roadmap.anim.T1": {
+      "file": "lines/roadmap.anim.json",
+      "uid": "tsk_01M68AK25DMY62Y34NKXDHW01X"
+    },
+    "roadmap.cosine.T1": {
+      "file": "lines/roadmap.cosine.json",
+      "uid": "tsk_01M68AKPZX6K4WZ16P9XP58DBS"
+    },
+    "roadmap.cosine.T2": {
+      "file": "lines/roadmap.cosine.json",
+      "uid": "tsk_01M68AKQ1P1176BEN7YDJ50E4G"
+    },
+    "roadmap.cosine.T3": {
+      "file": "lines/roadmap.cosine.json",
+      "uid": "tsk_01M68AKQ37XXHSBCB9D5MXC3B3"
+    },
+    "roadmap.cosine.T4": {
+      "file": "lines/roadmap.cosine.json",
+      "uid": "tsk_01M68VZ0W6KA6PW4DJ9MJZSZMQ"
+    },
+    "roadmap.cosine.T5": {
+      "file": "lines/roadmap.cosine.json",
+      "uid": "tsk_01M69395CNSV4BGRK042H3YEB6"
+    },
+    "roadmap.cosine.T6": {
+      "file": "lines/roadmap.cosine.json",
+      "uid": "tsk_01M84HV3PY1TXSCZ3E8PH256KF"
+    },
+    "roadmap.examples.T1": {
+      "file": "lines/roadmap.examples.json",
+      "uid": "tsk_01M68AK99PST1KR85ZDKPXTDHF"
+    },
+    "roadmap.examples.T2": {
+      "file": "lines/roadmap.examples.json",
+      "uid": "tsk_01M68AK9AX27D87DV948GDV0X3"
+    },
+    "roadmap.examples.T3": {
+      "file": "lines/roadmap.examples.json",
+      "uid": "tsk_01M68AK9BX0HPGM189CZ7715AR"
+    },
+    "roadmap.examples.T4": {
+      "file": "lines/roadmap.examples.json",
+      "uid": "tsk_01M6952SZC706MNVECKHHQCCAG"
+    },
+    "roadmap.project.T1": {
+      "file": "lines/roadmap.project.json",
+      "uid": "tsk_01M6BRWW6KFH3JXC4Z1ZW5YHG3"
+    },
+    "roadmap.project.T2": {
+      "file": "lines/roadmap.project.json",
+      "uid": "tsk_01M6BRWW6W9KRJ2GM9EGMSTDB9"
+    },
+    "roadmap.project.T3": {
+      "file": "lines/roadmap.project.json",
+      "uid": "tsk_01M6BRWW74CN12X21SKW0B2VHY"
+    },
+    "roadmap.project.T4": {
+      "file": "lines/roadmap.project.json",
+      "uid": "tsk_01M6BRWW7CBYSF8D6WQV525ZVX"
+    },
+    "roadmap.project.T5": {
+      "file": "lines/roadmap.project.json",
+      "uid": "tsk_01M6BRWW7M9W2P1KA20VGE7E1E"
+    },
+    "roadmap.project.T6": {
+      "file": "lines/roadmap.project.json",
+      "uid": "tsk_01M6BRWW7WA2WDCK3PDTHEW43B"
+    },
+    "roadmap.ui.T1": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68AKGK3H35P5R1Z2MX6GSGQ"
+    },
+    "roadmap.ui.T10": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68VE8DW1XW7A14963V2C18H"
+    },
+    "roadmap.ui.T11": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68YTMV4AFRV34D871TY2W0X"
+    },
+    "roadmap.ui.T12": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M69A4GSCPSA099TMYJK1SPMA"
+    },
+    "roadmap.ui.T13": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M7YCRQYJ0NZF0GEB5N1YE4D1"
+    },
+    "roadmap.ui.T14": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M7YCS1NGVWBY8Y3NYEBFAGJP"
+    },
+    "roadmap.ui.T15": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M7YP9EK5GEQBJBWF40VSCQPS"
+    },
+    "roadmap.ui.T16": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M81HWKGFZQSPYFQJK9DYV8TQ"
+    },
+    "roadmap.ui.T17": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M81SAWRXM6D7EP4WMH0AKDVS"
+    },
+    "roadmap.ui.T18": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M83RFXCXQTK7VHJ98BTGR3Q3"
+    },
+    "roadmap.ui.T19": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M83V3K4PSTAFXFPGWJJZB43R"
+    },
+    "roadmap.ui.T2": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68AKGKCGK0JF1JJQH1FAPPG"
+    },
+    "roadmap.ui.T20": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M83V45DKTJD4Q53F7CAEY4N7"
+    },
+    "roadmap.ui.T21": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M83X4NF07MNVAP59XY4F31TH"
+    },
+    "roadmap.ui.T22": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M8490AXSXHE87JJR912GHX8X"
+    },
+    "roadmap.ui.T23": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M84BNK3YZ2TG74TKKB76A999"
+    },
+    "roadmap.ui.T24": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M874YQJWCQY6CVVYBEZNRD56"
+    },
+    "roadmap.ui.T25": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M874YQQ2XHX0KVR2TWN2PQJV"
+    },
+    "roadmap.ui.T26": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M874YQTV1J4MN89845EEBXJT"
+    },
+    "roadmap.ui.T27": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M874ZGV6Y47QRQXBR7WRMXVZ"
+    },
+    "roadmap.ui.T28": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M874ZGYE46WQC1NEX2AY2FXA"
+    },
+    "roadmap.ui.T29": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M874ZH19B4DBBYBNE6EXGFNG"
+    },
+    "roadmap.ui.T3": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68AKGKMW4P01WQ8NXY09CDJ"
+    },
+    "roadmap.ui.T30": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M874ZH48RF7KRRH79NWWTT0X"
+    },
+    "roadmap.ui.T31": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M8950J0HDMAD20QVMZN9R63J"
+    },
+    "roadmap.ui.T32": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89H39S31YDK5ECJ762BJE03"
+    },
+    "roadmap.ui.T33": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89MFJJN6B72N6QVDX6T0167"
+    },
+    "roadmap.ui.T34": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89MFSZ142V9H9DSR7DDHKPE"
+    },
+    "roadmap.ui.T35": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89MFT1VE1F230CVZC200F2D"
+    },
+    "roadmap.ui.T36": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89MFT4V50SXW91V7C33R7G3"
+    },
+    "roadmap.ui.T37": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89MG145G60VF1Z6PRBS1TR9"
+    },
+    "roadmap.ui.T38": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89MG179NMHM5NME6GJDJ0QM"
+    },
+    "roadmap.ui.T39": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89MG1A3WD70838RX61YXYQM"
+    },
+    "roadmap.ui.T4": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68AKGKXZ7YHHGJWW6D62SB8"
+    },
+    "roadmap.ui.T40": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M89NRJ783MQ6ZGTV9WZ0SEG5"
+    },
+    "roadmap.ui.T41": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M8C2E0RXNZHQ3H748RG23KK7"
+    },
+    "roadmap.ui.T5": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68AKGM52KV881P9YFX2WVZK"
+    },
+    "roadmap.ui.T6": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68AKGMEB2707YJ54AV3KNKC"
+    },
+    "roadmap.ui.T7": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68AKGNYZQ55QEKBAMT6TE8J"
+    },
+    "roadmap.ui.T8": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68FCN6K98MXKW1XZAGHV8V1"
+    },
+    "roadmap.ui.T9": {
+      "file": "lines/roadmap.ui.json",
+      "uid": "tsk_01M68H0Z46G38QQ4R58TEHAYT2"
+    }
+  },
+  "version": 1
+}

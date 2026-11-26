@@ -165,8 +165,8 @@ int main()
 
     auto& side_bar = side_ptr->tab_bar();
     assert(side_bar.orientation() == xel::ui::TabBar::Orientation::Vertical);
-    const float control_h = ui.context()->theme.control_height;
-    const float spacing = ui.context()->theme.spacing;
+    const float control_h = ui.context()->theme().control_height;
+    const float spacing = ui.context()->theme().spacing;
     assert(side_bar.measure({300.0f, 300.0f}).y >= control_h * 2.0f);
     assert(side_bar.global_bounds().size.x < side_ptr->global_bounds().size.x);
     assert(side_bar.global_bounds().size.y >= control_h * 2.0f);
@@ -204,8 +204,11 @@ int main()
     assert(tight_ptr->tab_gap() == 0.0f);
     assert(tight_ptr->padding().left == 0.0f);
     // 主题重刷（set_theme 会全树 set_context）后显式值不被覆盖。
-    ui.context()->theme.padding = 20.0f;
-    ui.root()->set_theme(ui.context()->theme);
+    {
+        xel::ui::Theme t = ui.context()->theme();
+        t.padding = 20.0f;
+        ui.root()->set_theme(t);
+    }
     assert(tight_ptr->padding().left == 0.0f);
 
     const auto tight_bounds = tight_ptr->global_bounds();

@@ -89,8 +89,9 @@ public:
 
         if (auto* atlas = font_atlas()) {
             const float text_y = atlas->centered_text_y(t.text_size, global_.pos.y, hh);
+            // UI-40：标题文字色取 Surface 角色。
             atlas->append_text(list, global_.pos.x + 30.0f, text_y, t.text_size, title_,
-                               t.text);
+                               t.style(StyleRole::Surface, ControlState::Normal).text);
         }
     }
 

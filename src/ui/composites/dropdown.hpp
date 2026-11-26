@@ -160,9 +160,12 @@ public:
 
         graphics::append_rounded_rect(list, bounds, radius, style.fill);
         // 编辑/展开中始终强调边框；焦点环只在 focus_policy 允许时叠加。
-        const glm::vec4 border_color = is_focused() ? t.accent : t.panel_border;
+        // UI-40：强调边框由 Input:Checked 表达（与 TextInput 同口径），不手写三元式。
+        const BoxStyle frame = visual_style(StyleRole::Input,
+                                            control_state(enabled_, is_hovered() || is_open(), false,
+                                                          is_focused()));
         if (t.border > 0.0f) {
-            graphics::append_rounded_ring(list, bounds, radius, t.border, border_color);
+            graphics::append_rounded_ring(list, bounds, radius, t.border, frame.border);
         }
         append_focus_ring(list, bounds, radius);
 

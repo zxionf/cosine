@@ -45,7 +45,7 @@ struct Fixture
         button->arrange({{0.0f, 0.0f}, {120.0f, 30.0f}});
     }
 
-    const ui::Theme& theme() const { return system->context()->theme; }
+    const ui::Theme& theme() const { return system->context()->theme(); }
 
     ui::BoxStyle style(ui::ControlState state) const
     {
@@ -204,8 +204,8 @@ void test_theme_change_applies_immediately()
     f.system->set_theme(ui::Theme::light().with_rounding(false).with_transition_ms(100.0f));
     assert(f.style(ui::ControlState::Normal).radius == 0.0f);
 
-    // 全局 set_theme 也走同一条失效路径。
-    ui::set_theme(ui::Theme::dark().with_transition_ms(100.0f));
+    // 同一套失效路径：换回 dark，样式立即跟上（UI-42 起主题挂在 context 上）。
+    f.system->set_theme(ui::Theme::dark().with_transition_ms(100.0f));
     assert(f.style(ui::ControlState::Normal).fill == f.theme().button_bg);
 }
 

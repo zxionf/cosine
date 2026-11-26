@@ -33,13 +33,18 @@ int main()
     assert(gallery.sections[3]->visible());
     assert(gallery.nav_buttons[3]->label().rfind(">", 0) == 0);
 
+    // ScrollView 内容大于 viewport，裁剪与滚动状态可读。
+    // 注意（UI-33 + UI-45）：隐藏分区不参与布局，所以断言必须先切到该分区并重排；
+    // 以前 NDEBUG 裁掉了这条断言，它一直没真正执行过。
+    ui.tick();
+    assert(gallery.scroll_vertical->content_size().y > gallery.scroll_vertical->viewport_size().y);
+    assert(gallery.scroll_both->content_size().x > gallery.scroll_both->viewport_size().x);
+
     gallery.show_section(0);
     assert(gallery.nav_buttons[0]->label().rfind(">", 0) == 0);
     assert(gallery.nav_buttons[3]->label().rfind(">", 0) != 0);
 
-    // ScrollView 内容大于 viewport，裁剪与滚动状态可读。
-    assert(gallery.scroll_vertical->content_size().y > gallery.scroll_vertical->viewport_size().y);
-    assert(gallery.scroll_both->content_size().x > gallery.scroll_both->viewport_size().x);
+    ui.tick();
 
     // Tooltip 跟随 hover 目标显示/隐藏。
     assert(!gallery.tooltip->visible());
@@ -66,16 +71,23 @@ int main()
     for (std::size_t i = 0; i < gallery.sections.size(); ++i) {
         assert(gallery.sections[i]->visible() == (i == 5));
     }
+    ui.tick(); // 切换后需重排，切进来的分区才有几何
 
     // 每个分区都带滚动容器：内容超出可视区时可滚动。
+    // UI-33 起隐藏分区不参与布局（bounds 保持旧值/0），所以只对当前分区断言已布局。
     assert(gallery.sections[3]->scroll_view() != nullptr);
-    for (auto* section : gallery.sections) {
-        assert(section->scroll_view() != nullptr);
-        assert(section->scroll_view()->global_bounds().size.y > 0.0f);
+    for (std::size_t i = 0; i < gallery.sections.size(); ++i) {
+        auto* view = gallery.sections[i]->scroll_view();
+        assert(view != nullptr);
+        if (gallery.sections[i]->visible()) {
+            assert(view->global_bounds().size.y > 0.0f);
+        }
     }
 
     gallery.show_section(3);
+    ui.tick();
     auto* containers_scroll = gallery.sections[3]->scroll_view();
+    assert(containers_scroll->global_bounds().size.y > 0.0f);
     assert(containers_scroll->content_size().y > containers_scroll->viewport_size().y);
     // 验证滚轮能驱动分区滚动：用离散模式避免平滑过渡的延迟效果。
     containers_scroll->set_scroll_mode(xel::ui::ScrollMode::Line);

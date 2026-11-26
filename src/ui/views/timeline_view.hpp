@@ -87,6 +87,8 @@ public:
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
 
         const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
+        // UI-41：时间轴上的标尺/轨道标签属于辅助文字，用 Small 档（与 Tooltip 同口径）。
+        const float small_size = t.style(StyleRole::Tooltip, ControlState::Normal).text_size;
         graphics::append_rounded_rect(list, bounds, corner_radius(surface.radius), surface.fill);
         if (surface.border_width > 0.0f) {
             graphics::append_rounded_ring(list, bounds, corner_radius(surface.radius),
@@ -117,7 +119,8 @@ public:
 
             if (atlas != nullptr) {
                 const std::string text = std::format("{:.1f}s", time);
-                atlas->append_text(list, x + 4.0f, global_.pos.y + 6.0f, t.small_text_size, text,
+                // UI-41：坐标轴文字用 Small 档（角色给出，不再直读 small_text_size）。
+                atlas->append_text(list, x + 4.0f, global_.pos.y + 6.0f, small_size, text,
                                    t.text);
             }
         }
@@ -144,7 +147,7 @@ public:
                     const std::string label = std::format("node {} · prop {}", tracks[i].node(),
                                                           tracks[i].property());
                     atlas->append_text(list, global_.pos.x + 8.0f, row_y + 2.0f,
-                                       t.small_text_size, label, t.text);
+                                       small_size, label, t.text);
                 }
 
                 for (const anim::Keyframe& key : tracks[i].keys()) {

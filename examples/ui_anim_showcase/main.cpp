@@ -269,7 +269,7 @@ int run()
         root->layout();
         root->clear_layout_dirty();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme.window_bg);
+        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
         const auto pixels = app.renderer_.render_offscreen(*root, static_cast<uint32_t>(kExportW),
                                                           static_cast<uint32_t>(kExportH));
         const bool ok = xel::backend::vulkan::Renderer::write_png(
@@ -285,7 +285,7 @@ int run()
     while (!app.window_.should_close()) {
         glfwPollEvents();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme.window_bg);
+        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
         app.renderer_.begin();
 
         const auto& stats = app.renderer_.frame_stats();

@@ -16,6 +16,38 @@ COSINE_SANITIZE=address COSINE_BUILD_DIR=build-asan ./scripts/ci-linux.sh
 `COSINE_SANITIZE` 支持 `address`、`undefined`、`thread`（可用分号组合）。
 它只作用于本项目 target，不重新编译第三方依赖。
 
+## 测试断言必须真的执行（NDEBUG 陷阱）
+
+ctest 默认跑 **Release** 构建，而 Release 定义了 `NDEBUG`，`<cassert>` 的 `assert(x)`
+会展开成 `((void)0)`——**表达式不求值、不类型检查**。曾因此出现过：
+
+- 63 个测试文件、1939 条断言完全不执行（`ctest` 全绿只代表进程正常退出）；
+- 删掉一个结构体成员后测试仍然编译通过（引用它的代码在 assert 里被整个丢弃）；
+- `Slider` 多角色颜色串台（轨道被染成强调色）长期无人发现。
+
+对策：`test/CMakeLists.txt` 给所有测试 target 加 `-UNDEBUG`（MSVC 为 `/UNDEBUG`）。
+
+**写测试的规矩**：
+
+```cpp
+// ✓ 纯表达式断言：可以放 assert
+assert(view->item_count() == 3);
+
+// ✗ 带副作用的调用：出错时难以定位，且语义不清晰
+assert(load_file(path, &error));
+
+// ✓ 带副作用的调用：先求值再断言
+const bool ok = load_file(path, &error);
+assert(ok);
+
+// ✓ 需要计数汇总的（一文件几十条）：用 check() + main 返回非 0
+```
+
+负向验证（改完基础设施后必须做一次）：把一条断言改成必假值，`ctest` 应变红。
+
+另一个 Windows 特有陷阱：`std::filesystem::remove()` 对**仍被打开**的文件会失败
+（Linux 允许），所以读文件的 `ifstream` 要限定作用域。
+
 ## 冒烟（正常退出）
 
 示例都支持 `COSINE_EXIT_AFTER=<秒>`：到点后调 `glfwSetWindowShouldClose`，
@@ -57,7 +89,7 @@ COSINE_UI_SCALE=2 COSINE_EXIT_AFTER=3 ./ui_gallery
 验证重点是界面整体放大、字形清晰（按 `字号×比例` 重新栅格化）、
 tooltip 与应用内命中位置不偏移。
 
-当前测试规模：`ctest` 共 **72** 个用例（含 ASAN 构建，同一份源码）。
+当前测试规模：`ctest` 共 **73** 个用例（含 ASAN 构建，同一份源码）；全部断言在 Release 下也真实执行。
 
 ## lavapipe 冒烟
 

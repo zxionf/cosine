@@ -120,7 +120,7 @@ public:
     {
         Widget::set_context(context);
         // 与 Panel 同规则：显式 set_padding() 过就不再用主题值覆盖。
-        if (context) apply_theme_padding(context->theme.padding);
+        if (context) apply_theme_padding(context->theme().padding);
     }
 
     void invalidate_measure() override

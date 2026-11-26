@@ -69,7 +69,8 @@ public:
 
         const float track_y = center_y - t.slider_height * 0.5f;
         const float draw_radius = corner_radius(t.radius_pill);
-        const BoxStyle track_style = visual_style(StyleRole::Track, is_hovered() ? ControlState::Hovered : ControlState::Normal);
+        const BoxStyle track_style = visual_style(StyleRole::Track,
+                                                  control_state(enabled_, is_hovered(), false));
         graphics::append_rounded_rect(list, {track_x, track_y, track_w, t.slider_height}, track_radius, track_style.fill);
 
         const float range = std::max(1e-6f, max_value_ - min_value_);
@@ -81,13 +82,10 @@ public:
         }
 
         const glm::vec4 handle_bounds{track_x + fill_w - radius, center_y - radius, radius * 2.0f, radius * 2.0f};
-        glm::vec4 handle_color = enabled_ ? t.slider_handle : t.text_disabled;
-        if (enabled_ && dragging_) {
-            handle_color = mix_color(t.slider_handle, t.accent, 0.35f);
-        } else if (enabled_ && is_hovered()) {
-            handle_color = mix_color(t.slider_handle, t.accent, 0.15f);
-        }
-        graphics::append_rounded_rect(list, handle_bounds, draw_radius, handle_color);
+        // UI-40：手柄走 Knob 角色（拖动 = Checked 态），不再手写 mix_color(handle, accent)。
+        const BoxStyle handle_style = visual_style(
+            StyleRole::Knob, control_state(enabled_, is_hovered(), false, dragging_));
+        graphics::append_rounded_rect(list, handle_bounds, draw_radius, handle_style.fill);
 
         // 拖动反馈：手柄外圈一条强调色环（不依赖 FocusPolicy，仅表示正在拖拽）。
         if (dragging_ && enabled_) {

@@ -71,7 +71,7 @@ void Widget::debug_rect(graphics::DrawList& list) const
 
 const Theme& Widget::ui_theme() const
 {
-    if (auto* ctx = context()) return ctx->theme;
+    if (auto* ctx = context()) return ctx->theme();
     return theme();
 }
 
@@ -86,7 +86,7 @@ bool Widget::focus_visible() const
     if (!focused_) return false;
     const UIContext* ctx = context();
     if (ctx == nullptr) return true;
-    switch (ctx->theme.focus_policy) {
+    switch (ctx->theme().focus_policy) {
         case FocusPolicy::Always: return true;
         case FocusPolicy::Never: return false;
         case FocusPolicy::Keyboard: break;
@@ -119,27 +119,36 @@ BoxStyle Widget::visual_style(StyleRole role, ControlState state) const
 {
     const auto& theme_value = ui_theme();
     const BoxStyle target = theme_value.style(role, state);
-    const std::uint64_t revision = theme_revision();
+    // revision 取本 context 的（UI-42）：多 root / lab / 测试各自一轮，不互相打断缓存。
+    const std::uint64_t revision = context() != nullptr ? context()->theme_revision() : 0;
     if (transition_ == nullptr) transition_ = std::make_unique<StyleTransition>();
-    // 主题变化（切换主题/圆角/密度/过渡时长）：旧缓存的 from/to 已过时，
-    // 直接重建成目标样式，不做过渡——否则会等到下一次 hover 才刷新。
-    if (!transition_->started || transition_->revision != revision) {
-        *transition_ = StyleTransition{role, state, target, target, 1.0f, true, revision};
+
+    // 主题变化（切换主题/圆角/密度/过渡时长）：所有槽重建为目标样式，不做过渡。
+    // 逐槽重建（关键）：旧实现用单槽 + 整对象赋值，一次主题变化只会刷新最后一个
+    // 被请求的角色，其余角色留着旧主题的颜色。
+    if (transition_->revision != revision) {
+        for (auto& slot : transition_->slots) slot = StyleSlot{};
+        transition_->revision = revision;
+    }
+
+    StyleSlot& slot = transition_->slot(role);
+    if (!slot.started) {
+        slot = StyleSlot{state, target, target, 1.0f, true};
         return target;
     }
-    if (transition_->role != role || transition_->state != state) {
-        transition_->from = current_transition_style();
-        transition_->to = target;
-        transition_->role = role;
-        transition_->state = state;
-        transition_->progress = transition_duration() <= 0.0f ? 1.0f : 0.0f;
+    if (slot.state != state) {
+        // 从本槽自己的当前插值结果出发，不会跨角色取色。
+        slot.from = lerp_style(slot.from, slot.to, ease_out_quad(slot.progress));
+        slot.to = target;
+        slot.state = state;
+        slot.progress = transition_duration() <= 0.0f ? 1.0f : 0.0f;
     }
-    return current_transition_style();
+    return lerp_style(slot.from, slot.to, ease_out_quad(slot.progress));
 }
 
 bool Widget::transition_active() const
 {
-    return transition_ != nullptr && transition_->progress < 1.0f;
+    return transition_ != nullptr && transition_->any_active();
 }
 
 float Widget::transition_duration() const
@@ -148,22 +157,27 @@ float Widget::transition_duration() const
     return ms > 0.0f ? ms / 1000.0f : 0.0f;
 }
 
-BoxStyle Widget::current_transition_style() const
+BoxStyle Widget::current_transition_style(StyleRole role) const
 {
     if (transition_ == nullptr) {
-        return ui_theme().style(StyleRole::Control, ControlState::Normal);
+        return ui_theme().style(role, ControlState::Normal);
     }
-    return lerp_style(transition_->from, transition_->to, ease_out_quad(transition_->progress));
+    const StyleSlot& slot = transition_->slot(role);
+    if (!slot.started) return ui_theme().style(role, ControlState::Normal);
+    return lerp_style(slot.from, slot.to, ease_out_quad(slot.progress));
 }
 
 void Widget::advance_transition(float dt)
 {
-    if (transition_ == nullptr || transition_->progress >= 1.0f) return;
+    if (transition_ == nullptr) return;
     const float duration = transition_duration();
-    if (duration <= 0.0f) {
-        transition_->progress = 1.0f;
-        return;
+    for (auto& slot : transition_->slots) {
+        if (!slot.started || slot.progress >= 1.0f) continue;
+        if (duration <= 0.0f) {
+            slot.progress = 1.0f;
+            continue;
+        }
+        slot.progress = std::min(1.0f, slot.progress + dt / duration);
     }
-    transition_->progress = std::min(1.0f, transition_->progress + dt / duration);
 }
 } // namespace xel::ui

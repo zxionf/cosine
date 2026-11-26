@@ -182,6 +182,10 @@ target_link_libraries(test_ui_scale PRIVATE cosine_ui)
 add_executable(test_ui_render_snapshot test_ui_render_snapshot.cpp)
 target_link_libraries(test_ui_render_snapshot PRIVATE cosine_app)
 
+# 样式快照安全网（UI-38）：语义断言进 ctest；像素/哈希部分无 Vulkan 时自行 skip。
+add_executable(test_ui_style_snapshot test_ui_style_snapshot.cpp)
+target_link_libraries(test_ui_style_snapshot PRIVATE cosine_app)
+
 add_executable(test_ui_scroll_measure test_ui_scroll_measure.cpp)
 target_link_libraries(test_ui_scroll_measure PRIVATE cosine_ui)
 
@@ -196,6 +200,10 @@ target_link_libraries(test_ui_main_axis PRIVATE cosine_ui cosine_text)
 
 add_executable(test_ui_theme_relayout test_ui_theme_relayout.cpp)
 target_link_libraries(test_ui_theme_relayout PRIVATE cosine_ui cosine_text)
+
+# UI-42：主题可变性边界（per-context revision、多 root 隔离）。
+add_executable(test_ui_theme_boundary test_ui_theme_boundary.cpp)
+target_link_libraries(test_ui_theme_boundary PRIVATE cosine_ui cosine_text)
 add_executable(test_ui_scroll_state test_ui_scroll_state.cpp)
 target_link_libraries(test_ui_scroll_state PRIVATE cosine_ui)
 
@@ -275,6 +283,7 @@ set(COSINE_TEST_TARGETS
     test_ui_layout_probe
     test_ui_main_axis
     test_ui_theme_relayout
+    test_ui_theme_boundary
     test_ui_scroll_state
     test_ui_list_view
     test_font_atlas_metrics
@@ -294,6 +303,7 @@ set(COSINE_TEST_TARGETS
     test_ui_theme
     test_ui_style
     test_ui_transition
+    test_ui_style_snapshot
     test_ui_pointer_events
     test_ui_scroll_snap
     test_ui_focus_order
@@ -316,6 +326,24 @@ set(COSINE_TEST_TARGETS
     test_intepreter_tree_evaluator
 )
 set_target_properties(${COSINE_TEST_TARGETS} PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+
+# 测试断言必须在 Release 下也生效（UI-45）。
+# 背景：ctest 用 Release 构建，`NDEBUG` 会把 <cassert> 的 assert 展开成 ((void)0)，
+# 连表达式都不求值——曾有 63 个测试文件、1939 条断言完全不执行，
+# 连"引用了已删除的成员"这种编译期错误都被掩盖。
+# -UNDEBUG 只作用于测试 target，不影响库与示例。
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set(COSINE_TEST_NDEBUG_FLAG -UNDEBUG)
+elseif(MSVC)
+    set(COSINE_TEST_NDEBUG_FLAG /UNDEBUG)
+else()
+    set(COSINE_TEST_NDEBUG_FLAG "")
+endif()
+if(COSINE_TEST_NDEBUG_FLAG)
+    foreach(test_target IN LISTS COSINE_TEST_TARGETS)
+        target_compile_options(${test_target} PRIVATE ${COSINE_TEST_NDEBUG_FLAG})
+    endforeach()
+endif()
 
 # PCH 实验：先覆盖三个代表性 UI 测试，测量 clean 构建收益。
 foreach(pch_test IN ITEMS test_ui_layout test_ui_controls test_text)
@@ -366,6 +394,7 @@ add_test(NAME ui_layout_contract COMMAND test_ui_layout_contract)
 add_test(NAME ui_layout_probe COMMAND test_ui_layout_probe)
 add_test(NAME ui_main_axis COMMAND test_ui_main_axis)
 add_test(NAME ui_theme_relayout COMMAND test_ui_theme_relayout)
+add_test(NAME ui_theme_boundary COMMAND test_ui_theme_boundary)
 add_test(NAME ui_scroll_state COMMAND test_ui_scroll_state)
 add_test(NAME ui_list_view COMMAND test_ui_list_view)
 add_test(NAME font_atlas_metrics COMMAND test_font_atlas_metrics)
@@ -395,6 +424,7 @@ add_test(NAME ui_gallery COMMAND test_ui_gallery)
 add_test(NAME ui_theme COMMAND test_ui_theme)
 add_test(NAME ui_style COMMAND test_ui_style)
 add_test(NAME ui_transition COMMAND test_ui_transition)
+add_test(NAME ui_style_snapshot COMMAND test_ui_style_snapshot)
 add_test(NAME ui_pointer_events COMMAND test_ui_pointer_events)
 add_test(NAME ui_scroll_snap COMMAND test_ui_scroll_snap)
 add_test(NAME ui_focus_order COMMAND test_ui_focus_order)
@@ -417,3 +447,5 @@ add_test(NAME text_utf8 COMMAND test_text)
 foreach(test_target IN LISTS COSINE_TEST_TARGETS)
     cosine_apply_sanitizers(${test_target})
 endforeach()
+
+

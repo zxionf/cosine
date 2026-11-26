@@ -97,8 +97,9 @@ public:
         }
 
         if (auto* atlas = font_atlas()) {
+            // UI-41：字号来自 Tooltip 角色的 Small 档，不再直读 small_text_size。
             atlas->append_text(list, global_.pos.x + t.padding, global_.pos.y + t.padding * 0.5f,
-                               t.small_text_size, text_, style.text);
+                               style.text_size, text_, style.text);
         }
     }
 
@@ -113,10 +114,10 @@ private:
     glm::vec2 tooltip_size() const
     {
         const auto& t = ui_theme();
-        glm::vec2 text_size{graphics::FontAtlas::estimate_text_width(text_, t.small_text_size),
-                            t.small_text_size};
+        const float size = t.style(StyleRole::Tooltip, ControlState::Normal).text_size;
+        glm::vec2 text_size{graphics::FontAtlas::estimate_text_width(text_, size), size};
         if (auto* atlas = font_atlas()) {
-            text_size = atlas->measure(text_, t.small_text_size);
+            text_size = atlas->measure(text_, size);
         }
         return {text_size.x + t.padding * 2.0f, text_size.y + t.padding};
     }
