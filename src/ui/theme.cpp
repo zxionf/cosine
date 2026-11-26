@@ -106,6 +106,9 @@ Theme Theme::light()
     t.slider_track    = srgb_hex(0xC7CBD1);
     t.slider_handle   = srgb_hex(0x292D33);
     t.track_hover     = srgb_hex(0xADB2B9);
+    // 浅色下滑块要比槽暗（槽 #C7CBD1）；对比度 2.42:1。
+    t.thumb           = srgb_hex(0x7A8189);
+    t.thumb_hover     = srgb_hex(0x676E76);
 
     t.text_input_bg           = srgb_hex(0xFAFBFC);
     t.text_input_border       = srgb_hex(0xADB2B9);

@@ -71,10 +71,11 @@ assets/         shader、字体
 
 ### 样式
 
-- `StyleRole`（11 种）+ `ControlState`（5 种）+ `TextSize`（3 档）是语义样式入口：
+- `StyleRole`（12 种）+ `ControlState`（5 种）+ `TextSize`（3 档）是语义样式入口：
   `Widget::visual_style(role, state)`；令牌→角色对照表见 `docs/ui_theme_tokens.md`。
-- 过渡按**角色分槽**：`StyleTransition` = `std::array<StyleSlot, 11>`，各角色独立 `from/to/progress`；
+- 过渡按**角色分槽**：`StyleTransition` = `std::array<StyleSlot, 12>`，各角色独立 `from/to/progress`；
   一个控件一帧内可驱动多个角色而不串色。主题 revision 变化时逐槽重建。
+  **不变量**：同一帧内一个角色只能用一种状态（需要两种外观时拆角色，如 `Track` / `Thumb`）。
 - `transition_ms = 0` 时立即到位；状态变化从本槽当前插值出发，中途反向不跳变。
 - 快照安全网：`test_ui_style_snapshot`（角色不串色语义断言 + 深浅两套整幅像素哈希）。
 - 主题可变性：`UIContext::set_theme()` 是唯一写入口，revision **per-context**；

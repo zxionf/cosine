@@ -100,6 +100,11 @@ struct Theme
     // 滑轨 hover 态底色（轨道是 Track 角色，hover 只提亮一档，不用按钮色）。
     glm::vec4 track_hover{srgb_hex(0x4A5058)};
 
+    // 滚动条滑块（UI-46）：与 Track 槽的对比度 >= 2.2:1（dark 2.31 / light 2.42）。
+    // 不复用 track_hover（只提亮一档，浅色主题下只有 1.3:1，滑块等于看不见）。
+    glm::vec4 thumb{srgb_hex(0x6E7680)};
+    glm::vec4 thumb_hover{srgb_hex(0x868E98)};
+
     glm::vec4 text_input_bg{srgb_hex(0x1E2125)};
     glm::vec4 text_input_border{srgb_hex(0x41474F)};
     glm::vec4 text_input_selection{srgb_hex(0x3D8EE8, 0.35f)};

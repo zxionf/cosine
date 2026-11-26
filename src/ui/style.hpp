@@ -188,6 +188,20 @@ inline BoxStyle Theme::style(StyleRole role, ControlState state) const
             s.radius = radius_pill;
             break;
 
+        case StyleRole::Thumb:
+            // 滚动条滑块（UI-46）：与 Track 槽分离成独立角色。
+            // 之前借用 Track 的 Hovered/Pressed 区分滑块，两者共用一个过渡槽，
+            // 每帧互相覆盖 → 滑块颜色被拉平到槽色，看起来“消失”。
+            switch (state) {
+                case ControlState::Disabled: s.fill = button_disabled; break;
+                case ControlState::Pressed:  s.fill = accent;          break;
+                case ControlState::Hovered:
+                case ControlState::Checked:  s.fill = thumb_hover;     break;
+                case ControlState::Normal:   s.fill = thumb;           break;
+            }
+            s.radius = radius_pill;
+            break;
+
         case StyleRole::Tooltip:
             s.fill = tooltip_bg;
             s.border = panel_border;

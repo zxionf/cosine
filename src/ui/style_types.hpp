@@ -9,7 +9,7 @@ enum class StyleRole
     Surface,     // 面板 / 卡片底
     Control,     // 按钮类：Button、Slider 手柄、Checkbox/Radio 框体
     Input,       // 输入类框体：TextInput、Dropdown 框
-    Track,       // 滑轨 / 进度 / 滚动条槽与滑块
+    Track,       // 槽：滑轨 / 进度底 / 滚动条轨道（不含滑块）
     Accent,      // 选中与强调填充：勾选标记、滑动填充、进度填充
     Row,         // 列表行：Table / TreeView / List
     MenuItem,    // 菜单项
@@ -17,6 +17,7 @@ enum class StyleRole
     Chrome,      // 窗口标题栏等壳体（UI-40）
     RowSelected, // 列表行选中态（UI-40）
     Knob,        // 可拖动手柄（Slider）：高对比中性色，不等于按钮底色（UI-40）
+    Thumb,       // 滚动条滑块（UI-46）：必须与 Track 槽明显可辨，独立槽位
 };
 
 // 交互状态：填充只看这一个维度。焦点不是填充状态，焦点环是叠加层，可与 hover 共存。

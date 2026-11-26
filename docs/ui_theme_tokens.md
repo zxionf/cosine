@@ -14,9 +14,14 @@
 
 ## 2. 样式令牌 → 角色
 
-`StyleRole` 有 11 个：`Surface` / `Control` / `Input` / `Track` / `Accent` / `Row` / `MenuItem` /
-`Tooltip` / `Chrome` / `RowSelected` / `Knob`，解析实现在 `src/ui/style.hpp` 的 `Theme::style(role, state)`。
+`StyleRole` 有 12 个：`Surface` / `Control` / `Input` / `Track` / `Accent` / `Row` / `MenuItem` /
+`Tooltip` / `Chrome` / `RowSelected` / `Knob` / `Thumb`，解析实现在 `src/ui/style.hpp` 的
+`Theme::style(role, state)`。
 `ControlState` 有 5 个：`Normal` / `Hovered` / `Pressed` / `Disabled` / `Checked`（UI-40 新增）。
+
+> **同一帧不变量**：一个控件在同一帧内，一个角色只能用一个状态。
+> 过渡槽按角色索引（不是按状态），同帧内对同一角色先后请求两种状态会互相覆盖，
+> 两处都拿到中间色。需要两种外观时用两个角色（UI-46 的 `Track` + `Thumb` 即由此而来）。
 
 | 令牌 | 角色 | 语义 | 备注 |
 |---|---|---|---|
@@ -26,7 +31,8 @@
 | `radius*` | 全角色 | 圆角档位（`radius`/`_small`/`_medium`/`_panel`/`_pill`） | 控件按用途挑档位 |
 | `button_bg` / `button_hover` / `button_pressed` / `button_disabled` | `Control` | 按钮类四态（`Checked` → accent） | — |
 | `text_input_bg` / `text_input_border` / `text_input_border_hover` | `Input` | 表单框：三态 + `Checked`（编辑/展开中 → accent 边框） | Checkbox/Radio 框体也走它 |
-| `slider_track` / `track_hover` | `Track` | 轨道常态 / hover（`Pressed` → accent） | 滚动条槽与滑块也走它 |
+| `slider_track` / `track_hover` | `Track` | 槽（滑轨 / 进度底 / 滚动条轨道）：常态 / hover（`Pressed` → accent） | **不含滚动条滑块**（UI-46 拆出 `Thumb`） |
+| `thumb` / `thumb_hover` | `Thumb` | 滚动条滑块：常态 / hover（`Pressed` → accent） | 与 `Track` 槽对比度 ≥ 2.2:1（dark 2.31 / light 2.42） |
 | `slider_handle` | `Knob` | 可拖动手柄（`Hovered`/`Checked` 在主题里向 accent 混） | Slider |
 | `accent` | `Accent` / `RowSelected` / `Chrome:Checked` / `Track:Pressed` | 强调色 | 仍有 18 处直读（焦点环/播放头/选框等 accent 语义本身） |
 | `accent_on` | `Accent` | accent 填充上的文字色（dark 5.50:1 / light 4.95:1） | 取代原硬编码 `0x0F1419` |
@@ -131,7 +137,7 @@ theme.text_size_of(TextSize::Small);    // 控件需要单点小字号时用这�
 | 原现象 | 位置 | 现在 |
 |---|---|---|
 | 标题栏底色借 `button_hover`、边框手写 `emphasized ? accent : elevated_border` | `window.hpp` | **`Chrome` 角色**（`Checked` = 活跃/聚焦） |
-| 滚动条滑块直读 `scrollbar_thumb`，轨道走 `Track` | `scroll_view.cpp`、`list_view.hpp` | **槽 `Track:Normal` / 滑块 `Track:Hovered|Pressed`**，`scrollbar_thumb` 已删 |
+| 滚动条滑块直读 `scrollbar_thumb`，轨道走 `Track` | `scroll_view.cpp`、`list_view.hpp` | **槽 `Track:Normal` / 滑块 `Thumb`**（UI-46：借用 `Track:Hovered` 会被同帧的槽请求覆盖，滑块看不见） |
 | 勾选框体直读 `checkbox_bg/border` + hover 三元式 | `checkbox.hpp`、`radio.hpp` | **`Input` 角色**（与 TextInput 同口径），两令牌已删 |
 | 手柄 `mix_color(handle, accent, 0.15/0.35)` | `slider.hpp` | **`Knob` 角色**（`Hovered`/`Checked` 在主题里做混合），控件零手写 |
 | Panel hover 边框三元式 | `panel.hpp` | **`Surface:Hovered`** |

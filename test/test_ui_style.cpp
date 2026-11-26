@@ -652,6 +652,50 @@ void test_state_coverage()
     assert(std::fabs(dark_sel.fill.a - 0.28f) < 1e-3f);
 }
 
+// 滚动条滑块可见性（UI-46）：
+// 回归点：滑块曾经借 Track 的 Hovered 状态来区分（同一个过渡槽），每帧被槽的
+// Normal 请求覆盖，两者最终都是“中间色”→ 滑块在视觉上消失（尤其浅色主题）。
+// 这里锁三件事：Thumb 是独立角色、与槽有可见对比、hover/press 有可区分反馈。
+void test_scrollbar_thumb_visibility()
+{
+    using ui::ControlState;
+    using ui::StyleRole;
+
+    for (const ui::Theme& theme : {ui::Theme::dark(), ui::Theme::light()}) {
+        const auto track = theme.style(StyleRole::Track, ControlState::Normal).fill;
+        const auto thumb = theme.style(StyleRole::Thumb, ControlState::Normal).fill;
+        const auto hover = theme.style(StyleRole::Thumb, ControlState::Hovered).fill;
+        const auto pressed = theme.style(StyleRole::Thumb, ControlState::Pressed).fill;
+
+        // 不透明：半透明在槽上会被合成成槽色的一半。
+        assert(thumb.a == 1.0f);
+        assert(track.a == 1.0f);
+
+        // 与槽的对比度 >= 2.2:1（非文本元素不用 WCAG 4.5，但旧实现只有 1.3:1，
+        // 正是“滑块消失”的量级；实测 dark 2.31 / light 2.42）。
+        assert(contrast_ratio(thumb, track) >= 2.2f);
+
+        // 三态互不相同：hover 提亮/加深一档，拖动回到 accent。
+        assert(hover != thumb);
+        assert(contrast_ratio(hover, track) >= 2.2f);
+        assert(pressed == theme.accent);
+    }
+
+    // 深浅主题各用各的滑块色（浅色下比槽暗，深色下比槽亮）。
+    assert(ui::Theme::dark().style(StyleRole::Thumb, ControlState::Normal).fill !=
+           ui::Theme::light().style(StyleRole::Thumb, ControlState::Normal).fill);
+
+    // 独立槽位（回归锁）：同一控件先请求 Track/Normal 再请求 Thumb/Normal，
+    // 两次结果不能相等，否则说明又退回“共用一个槽”的老路。
+    ui::Progress host;
+    const auto& t = ui::theme(); // 无 context 的裸控件回退只读默认主题
+    const auto styled_track = host.visual_style(StyleRole::Track, ControlState::Normal);
+    const auto styled_thumb = host.visual_style(StyleRole::Thumb, ControlState::Normal);
+    assert(styled_track.fill == t.style(StyleRole::Track, ControlState::Normal).fill);
+    assert(styled_thumb.fill == t.style(StyleRole::Thumb, ControlState::Normal).fill);
+    assert(styled_track.fill != styled_thumb.fill);
+}
+
 void test_text_size_roles()
 {
     const ui::Theme dark = ui::Theme::dark();
@@ -725,6 +769,7 @@ int main()
     test_accent_on_contrast();
     test_text_size_roles();
     test_state_coverage();
+    test_scrollbar_thumb_visibility();
     std::cout << "ui style tests passed\n";
     return 0;
 }

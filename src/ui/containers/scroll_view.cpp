@@ -321,12 +321,13 @@ void ScrollView::append_to(graphics::DrawList& list) const
 
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
         const float bar_radius = corner_radius(t.radius_pill);
-        // UI-40：槽与滑块都走 Track 角色，不再直读 scrollbar_thumb。
-        const BoxStyle track_style = visual_style(StyleRole::Track, ControlState::Normal);
+        // UI-40：槽走 Track、滑块走独立的 Thumb 角色（UI-46）。
+        // 槽是静态底色，直接读主题：不用过渡，也就不会和滑块抢同一个过渡槽。
+        const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
         graphics::append_rounded_rect(list, {track.pos.x, track.pos.y, track.size.x, track.size.y},
                                       bar_radius, track_style.fill);
         const BoxStyle thumb_style = visual_style(
-            StyleRole::Track, dragging_ != Drag::None ? ControlState::Pressed : ControlState::Hovered);
+            StyleRole::Thumb, dragging_ != Drag::None ? ControlState::Pressed : ControlState::Normal);
         graphics::append_rounded_rect(list, {thumb.pos.x, thumb.pos.y, thumb.size.x, thumb.size.y},
                                       bar_radius, thumb_style.fill);
         list.pop_clip();
