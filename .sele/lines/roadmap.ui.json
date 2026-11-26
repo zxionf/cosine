@@ -4394,17 +4394,17 @@
           "desc": "改动经 sele git commit 落到 HEAD，工作区干净",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-26T15:02:35Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
       "archived_git_head": null,
       "created_at": "2026-11-26T13:58:59Z",
-      "current_step": "S1",
+      "current_step": null,
       "depends": [],
-      "finished_at": null,
+      "finished_at": "2026-11-26T15:02:35Z",
       "goal": "UI-38..UI-41 + UI-45 提交记账",
       "id": "T41",
       "line": "ui",
@@ -4428,7 +4428,7 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 2,
-      "status": "in_progress",
+      "status": "done",
       "steps": [
         {
           "desc": "",
@@ -4438,7 +4438,7 @@
           "locked": false,
           "requires_review": false,
           "skipped_reason": null,
-          "status": "in_progress",
+          "status": "done",
           "title": "sele git commit 提交本批次"
         }
       ],
