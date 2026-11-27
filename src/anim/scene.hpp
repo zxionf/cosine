@@ -46,22 +46,18 @@ struct Node
     bool visible = true;
     std::vector<NodeId> children;
 
-    // Shape / Image
     glm::vec2 size{0.0f, 0.0f};
     glm::vec4 color{1.0f, 1.0f, 1.0f, 1.0f};
     bool ellipse = false; // Shape：椭圆 vs 矩形
 
-    // Text
     std::string text;
     float text_size = 16.0f;
 
-    // Image
     // texture_path：资源路径，落盘用；texture_id：运行时图片槽索引 + 1，0 = 未绑定。
     // 拆开的原因：句柄随进程/上传顺序变化，路径才是稳定标识。
     std::string texture_path;
     std::uint32_t texture_id = 0;
 
-    // Camera
     float zoom = 1.0f;
 
     bool has_children() const { return !children.empty(); }

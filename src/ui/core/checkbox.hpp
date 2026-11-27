@@ -58,10 +58,9 @@ public:
         const glm::vec4 box_bounds{bx, by, box, box};
         const float radius = std::round(corner_radius(t.radius_small));
 
-        // UI-40：框体走 Input 角色（与 TextInput 同为「表单框」），不再直读 checkbox_bg/border，
-        // 也不再手写 is_hovered() ? accent : checkbox_border 的三元式。
+        // 框体走 Input 角色（与 TextInput 同为「表单框」）。
         const BoxStyle frame = visual_style(StyleRole::Input, input.state());
-        // UI-57：框体 + 边框 + 焦点环走绘制部件（边框宽度取主题的 t.border）。
+        // 框体 + 边框 + 焦点环走绘制部件（边框宽度取主题的 t.border）。
         BoxStyle frame_box = frame;
         frame_box.border_width = t.border;
         paint::box_with_focus(list, Rect{{box_bounds.x, box_bounds.y}, {box_bounds.z, box_bounds.w}},
@@ -71,8 +70,8 @@ public:
             // inset 取整：勾选块与外框同心，四边留白完全相等且边界落在整像素。
             const float inset = std::round(box * 0.25f);
             const float marker = box - inset * 2.0f;
-            // UI-38 起过渡按角色分槽，这里可以安全地再请求 Accent（不会再污染 label 的
-            // Control 过渡），勾选块因此也有了颜色过渡。
+            // 过渡按角色分槽，因此可以再请求 Accent（不会污染 label 的 Control 过渡），
+            // 勾选块因此也有了颜色过渡。
             const BoxStyle accent = visual_style(StyleRole::Accent, input.state());
             graphics::append_rounded_rect(list,
                                           {bx + inset, by + inset, marker, marker},

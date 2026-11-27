@@ -21,7 +21,7 @@ enum class InputMode
 
 // UI 树共享的资源入口：主题与字体图集不拥有资源，只提供访问。
 //
-// 主题可变性边界（UI-42）：
+// 主题可变性边界：
 //   - 只能经 set_theme() 修改，它会推进**本 context** 的 theme_revision；
 //   - 过渡缓存（Widget::StyleTransition）按这个 revision 判断是否需要重建，
 //     直接改字段不会推进版本 → 会留下旧颜色的过渡缓存，所以 theme 不再公开可写；

@@ -41,7 +41,7 @@ public:
     {
         const auto& t = ui_theme();
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
-        // UI-52：hover 不再手写三元式，统一走 Interaction + Surface:Hovered。
+        // hover 统一走 Interaction + Surface:Hovered。
         const BoxStyle style = visual_style(StyleRole::Surface,
                                             Interaction{true, is_hovered(), false}.state());
         const float radius = corner_radius(style.radius);

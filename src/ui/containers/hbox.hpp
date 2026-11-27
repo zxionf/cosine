@@ -4,7 +4,7 @@
 
 namespace xel::ui
 {
-// 水平流：主轴 x、交叉轴 y（UI-36 起是 LinearLayout 的薄封装）。
+// 水平流：主轴 x、交叉轴 y（LinearLayout 的薄封装）。
 class Hbox : public LinearLayout
 {
 public:

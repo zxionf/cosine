@@ -6,7 +6,7 @@ namespace xel::ui
 {
 // 样式角色：把控件抽象成「用途」，Theme 按角色而不是控件名提供外观。
 // 新控件优先复用已有角色，避免每加一个控件就往 Theme 里塞一整套字段。
-// 底层类型固定为 uint8_t（UI-50）：StyleSlot 要把它当成 1 字节存储，
+// 底层类型固定为 uint8_t：StyleSlot 要把它当成 1 字节存储，
 // 默认的 int 会让过渡槽从 8 B 涨到 16 B。
 enum class StyleRole : std::uint8_t
 {
@@ -26,7 +26,7 @@ enum class StyleRole : std::uint8_t
 
 // 交互状态：填充只看这一个维度。焦点不是填充状态，焦点环是叠加层，可与 hover 共存。
 // 优先级：Disabled > Pressed > Hovered > Checked > Normal。
-// 底层类型固定为 uint8_t（UI-50）：需要存进过渡槽。
+// 底层类型固定为 uint8_t：需要存进过渡槽。
 enum class ControlState : std::uint8_t
 {
     Normal,
@@ -36,8 +36,8 @@ enum class ControlState : std::uint8_t
     Checked, // 勾选 / 选中（UI-40）：Checkbox/Radio 的按下状态之外还要表达「已选」
 };
 
-// 字号档位（UI-41）：角色表除了颜色/圆角，也能给出「这类控件用多大字」。
-// 以前 Tooltip/MenuItem 快捷键/TimelineView 只能直读 small_text_size，角色表无法表达。
+// 字号档位：角色表除了颜色/圆角，也能给出「这类控件用多大字」。
+// 否则 Tooltip/MenuItem 快捷键/TimelineView 只能直读 small_text_size。
 enum class TextSize
 {
     Body,    // 正文：Theme::text_size

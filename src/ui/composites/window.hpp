@@ -20,7 +20,7 @@
 
 namespace xel::ui
 {
-// 应用内窗口（UI-6）：标题栏拖动、右下/右/下 resize、折叠、两种关闭。
+// 应用内窗口：标题栏拖动、右下/右/下 resize、折叠、两种关闭。
 //
 // 挂载：放在 UIRoot 下并用 set_absolute 定位 —— 这样窗口可以拖到任何区域、
 // 靠 z-index 叠放，不受面板裁剪。构造时已自动 set_absolute(true)。
@@ -353,8 +353,7 @@ public:
         graphics::append_rounded_rect(list, bounds, radius, t.elevated);
         // 边框统一走圆角 ring：classic 下 radius = 0 时自动退化为直边，
         // 不再额外画直角矩形，避免圆角模式下露出尖角。
-        // UI-40：边框与标题栏底色走 Chrome 角色（用 Checked 表示「强调/活跃」），
-        // 不再手写 emphasized ? accent : elevated_border。
+        // 边框与标题栏底色走 Chrome 角色（用 Checked 表示「强调/活跃」）。
         const bool emphasized = is_focused() || active;
         const BoxStyle frame = visual_style(StyleRole::Chrome,
                                             emphasized ? ControlState::Checked : ControlState::Normal);
@@ -416,7 +415,7 @@ public:
             }
         }
 
-        // 内容区。
+        // 内容区跟随折叠状态。
         if (!collapsed_ && body_ != nullptr) {
             list.push_clip({bounds.x, bounds.y + title_height(), bounds.z,
                             std::max(0.0f, bounds.w - title_height())});

@@ -38,7 +38,7 @@ bool LayoutNode::focus_visible() const
     return ctx->input_mode == InputMode::Keyboard;
 }
 
-// UI-57：实现只有一份（style/painters.hpp），这里是给「环心不是控件 bounds」的控件
+// 实现只有一份（style/painters.hpp），这里是给「环心不是控件 bounds」的控件
 // （Slider 手柄、表头、菜单项）保留的便捷入口。
 void LayoutNode::append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const
 {
@@ -114,7 +114,7 @@ glm::vec2 LayoutNode::measure_child(LayoutNode& child, glm::vec2 constraints)
     if (const float ratio = child.aspect_ratio(); ratio > 0.0f) {
         if (pct_y && !pct_x) size.x = size.y * ratio;
         else size.y = size.x / ratio;
-        // aspect 与 clamp 一起求解（UI-32）：clamp 截断任一轴后回算另一轴保持比例。
+        // aspect 与 clamp 一起求解：clamp 截断任一轴后回算另一轴保持比例。
         result = apply_aspect_clamp(size, ratio, child.min_size(), child.max_size());
     }
     child.mark_measured(); // 已测量：失效传播早退的不变量
@@ -129,7 +129,6 @@ BoxStyle LayoutNode::visual_style(StyleRole role, ControlState state) const
     const std::uint64_t revision = context() != nullptr ? context()->theme_revision() : 0;
 
     // 主题变化（切换主题/圆角/密度/过渡时长）：所有槽重建，不做过渡。
-    // 逐槽重建（UI-38）：旧实现用单槽 + 整对象赋值，一次主题变化只刷新最后一个角色。
     StyleTransition& transition = visual.transition;
     if (transition.revision != revision) {
         for (auto& slot : transition.slots) slot = StyleSlot{};

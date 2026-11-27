@@ -27,7 +27,7 @@ inline void box(graphics::DrawList& list, Rect bounds, const BoxStyle& style, fl
     }
 }
 
-// 焦点环。ring / border 两种风格由主题的 focus_style 决定（UI-39 后的唯一来源）。
+// 焦点环。ring / border 两种风格由主题的 focus_style 决定。
 // 传 visible = 控件的 focus_visible()：本函数不查焦点策略，只管画。
 inline void focus_ring(graphics::DrawList& list, Rect bounds, float radius, const Theme& theme,
                        bool visible)

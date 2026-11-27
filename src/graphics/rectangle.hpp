@@ -48,8 +48,6 @@ public:
 
     TextureSlot texture_slot() const override { return TextureSlot::Texture; }
 
-    // bool on_mouse
-
     std::function<void()> on_click_;
 private:
     float x_, y_, w_, h_;

@@ -91,7 +91,7 @@ private:
     // 项目路径变化后同步资源浏览器根目录（空路径回退 cwd）。
     void sync_resource_directory(const std::string& path);
 
-    // 图片导入（CO-2）：上传到图片槽并绑定到选中节点（无选中时用 demo 节点）。
+    // 图片导入：上传到图片槽并绑定到选中节点（无选中时用 demo 节点）。
     bool import_image(const std::string& path);
     // 把所有带 texture_path 的 Image 节点重新绑定到纹理槽（重载项目后调用）。
     void rebind_textures();
@@ -117,7 +117,7 @@ private:
     ui::Widget* toolbar_ = nullptr;
     ui::Button* play_button_ = nullptr;
 
-    // 顶层垂直流：菜单 / 工具栏 / 工作区（弹性）/ 状态条（UI-35）。
+    // 顶层垂直流：菜单 / 工具栏 / 工作区（弹性）/ 状态条。
     // 它是 root 里唯一的 fill 子项（铺满 root），所以不再需要手写 place()。
     ui::Vbox* chrome_ = nullptr;
     ui::Panel* status_row_ = nullptr;
@@ -136,9 +136,9 @@ private:
     ui::Label* property_label_ = nullptr;
     ui::Label* status_ = nullptr;
 
-    // CO-5：独立资源浏览器窗口（默认隐藏）。
+    // 独立资源浏览器窗口（默认隐藏）。
     std::unique_ptr<ResourceBrowser> resource_browser_;
-    // CO-6：设置窗口（默认隐藏）。
+    // 设置窗口（默认隐藏）。
     std::unique_ptr<SettingsWindow> settings_window_;
     // EX-5 移植：运行时调试窗口（Widget / Font 两页，默认隐藏）。
     std::unique_ptr<DebugWindow> debug_window_;

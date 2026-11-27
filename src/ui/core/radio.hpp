@@ -67,9 +67,9 @@ public:
         // 单选标记：modern 为圆形（radius_pill 被 clamp 到半宽），classic 为方形。
         const float radius = corner_radius(t.radius_pill);
 
-        // UI-40：框体走 Input 角色（与 Checkbox 一致），不再直读 checkbox_bg/border。
+        // 框体走 Input 角色（与 Checkbox 一致）。
         const BoxStyle frame = visual_style(StyleRole::Input, input.state());
-        // UI-57：框 + 边框 + 焦点环走绘制部件。
+        // 框 + 边框 + 焦点环走绘制部件。
         BoxStyle frame_box = frame;
         frame_box.border_width = t.border;
         paint::box_with_focus(list, Rect{{bx, by}, {box, box}}, frame_box, radius, t, focus_visible());
@@ -79,7 +79,7 @@ public:
             const float cx = bx + box * 0.5f;
             const float cy = by + box * 0.5f;
             const float r = box * 0.28f;
-            // UI-38 起过渡按角色分槽，这里可以安全地再请求 Accent（不再污染 label 的 Control 过渡）。
+            // 过渡按角色分槽，因此可以再请求 Accent（不会污染 label 的 Control 过渡）。
             const BoxStyle accent = visual_style(StyleRole::Accent, input.state());
             const glm::vec4 marker = accent.fill;
             graphics::Triangle upper{cx, cy - r, cx + r, cy, cx, cy + r, marker};

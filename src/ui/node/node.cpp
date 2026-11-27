@@ -14,7 +14,7 @@ namespace
 {
 // 布局阶段深度：>0 时 mark_layout_dirty 只失效缓存、不重新标记脏。
 int g_layout_pass_depth = 0;
-// 布局轮次：每轮 UIRoot::layout() 推进一次（UI-34）。
+// 布局轮次：每轮 UIRoot::layout() 推进一次。
 std::uint64_t g_layout_epoch = 1;
 } // namespace
 

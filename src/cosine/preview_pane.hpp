@@ -19,8 +19,7 @@ public:
                 float footer_height)
         : footer_height_(std::max(0.0f, footer_height))
     {
-        // UI-49：子项存储归 Widget 私有，这里用 adopt（自动设 parent/context）。
-        // 以前自己持一份 children_ 并与基类同名 shadow，导致“两份存储”。
+        // 子项存储归基类私有，这里用 adopt（自动设 parent/context）。
         if (main) {
             main_ = main.get();
             adopt(std::move(main));

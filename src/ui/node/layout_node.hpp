@@ -23,14 +23,8 @@ struct BoxStyle;
 
 // ── LayoutNode（设计 §4.2）：布局机制 + 4 个部件 ─────────────────────
 //
-// 相对 Node 增加的只有“布局意图与机制”：
-//   layout_（意图）/ box（盒模型）/ input（交互状态）/ visual（样式过渡）/
-//   measure_cache_（唯一缓存）/ 脏标记。
-//
-// Node 声明的纯虚契约在这里落地：measure / arrange / mark_layout_dirty /
-// invalidate_measure / clear_layout_dirty_recursive / semantics。
-//
-// 使用者仍然写 `Widget`（见 widget.hpp 的别名），400+ 调用点零改动。
+// 相对 Node 增加“布局意图与机制”：layout_ / box / input / visual / measure_cache_ / 脏标记。
+// Node 声明的纯虚契约在这里落地；使用者仍写 `Widget`（widget.hpp 的别名）。
 class LayoutNode : public Node
 {
 public:
@@ -39,7 +33,7 @@ public:
     LayoutNode& operator=(const LayoutNode&) = delete;
     ~LayoutNode() override;
 
-    // ── 语义投影（UI-52）：状态一律从 Interaction 现读 ──────────────────
+    // ── 语义投影：状态从 Interaction 现读 ────────────────────────────
     Semantics semantics() const override
     {
         Semantics s;
@@ -53,7 +47,6 @@ public:
         s.expanded = semantics_expanded();
         return s;
     }
-    // 禁用语义（UI-52）：以前 8 个控件各自持有一个 bool enabled_。
     bool is_enabled() const { return input.enabled; }
     virtual void set_enabled(bool enabled)
     {
@@ -71,7 +64,7 @@ public:
     bool focus_visible() const;
     void append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const;
 
-    // ── 对齐与布局意图快照（UI-36 / UI-37）────────────────────────────
+    // ── 对齐与布局意图快照 ──────
     void set_align(Align a)
     {
         LayoutSpec spec = layout_spec();
@@ -83,8 +76,8 @@ public:
         return layout_.has_align ? std::optional<Align>(layout_.align_self) : std::nullopt;
     }
 
-    // 尺寸与对齐规格的不可变快照：布局意图的唯一数据形态。
-    // 存储仍在 `layout_` 里，但**写入只经 set_layout_spec()**（UI-37）。
+    // 尺寸与对齐规格的不可变快照：布局意图的唯一数据形态；存储仍在 `layout_`，
+    // 但**写入只经 set_layout_spec()**。
     struct LayoutSpec
     {
         std::optional<Align> align;
@@ -103,7 +96,7 @@ public:
                 layout_.fill_x, layout_.fill_y, layout_.min_size, layout_.max_size,
                 layout_.preferred};
     }
-    // 布局字段的唯一写入者（UI-37）。
+    // 布局字段的唯一写入者。
     void set_layout_spec(const LayoutSpec& spec)
     {
         layout_.align_self = spec.align.value_or(Align::top_left());
@@ -119,7 +112,7 @@ public:
         mark_layout_dirty();
     }
 
-    // ── 盒模型（UI-35）：显式调用即「锁住」，主题重刷不覆盖 ──────────────
+    // ── 盒模型：显式调用即「锁住」，主题重刷不覆盖 ──────────────────────
     void set_padding(Edges edges)
     {
         box.padding = edges;
@@ -193,7 +186,7 @@ public:
         return glm::clamp(size, layout_.min_size, layout_.max_size);
     }
 
-    // 叶子的自然尺寸（UI-32）：构造期确定，与 arrange 的几何分离。
+    // 叶子的自然尺寸：构造期确定，与 arrange 的几何分离。
     void set_preferred_size(glm::vec2 size)
     {
         LayoutSpec spec = layout_spec();
@@ -236,7 +229,7 @@ public:
     }
     float aspect_ratio() const { return layout_.aspect_ratio; }
 
-    // ── 子项访问（UI-56）：隐藏基类同名函数，返回 LayoutNode* ───────────
+    // ── 子项访问：隐藏基类同名函数，返回 LayoutNode* ─────────────
     // 本项目所有 Node 都是 LayoutNode（见文件末尾的 as_layout 说明），所以这里
     // 用协变返回类型提供布局视图：容器代码写 child_at(i)->min_size() 不需要转型。
     LayoutNode* child_at(std::size_t index) const
@@ -262,7 +255,7 @@ public:
     void clear_corner_radius() { radius_override_.reset(); }
     float corner_radius(float fallback) const { return radius_override_.value_or(fallback); }
 
-    // 文字基线相对控件顶边的偏移（UI-36）。
+    // 文字基线相对控件顶边的偏移。
     virtual float baseline_offset_for(float h) const { return h * 0.5f; }
     float baseline_offset() const { return baseline_offset_for(height()); }
 
@@ -270,7 +263,7 @@ public:
     void set_tab_order(int order) { tab_order_ = order; }
     int tab_order() const { return tab_order_; }
 
-    // ── 事件钩子（Q1 会把它们换成能力接口）──────────────────────────
+    // ── 事件钩子（17 个）────────────────────────────────────────
     virtual bool on_mouse_move(glm::vec2 pos) { (void)pos; return false; }
     virtual void on_hover(glm::vec2 pos) { (void)pos; }
     virtual void on_mouse_leave() {}
@@ -311,10 +304,10 @@ public:
     void mark_layout_dirty() override;
     void invalidate_measure() override { measure_cache_.invalidate(); }
     void clear_layout_dirty_recursive() override;
-    // 本轮是否请求过重排（调试面板与断言用）。
+    // 本轮是否请求过重排。
     bool layout_dirty() const { return layout_dirty_; }
 
-    // 测量缓存入口（UI-51 统一）：布局级命中 + 派生输入命中。
+    // 测量缓存入口：布局级命中 + 派生输入命中。
     bool measure_cache_hit(glm::vec2 constraints) const;
     bool measure_cache_hit(const MeasureKey& probe) const { return measure_cache_.hit(probe); }
     glm::vec2 measure_cached() const { return measure_cache_.result; }
@@ -346,19 +339,19 @@ protected:
     // 容器 arrange 时记录内容实际占用尺寸。
     void set_content_extent(glm::vec2 extent) { content_extent_ = extent; }
 
-    // ── 四个部件（UI-48）──────────────────────────────────────────
+    // ── 四个部件 ───────────────
     LayoutParams layout_;   // 布局意图（写入只经 set_layout_spec）
     BoxMetrics   box;       // padding / padding_override / margin
     Interaction  input;     // 状态唯一所有者
     VisualState  visual;    // 样式过渡（104 B 内嵌，无堆）
 
-    // 测量缓存（UI-51）：一套到底；protected 让派生类填派生输入。
+    // 测量缓存：一套到底；protected 让派生类填派生输入。
     mutable MeasureCache measure_cache_{};
 
     bool layout_dirty_ = true;
     int tab_order_ = 0;
     glm::vec2 content_extent_{0.0f, 0.0f};
-    // 本轮是否已把“失效”告知祖先链（UI-34 早退）。
+    // 本轮是否已把“失效”告知祖先链（早退）。
     bool notified_ = false;
 
 private:
@@ -369,7 +362,7 @@ private:
     std::optional<float> radius_override_;
 };
 
-// ── Node → LayoutNode 的合法下行（UI-56）────────────────────────────
+// ── Node → LayoutNode 的合法下行 ─────────────────────────
 // 本项目里**所有** Node 都是 LayoutNode（Node 只作为树的元素类型存在），
 // 因此这里用 static_cast 是安全的；写成函数是为了让下行点显式、可搜。
 inline LayoutNode&       as_layout(Node& node)       { return static_cast<LayoutNode&>(node); }

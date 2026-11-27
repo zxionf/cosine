@@ -88,11 +88,11 @@ public:
         const float radius = corner_radius(style.radius);
         const Rect bounds{global_.pos, global_.size};
 
-        // UI-57：半透明底的圆角几何用九宫格不重叠切分，不会叠出亮边。
+        // 半透明底的圆角几何用九宫格不重叠切分，不会叠出亮边。
         paint::box(list, bounds, style, radius);
 
         if (auto* atlas = font_atlas()) {
-            // UI-41：字号来自 Tooltip 角色的 Small 档，不再直读 small_text_size。
+            // 字号来自 Tooltip 角色的 Small 档。
             atlas->append_text(list, global_.pos.x + t.padding, global_.pos.y + t.padding * 0.5f,
                                style.text_size, text_, style.text);
         }

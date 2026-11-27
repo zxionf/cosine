@@ -26,7 +26,7 @@ inline bool is_bounded(glm::vec2 extent)
     return is_bounded(extent.x) && is_bounded(extent.y);
 }
 
-// 宽高比与 min/max 一起求解（UI-32）：先按比例算出尺寸，再 clamp；
+// 宽高比与 min/max 一起求解：先按比例算出尺寸，再 clamp；
 // 若某一轴被 min/max 截断，回算另一轴以保持比例，最后再 clamp 一次。
 // 两轴约束同时与比例冲突时以宽为准（可满足不了时退化为 clamp）。
 // ratio = width / height。

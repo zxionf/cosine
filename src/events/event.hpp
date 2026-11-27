@@ -18,13 +18,11 @@ struct InputEvent
     };
     Type type = Type::MouseMove;
 
-    // mouse
     glm::vec2 mouse_pos{};
     int   mouse_button = 0;
     float scroll_delta_x = 0.0f;
     float scroll_delta = 0.0f;
 
-    // keyboard
     KeyCode  key = KeyCode::Unknown;
     Modifier mods = Modifier::None;
     char32_t codepoint = 0;

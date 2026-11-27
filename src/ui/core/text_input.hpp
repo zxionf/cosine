@@ -105,10 +105,9 @@ public:
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         // 编辑中始终用强调色标出边框（鼠标点击进入编辑也应可见）；
         // 焦点环只在键盘操作期间叠加，两者职责不同。
-        // UI-40：强调边框由 Input:Checked 表达，不再手写 is_focused() ? accent : border。
         const BoxStyle style = visual_style(StyleRole::Input, input.state(is_focused()));
         const float radius = corner_radius(style.radius);
-        // UI-57：框 + 边框 + 焦点环走绘制部件。
+        // 框 + 边框 + 焦点环走绘制部件。
         paint::box_with_focus(list, Rect{{bounds.x, bounds.y}, {bounds.z, bounds.w}}, style, radius,
                               ui_theme(), focus_visible());
 
@@ -334,7 +333,7 @@ private:
     void draw_single_line(graphics::DrawList& list, float font_size, float pad, float line) const
     {
         const auto& t = ui_theme();
-        // UI-40：文字色取 Input 角色（已按 Disabled 切换），不再直读 t.text / t.text_disabled。
+        // 文字色取 Input 角色（已按 Disabled 切换）。
         const BoxStyle text_style = visual_style(StyleRole::Input, input.state(is_focused()));
         auto* atlas = font_atlas();
         // 用字体行高而不是字号来垂直居中；不要再 max(pad, ...)，

@@ -83,7 +83,7 @@ public:
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
 
         const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
-        // UI-41：时间轴上的标尺/轨道标签属于辅助文字，用 Small 档（与 Tooltip 同口径）。
+        // 时间轴上的标尺/轨道标签属于辅助文字，用 Small 档（与 Tooltip 同口径）。
         const float small_size = t.style(StyleRole::Tooltip, ControlState::Normal).text_size;
         graphics::append_rounded_rect(list, bounds, corner_radius(surface.radius), surface.fill);
         if (surface.border_width > 0.0f) {
@@ -99,7 +99,6 @@ public:
         const float duration = timeline_ != nullptr ? timeline_->duration() : 5.0f;
         const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
 
-        // 标尺条。
         graphics::append_rounded_rect(list, {left, global_.pos.y, area, ruler}, 3.0f,
                                       track_style.fill);
 
@@ -115,13 +114,12 @@ public:
 
             if (atlas != nullptr) {
                 const std::string text = std::format("{:.1f}s", time);
-                // UI-41：坐标轴文字用 Small 档（角色给出，不再直读 small_text_size）。
+                // 坐标轴文字用 Small 档（由角色给出）。
                 atlas->append_text(list, x + 4.0f, global_.pos.y + 6.0f, small_size, text,
                                    t.text);
             }
         }
 
-        // 轨道行。
         if (timeline_ != nullptr) {
             const auto& tracks = timeline_->tracks();
             for (std::size_t i = 0; i < tracks.size(); ++i) {
@@ -156,7 +154,6 @@ public:
             }
         }
 
-        // 播放头。
         const float head = x_at_time(playhead_);
         if (head >= left - 1.0f && head <= left + area + 1.0f) {
             graphics::Rectangle{head - 1.0f, global_.pos.y + ruler * 0.5f, 2.0f,
@@ -164,7 +161,6 @@ public:
                 .append_to(list);
         }
 
-        // 框选矩形。
         if (box_selecting_) {
             const float x0 = std::min(box_start_.x, box_end_.x);
             const float x1 = std::max(box_start_.x, box_end_.x);

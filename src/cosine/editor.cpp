@@ -74,13 +74,13 @@ Editor::Editor(ui::UIRoot& root, ui::UISystem& uisys, backend::vulkan::Renderer&
         debug_window_->show();
     }
 
-    // 验证用：COSINE_EDITOR_IMAGE=<png> 启动时导入一张图（CO-2 第一段的自测入口）。
+    // 验证用：COSINE_EDITOR_IMAGE=<png> 启动时导入一张图。
     if (const char* image = std::getenv("COSINE_EDITOR_IMAGE")) import_image(image);
 }
 
 void Editor::build()
 {
-    // 顶层垂直外壳（UI-35）：菜单 / 工具栏 / 工作区 / 状态条。
+    // 顶层垂直外壳：菜单 / 工具栏 / 工作区 / 状态条。
     // fill_x + fill_y 让 UIRoot 直接把它铺满，不再依靠手写坐标。
     auto chrome = std::make_unique<ui::Vbox>(0.0f, 0.0f, 1280.0f, 840.0f);
     chrome->set_padding(0.0f);
@@ -367,7 +367,7 @@ void Editor::build_panels()
     // 首帧 root 尺寸可能还是 0（Editor::layout 会 early return）：
     // 给一个非零下限，避免 clamp_size 得到 0 尺寸后 ScrollView 轨道长度为 0。
     root_split->set_min_size({400.0f, 300.0f});
-    // 工作区吃满垂直剩余空间（UI-35）：flex + 横向 stretch，不再手写高度。
+    // 工作区吃满垂直剩余空间：flex + 横向 stretch。
     root_split->set_flex_grow(1.0f);
     root_split->set_align(ui::Align::h_stretch());
     root_splitter_ = root_split.get();
@@ -888,13 +888,6 @@ void Editor::save_project_as_dialog()
     file_dialog_ = ui::show_dialog(*root_, std::move(dialog), [this] { file_dialog_ = nullptr; });
 }
 
-// void Editor::toggle_rounded_style()
-// {
-//     settings_.rounded_style = !settings_.rounded_style;
-//     apply_settings();
-//     set_status(settings_.rounded_style ? "style: rounded" : "style: classic");
-// }
-
 void Editor::apply_settings()
 {
     apply_theme();
@@ -925,9 +918,7 @@ void Editor::apply_theme()
                .with_focus_policy(focus)
                .with_transition_ms(transition_ms);
 
-    // UI-43：密度只走 `Theme::with_density()`（单一机制）。
-    // 以前这里还有一张 kDensity[3] 表只改 control/padding/spacing，导致同一档位
-    // 在示例程序里会缩放 checkbox/scrollbar/radius，而设置窗口里不会。
+    // 密度只走 `Theme::with_density()`（单一机制）：别再加一张只改部分字段的密度表。
     const ui::Density density = settings_.density == 0 ? ui::Density::Compact
         : settings_.density == 2                     ? ui::Density::Spacious
                                                     : ui::Density::Normal;
@@ -947,7 +938,7 @@ void Editor::apply_theme()
 
 void Editor::layout()
 {
-    // 顶层布局已交给 chrome_（Vbox，铺满 root，UI-35）：菜单/工具栏/工作区/状态条
+    // 顶层布局已交给 chrome_（Vbox，铺满 root）：菜单/工具栏/工作区/状态条
     // 全部由流布局与 flex 决定，这里只提醒预览重算。
     if (chrome_ != nullptr) chrome_->mark_layout_dirty();
     if (preview_ != nullptr) preview_->mark_layout_dirty();

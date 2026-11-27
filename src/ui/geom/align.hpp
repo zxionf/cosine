@@ -15,7 +15,7 @@ struct Align {
 
     bool stretch_x = false;
     bool stretch_y = false;
-    // 基线对齐（UI-36）：仅水平流（Hbox）的交叉轴生效，按文字基线对齐。
+    // 基线对齐：仅水平流（Hbox）的交叉轴生效，按文字基线对齐。
     bool baseline = false;
 
     static constexpr Align h_stretch() { return {0.0f, 0.0f, true, false}; }

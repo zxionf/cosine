@@ -83,7 +83,7 @@ glm::vec2 LinearLayout::measure(glm::vec2 constraints)
     std::vector<MainAxisItem> items;
     float cross_max = 0.0f;
 
-    // UI-56：子项存的是 Node，布局计算需要布局视图 → for_each_layout_child。
+    // 树存的是 Node，布局计算需要布局视图 → for_each_layout_child。
     for_each_layout_child([&](LayoutNode& node) {
         LayoutNode& child_ref = node;
         auto* child = &child_ref;
@@ -158,7 +158,7 @@ void LinearLayout::arrange(Rect slot)
     std::vector<MainAxisItem> specs;
     measured.reserve(child_count());
 
-    // UI-56：布局计算需要 LayoutNode 视图。
+    // 布局计算需要 LayoutNode 视图。
     for_each_layout_child([&](LayoutNode& node) {
         auto* child = &node;
         if (child->display() != Display::Flow) return;
@@ -215,7 +215,7 @@ void LinearLayout::arrange(Rect slot)
     const float cross_origin = horizontal ? inner_y : inner_x;
     const float cross_extent = horizontal ? inner_h : inner_w;
 
-    // 基线对齐（UI-36）：水平流下先算出本行最大基线，再逐项对齐。
+    // 基线对齐：水平流下先算出本行最大基线，再逐项对齐。
     float row_baseline = 0.0f;
     if (horizontal) {
         for (auto& m : measured) {
@@ -246,7 +246,7 @@ void LinearLayout::arrange(Rect slot)
             if (stretch) size.x = cross_available;
         }
 
-        // stretch 后重 clamp；aspect 与 clamp 一起求解（UI-32）。
+        // stretch 后重 clamp；aspect 与 clamp 一起求解。
         const float ratio = child.aspect_ratio();
         if (ratio > 0.0f) {
             const bool main_is_pct = horizontal
@@ -279,7 +279,7 @@ void LinearLayout::arrange(Rect slot)
         cursor += measured[i].margin_before + main[i] + measured[i].margin_after + gap;
     }
 
-    // 内容实际占用尺寸 = 子项包围盒相对自身原点的范围（UI-36）：
+    // 内容实际占用尺寸 = 子项包围盒相对自身原点的范围：
     // 用于 content_overflows() 诊断，取真实几何而不是自然尺寸。
     glm::vec2 occupied{0.0f, 0.0f};
     for_each_layout_child([&](LayoutNode& child) {

@@ -11,7 +11,7 @@ namespace xel::ui
 // StyleRole 的槽位数（新增角色时同步这里；static_assert 会挡住漏改）。
 inline constexpr std::size_t kStyleRoleCount = 12;
 
-// 单个角色的过渡状态（UI-50 索引化）：
+// 单个角色的过渡状态：
 //   只记「从哪个状态 → 到哪个状态」+ 进度，颜色在渲染时按 (role, state) 从当前 Theme 现算。
 //
 // 为什么不再存 from/to 两份 BoxStyle：那是 1,688 B/控件（12 槽 × 140 B）且要堆分配。
@@ -29,9 +29,9 @@ struct StyleSlot
     float progress = 1.0f;  // 0 = 完全在 from，1 = 完全在 to
 };
 
-// 控件状态过渡缓存（UI-38 分槽 / UI-50 索引化）。
+// 控件状态过渡缓存。
 //
-// 不变量（UI-46 的教训）：同一控件同一帧内，一个 role 只能用一个 state——
+// 不变量：同一控件同一帧内，一个 role 只能用一个 state——
 // 槽按 role 索引、不区分 state，同帧内对同一 role 连续请求两种状态会互相覆盖。
 // 需要两种外观时用两个角色（例如 Track 槽 + Thumb 滑块）。
 //

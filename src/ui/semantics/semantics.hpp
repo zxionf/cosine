@@ -5,7 +5,7 @@
 
 namespace xel::ui
 {
-// 控件「是什么」的语义标签（UI-52）。
+// 控件「是什么」的语义标签。
 //
 // 用途：让通用代码（调试面板、Tab 顺序、测试断言、未来的无障碍导出）不必
 // dynamic_cast 就能知道一个控件是什么、能不能点、叫什么名字。
@@ -36,7 +36,7 @@ enum class WidgetRole : std::uint8_t
     TabView,
 };
 
-// 语义投影（UI-52）：**派生**出来的只读视图，不存第二份真值。
+// 语义投影：**派生**出来的只读视图，不存第二份真值。
 //
 // 规则：除 role/label/checkable（控件常量）外，所有状态都从 Interaction 现读。
 // 禁止给 Semantics 加 setter，否则它会变成第二个状态所有者。
@@ -79,7 +79,7 @@ inline const char* to_string(WidgetRole role)
     return "custom";
 }
 
-// 角色属性（UI-55）：由 role 纯派生，不需要每个控件各写一个虚函数。
+// 角色属性：由 role 纯派生，不需要每个控件各写一个虚函数。
 inline bool role_is_checkable(WidgetRole role)
 {
     return role == WidgetRole::CheckBox || role == WidgetRole::Radio;

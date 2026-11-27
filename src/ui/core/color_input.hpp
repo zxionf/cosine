@@ -66,7 +66,7 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        // UI-52：状态映射不再手写，统一走 Interaction::state()。
+        // 状态映射统一走 Interaction::state()。
         const ControlState state = input.state();
 
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};

@@ -4,7 +4,7 @@
 
 namespace xel::ui
 {
-// 叶子节点（UI-47 / UI-56）：把全仓重复最多的两个样板收进基类。
+// 叶子节点：把全仓重复最多的两个样板收进基类。
 //
 // 判据（见 docs/todo-ui.md）：
 //   - arrange(Rect) 函数体只有 `set_geometry(slot);`

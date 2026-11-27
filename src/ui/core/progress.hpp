@@ -52,8 +52,7 @@ public:
         const Rect box_bounds{global_.pos, global_.size};
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
 
-        // UI-38 起过渡按角色分槽：Progress 也能拿到颜色过渡（之前绕开是为了避开串色）。
-        // UI-57：轨道用绘制部件（无边框 → 只画一层 fill）。
+        // 轨道用绘制部件（无边框 → 只画一层 fill）。
         const BoxStyle track_style = visual_style(StyleRole::Track, ControlState::Normal);
         paint::box(list, box_bounds, track_style, radius);
 

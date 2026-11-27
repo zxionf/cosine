@@ -66,7 +66,7 @@ public:
 
     void invalidate_measure() override
     {
-        // 内容无需递归：measure 缓存带布局轮次键（UI-34）。
+        // 内容无需递归：measure 缓存带布局轮次键。
         Widget::invalidate_measure();
     }
 

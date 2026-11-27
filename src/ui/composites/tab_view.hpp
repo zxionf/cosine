@@ -144,7 +144,7 @@ public:
                                                         : constraints.x,
                               is_bounded(constraints.y) ? std::max(0.0f, constraints.y - pad_v)
                                                         : constraints.y};
-        // 只测当前页（UI-33）：非当前页不参与尺寸协商否则页面切回来时尺寸漂移。
+        // 只测当前页：非当前页不参与尺寸协商，否则页面切回来时尺寸漂移。
         // page_fill 下当前页直接吃满内容区，不必测。
         for (std::size_t i = 1; i < child_count(); ++i) {
             if (static_cast<int>(i) - 1 != selected()) child_at(i)->mark_measured();

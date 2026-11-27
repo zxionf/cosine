@@ -68,7 +68,7 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        // UI-52：拖动 = Pressed，其余状态统一走 Interaction。
+        // 拖动 = Pressed，其余状态走 Interaction。
         const ControlState state = input.state();
 
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
@@ -86,7 +86,7 @@ public:
         const float line = atlas->line_height(size);
         const float text_y = global_.pos.y + (global_.size.y - line) * 0.5f;
         const float pad = std::max(4.0f, t.padding * 0.5f);
-        // UI-40：文字色统一取 style.text（已按 Disabled 切换），不再直读 t.text / t.text_disabled。
+        // 文字色取 style.text（已按 Disabled 切换）。
         const glm::vec4 label_color = style.text;
         const glm::vec4 value_color = input.dragging && is_enabled() ? t.accent_text : style.text;
 

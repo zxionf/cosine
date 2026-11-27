@@ -18,7 +18,7 @@ public:
     ~Grid() override;
 
     void add(std::unique_ptr<Node> child) override;
-    // clear_children() 由 Widget 提供（UI-49）
+    // clear_children() 由基类提供
     void append_to(graphics::DrawList& list) const override;
 
     void layout() override;
@@ -41,7 +41,7 @@ public:
         spacing_override_ = true;
         mark_layout_dirty();
     }
-    // 主题套用：只填未锁定的空白（UI-35）。
+    // 主题套用：只填未锁定的空白。
     void apply_theme_spacing(float spacing)
     {
         if (spacing_override_) return;

@@ -8,7 +8,7 @@
 
 namespace xel::graphics
 {
-// 带 UV 与纹理槽的矩形图元（CO-2）。
+// 带 UV 与纹理槽的矩形图元。
 // 纯色图元用 Rectangle（采样字体图集里的 white_uv）；图片用这里，槽号由调用方给。
 class Sprite : public Drawable
 {

@@ -45,11 +45,11 @@ struct BoxStyle
     float radius = 0.0f;
     glm::vec4 text{1.0f, 1.0f, 1.0f, 1.0f};
     float text_size = 16.0f;
-    // 字号档位（UI-41）：角色想表达「这类控件用小字」时读它，而不是让控件直读 small_text_size。
+    // 字号档位：角色想表达「这类控件用小字」时读它，而不是让控件直读 small_text_size。
     TextSize text_size_role = TextSize::Body;
 };
 
-// 颜色书写约定（UI-3）：
+// 颜色书写约定：
 //   主题里的颜色一律按 **sRGB 直觉值**书写（十六进制），存储为**线性值**。
 //   渲染目标是 *_SRGB 格式，硬件在写出时做线性 → sRGB 编码，
 //   所以着色器必须拿到线性色，反过来说：写 #232629 就应该显示成 #232629。
@@ -91,7 +91,7 @@ struct Theme
     glm::vec4 accent{srgb_hex(0x3D8EE8)};
     // 强调色当**文字**时用更亮的一档：蓝底上写蓝色文字只有 4.1:1，不够读。
     glm::vec4 accent_text{srgb_hex(0x6FB0F2)};
-    // accent 填充上的文字色（UI-39）：深色主题下深字、浅色主题下白字。
+    // accent 填充上的文字色：深色主题下深字、浅色主题下白字。
     // 对比度要求 >= 4.5:1（WCAG AA 正文级），由 test_ui_style 断言。
     glm::vec4 accent_on{srgb_hex(0x0F1419)};
 
@@ -100,7 +100,7 @@ struct Theme
     // 滑轨 hover 态底色（轨道是 Track 角色，hover 只提亮一档，不用按钮色）。
     glm::vec4 track_hover{srgb_hex(0x4A5058)};
 
-    // 滚动条滑块（UI-46）：与 Track 槽的对比度 >= 2.2:1（dark 2.31 / light 2.42）。
+    // 滚动条滑块：与 Track 槽的对比度 >= 2.2:1（dark 2.31 / light 2.42）。
     // 不复用 track_hover（只提亮一档，浅色主题下只有 1.3:1，滑块等于看不见）。
     glm::vec4 thumb{srgb_hex(0x6E7680)};
     glm::vec4 thumb_hover{srgb_hex(0x868E98)};
@@ -132,7 +132,7 @@ struct Theme
     float scrollbar_min_thumb = 20.0f;
     // 窗口 resize 命中带（像素）：边缘该范围内的鼠标命中 resize，而非内容。
     float resize_margin = 4.0f;
-    // 布局字面量（UI-35 收口）：以前散在各控件里的“魔法数字”。
+    // 布局字面量（收口在此）：否则散在各控件里就是魔法数字。
     //   dialog_*：DialogHost 的外边距与对话框最小/最大尺寸
     //   window_*：窗口最小宽、标题之外的最小内容高、拖动时保留的最小可见量
     //   splitter_handle：Splitter 手柄厚度
@@ -176,7 +176,7 @@ struct Theme
 
     // 解析「角色 + 状态」到具体外观；实现见 ui/style.hpp。
     BoxStyle style(StyleRole role, ControlState state) const;
-    // 字号档位 → 像素（UI-41）：角色内部用它，控件需要单点小字号（如菜单快捷键）也可直接问。
+    // 字号档位 → 像素：角色内部用它，控件需要单点小字号（如菜单快捷键）也可直接问。
     float text_size_of(TextSize tier) const
     {
         switch (tier) {
@@ -223,7 +223,7 @@ inline float density_text_factor(Density density)
 }
 
 // 无 UIContext 时的只读回退主题（控件在独立测试/离屏工具里可能没有 context）。
-// 注意：主题改动只能经 `UIContext::set_theme()`；全局 version 已移除（UI-42）。
+// 注意：主题改动只能经 `UIContext::set_theme()`。
 inline const Theme& theme()
 {
     static const Theme value = Theme::dark();

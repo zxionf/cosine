@@ -7,8 +7,7 @@
 
 namespace xel::ui
 {
-// 单轴流式布局内核（UI-36）：Vbox 与 Hbox 曾各写一份 measure/arrange/flex/margin，
-// 行为已经漂移（Hbox 缺 flex 主轴特例等）。现在两者都退化成「选一个轴」的薄封装：
+// 单轴流式布局内核：Vbox / Hbox 都是「选一个轴」的薄封装，不要分开重写。
 //
 //   Axis::Vertical   → Vbox（主轴 y，交叉轴 x）
 //   Axis::Horizontal → Hbox（主轴 x，交叉轴 y）
@@ -27,7 +26,7 @@ public:
     };
 
     void add(std::unique_ptr<Node> child) override;
-    // clear_children() 由 Widget 提供（UI-49：清空 + 标脏），派生类不再重写。
+    // clear_children() 由基类提供（清空 + 标脏），派生类不再重写。
     void append_to(graphics::DrawList& list) const override;
 
     void layout() override;
@@ -38,7 +37,7 @@ public:
     Axis axis() const { return axis_; }
     bool horizontal() const { return axis_ == Axis::Horizontal; }
 
-    // 间距：显式调用即锁定，主题重刷不再覆盖（UI-35 语义）。
+    // 间距：显式调用即锁定，主题重刷不再覆盖。
     void set_spacing(float spacing)
     {
         spacing_ = spacing;
@@ -64,7 +63,7 @@ public:
     MainAlign main_align() const { return main_align_; }
     Align resolve_align(const Widget& child) const;
 
-    // 裸容器跟随主题度量（UI-35）：显式设过的值优先。
+    // 裸容器跟随主题度量，显式设过的值优先。
     void set_context(UIContext* context) override;
 
 protected:

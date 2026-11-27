@@ -68,7 +68,7 @@ private:
     ui::Checkbox* debug_children_ = nullptr;
     ui::Checkbox* follow_box_ = nullptr;
 
-    // Layout 页（UI-36）：只读展示目标控件的布局状态（不提供编辑）。
+    // Layout 页：只读展示目标控件的布局状态（不提供编辑）。
     ui::Label* layout_bounds_ = nullptr;
     ui::Label* layout_size_ = nullptr;
     ui::Label* layout_state_ = nullptr;

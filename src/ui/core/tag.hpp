@@ -11,16 +11,15 @@
 
 namespace xel::ui
 {
-// Tag（UI-58）：一个「新控件到底要写多少行」的实证。
+// Tag：一个「新控件到底要写多少行」的实证。
 //
 // 它的需求覆盖了典型交互叶子：可点、可禁用、有 hover/pressed、带焦点环、文字居中。
-// UI-47/UI-52/UI-57 之后，这些全部由基类与绘制部件提供，本类只剩「我是什么」：
+// 这些全部由基类与绘制部件提供，本类只剩「我是什么」：
 //   - 尺寸：首选尺寸（构造期定），measure/arrange 由 LeafNode 给
 //   - 外观：StyleRole::Control 的一帧样式（painters 画框 + 焦点环 + 文字）
 //   - 交互：pressed 状态、点击回调、Enter/Space 触发
 //   - 语义：role/label 供通用代码查询
 //
-// 行数预算：≤ 45（含注释以外）。超了说明基类又开始往控件里漏职责了。
 class Tag : public LeafNode
 {
 public:

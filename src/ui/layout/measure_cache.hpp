@@ -7,7 +7,7 @@
 
 namespace xel::ui
 {
-// 文本键的哈希（UI-51）：键里不放 std::string。
+// 文本键的哈希：键里不放 std::string。
 //
 // 为什么要哈希而不是存文本：MeasureKey 是**每个控件**都内嵌的成员（MeasureCache 里一份），
 // 塞一个 std::string 会让所有控件多付 32 B（sizeof(Widget) 384 → 456）。
@@ -24,16 +24,10 @@ inline std::uint64_t measure_hash_text(std::string_view text)
     return hash;
 }
 
-// 测量缓存键（UI-51）：一套缓存，键可扩展。
+// 测量缓存键：一套缓存，键可扩展。
 //
-// 背景：改造前有三套互不相干的缓存——
-//   1. Widget 的 (constraints + layout_epoch)，只有 2 个容器在用；
-//   2. Label 自己的 MeasureKey（text/size/wrap_width/line_spacing/max_lines/wrap/atlas）；
-//   3. TreeView 的 cached_visible_rows()。
-// 三套各有各的失效逻辑，复用者不知道该用哪套。
-//
-// 现在统一成这一个结构：前两个字段是「布局级」输入（所有控件都有），
-// 后面的派生输入默认取“不参与比较”的值——不用它的控件不需要填。
+// 布局级输入（constraints + 轮次）所有控件都有；后面的派生输入默认取
+// “不参与比较”的值，不用它的控件不需要填。
 struct MeasureKey
 {
     // 布局级输入

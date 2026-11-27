@@ -81,7 +81,7 @@ public:
         const float row_radius = corner_radius(t.radius_small);
 
         if (selected) {
-            // UI-40：选中行走 RowSelected 角色（旧的手写 accent*0.28 收敛到角色表）。
+            // 选中行走 RowSelected 角色。
             const BoxStyle sel = t.style(StyleRole::RowSelected, ControlState::Normal);
             graphics::append_rounded_rect(list, {row.pos.x + 2.0f, row.pos.y, row.size.x - 4.0f, row.size.y},
                                           row_radius, sel.fill);
@@ -98,7 +98,7 @@ public:
         const auto& cells = rows_[index];
         for (std::size_t col = 0; col < widths_.size(); ++col) {
             const std::string& text = col < cells.size() ? cells[col] : empty_;
-            // UI-40：行文字色取 Row 角色（不再直读 t.text）。
+            // 行文字色取 Row 角色。
             draw_cell(list, text, x, row.pos.y, widths_[col], row.size.y,
                       col < columns_.size() ? columns_[col].align : TableColumn::Align::Left,
                       t.style(StyleRole::Row, ControlState::Normal).text, x,
@@ -170,7 +170,6 @@ public:
         // 列宽按「去掉滚动条后的正文宽度」分配，否则右对齐的最后一列会被滚动条裁掉。
         widths_ = column_widths(body_w_probe);
 
-        // 表头
         if (header_h > 0.0f) {
             const BoxStyle header_style = t.style(StyleRole::Control, ControlState::Pressed);
             graphics::Rectangle header{global_.pos.x, global_.pos.y, global_.size.x, header_h,

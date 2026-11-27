@@ -16,7 +16,7 @@ Wrap::Wrap(float x, float y, float w, float height)
 {
     set_pos(x, y);
     set_size(w, height);
-    // 结构性默认值，不锁主题（UI-35）。
+    // 结构性默认值，不锁主题。
     set_default_padding(4.0f);
     // 流式容器横向铺满父级：换行以父宽为准。
     set_fill(true, false);
@@ -212,7 +212,7 @@ void Wrap::arrange(Rect slot)
                 cy = y + mt + (avail_h - size.y) * a.y;
             }
 
-            // stretch 后重 clamp，aspect 与 clamp 一起求解（UI-32）。
+            // stretch 后重 clamp，aspect 与 clamp 一起求解。
             const float ratio = child->aspect_ratio();
             if (ratio > 0.0f) {
                 size = apply_aspect_clamp(size, ratio, child->min_size(), child->max_size());

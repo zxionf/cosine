@@ -162,10 +162,10 @@ public:
             StyleRole::Control, Interaction{input.enabled, active, input.pressed}.state());
         const float radius = corner_radius(style.radius);
 
-        // UI-57：底 + 边框（宽度强调）+ 焦点环走绘制部件。
+        // 底 + 边框（宽度强调）+ 焦点环走绘制部件。
         paint::box(list, Rect{{bounds.x, bounds.y}, {bounds.z, bounds.w}}, style, radius);
         // 编辑/展开中始终强调边框；焦点环只在 focus_policy 允许时叠加。
-        // UI-40：强调边框由 Input:Checked 表达（与 TextInput 同口径），不手写三元式。
+        // 强调边框由 Input:Checked 表达。
         const BoxStyle frame = visual_style(
             StyleRole::Input,
             Interaction{input.enabled, active, false, false, false, is_focused()}.state(true));
@@ -183,7 +183,7 @@ public:
                                style.text_size, selected_text(), style.text);
         }
 
-        // 下拉箭头
+        // 箭头只需单个平面三角形。
         const float arrow_w = 10.0f;
         const float ax = global_.pos.x + global_.size.x - t.padding - arrow_w;
         const float ay = global_.pos.y + global_.size.y * 0.5f;

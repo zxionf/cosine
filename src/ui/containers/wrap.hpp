@@ -19,7 +19,7 @@ public:
     ~Wrap() override;
 
     void add(std::unique_ptr<Node> child) override;
-    // clear_children() 由 Widget 提供（UI-49）
+    // clear_children() 由基类提供
     void append_to(graphics::DrawList& list) const override;
 
     void layout() override;

@@ -91,7 +91,7 @@ public:
         list.push_clip(bounds);
 
         auto* atlas = font_atlas();
-        // UI-41：标尺是辅助信息，字号走 Tooltip 角色的 Small 档（与提示同口径）。
+        // 标尺是辅助信息，字号走 Tooltip 角色的 Small 档（与提示同口径）。
         const float small = t.style(StyleRole::Tooltip, ControlState::Normal).text_size;
         const std::string label = std::format("{:.2f} / {:.2f}s", time_, duration_);
         const float label_w = atlas != nullptr ? atlas->measure_width(label, small) : 0.0f;
@@ -110,7 +110,6 @@ public:
                                std::format("{:.1f}s", seconds), t.text);
         }
 
-        // 播放头。
         const float head = x_at_time(time_);
         graphics::Rectangle{head - 1.0f, global_.pos.y, 2.0f, global_.size.y, t.accent}
             .append_to(list);

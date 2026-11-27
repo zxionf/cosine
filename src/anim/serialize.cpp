@@ -262,7 +262,6 @@ std::vector<std::uint8_t> serialize(const Project& project)
     std::vector<std::uint8_t> out;
     out.reserve(1024);
 
-    // 头部 16 字节。
     out.insert(out.end(), std::begin(kMagic), std::end(kMagic));
     out.insert(out.end(), std::begin(kGuard), std::end(kGuard));
     put_u8(out, kFormatMajor);
@@ -304,7 +303,6 @@ std::vector<std::uint8_t> serialize(const Project& project)
         for (const scene::NodeId child : node->children) put_u64(out, child);
     }
 
-    // 时间轴元数据。
     put_f32(out, project.timeline.duration());
     put_f32(out, project.timeline.fps());
     put_u8(out, project.timeline.loop() ? 1 : 0);
@@ -347,7 +345,6 @@ bool deserialize(std::span<const std::uint8_t> bytes, Project& out, std::string*
         return result;
     };
 
-    // 魔术头与 guard。
     if (!reader.need(8)) return finish(false);
     if (std::memcmp(bytes.data(), kMagic, 4) != 0) {
         reader.error = "not a cosine project (bad magic)";
@@ -389,7 +386,6 @@ bool deserialize(std::span<const std::uint8_t> bytes, Project& out, std::string*
 
     Project project;
 
-    // 节点表。
     std::uint32_t node_count = 0;
     if (!reader.u32(node_count)) return finish(false);
     if (node_count > kMaxNodes) {
@@ -439,7 +435,6 @@ bool deserialize(std::span<const std::uint8_t> bytes, Project& out, std::string*
         loaded.push_back(std::move(node));
     }
 
-    // 时间轴元数据。
     float duration = 0.0f;
     float fps = 0.0f;
     std::uint8_t loop = 0;
@@ -448,7 +443,6 @@ bool deserialize(std::span<const std::uint8_t> bytes, Project& out, std::string*
         return finish(false);
     }
 
-    // 轨道表。
     std::uint32_t track_count = 0;
     if (!reader.u32(track_count)) return finish(false);
     if (track_count > kMaxNodes) {
@@ -504,7 +498,6 @@ bool deserialize(std::span<const std::uint8_t> bytes, Project& out, std::string*
         return finish(false);
     }
 
-    // ---- 还原场景 ----
     // 先清掉 Scene 构造时自建的 root（id=1），完全按文件内容重建。
     project.scene.clear();
 

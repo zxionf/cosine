@@ -79,7 +79,7 @@ public:
         }
 
         const glm::vec4 handle_bounds{track_x + fill_w - radius, center_y - radius, radius * 2.0f, radius * 2.0f};
-        // UI-40：手柄走 Knob 角色（拖动 = Checked 态），不再手写 mix_color(handle, accent)。
+        // 手柄走 Knob 角色（拖动 = Checked 态）。
         const BoxStyle handle_style = visual_style(StyleRole::Knob, input.state(input.dragging));
         graphics::append_rounded_rect(list, handle_bounds, draw_radius, handle_style.fill);
 

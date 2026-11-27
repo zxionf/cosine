@@ -12,7 +12,7 @@ class MenuBar;
 
 namespace detail
 {
-// 全屏遮罩（UI-55：从 menu_bar.hpp 拆出）：点击空白关闭菜单；
+// 全屏遮罩：点击空白关闭菜单；
 // 鼠标移动到菜单栏区域时切换当前菜单。
 class MenuScrim : public Widget
 {

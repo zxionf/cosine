@@ -7,7 +7,7 @@
 
 namespace xel::ui::layout
 {
-// 内容区（扣掉 padding）：原先 Grid/Wrap/TabView/ScrollPanel/LinearLayout 各算一份（UI-36 收敛）。
+// 内容区（扣掉 padding）——只此一份，别在容器里重算。
 inline Rect content_rect(const Widget& widget, Rect slot)
 {
     const float pad_l = widget.padding_left();
@@ -22,7 +22,7 @@ inline Rect content_rect(const Widget& widget, Rect slot)
 // 摆放 Positioned（absolute）子项：相对内容区原点，尺寸走 measure_child 的统一规则。
 inline void place_positioned_children(LayoutNode& parent, Rect content, glm::vec2 constraints)
 {
-    // UI-56：树存 Node，布局摆放需要布局属性 → 用 for_each_layout_child 的布局视图。
+    // 树存 Node，而布局摆放需要布局属性 → 走 for_each_layout_child 的布局视图。
     parent.for_each_layout_child([&](LayoutNode& child) {
         if (child.display() != LayoutNode::Display::Positioned) return;
         const glm::vec2 size = LayoutNode::measure_child(child, constraints);

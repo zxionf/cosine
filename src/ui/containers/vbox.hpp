@@ -4,7 +4,7 @@
 
 namespace xel::ui
 {
-// 垂直流：主轴 y、交叉轴 x（UI-36 起是 LinearLayout 的薄封装）。
+// 垂直流：主轴 y、交叉轴 x（LinearLayout 的薄封装）。
 class Vbox : public LinearLayout
 {
 public:

@@ -123,7 +123,7 @@ public:
         }
 
         // 先测量（让孩子项按分配到的尺寸算内部度量），再按 pane 几何安排。
-        // 分配时两边都尊重子项 min_size（UI-33：ratio 由 min_size 推导）。
+        // 分配时两边都尊重子项 min_size（ratio 由 min_size 推导）。
         if (orientation_ == Orientation::Horizontal) {
             const float usable = std::max(0.0f, slot.size.x - handle);
             const float first_w = clamp_first(resolved_first(), usable, slot.size.y);
@@ -158,7 +158,7 @@ public:
         const float h = orientation_ == Orientation::Horizontal ? global_.size.y : handle;
 
         // 手柄：常态用主题的 splitter 色（比面板亮一档），hover 提亮，拖动变强调色。
-        // UI-52：状态统一由 Interaction 推导（拖 = Pressed，hover = Hovered）。
+        // 状态统一由 Interaction 推导（拖 = Pressed，hover = Hovered）。
         const ControlState bar_state = Interaction{true, is_hovered(), input.dragging}.state();
         const BoxStyle bar_style = visual_style(StyleRole::Control, bar_state);
         glm::vec4 bar_color = t.splitter;
@@ -212,7 +212,7 @@ public:
     }
 
 private:
-    // 手柄厚度来自主题（UI-35 收口）：density 变化时跟着缩放。
+    // 手柄厚度来自主题：density 变化时跟着缩放。
     float handle_size() const { return std::max(1.0f, ui_theme().splitter_handle); }
 
     // 把第一块像素尺寸夹到 [first_min, usable - second_min]，两侧都尊重 min_size。

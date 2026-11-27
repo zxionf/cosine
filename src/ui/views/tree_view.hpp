@@ -50,9 +50,8 @@ public:
         mark_layout_dirty();
     }
 
-    // 测量失效（主题/密度/字号切换、invalidate_measure_recursive）也要丢掉行缓存（UI-51）：
-    // 以前 visible_cache_ 只由结构变更（set_roots / 展开折叠）手动失效，
-    // 现在接到统一的失效路径上，不再是一套独立缓存。
+    // 测量失效（主题/密度/字号切换、invalidate_measure_recursive）也要丢掉行缓存：
+    // 行缓存必须挂在统一的失效路径上，不能自己维护一套。
     void invalidate_measure() override
     {
         ListView::invalidate_measure();
@@ -452,7 +451,7 @@ private:
 
         const float row_radius = corner_radius(t.radius_small);
         if (selected) {
-            // UI-40：选中行走 RowSelected 角色（与 Table 一致）。
+            // 选中行走 RowSelected 角色（与 Table 一致）。
             const BoxStyle sel = t.style(StyleRole::RowSelected, ControlState::Normal);
             graphics::append_rounded_rect(list, {row_rect.pos.x + 2.0f, row_rect.pos.y, row_rect.size.x - 4.0f, row_rect.size.y},
                                           row_radius, sel.fill);
@@ -480,7 +479,7 @@ private:
         const float text_y = atlas->centered_text_y(t.text_size, row_rect.pos.y, row_rect.size.y);
         const float clip_right = std::max(text_x, row_rect.pos.x + row_rect.size.x - pad * 0.5f);
         list.push_clip({text_x, row_rect.pos.y, std::max(0.0f, clip_right - text_x), row_rect.size.y});
-        // UI-40：行文字色取 Row 角色（不再直读 t.text）。
+        // 行文字色取 Row 角色。
         atlas->append_text(list, text_x, text_y, t.text_size, row.node->title,
                            t.style(StyleRole::Row, ControlState::Normal).text);
         list.pop_clip();

@@ -45,16 +45,13 @@ inline float ease_out_quad(float t)
     return 1.0f - k * k;
 }
 
-// 交互状态 → 样式状态：唯一入口已移到 Interaction::state()（UI-52）。
-// 保留这段注释是为了让后来者明白“为什么这里不应再出现 if 链”。
-
 inline BoxStyle Theme::style(StyleRole role, ControlState state) const
 {
     BoxStyle s;
     s.text = state == ControlState::Disabled ? text_disabled : text;
     s.text_size = text_size;
     s.text_size_role = TextSize::Body;
-    // 字号档位 → 具体像素值（UI-41）：角色在下面设 text_size_role，这里统一换算。
+    // 字号档位 → 具体像素值：角色在下面设 text_size_role，这里统一换算。
     const auto apply_text_size = [this, &s]() { s.text_size = text_size_of(s.text_size_role); };
 
     switch (role) {
@@ -108,7 +105,7 @@ inline BoxStyle Theme::style(StyleRole role, ControlState state) const
             break;
 
         case StyleRole::Track:
-            // 轨道与滚动条滑块共用：hover 提亮、按下更亮（UI-40 前滑块直读 scrollbar_thumb）。
+            // 轨道：hover 提亮、按下更亮。不同外观请用不同角色（见 Thumb）。
             switch (state) {
                 case ControlState::Disabled: s.fill = button_disabled; break;
                 case ControlState::Pressed:  s.fill = accent;         break;
@@ -121,7 +118,7 @@ inline BoxStyle Theme::style(StyleRole role, ControlState state) const
 
         case StyleRole::Accent:
             s.fill = state == ControlState::Disabled ? text_disabled : accent;
-            // accent 上的文字色进主题（UI-39）：之前硬编码的 0x0F1419 在浅色主题下只有 3.8:1。
+            // accent 上的文字色。
             s.text = accent_on;
             s.radius = radius_small;
             break;
@@ -155,7 +152,7 @@ inline BoxStyle Theme::style(StyleRole role, ControlState state) const
             break;
 
         case StyleRole::Chrome:
-            // 窗口壳体（UI-40）：fill 是标题栏底色，border 是外框。
+            // 窗口壳体：fill 是标题栏底色，border 是外框。
             // Checked 表示「活跃/聚焦」，Hovered 与 Normal 同色（标题栏整体不 hover）。
             switch (state) {
                 case ControlState::Disabled: s.fill = panel_bg; s.border = elevated_border; break;
@@ -181,7 +178,7 @@ inline BoxStyle Theme::style(StyleRole role, ControlState state) const
             break;
 
         case StyleRole::Thumb:
-            // 滚动条滑块（UI-46）：与 Track 槽分离成独立角色。
+            // 滚动条滑块：与 Track 槽分离成独立角色（同帧一 role 一 state）。
             // 之前借用 Track 的 Hovered/Pressed 区分滑块，两者共用一个过渡槽，
             // 每帧互相覆盖 → 滑块颜色被拉平到槽色，看起来“消失”。
             switch (state) {

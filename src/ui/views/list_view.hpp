@@ -64,7 +64,7 @@ public:
     void append_to(graphics::DrawList&) const override {}
 
     // 子类决定尺寸来源（Table 用 min_size，TreeView 用 min/max）。
-    // 默认（首选尺寸 + clamp）由 LeafNode 提供（UI-47）。
+    // 默认（首选尺寸 + clamp）由 LeafNode 提供。
 
     bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
     {
@@ -179,7 +179,7 @@ protected:
         const float track_x = global_.pos.x + global_.size.x - bar_w;
 
         const float bar_radius = corner_radius(t.radius_pill);
-        // UI-40：槽走 Track、滑块走独立的 Thumb 角色（UI-46）。
+        // 槽走 Track、滑块走独立的 Thumb 角色：
         // 两者共用 Track 角色时，同帧内两次请求会互相覆盖过渡槽 → 滑块看不见。
         const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
         graphics::append_rounded_rect(list, {track_x, body_top, bar_w, body_h}, bar_radius, track_style.fill);

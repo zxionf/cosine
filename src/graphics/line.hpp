@@ -16,7 +16,6 @@ public:
     {
         list.set_texture(TextureSlot::Texture);
         auto& batch = list.batch();
-        // 方向
         float dx = x2_ - x1_;
         float dy = y2_ - y1_;
         float len = std::sqrt(dx * dx + dy * dy);
@@ -29,7 +28,6 @@ public:
         float px = -uy * half_w;
         float py =  ux * half_w;
 
-        // 四个角点
         glm::vec2 a{x1_ + px, y1_ + py};
         glm::vec2 b{x1_ - px, y1_ - py};
         glm::vec2 c{x2_ - px, y2_ - py};
@@ -45,7 +43,6 @@ public:
         batch.add_vertex({c.x, c.y}, color_, uv);
         batch.add_vertex({d.x, d.y}, color_, uv);
 
-        // 两个三角形
         batch.indices.insert(batch.indices.end(), {
             base, static_cast<uint32_t>(base + 1), static_cast<uint32_t>(base + 2),
             base, static_cast<uint32_t>(base + 2), static_cast<uint32_t>(base + 3)

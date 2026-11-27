@@ -171,7 +171,7 @@ public:
     }
     bool hit_testable() const override { return false; }
 
-    // 非换行时的文本宽度；只用于居中/右对齐。与 measure() 共用同一份缓存（UI-51）。
+    // 非换行时的文本宽度；只用于居中/右对齐。与 measure() 共用同一份缓存。
     float text_width(float size, graphics::FontAtlas* atlas) const
     {
         if (wrap_) return global_bounds().size.x;
@@ -189,7 +189,7 @@ public:
         return width;
     }
 
-    // 基线对齐（UI-36）：文字行框在控件内垂直居中，基线按行高 80% 估算
+    // 基线对齐：文字行框在控件内垂直居中，基线按行高 80% 估算
     // （无精确 ascent/descent 数据时的经验值，与字形渲染色块比例一致）。
     float baseline_offset_for(float h) const override
     {
@@ -201,8 +201,6 @@ public:
     }
 
 private:
-    // 缓存实现已上千到 Widget（UI-51）：统一用 ui/measure_cache.hpp 的 MeasureCache，
-    // 派生输入（文本/字号/换行宽…）填进 MeasureKey，不再各自维护一套。
 
     float align_offset(float text_w, float available_w) const
     {

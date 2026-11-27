@@ -20,9 +20,7 @@
 
 namespace xel::ui
 {
-// 菜单项（MenuItem）与浮层（detail::MenuScrim / MenuPopup）已拆到：
-//   ui/composites/menu_item.hpp、ui/composites/menu_popup.hpp（UI-55）。
-// 本文件只留 MenuBar 的状态机与交互。
+// 菜单项与浮层在 menu_item.hpp / menu_popup.hpp；本文件只留 MenuBar 的状态机与交互。
 
 
 // 菜单栏：点击标题展开 overlay 菜单；打开后可用方向键在菜单间移动。

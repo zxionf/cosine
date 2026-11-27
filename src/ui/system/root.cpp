@@ -97,7 +97,7 @@ void UIRoot::purge_trash()
 
 void UIRoot::set_theme(const Theme& value)
 {
-    // 主题可变性的单一入口（UI-42）：set_theme 推进本 context 的 revision，
+    // 主题可变性的单一入口：set_theme 推进本 context 的 revision，
     // 所有依赖主题的派生缓存（样式过渡）据此重建。
     context_storage_.set_theme(value);
     set_context(&context_storage_);
@@ -123,8 +123,8 @@ void UIRoot::layout_child(Widget& child)
         child.arrange({local_.pos, local_.size});
         return;
     }
-    // 顶层 Fill 模式（UI-35）：同时声明 fill_x/fill_y 的子项（顶层 Vbox 外壳）直接铺满 root，
-    // 不再依赖 local_.pos 的自由画布定位；其余子项（窗口/弹层）保留原有坐标语义。
+    // 顶层 Fill 模式：同时声明 fill_x/fill_y 的子项（顶层 Vbox 外壳）直接铺满 root，
+    // 其余子项（窗口/弹层）保留原有坐标语义。
     if (child.fill_x() && child.fill_y()) {
         child.arrange({local_.pos, local_.size});
         return;
@@ -167,7 +167,7 @@ void UIRoot::layout()
         }
     }
     // 整轮布局都在 LayoutPassScope 内：arrange 里的几何写入只失效缓存，不重新标记脏。
-    // 轮次推进（UI-34）：measure 缓存以它为键，保证只在本轮内命中。
+    // 轮次推进：measure 缓存以它为键，保证只在本轮内命中。
     advance_layout_epoch();
     LayoutPassScope layout_pass;
     for (auto& child : children()) layout_child(as_layout(*child));

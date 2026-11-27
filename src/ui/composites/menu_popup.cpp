@@ -1,6 +1,5 @@
-// 菜单浮层的实现（UI-55）：从 menu_bar.hpp 的尾部 inline 块搬到本编译单元。
-// 拆出去的理由：menu_bar.hpp 曾是 src/ui 最大的文件（867 行），
-// 而 MenuScrim / MenuPopup 是独立可测的浮层控件，与 MenuBar 的状态机不是一类东西。
+// 菜单浮层的实现。MenuScrim / MenuPopup 是独立可测的浮层控件，
+// 与 MenuBar 的状态机不是一类东西，所以不放在 menu_bar.hpp 里。
 #include "ui/composites/menu_popup.hpp"
 
 #include "ui/composites/menu_bar.hpp"
@@ -53,7 +52,7 @@ const std::vector<MenuItem>& menu_items(const MenuBar& bar, int index)
 MenuPopup::MenuPopup(MenuBar& owner, float width, float height)
     : owner_{&owner}
 {
-    // 尺寸由 arrange() 经 set_geometry 写入（UI-49）；不要设置 min/max_size，
+    // 尺寸由 arrange() 经 set_geometry 写入；不要设置 min/max_size，
     // 否则 clamp_size 会把后续尺寸锁死在创建时的值上。
     set_geometry({{0.0f, 0.0f}, {width, height}});
     set_preferred_size({width, height});
@@ -163,7 +162,7 @@ void MenuPopup::append_to(graphics::DrawList& list) const
                                           corner_radius(style.radius), style.fill);
         }
 
-        // UI-43：菜单项的文字色/字号统一从 MenuItem 角色取（Disabled 由角色自动切 text_disabled）。
+        // 菜单项的文字色/字号统一从 MenuItem 角色取（Disabled 由角色自动切 text_disabled）。
         const BoxStyle item_style = t.style(StyleRole::MenuItem,
                                             item.enabled ? ControlState::Normal : ControlState::Disabled);
         const glm::vec4 color = item_style.text;
@@ -173,7 +172,7 @@ void MenuPopup::append_to(graphics::DrawList& list) const
             atlas->append_text(list, global_.pos.x + t.padding * 2.0f, text_y,
                                item_style.text_size, item.label, color);
             if (!item.shortcut.empty()) {
-                // UI-41：快捷键属于辅助信息，用 Small 档（以前只能与正文同字号）。
+                // 快捷键属于辅助信息，用 Small 档。
                 const float sc_size = t.text_size_of(TextSize::Small);
                 const float shortcut_w = atlas->measure(item.shortcut, sc_size).x;
                 const float sc_y = y + (row - atlas->line_height(sc_size)) * 0.5f;

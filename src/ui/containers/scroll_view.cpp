@@ -321,7 +321,7 @@ void ScrollView::append_to(graphics::DrawList& list) const
 
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
         const float bar_radius = corner_radius(t.radius_pill);
-        // UI-40：槽走 Track、滑块走独立的 Thumb 角色（UI-46）。
+        // 槽走 Track、滑块走独立的 Thumb 角色（同一 role 同一帧只能一个 state）。
         // 槽是静态底色，直接读主题：不用过渡，也就不会和滑块抢同一个过渡槽。
         const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
         graphics::append_rounded_rect(list, {track.pos.x, track.pos.y, track.size.x, track.size.y},

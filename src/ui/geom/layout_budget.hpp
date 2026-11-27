@@ -1,8 +1,6 @@
 #pragma once
 
-// 主轴（流式方向）尺寸分配的统一接口（UI-32）。
-// Vbox / Hbox 各自手写过一套「flex extra 分配」，现在收敛到这里；
-// Grid / Wrap 的伸缩与 clamp 规则也复用同一套语义。
+// 主轴（流式方向）尺寸分配的统一接口：所有容器共用，别各处手写 flex 分配。
 //
 // 规则（详见 docs/ui_architecture.md「布局契约」）：
 //   1. fixed 子项（fixed_size()）直接用 natural，不参与预算 / flex / stretch / shrink；
@@ -14,7 +12,7 @@
 //   4. 剩余空间按 flex 分配：extra > 0 增长（上限 max_size）、extra < 0 收缩（下限 min_size）；
 //   5. 结果统一 clamp 到 [min_size, max_size]。
 //
-// spacing 是相邻子项间距；margin 参与主轴自然尺寸与预算（全轴语义，UI-30 起）。
+// spacing 是相邻子项间距；margin 参与主轴自然尺寸与预算（全轴语义）。
 
 #include "ui/geom/layout_metrics.hpp"
 

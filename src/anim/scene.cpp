@@ -91,7 +91,6 @@ bool Scene::set_parent(NodeId child, NodeId parent)
     // parent 若是 child 的后代，会成环。
     if (is_descendant(child, parent)) return false;
 
-    // 从旧父摘除。
     if (auto* old_parent = find(c->second.parent)) {
         auto& list = old_parent->children;
         list.erase(std::remove(list.begin(), list.end(), child), list.end());

@@ -27,7 +27,7 @@ struct Theme;
 struct BoxStyle;
 class LayoutNode;
 
-// ── 布局阶段与轮次（UI-34）──────────────────────────────────────────
+// ── 布局阶段与轮次 ────────────────────────────────
 // 布局阶段守卫：UIRoot::layout() 期间生效。
 // 目的：把“布局写入”（arrange 里 set_geometry）与“失效请求”（外部改尺寸）区分开。
 bool in_layout_pass();
@@ -51,8 +51,6 @@ void advance_layout_epoch();
 // 布局机制（measure/arrange、布局意图、测量缓存、脏标记）在 LayoutNode 里，
 // 但它们的**契约**在这里以纯虚形式声明 —— 这样任何遍历代码都能直接
 // `child->measure()` / `child->mark_layout_dirty()`，不需要向下转型。
-//
-// 行数预算：≤ 320（不含注释）。一旦超了，先问“这是不是布局/样式的职责”。
 class Node : public graphics::Drawable
 {
 public:
@@ -184,7 +182,7 @@ public:
     graphics::FontAtlas* font_atlas() const;
 
     // ── 可见性 / 溢出 / 层叠 ─────────────────────────────────────────
-    // 定义在 layout_params.hpp（UI-48）；别名保持 `Widget::Display::Flow` 写法不变。
+    // 定义在 layout_params.hpp；别名保持 `Widget::Display::Flow` 写法不变。
     using Display = ::xel::ui::Display;
 
     Display display() const { return !visible_ ? Display::Hidden : display_; }
@@ -197,7 +195,7 @@ public:
     bool visible() const { return visible_; }
     void set_visible(bool visible) { visible_ = visible; mark_layout_dirty(); }
 
-    // 溢出策略（UI-33）：Visible 可超出自身；Clip 裁剪；Scroll 自带滚动。
+    // 溢出策略：Visible 可超出自身；Clip 裁剪；Scroll 自带滚动。
     enum class Overflow
     {
         Visible,
@@ -205,7 +203,6 @@ public:
         Scroll,
     };
     virtual Overflow overflow() const { return Overflow::Visible; }
-    // 非虚（UI-47）：它是 overflow() 的派生，全仓 0 个覆写。
     bool clips_children() const { return overflow() != Overflow::Visible; }
 
     // 绘制/命中层次：高层的先命中、后绘制。
@@ -241,7 +238,7 @@ public:
     // 打开模态/对话框时建议的初始焦点：默认无偏好。
     virtual Node* preferred_focus() { return nullptr; }
 
-    // ── 语义（UI-52）：派生投影，不存第二份真值 ───────────────────────
+    // ── 语义：派生投影，不存第二份真值 ───────────────────────
     virtual WidgetRole semantics_role() const { return WidgetRole::Custom; }
     virtual std::string_view semantics_label() const { return {}; }
     virtual bool semantics_expanded() const { return false; }
@@ -272,7 +269,7 @@ public:
         invalidate_measure();
         for_each_child([](Node& child) { child.invalidate_measure_recursive(); });
     }
-    // 清除脏标记与「已通知祖先」标记（必须递归，UI-45）。
+    // 清除脏标记与「已通知祖先」标记（必须递归）。
     void clear_layout_dirty() { clear_layout_dirty_recursive(); }
     virtual void clear_layout_dirty_recursive() = 0;
 

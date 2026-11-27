@@ -18,7 +18,7 @@ namespace xel::ui
 class Button : public LeafNode
 {
 public:
-    // 语义（UI-52）：让通用代码不必 dynamic_cast 就知道这是按钮。
+    // 语义：让通用代码不必 dynamic_cast 就知道这是按钮。
     WidgetRole semantics_role() const override { return WidgetRole::Button; }
     std::string_view semantics_label() const override { return label_; }
     explicit Button(std::string label, std::function<void()> handler = {})
@@ -47,9 +47,9 @@ public:
         return {width, t.control_height};
     }
 
-    // arrange 由 LeafNode 提供（UI-47）：叶子只接受父容器给的矩形。
+    // arrange 由 LeafNode 提供：叶子只接受父容器给的矩形。
 
-    // 基线对齐（UI-36）：按钮文字在控件内垂直居中，按行高 80% 估算基线。
+    // 基线对齐：按钮文字在控件内垂直居中，按行高 80% 估算基线。
     float baseline_offset_for(float h) const override
     {
         const auto& t = ui_theme();
@@ -65,7 +65,7 @@ public:
         const float radius = corner_radius(style.radius);
         const Rect bounds{global_.pos, global_.size};
 
-        // UI-57：框 + 边框 + 焦点环走绘制部件（设计 §4.7）。
+        // 框 + 边框 + 焦点环走绘制部件（设计 §4.7）。
         paint::box_with_focus(list, bounds, style, radius, ui_theme(), focus_visible());
 
         if (auto* atlas = font_atlas()) {

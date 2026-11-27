@@ -21,7 +21,7 @@ Grid::Grid(float x, float y, float w, float height)
 {
     set_pos(x, y);
     set_size(w, height);
-    // 结构性默认值，不锁主题（UI-35）。
+    // 结构性默认值，不锁主题。
     set_default_padding(4.0f);
 }
 
@@ -292,7 +292,7 @@ void Grid::arrange(Rect slot)
             float cx = 0.0f;
             float cy = 0.0f;
 
-            // 百分比 / fill / fixed_size 不参与 stretch（UI-32）。
+            // 百分比 / fill / fixed_size 不参与 stretch。
             const bool pct_x = child->size_percent().x > 0.0f || child->fill_x();
             const bool pct_y = child->size_percent().y > 0.0f || child->fill_y();
             const bool stretch_x = a.stretch_x && !pct_x && !child->fixed_size();
@@ -314,7 +314,7 @@ void Grid::arrange(Rect slot)
                 cy = child->margin_top() + (avail_h - size.y) * a.y;
             }
 
-            // stretch 后重 clamp，aspect 与 clamp 一起求解（UI-32）。
+            // stretch 后重 clamp，aspect 与 clamp 一起求解。
             const float ratio = child->aspect_ratio();
             if (ratio > 0.0f) {
                 size = apply_aspect_clamp(size, ratio, child->min_size(), child->max_size());
