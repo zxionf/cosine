@@ -40,7 +40,7 @@ public:
         (void)constraints;
         return local_.size;
     }
-    void arrange(Rect slot) override { global_ = slot; }
+    void arrange(Rect slot) override { set_geometry(slot); }
 
     // 可选：点击/滚轮关闭。默认未接（Window 模态不会因点击遮罩关闭）；
     // 只有命中最上层遮罩时才触发（下层遮罩被 z 覆盖，拿不到事件）。

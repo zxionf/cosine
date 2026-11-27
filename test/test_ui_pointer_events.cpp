@@ -44,17 +44,16 @@ struct Probe : ui::Widget
 };
 
 // 父容器：用于验证消费后不再冒泡。
+// UI-49：子项存储归基类（adopt），不再自持 kids 并覆写 children()。
 struct Parent : ui::Widget
 {
-    std::vector<std::unique_ptr<ui::Widget>> kids;
     int double_seen = 0;
 
-    const std::vector<std::unique_ptr<ui::Widget>>& children() const override { return kids; }
     glm::vec2 measure(glm::vec2) override { return {200.0f, 60.0f}; }
     void arrange(ui::Rect slot) override
     {
-        global_ = slot;
-        for (auto& kid : kids) kid->arrange(slot);
+        set_geometry(slot);
+        for_each_child([&](ui::Widget& kid) { kid.arrange(slot); });
     }
     void append_to(graphics::DrawList&) const override {}
     bool on_double_click(glm::vec2, int) override
@@ -232,7 +231,7 @@ void test_double_click_is_consumed()
     auto* probe = child.get();
     auto* host = parent.get();
     child->set_parent(host);
-    host->kids.push_back(std::move(child));
+    host->adopt(std::move(child));
     root->add(std::move(parent));
 
     ui::UISystem system{std::move(root)};

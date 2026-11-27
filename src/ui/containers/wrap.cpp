@@ -68,13 +68,13 @@ Align Wrap::resolve_align(const Widget& child) const
 std::vector<Wrap::Row> Wrap::layout_rows(float inner_w, bool unbounded)
 {
     std::vector<Row> rows;
-    if (children_.empty()) return rows;
+    if (child_count() == 0) return rows;
 
     Row row;
     float used = 0.0f; // 当前行已占宽（含 margin 与间距）
 
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        const auto& child = children_[i];
+    for (std::size_t i = 0; i < child_count(); ++i) {
+        const auto& child = children()[i];
         // 隐藏子项与绝对定位子项不参与折行。
         if (child->display() != Display::Flow) {
             child->mark_measured();
@@ -154,7 +154,7 @@ glm::vec2 Wrap::measure(glm::vec2 constraints)
 void Wrap::arrange(Rect slot)
 {
     set_geometry(slot);
-    if (children_.empty()) return;
+    if (child_count() == 0) return;
 
     const float pad_l = padding_left();
     const float pad_r = padding_right();
@@ -189,7 +189,7 @@ void Wrap::arrange(Rect slot)
         }
 
         for (std::size_t idx : row.items) {
-            auto& child = children_[idx];
+            auto* child = child_at(idx);
             const Align a = resolve_align(*child);
 
             const float ml = child->margin_left();

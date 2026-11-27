@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 64,
+      "skipped_count": 65,
       "status": "paused",
       "steps": [
         {
@@ -4664,33 +4664,33 @@
           "desc": "11 处几何写绕过点归零（附 C）",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:02:36Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "children_ 私有，4 个遍历点统一 for_each_child，遍历方式 2→1",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:02:36Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "Section/PreviewPane 的 children() 覆写迁移到 for_each_child",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:02:36Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿且快照哈希不变",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:02:36Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -4703,7 +4703,7 @@
           "uid": "tsk_01M8DY2ZQHWV64ABM4SYN62P9A"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-27T08:02:40Z",
       "goal": "UI-49 收权：几何唯一写入口 set_geometry + 树唯一遍历入口 for_each_child",
       "id": "T44",
       "line": "ui",
@@ -4717,8 +4717,53 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
-      "steps": [],
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 children_ 私有 + for_each_child/child_count/child_at + 容器内引用迁移"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 11 处几何写绕过点 → set_geometry"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 children() 去虚 + Section/PreviewPane 迁移 + debug_recursive 补 overlays"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 验证：ctest + 快照 + 冒烟 + grep 绕过点归零"
+        }
+      ],
       "title": "UI-49 收权：几何唯一写入口 set_geometry + 树唯一遍历入口 for_each_child",
       "uid": "tsk_01M8DY2ZT3B6V775VJ6NMKPFEC"
     },

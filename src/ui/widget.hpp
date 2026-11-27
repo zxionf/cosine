@@ -96,11 +96,55 @@ public:
         (void)child;
         throw std::logic_error("Widget::add is not supported by this widget");
     }
-    virtual const std::vector<std::unique_ptr<Widget>>& children() const { return children_; }
+    // 子项访问（UI-49）：存储已私有，派生容器只能通过下列接口读写。
+    // 目的：树的**遍历**只有一条路（for_each_child，含 overlays），而索引访问是显式 API，
+    // 不再允许派生类摸到 vector 本体（旧实现里 splitter/tab_view 直接改 children_）。
+    const std::vector<std::unique_ptr<Widget>>& children() const { return children_; }
     // overlay 是顶层绘制/命中层：root 先绘制普通子项，再绘制 overlay；命中测试反向进行。
     virtual const std::vector<std::unique_ptr<Widget>>& overlays() const { static const std::vector<std::unique_ptr<Widget>> empty; return empty; }
     Widget* parent() const { return parent_; }
     void set_parent(Widget* parent) { parent_ = parent; }
+
+protected:
+    std::size_t child_count() const { return children_.size(); }
+    Widget* child_at(std::size_t index) const
+    {
+        return index < children_.size() ? children_[index].get() : nullptr;
+    }
+    // 替换第 index 个子项（TabView 换页用）；所有权转移给本控件，parent/context 自动设好。
+    void replace_child(std::size_t index, std::unique_ptr<Widget> child)
+    {
+        if (index >= children_.size() || !child) return;
+        child->set_parent(this);
+        child->set_context(context());
+        children_[index] = std::move(child);
+        mark_layout_dirty();
+    }
+    // 清空子项（销毁，不触发孤儿指针）；注意：先清再标脏，避免遍历已销毁对象。
+    // 按谓词移除子项（模态关闭清 scrim 用）。
+    template <class Pred>
+    void remove_children_if(Pred pred)
+    {
+        const std::size_t before = children_.size();
+        std::erase_if(children_, pred);
+        if (children_.size() != before) mark_layout_dirty();
+    }
+    // 树的唯一遍历入口：children_ + overlays()（与 layer_paint_order 同语义）。
+    template <class F>
+    void for_each_child(F&& f) const
+    {
+        for (const auto& child : children_) f(*child);
+        for (const auto& overlay : overlays()) f(*overlay);
+    }
+public:
+
+    // 清空子项（销毁）。公开：与 add()/adopt() 同级——容器内容的整体重建是合法用法
+    // （调试面板“重建子项列表”/ 标签页换页）。存储仍是私有，遍历仍只走 for_each_child。
+    void clear_children()
+    {
+        children_.clear();
+        mark_layout_dirty();
+    }
 
     // 唯一合法的子项挂载入口：设 parent / context 并加入 children_。
     // 派生类不要再直接 children_.push_back —— 漏设 parent 会让事件冒泡链断掉。
@@ -137,8 +181,8 @@ public:
     virtual void set_context(UIContext* context)
     {
         context_ = context;
-        for (const auto& child : children()) child->set_context(context);
-        for (const auto& overlay : overlays()) overlay->set_context(context);
+        // UI-49：单一遍历入口（children_ + overlays）。
+        for_each_child([context](Widget& child) { child.set_context(context); });
     }
     UIContext* context() const
     {
@@ -202,7 +246,7 @@ public:
     void debug_recursive()
     {
         debug();
-        for (const auto& child : children()) child->debug_recursive();
+        for_each_child([](Widget& child) { child.debug_recursive(); });
     }
     void append_debug_tree(graphics::DrawList& list) const;
     void debug_rect(graphics::DrawList& list) const;
@@ -329,8 +373,8 @@ public:
     {
         std::vector<Widget*> order;
         order.reserve(children().size() + overlays().size());
-        for (const auto& child : children()) order.push_back(child.get());
-        for (const auto& overlay : overlays()) order.push_back(overlay.get());
+        // UI-49：单一遍历入口（先 children_ 后 overlays，与 for_each_child 同序）。
+        for_each_child([&order](Widget& child) { order.push_back(&child); });
         std::stable_sort(order.begin(), order.end(), [](Widget* a, Widget* b) {
             if (a->layer() != b->layer()) return a->layer() < b->layer();
             return a->z_index() < b->z_index();
@@ -506,8 +550,7 @@ public:
     {
         layout_dirty_ = false;
         notified_ = false;
-        for (const auto& child : children_) child->clear_layout_dirty_recursive();
-        for (const auto& overlay : overlays()) overlay->clear_layout_dirty_recursive();
+        for_each_child([](Widget& child) { child.clear_layout_dirty_recursive(); });
     }
     // 测量缓存失效（单节点）。派生类只管自己的派生度量。
     virtual void invalidate_measure() { measure_valid_ = false; }
@@ -515,8 +558,7 @@ public:
     void invalidate_measure_recursive()
     {
         invalidate_measure();
-        for (const auto& child : children_) child->invalidate_measure_recursive();
-        for (const auto& overlay : overlays()) overlay->invalidate_measure_recursive();
+        for_each_child([](Widget& child) { child.invalidate_measure_recursive(); });
     }
 
     // 测量缓存的三个入口（派生类 measure() 用）：
@@ -564,6 +606,8 @@ protected:
     Rect local_;
     Widget* parent_ = nullptr;
     // 子项存储统一放基类，派生类通过 adopt() 挂入（不要自持一份）。
+    // 子项存储（UI-49 起私有）：派生类走 adopt/child_at/replace_child/clear_children/for_each_child。
+    // 以前它是 protected，导致 6 个容器各写一套遍历，且 clear_layout_dirty 漏递归。
     std::vector<std::unique_ptr<Widget>> children_;
     UIContext* context_ = nullptr;
     std::shared_ptr<const bool> alive_token_ = std::make_shared<const bool>(true);

@@ -18,7 +18,7 @@ public:
     ~Grid() override;
 
     void add(std::unique_ptr<Widget> child) override;
-    void clear_children() { children_.clear(); mark_layout_dirty(); }
+    // clear_children() 由 Widget 提供（UI-49）
     void append_to(graphics::DrawList& list) const override;
 
     void layout() override;

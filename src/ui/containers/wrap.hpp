@@ -19,7 +19,7 @@ public:
     ~Wrap() override;
 
     void add(std::unique_ptr<Widget> child) override;
-    void clear_children() { children_.clear(); mark_layout_dirty(); }
+    // clear_children() 由 Widget 提供（UI-49）
     void append_to(graphics::DrawList& list) const override;
 
     void layout() override;
@@ -72,7 +72,7 @@ public:
 private:
     struct Row
     {
-        std::vector<std::size_t> items; // 流式子项在 children_ 中的索引
+        std::vector<std::size_t> items; // 流式子项在 children() 中的索引
         float width = 0.0f;             // 含 margin 与行内间距
         float height = 0.0f;            // 含 margin
     };

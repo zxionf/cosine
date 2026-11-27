@@ -77,22 +77,15 @@ public:
         set_size(w, h);
     }
 
-    void add(std::unique_ptr<Widget> child) override
-    {
-        child->set_parent(this);
-        children_.push_back(std::move(child));
-        mark_layout_dirty();
-    }
-
-    const std::vector<std::unique_ptr<Widget>>& children() const override { return children_; }
+    void add(std::unique_ptr<Widget> child) override { adopt(std::move(child)); }
 
     glm::vec2 measure(glm::vec2) override { return local_bounds().size; }
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        for (auto& child : children_) {
-            child->arrange({{slot.pos.x + child->x(), slot.pos.y + child->y()}, child->measure(slot.size)});
-        }
+        set_geometry(slot);
+        for_each_child([&](Widget& child) {
+            child.arrange({{slot.pos.x + child.x(), slot.pos.y + child.y()}, child.measure(slot.size)});
+        });
     }
     void append_to(xel::graphics::DrawList&) const override {}
 
@@ -102,9 +95,6 @@ public:
     bool consume_down = false;
     int down = 0;
     int up = 0;
-
-private:
-    std::vector<std::unique_ptr<Widget>> children_;
 };
 
 struct Fixture

@@ -114,9 +114,9 @@ public:
     MenuPopup(MenuBar& owner, float width, float height)
         : owner_{&owner}
     {
-        // 尺寸由 arrange() 直接写入 local_；不要设置 min/max_size，
+        // 尺寸由 arrange() 经 set_geometry 写入（UI-49）；不要设置 min/max_size，
         // 否则 clamp_size 会把后续尺寸锁死在创建时的值上。
-        local_ = {{0.0f, 0.0f}, {width, height}};
+        set_geometry({{0.0f, 0.0f}, {width, height}});
         set_preferred_size({width, height});
     }
 
@@ -125,8 +125,8 @@ public:
     // 走 set_pos/set_size 会持续标脏并触发整树重排。
     void arrange(Rect slot) override
     {
-        local_ = slot;
-        global_ = slot;
+        // UI-49：几何只能经 set_geometry 写（曾直写 local_/global_，绕过不变量）。
+        set_geometry(slot);
     }
     void append_to(graphics::DrawList& list) const override;
     bool on_mouse_move(glm::vec2 pos) override;
@@ -146,8 +146,7 @@ public:
         // 自然尺寸随内容走（浮层不用 measure 协商，measure() 报这个值）：
         // 不更新 preferred 的话，root 重排会把浮层按构造期的 0 高摆放。
         set_preferred_size(size);
-        local_ = {global_.pos, size};
-        global_ = local_;
+        set_geometry({global_bounds().pos, size});
     }
 
     int hovered() const { return hovered_; }

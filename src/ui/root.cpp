@@ -48,13 +48,12 @@ void UIRoot::add(std::unique_ptr<Widget> child)
 void UIRoot::remove(Widget* child)
 {
     if (!child) return;
-    for (auto it = children_.begin(); it != children_.end(); ++it) {
-        if (it->get() == child) {
-            trash_.push_back(std::move(*it));
-            children_.erase(it);
-            mark_layout_dirty();
-            return;
-        }
+    for (std::size_t i = 0; i < child_count(); ++i) {
+        if (child_at(i) != child) continue;
+        // 先移入 trash_ 延后销毁（事件回调里可能还在使用该控件）
+        remove_children_if([child](const std::unique_ptr<Widget>& c) { return c.get() == child; });
+        mark_layout_dirty();
+        return;
     }
 }
 
@@ -147,7 +146,7 @@ void UIRoot::layout()
     for (std::size_t i = 0; i < modal_frames_.size(); ++i) {
         if (!widget_in_tree(this, modal_frames_[i].window)) {
             if (Widget* scrim = modal_frames_[i].scrim) {
-                std::erase_if(children_, [scrim](const std::unique_ptr<Widget>& c) {
+                remove_children_if([scrim](const std::unique_ptr<Widget>& c) {
                     return c.get() == scrim;
                 });
             }
@@ -172,8 +171,8 @@ void UIRoot::layout()
     // 轮次推进（UI-34）：measure 缓存以它为键，保证只在本轮内命中。
     advance_layout_epoch();
     LayoutPassScope layout_pass;
-    for (auto& child : children_) layout_child(*child);
-    for (auto& overlay : overlays_) layout_child(*overlay);
+    for (auto& child : children()) layout_child(*child);
+    for (auto& overlay : overlays()) layout_child(*overlay);
     // 收尾：清除整棵树的本轮脏标记（早退传播依赖它）。
     clear_layout_dirty_recursive();
 }
@@ -219,7 +218,7 @@ void UIRoot::pop_modal(Widget* window)
     Widget* restore = it->prev_focus;
     modal_frames_.erase(it);
     if (scrim != nullptr) {
-        std::erase_if(children_, [scrim](const std::unique_ptr<Widget>& child) {
+        remove_children_if([scrim](const std::unique_ptr<Widget>& child) {
             return child.get() == scrim;
         });
     }

@@ -19,10 +19,16 @@ public:
                 float footer_height)
         : footer_height_(std::max(0.0f, footer_height))
     {
-        children_.push_back(std::move(main));
-        children_.push_back(std::move(footer));
-        main_ = children_[0].get();
-        footer_ = children_[1].get();
+        // UI-49：子项存储归 Widget 私有，这里用 adopt（自动设 parent/context）。
+        // 以前自己持一份 children_ 并与基类同名 shadow，导致“两份存储”。
+        if (main) {
+            main_ = main.get();
+            adopt(std::move(main));
+        }
+        if (footer) {
+            footer_ = footer.get();
+            adopt(std::move(footer));
+        }
     }
 
     xel::ui::Widget* main() const { return main_; }
@@ -35,11 +41,6 @@ public:
         mark_layout_dirty();
     }
     bool footer_visible() const { return footer_visible_; }
-
-    const std::vector<std::unique_ptr<xel::ui::Widget>>& children() const override
-    {
-        return children_;
-    }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
@@ -69,7 +70,6 @@ public:
     }
 
 private:
-    std::vector<std::unique_ptr<xel::ui::Widget>> children_;
     xel::ui::Widget* main_ = nullptr;
     xel::ui::Widget* footer_ = nullptr;
     float footer_height_ = 0.0f;

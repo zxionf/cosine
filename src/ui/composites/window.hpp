@@ -262,12 +262,12 @@ public:
             set_absolute_pos({0.0f, 0.0f});
             set_pos({0.0f, 0.0f});
             set_size(area);
-            global_ = {{0.0f, 0.0f}, area};
+            set_geometry({{0.0f, 0.0f}, area});
         } else {
             set_absolute_pos(restore_pos_);
             set_pos(restore_pos_);
             set_size(restore_size_);
-            global_ = {restore_pos_, restore_size_};
+            set_geometry({restore_pos_, restore_size_});
         }
         layout();
         mark_layout_dirty();
@@ -304,7 +304,7 @@ public:
         // 窗口是固定尺寸控件：只用 slot 定位，不拿 slot.size 覆盖自身尺寸，
         // 否则被放进 Vbox 时会被拉伸。absolute_pos_ 保持「相对父内容区」语义。
         set_arranged_pos(slot.pos);
-        global_.size = {width(), height()};
+        set_geometry({global_bounds().pos, {width(), height()}});
         layout();
     }
 
@@ -522,7 +522,7 @@ public:
             // UIRoot 是自由画布：每帧用 child.x()/y() 重定位，所以 local_.pos 也必须更新，
             // 否则拖动会被下一帧 layout 撤销。Vbox 下则用 absolute_pos，两者同时保持。
             set_pos(next);
-            global_.pos = next;
+            set_geometry({next, global_bounds().size});
         } else {
             const glm::vec2 delta = pos - grab_;
             glm::vec2 next_pos = resize_start_pos_;
@@ -557,9 +557,8 @@ public:
 
             set_absolute_pos(next_pos);
             set_pos(next_pos);
-            global_.pos = next_pos;
             set_size(next_size);
-            global_.size = next_size;
+            set_geometry({next_pos, next_size});
         }
 
         layout(); // body_ 跟着新的 global_ 重新排

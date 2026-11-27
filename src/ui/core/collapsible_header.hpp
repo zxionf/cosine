@@ -61,8 +61,8 @@ public:
 
     void arrange(Rect slot) override
     {
-        set_geometry(slot);
-        global_ = {slot.pos, {slot.size.x, height()}};
+        // 高度由标题栏决定（不是 slot.size.y），所以先算高度再一次性写几何。
+        set_geometry({slot.pos, {slot.size.x, height()}});
     }
 
     bool hit_testable() const override { return false; }

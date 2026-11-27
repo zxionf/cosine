@@ -511,7 +511,7 @@ cd build && ctest && ./test/test_ui_style_snapshot.exe
 |---|---|---|---|---|
 | R1 (T42) | **done** | 2026-11-27 | 虚函数 50→34；样板 arrange 17→0；`test_ui_node_contract` 22 条断言；ctest **75/75**；快照 `c8a0966c` / `eb32c524` 不变；三入口冒烟 0 validation | 样板数 20→**17**（`collapsible_header`/`text_input`/`file_browser` 的 arrange 另含语义）；实际 21 文件 +528/−142 |
 | R2 (T43) | **done** | 2026-11-27 | 4 部件按值内嵌（LayoutParams 72B / BoxMetrics 36B / Interaction 6B / VisualState 8B）；`sizeof(Widget)` 280→288；`test_ui_state_ownership` 20 条断言（16 组合等价）；ctest **76/76**；快照 `c8a0966c`/`eb32c524` 不变 | 字段名 `layout` 与既有虚函数 `layout()` 冲突 → 改用 `layout_`（尾下划线）；控件目录 **0 文件改动**（达成） |
-| R3 (T44) | todo | — | — | — |
+| R3 (T44) | **done** | 2026-11-27 | `children_` 私有 + `child_count/child_at/replace_child/clear_children/remove_children_if/for_each_child`；几何写绕过点 **0**（实为 12 处：11 global_ + 1 local_）；4 个树遍历点统一；`children()` 去虚；`debug_recursive` 补上 overlays；Section 改为 adopt content_（脏链修复）；PreviewPane 删除 shadow `children_`；ctest **77/77**；快照不变 | 越界一次：`src/cosine/preview_pane.hpp` 必须改（它 shadow 了基类 children_）——在“只改 src/ui”边界外，已在提交信息里声明；`clear_children` 需保持 public（debug 面板重建子项用） |
 | R4 (T45) | todo | — | — | — |
 | R5 (T46) | todo | — | — | — |
 | R6 (T47) | todo | — | — | — |

@@ -24,7 +24,7 @@ public:
 
     void set_panes(std::unique_ptr<Widget> first, std::unique_ptr<Widget> second)
     {
-        children_.clear();
+        clear_children();
         if (first) adopt(std::move(first));
         if (second) adopt(std::move(second));
         mark_layout_dirty();
@@ -65,10 +65,10 @@ public:
         const bool horizontal = orientation_ == Orientation::Horizontal;
         const float extent = horizontal ? global_.size.x : global_.size.y;
         const float usable = extent - handle;
-        if (usable <= 0.0f || children_.size() < 2) return {kFallbackMin, kFallbackMax};
+        if (usable <= 0.0f || child_count() < 2) return {kFallbackMin, kFallbackMax};
 
-        const glm::vec2 first_min = children_[0]->min_size();
-        const glm::vec2 second_min = children_[1]->min_size();
+        const glm::vec2 first_min = child_at(0)->min_size();
+        const glm::vec2 second_min = child_at(1)->min_size();
         const float first_need = horizontal ? first_min.x : first_min.y;
         const float second_need = horizontal ? second_min.x : second_min.y;
 
@@ -87,13 +87,13 @@ public:
         float first = 0.0f;
         float second = 0.0f;
         float cross = 0.0f;
-        if (children_.size() >= 1) {
-            const glm::vec2 cs = Widget::measure_child(*children_[0], constraints);
+        if (child_count() >= 1) {
+            const glm::vec2 cs = Widget::measure_child(*child_at(0), constraints);
             first = horizontal ? cs.x : cs.y;
             cross = std::max(cross, horizontal ? cs.y : cs.x);
         }
-        if (children_.size() >= 2) {
-            const glm::vec2 cs = Widget::measure_child(*children_[1], constraints);
+        if (child_count() >= 2) {
+            const glm::vec2 cs = Widget::measure_child(*child_at(1), constraints);
             second = horizontal ? cs.x : cs.y;
             cross = std::max(cross, horizontal ? cs.y : cs.x);
         }
@@ -101,7 +101,7 @@ public:
             ? glm::vec2{first + second + handle, cross}
             : glm::vec2{cross, first + second + handle};
         // 没有任何 pane 时退回构造期推荐尺寸。
-        if (children_.empty()) return {preferred_width_, preferred_height_};
+        if (child_count() == 0) return {preferred_width_, preferred_height_};
         return clamp_size(natural);
     }
 
@@ -111,11 +111,11 @@ public:
         const auto limits = ratio_limits();
         ratio_ = std::clamp(ratio_, limits.first, limits.second);
         const float handle = handle_size();
-        if (children_.size() < 2) {
-            if (!children_.empty()) {
+        if (child_count() < 2) {
+            if (child_count() != 0) {
                 // 单 pane 也要走一遍测量：子项（ScrollView / Table）要靠它更新内部度量。
-                Widget::measure_child(*children_[0], slot.size);
-                children_[0]->arrange(slot);
+                Widget::measure_child(*child_at(0), slot.size);
+                child_at(0)->arrange(slot);
                 set_content_extent(slot.size);
             }
             return;
@@ -127,18 +127,18 @@ public:
             const float usable = std::max(0.0f, slot.size.x - handle);
             const float first_w = clamp_first(resolved_first(), usable, slot.size.y);
             const glm::vec2 second_w{std::max(0.0f, usable - first_w), slot.size.y};
-            Widget::measure_child(*children_[0], {first_w, slot.size.y});
-            Widget::measure_child(*children_[1], second_w);
-            children_[0]->arrange({{slot.pos.x, slot.pos.y}, {first_w, slot.size.y}});
-            children_[1]->arrange({{slot.pos.x + first_w + handle, slot.pos.y}, second_w});
+            Widget::measure_child(*child_at(0), {first_w, slot.size.y});
+            Widget::measure_child(*child_at(1), second_w);
+            child_at(0)->arrange({{slot.pos.x, slot.pos.y}, {first_w, slot.size.y}});
+            child_at(1)->arrange({{slot.pos.x + first_w + handle, slot.pos.y}, second_w});
         } else {
             const float usable = std::max(0.0f, slot.size.y - handle);
             const float first_h = clamp_first(resolved_first(), usable, slot.size.x);
             const glm::vec2 second_h{slot.size.x, std::max(0.0f, usable - first_h)};
-            Widget::measure_child(*children_[0], {slot.size.x, first_h});
-            Widget::measure_child(*children_[1], second_h);
-            children_[0]->arrange({{slot.pos.x, slot.pos.y}, {slot.size.x, first_h}});
-            children_[1]->arrange({{slot.pos.x, slot.pos.y + first_h + handle}, second_h});
+            Widget::measure_child(*child_at(0), {slot.size.x, first_h});
+            Widget::measure_child(*child_at(1), second_h);
+            child_at(0)->arrange({{slot.pos.x, slot.pos.y}, {slot.size.x, first_h}});
+            child_at(1)->arrange({{slot.pos.x, slot.pos.y + first_h + handle}, second_h});
         }
         set_content_extent(slot.size);
     }
@@ -174,7 +174,7 @@ public:
             graphics::append_rounded_ring(list, {x, y, w, h}, bar_radius, 1.0f, t.accent);
         }
 
-        for (const auto& child : children_) {
+        for (const auto& child : children()) {
             if (child->visible()) {
                 const auto b = child->global_bounds();
                 list.push_clip({b.pos.x, b.pos.y, b.size.x, b.size.y});
@@ -218,10 +218,10 @@ private:
     // 把第一块像素尺寸夹到 [first_min, usable - second_min]，两侧都尊重 min_size。
     float clamp_first(float first, float usable, float cross_extent) const
     {
-        if (children_.size() < 2) return std::clamp(first, 0.0f, usable);
+        if (child_count() < 2) return std::clamp(first, 0.0f, usable);
         const bool horizontal = orientation_ == Orientation::Horizontal;
-        const glm::vec2 a = children_[0]->min_size();
-        const glm::vec2 b = children_[1]->min_size();
+        const glm::vec2 a = child_at(0)->min_size();
+        const glm::vec2 b = child_at(1)->min_size();
         const float first_min = horizontal ? a.x : a.y;
         const float second_min = horizontal ? b.x : b.y;
         (void)cross_extent;

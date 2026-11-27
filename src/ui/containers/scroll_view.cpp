@@ -18,7 +18,7 @@ ScrollView::ScrollView()
 
 void ScrollView::set_content(std::unique_ptr<Widget> c)
 {
-    children_.clear();
+    clear_children();
     content_ = nullptr;
     if (c) {
         content_ = c.get();
@@ -172,7 +172,7 @@ void ScrollView::place_content()
 void ScrollView::arrange(Rect slot)
 {
     if (!scroll_mode_override_) scroll_mode_ = ui_theme().scroll_mode;
-    global_ = slot;
+    set_geometry(slot);
     update_metrics(slot.size);
     offset_ = clamp_offset(offset_);
     target_ = clamp_offset(target_);

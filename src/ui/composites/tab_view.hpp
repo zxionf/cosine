@@ -17,7 +17,7 @@
 namespace xel::ui
 {
 // 带标签栏的页面容器：标签栏固定在上方，内容区显示当前选中的页面。
-// 内部 children_[0] 是 TabBar，其余为页面（page(i) == children_[i + 1]）。
+// 内部 children()[0] 是 TabBar，其余为页面（page(i) == child_at(i + 1)）。
 class TabView : public Widget
 {
 public:
@@ -32,8 +32,8 @@ public:
         adopt(std::move(bar));
     }
 
-    TabBar& tab_bar() { return *static_cast<TabBar*>(children_.front().get()); }
-    const TabBar& tab_bar() const { return *static_cast<const TabBar*>(children_.front().get()); }
+    TabBar& tab_bar() { return *static_cast<TabBar*>(child_at(0)); }
+    const TabBar& tab_bar() const { return *static_cast<const TabBar*>(child_at(0)); }
 
     // 返回页面下标（0 起，不含标签栏）。
     int add_page(std::string label, std::unique_ptr<Widget> page)
@@ -62,16 +62,16 @@ public:
         page->set_parent(this);
         page->set_context(context());
         page->set_visible(index == tab_bar().selected());
-        children_[static_cast<std::size_t>(index) + 1] = std::move(page);
+        replace_child(static_cast<std::size_t>(index) + 1, std::move(page));
         mark_layout_dirty();
     }
 
-    std::size_t page_count() const { return children_.empty() ? 0 : children_.size() - 1; }
+    std::size_t page_count() const { return child_count() == 0 ? 0 : child_count() - 1; }
 
     Widget* page(int index) const
     {
         if (index < 0 || index >= static_cast<int>(page_count())) return nullptr;
-        return children_[static_cast<std::size_t>(index) + 1].get();
+        return child_at(static_cast<std::size_t>(index) + 1);
     }
 
     int selected() const { return tab_bar().selected(); }
@@ -145,8 +145,8 @@ public:
                                                         : constraints.y};
         // 只测当前页（UI-33）：非当前页不参与尺寸协商否则页面切回来时尺寸漂移。
         // page_fill 下当前页直接吃满内容区，不必测。
-        for (std::size_t i = 1; i < children_.size(); ++i) {
-            if (static_cast<int>(i) - 1 != selected()) children_[i]->mark_measured();
+        for (std::size_t i = 1; i < child_count(); ++i) {
+            if (static_cast<int>(i) - 1 != selected()) child_at(i)->mark_measured();
         }
         if (Widget* current = page(selected())) {
             if (page_fill_ && is_bounded(inner.x) && is_bounded(inner.y)) {
@@ -217,8 +217,8 @@ public:
 
         tab_bar().arrange(bar_slot);
 
-        for (std::size_t i = 1; i < children_.size(); ++i) {
-            auto& child = children_[i];
+        for (std::size_t i = 1; i < child_count(); ++i) {
+            auto* child = child_at(i);
             glm::vec2 size = content.size;
             if (!page_fill_) {
                 const glm::vec2 measured = Widget::measure_child(*child, content.size);
@@ -245,8 +245,8 @@ public:
 
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
         tab_bar().append_to(list);
-        for (std::size_t i = 1; i < children_.size(); ++i) {
-            const auto& child = children_[i];
+        for (std::size_t i = 1; i < child_count(); ++i) {
+            const auto* child = child_at(i);
             if (!child->visible()) continue;
             const Rect page_bounds = child->global_bounds();
             list.push_clip({page_bounds.pos.x, page_bounds.pos.y, page_bounds.size.x, page_bounds.size.y});
@@ -263,13 +263,13 @@ public:
 private:
     Widget* pages_owner(int page_index)
     {
-        return children_[static_cast<std::size_t>(page_index) + 1].get();
+        return child_at(static_cast<std::size_t>(page_index) + 1);
     }
 
     void apply_selection(int index)
     {
-        for (std::size_t i = 1; i < children_.size(); ++i) {
-            children_[i]->set_visible(static_cast<int>(i) - 1 == index);
+        for (std::size_t i = 1; i < child_count(); ++i) {
+            child_at(i)->set_visible(static_cast<int>(i) - 1 == index);
         }
         mark_layout_dirty();
     }

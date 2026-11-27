@@ -26,9 +26,13 @@ public:
 
     explicit Section(std::string title) : title_(std::move(title))
     {
-        content_ = std::make_unique<Vbox>(0.0f, 0.0f, 0.0f, 0.0f);
-        content_->set_spacing(6.0f);
-        content_->set_cross_align(Align::top_left());
+        auto content = std::make_unique<Vbox>(0.0f, 0.0f, 0.0f, 0.0f);
+        content->set_spacing(6.0f);
+        content->set_cross_align(Align::top_left());
+        // UI-49：content_ 现在是真正的子节点（adopt），不再是“自己持有、别人看不见”的裸成员。
+        // 旧实现让 Section 的 children_ 恒空，脏标记链在 content_ 处断掉（设计文档 C1）。
+        content_ = content.get();
+        adopt(std::move(content));
         // Section 横向铺满父级（标题栏/内容卡都是全宽）。
         set_fill(true, false);
     }
@@ -39,11 +43,6 @@ public:
         // measure() 会把 content_ 的缓存高度传给父容器，不失效就一直是旧值。
         content_->invalidate_measure();
         mark_layout_dirty();
-    }
-
-    const std::vector<std::unique_ptr<Widget>>& children() const override
-    {
-        return content_->children();
     }
 
     void set_title(std::string title)
@@ -125,6 +124,7 @@ private:
     std::string title_;
     CollapsibleHeader header_;
     bool expanded_ = true;
-    std::unique_ptr<Vbox> content_;
+    // 非拥有指针：所有权在 Widget::children_ 里（UI-49）。
+    Vbox* content_ = nullptr;
 };
 } // namespace xel::ui

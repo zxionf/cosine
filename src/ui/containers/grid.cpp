@@ -147,7 +147,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
 
     // 隐藏与绝对定位子项不占格：行数只按流式子项计算。
     std::size_t flow_count = 0;
-    for (const auto& child : children_) {
+    for (const auto& child : children()) {
         if (child->display() == Display::Flow) {
             ++flow_count;
         } else {
@@ -170,8 +170,8 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
         // 无界约束下弹性列取该列子项的自然宽最大值，使「内容自适应」可用。
         std::vector<float> natural(static_cast<std::size_t>(cols), 0.0f);
         std::size_t flow = 0;
-        for (std::size_t i = 0; i < children_.size(); ++i) {
-            const auto& child = children_[i];
+        for (std::size_t i = 0; i < child_count(); ++i) {
+            const auto& child = children()[i];
             if (child->display() != Display::Flow) continue;
             const int col = static_cast<int>(flow % static_cast<std::size_t>(cols));
             ++flow;
@@ -199,8 +199,8 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
         : std::max(0.0f, constraints.y - pad_t - pad_b);
 
     std::size_t flow = 0;
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        const auto& child = children_[i];
+    for (std::size_t i = 0; i < child_count(); ++i) {
+        const auto& child = children()[i];
         if (child->display() != Display::Flow) continue;
         const int row = static_cast<int>(flow / static_cast<std::size_t>(cols));
         const int col = static_cast<int>(flow % static_cast<std::size_t>(cols));
@@ -230,7 +230,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
 void Grid::arrange(Rect slot)
 {
     set_geometry(slot);
-    if (children_.empty()) return;
+    if (child_count() == 0) return;
 
     const int cols = column_count(widths_);
     const float pad_l = padding_left();
@@ -244,9 +244,9 @@ void Grid::arrange(Rect slot)
 
     // 流式子项索引：隐藏与绝对定位子项不占格。
     std::vector<std::size_t> flow;
-    flow.reserve(children_.size());
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        if (children_[i]->display() == Display::Flow) flow.push_back(i);
+    flow.reserve(child_count());
+    for (std::size_t i = 0; i < child_count(); ++i) {
+        if (child_at(i)->display() == Display::Flow) flow.push_back(i);
     }
     const int rows = flow.empty()
         ? 0
@@ -257,7 +257,7 @@ void Grid::arrange(Rect slot)
     std::vector<float> row_h(static_cast<std::size_t>(rows), 0.0f);
 
     for (std::size_t k = 0; k < flow.size(); ++k) {
-        const auto& child = children_[flow[k]];
+        auto* child = child_at(flow[k]);
         const int row = static_cast<int>(k / static_cast<std::size_t>(cols));
         const int col = static_cast<int>(k % static_cast<std::size_t>(cols));
         const std::size_t ci = static_cast<std::size_t>(col);
@@ -279,7 +279,7 @@ void Grid::arrange(Rect slot)
                 + static_cast<std::size_t>(c);
             if (k >= flow.size()) break;
 
-            auto& child = children_[flow[k]];
+            auto* child = child_at(flow[k]);
             const std::size_t ci = static_cast<std::size_t>(c);
             const Align a = resolve_cell_align(*child);
 
