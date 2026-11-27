@@ -70,7 +70,7 @@ The system cannot find the path specified.
 
 $ cmd /c git -C "." status --short 2>NUL
 M  docs/ci.md
-M  src/ui/style.hpp
+M  src/ui/style/style.hpp
 ...
 # → 正常
 ```

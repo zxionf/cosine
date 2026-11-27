@@ -11,7 +11,7 @@ XEL 是 cosine 的脚本语言，用于描述动画与场景；解释器目前�
 
 ## 当前状态
 
-版本 `0.4.0`。已完成 M0–M4（含 M3.5 组件与样式、M3.6 滚动体验、M4 2D 动画内核、M4.5 动画展厅），
+版本 `0.5.0`。已完成 M0–M4（含 M3.5 组件与样式、M3.6 滚动体验、M4 2D 动画内核、M4.5 动画展厅），
 M4.6 文本/图集打磨完成前四项，下一步进入 M6.0（离屏渲染与 PNG 导出）。
 路线与待办见 `docs/todo.md` 与 `.design/SPEC.md`。
 
@@ -52,7 +52,7 @@ M4.6 文本/图集打磨完成前四项，下一步进入 M6.0（离屏渲染与
 
 - DrawList 批处理、scissor 裁剪栈（两端对齐像素网格）、overlay 图层、`RenderTarget` 抽象。
 - 帧统计（frame time / draw call / 顶点与索引数）、`DebugOverlay`、F11 截图。
-- 静态库分层（`cosine_ui` / `cosine_anim` / `cosine_text` / backend）、51 个 CTest 用例、ASAN 构建、
+- 静态库分层（`cosine_ui` / `cosine_anim` / `cosine_text` / backend）、81 个 CTest 用例、ASAN 构建、
   lavapipe 冒烟、Linux/Windows 打包脚本。
 
 ## 示例

@@ -21,7 +21,7 @@ COSINE_SANITIZE=address COSINE_BUILD_DIR=build-asan ./scripts/ci-linux.sh
 ctest 默认跑 **Release** 构建，而 Release 定义了 `NDEBUG`，`<cassert>` 的 `assert(x)`
 会展开成 `((void)0)`——**表达式不求值、不类型检查**。曾因此出现过：
 
-- 63 个测试文件、1939 条断言完全不执行（`ctest` 全绿只代表进程正常退出）；
+- 早期的测试全部不执行（`ctest` 全绿只代表进程正常退出）；
 - 删掉一个结构体成员后测试仍然编译通过（引用它的代码在 assert 里被整个丢弃）；
 - `Slider` 多角色颜色串台（轨道被染成强调色）长期无人发现。
 
@@ -89,7 +89,8 @@ COSINE_UI_SCALE=2 COSINE_EXIT_AFTER=3 ./ui_gallery
 验证重点是界面整体放大、字形清晰（按 `字号×比例` 重新栅格化）、
 tooltip 与应用内命中位置不偏移。
 
-当前测试规模：`ctest` 共 **73** 个用例（含 ASAN 构建，同一份源码）；全部断言在 Release 下也真实执行。
+当前测试规模：`ctest` 共 **81** 个用例（含 ASAN 构建，同一份源码）；
+82 个测试源文件，含 `assert(` 2032 处与自写 `check()` 238 处；全部在 Release 下也真实执行。
 
 ## lavapipe 冒烟
 

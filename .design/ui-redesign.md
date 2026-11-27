@@ -1,9 +1,11 @@
 # src/ui 重新设计（UI-R）
 
 > 版本：v1（2026-11-27 15:17 CST）
-> 基线：main@167a3f83（工作区另有 `src/ui/widget.hpp` 未提交改动：`x/y/width/height` 去 `virtual`）
-> 范围：**只覆盖 `src/ui/`**（66 文件 / 13,215 行 / 43 个控件类）。
-> 不改 `docs/` 下旧文档；`docs/ui_architecture.md` 保留为"现状描述"，与本文件冲突处以本文件为准（冲突点见 §12）。
+> 基线：main@167a3f83（当时 `src/ui/widget.hpp` 尚未拆分）
+> 范围：**只覆盖 `src/ui/`**。
+> **当前实现基线**：main@10beace（0.5.0，82 文件 / 13,816 行 / 46 个控件类）；本文中的
+> `widget.hpp` 行数已变为 `node/node.hpp` + `node/layout_node.hpp` + `widget.hpp`（别名），
+> `docs/ui_architecture.md` 已同步为**实现后**的结构，两者不再冲突。
 
 ---
 

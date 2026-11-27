@@ -12,19 +12,25 @@
 │ font_atlas（字形栅格化 + 度量 + 排版辅助）                       │
 └────────────────────────────┬─────────────────────────────────────┘
                              │ append_to(DrawList&)
-┌─ ui/ ──────────────────────▼─────────────────────────────────┐
-│ Widget        身份 / parent / 几何 / 可见性 / 主题版本       │
-│ 布局容器       Vbox Hbox Grid Wrap Panel Splitter ScrollView │
-│               ScrollPanel UIRoot                             │
-│ 叶子控件       Label Button Checkbox Radio Slider Progress   │
-│               TextInput Dropdown Image Rect                  │
-│ 复合控件       MenuBar TabBar Table TreeView TimelineView    │
-│               SceneView FileBrowser Window Section Dialog    │
-│               CollapsibleHeader PreviewRuler DragFloat       │
-│               ColorInput Scrim Tooltip                       │
-│ 行为基元       ScrollState ListView                          │
-│ 调度          UISystem（命中 / 焦点 / 布局触发 / 手势）      │
-└────────────────────────────┬─────────────────────────────────┘
+┌─ ui/ ──────────────────────▼─────────────────────────────────────┐
+│ Node          身份 / 几何 / 树 / 可见性 / 层叠 / 语义钩子 (112 B)│
+│ LayoutNode    布局契约 + 4 部件 + 测量缓存 + 脏标记 (432 B)      │
+│               (= `Widget` 别名，400+ 调用点不变)                 │
+│ ContainerNode 容器基类（add → adopt，is_container）                │
+│ LeafNode      叶子基类（measure = clamp(preferred)，arrange = set_geometry）│
+│ 布局容器       Vbox Hbox Grid Wrap Panel Splitter ScrollView     │
+│               ScrollPanel UIRoot                                 │
+│ 叶子控件       Label Button Checkbox Radio Slider Progress Tag   │
+│               TextInput Dropdown Image Rect                      │
+│ 复合控件       MenuBar TabBar Table TreeView TimelineView         │
+│               SceneView FileBrowser Window Section Dialog         │
+│               CollapsibleHeader PreviewRuler DragFloat            │
+│               ColorInput Scrim Tooltip                            │
+│ 行为基元       ScrollState ListView                              │
+│ 语义投影       Semantics（role / label / enabled / …，派生只读）   │
+│ 绘制部件       paint::box / focus_ring / box_with_focus / text     │
+│ 调度          UISystem（命中 / 焦点 / 布局触发 / 手势）            │
+└────────────────────────────┬─────────────────────────────────────┘
                              │ 提交 DrawList
 ┌─ backend/vulkan/ ──────────▼───────────────────────────────┐
 │ renderer：多纹理槽（16）、离屏渲染 + PNG 读回              │
@@ -33,6 +39,53 @@
 
 依赖是单向的：`graphics` 不知道 `ui`，`ui` 不直接调用 Vulkan（只产出 `DrawList`）。
 
+`src/ui/` 按职责分子目录（根目录不留文件）：
+
+```text
+geom/        Rect / Align / LayoutMetrics / LayoutBudget   纯几何与尺寸分配
+layout/      LayoutParams / LayoutUtils / MeasureCache     布局意图与测量缓存
+style/       Theme / Style / StyleTypes / VisualState / WidgetStyle / BoxMetrics / Painters
+input/       Interaction                                   交互状态
+semantics/   语义投影（WidgetRole / Semantics）
+node/        Node / LayoutNode / ContainerNode / LeafNode / Widget
+system/      UIRoot / UISystem / UIContext                 调度与资源
+core/ containers/ composites/ views/                       控件（按复杂度分四级）
+```
+
+`test/test_ui_architecture.cpp` 用断言锁住这些结构（D1–D5 / K1–K8）：目录依赖方向、
+根目录无文件、`children_` 单人、几何写入口唯一、`layout_` 单人、三层继承关系。
+
+**三层节点**（设计 §4.1–§4.3）
+
+```text
+Drawable → Node(112 B, 17 虚)
+             └─ LayoutNode(432 B, 22 虚)  ← `Widget` 是它的别名
+                  ├─ LeafNode
+                  └─ ContainerNode
+```
+
+`Node` 只持身份/几何/树/可见性/层叠/语义钩子，并把布局契约以**纯虚**形式声明——
+所以 `for_each_child` 里可以直接调 `child->measure()`，不需要向下转型。
+`LayoutNode` 落地这些契约并持有 4 个部件：`layout_`（意图）/ `box`（盒模型）/
+`input`（交互状态）/ `visual`（样式过渡）+ `measure_cache_`。
+
+**自动断言的契约**（`test/test_ui_architecture.cpp`，31 条）
+
+| 编号 | 内容 |
+|---|---|
+| D1 | `geom/` 不引用节点树 |
+| D2 | `core/` `containers/` 不引用 `composites/` `views/` |
+| D3 | `style/` 不引用具体控件 |
+| D4 | `semantics/` 只用标准库 |
+| D5 | `src/ui` 根目录无头文件、无转发 shim |
+| K1 | 无每控件 `enabled_`/`pressed_`/`dragging_`，无 `control_state()` |
+| K2 | `children_` 只在 `node/node.hpp` |
+| K3 | 几何只经 `set_geometry` 家族写 |
+| K5 | Node+LayoutNode 虚函数 ≤45，17 个事件钩子仍在 LayoutNode |
+| K6 | `MeasureKey` 只有一份定义 |
+| K7 | `layout_` 只由 2 个函数写入（12 处赋值） |
+| K8 | 三层继承成立且 `sizeof(Node) < sizeof(LayoutNode)` |
+
 ### 控件间依赖
 
 按 `#include` 关系归纳。`theme` / `style` / `widget` 几乎被所有控件引用，下表中省略。
@@ -40,14 +93,21 @@
 **基类链**
 
 ```
-Drawable (graphics) 
-  └─ Widget ─┬─ Vbox ─── Panel ─── ScrollPanel
-             ├─ Hbox / Grid / Wrap
-             ├─ Splitter / ScrollView / UIRoot / Scrim
-             ├─ Label / Button / Image / ...（叶子）
-             ├─ ListView ─── Table
-             └─ Section / Window / Dialog / MenuBar / TabView / TreeView / ...（复合）
+Drawable (graphics)
+  └─ Node ─── LayoutNode（= `Widget`）
+                ├─ ContainerNode ─┬─ Vbox ─── Panel ─── ScrollPanel
+                │                 ├─ Hbox / Grid / Wrap / LinearLayout
+                │                 ├─ Splitter / ScrollView / UIRoot / Scrim
+                │                 ├─ ListView ─── Table
+                │                 └─ Section / Window / Dialog / MenuBar /
+                │                    TabView / TreeView / …（复合）
+                └─ LeafNode ─── Label / Button / Image / Tag / …（叶子）
 ```
+
+`LeafNode` 提供两个默认实现：`measure = clamp(preferred_size)`、
+`arrange = set_geometry(slot)`。不满足这个判据的控件**不要**继承它（例如 `TextInput`
+的 arrange 还要夹滚动、`FileBrowser` 要把几何转给内部 Table）。
+`ContainerNode` 只给 `add() → adopt()` 与 `is_container()`，不规定布局算法。
 
 **叶子控件：纹理与占位**
 
@@ -133,7 +193,7 @@ static glm::vec2 Widget::measure_child(Widget& child, glm::vec2 content);
 - 宿主（`UIRoot::layout_child`、`TabView`、`ScrollPanel`、`DialogHost`、`Splitter`）一律走这个入口，
   不允许自己直接调 `child->measure()`
 
-**主轴预算**（UI-32 起，`src/ui/layout_budget.hpp`）：
+**主轴预算**（`src/ui/geom/layout_budget.hpp`）：
 
 ```cpp
 struct MainAxisItem { pct; fill; fixed; flex; natural; margin_before/after; min_size; max_size; };
@@ -193,8 +253,9 @@ void    Widget::invalidate_measure_recursive();   // set_theme / 密度 / 字号
 
 - 缓存键是**（约束，布局轮次）**：只在同一轮内命中，跨轮必然重算——不会读到旧值，
   但同轮内 `parent.measure()` 与 `parent.arrange()` 共享一次测量（文字测量从每控件 2 次降到 1 次）
-- 缓存统一在 `Widget` 里（子类不再各持三元组）；`measure_child()` 也走同一缓存，
-  所以嵌套容器的重复测量同样被合并
+- 缓存唯一实现在 `MeasureCache`（`src/ui/layout/measure_cache.hpp`）：键 = `MeasureKey`
+  （constraints + 布局轮次 + 派生输入）；控件不再各持一套
+- `measure_child()` 走同一个缓存，所以嵌套容器的重复测量同样被合并
 - `UIRoot::set_theme()` 递归 `invalidate_measure()`：主题/密度/字号切换后下一轮数值立即一致
 - `arrange()` 一律用 `set_geometry()` 写几何（不再 `set_pos/set_size`）：布局过程不制造脏状态、不清缓存
 - `mark_layout_dirty()` 早退：以“本次变更新鲜度”标记 `notified_` 为判据（`invalidate_measure()` 之后若已通知过祖先就直接返回）；
@@ -216,12 +277,12 @@ set_absolute(true)  == Positioned         // 不占流式空间，但仍 arrange
 - `UIRoot::layout_child` 也跳过 `Hidden`（保留旧几何，重新可见会重排）
 - `TabView` 的页切换继续用 `set_visible`，但 `measure` 只算当前页，因此切页不会让尺寸漂移
 
-**溢出策略**（UI-33 起）:
+**溢出策略**:
 
 ```cpp
 enum class Overflow { Visible, Clip, Scroll };
 virtual Overflow overflow() const;               // 默认 Visible
-virtual bool clips_children() const;             // = overflow() != Visible（唯一实现）
+bool clips_children() const;                     // 非虚，= overflow() != Visible（唯一实现）
 glm::vec2 content_extent() const;                // 容器 arrange 时记录的内容尺寸
 bool content_overflows() const;                  // 内容 > 自身尺寸（任意轴）
 ```
@@ -232,7 +293,7 @@ bool content_overflows() const;                  // 内容 > 自身尺寸（任�
 | `ScrollView` | `Scroll`（同样裁剪，但自带滚动条） |
 | 其它（含四个流式容器） | `Visible` |
 
-- `clips_children()` 不再由各控件覆写，只由 `overflow()` 派生，避免绘制/命中口径分叉
+- `clips_children()` 不再是虚函数，只由 `overflow()` 派生，避免绘制/命中口径分叉
 - `content_overflows()` 用于“内容放不下”的诊断与后续布局调试面板（T30）
 - `Splitter`：`measure()` 由两个 pane 的自然尺寸推导；`arrange()` 分配像素时两侧都
   尊重子项 `min_size`（`clamp_first`），不再把一侧挤成负数
@@ -333,9 +394,9 @@ class LinearLayout : public Widget { enum class Axis { Vertical, Horizontal }; .
 class Vbox : public LinearLayout;   // Axis::Vertical，cross_align 默认 top_center
 class Hbox : public LinearLayout;   // Axis::Horizontal，cross_align 默认 center_left
 
-// src/ui/layout_utils.hpp
+// src/ui/layout/layout_utils.hpp
 Rect content_rect(const Widget&, Rect slot);                       // 扣 padding 的内容区
-void place_positioned_children(Widget&, Rect content, vec2 cons);  // 摆 Positioned 子项
+void place_positioned_children(LayoutNode&, Rect content, vec2 cons);  // 摆 Positioned 子项
 ```
 
 - 主轴解算、margin、cross 轴 stretch、主轴对齐（Start/Center/End/SpaceBetween）、
@@ -348,7 +409,7 @@ Widget::LayoutSpec spec = w.layout_spec();   // align / flex / pct / aspect / fi
 w.set_layout_spec(spec);                      // 回写，等价于逐个 setter
 ```
 
-- **基线对齐**：`Align::baseline_align()` + `Widget::baseline_offset_for(h)`（Label/Button 覆写）。
+- **基线对齐**：`Align::baseline_align()` + `LayoutNode::baseline_offset_for(h)`（Label/Button 覆写）。
   Hbox 先算行内最大基线，再把子项对齐到它；Settings 的“标签 + 控件”行已改用基线对齐
 - **布局调试面板**：DebugWindow 第三页 `Layout`（只读）：global/local bounds、临时 measure、
   display/overflow/overflows/dirty/measure_valid/baseline、content extent、clips、LayoutSpec。
@@ -399,6 +460,23 @@ dispatch(InputEvent)
 
 不给基类加职责，而是做成可持有的小类型。
 
+**四个内嵌部件**（`LayoutNode` 成员，全部按值持有、不堆分配）
+
+| 部件 | 大小 | 职责 | 头文件 |
+|---|---|---|---|
+| `LayoutParams` | 68 B | 布局意图：min/max/preferred/pct/aspect/flex/align_self/fill | `layout/layout_params.hpp` |
+| `BoxMetrics` | 36 B | padding/margin + 「padding 是否被显式锁定」 | `style/box_metrics.hpp` |
+| `Interaction` | 6 B | enabled/pressed/dragging/selected/hovered/focused + `state()` | `input/interaction.hpp` |
+| `VisualState` | 104 B | 12 个角色的过渡槽 | `style/visual_state.hpp` |
+
+`Interaction` 是交互状态的**唯一所有者**（各控件不再持同名 `enabled_`/`pressed_`/`dragging_`），
+`Interaction::state(checked)` 是控制状态 → 样式状态的唯一映射。
+
+**语义投影**（`semantics/semantics.hpp`）：`WidgetRole`（20 种）+ `Semantics`（role / label /
+enabled / checkable / editable / expanded …）。它是**派生只读视图**，不存第二份真值：
+除 `role`/`label` 外均从 `Interaction` 现读。`role_is_checkable()` / `role_is_editable()`
+是 role 的纯派生，不需要每个控件各写一个虚函数。
+
 | 基元 | 职责 | 使用者 |
 |---|---|---|
 | `ScrollState` | 一维滚动：值/目标/平滑（指数衰减）+ Fast 加速 + snap + range 夹取 | `Table` / `TreeView` |
@@ -438,13 +516,18 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 - 颜色按 **sRGB 直觉值书写**（`srgb_hex(0xRRGGBB)`），**存储为线性**；渲染目标是 `*_SRGB`，硬件做编码
 - 强调色拆两个：`accent`（填充/边框/焦点环）与 `accent_text`（当文字，对比度更高）
 - `StyleRole` + `ControlState` 提供「语义样式」，`Theme` 的裸颜色字段仍可直接读；两者并存，对照表见 UI-11
-- **状态过渡按角色分槽**（UI-38）：`StyleTransition` 是 `std::array<StyleSlot, 8>`，每个 `StyleRole`
-  独立维护 `from/to/progress`。一个控件一帧内可安全请求多个角色（`Slider` 的 Track + Accent + Tooltip、
-  `Checkbox`/`Radio` 的 Control + Accent、`Progress` 的 Track + Accent），不会再把上一个角色的颜色
-  当成起点。主题 `revision` 变化时**所有槽**一起重建（逐槽重置，整组刷新）。
-  - 反例（UI-38 之前）：单槽共享 → Slider 轨道被染成强调色；
-    `Checkbox`/`Radio`/`Progress` 因绕不开这个问题而分别写了三套绕行方案。
+- **状态过渡按角色分槽**：`StyleTransition` 是 `std::array<StyleSlot, 12>`（`kStyleRoleCount = 12`），
+  每个 `StyleRole` 独立维护 `from/to/progress`（每槽 8 B，整块 ≈ 104 B，内嵌不堆分配）。
+  一个控件一帧内可安全请求多个角色（`Slider` 的 Track + Accent、`Checkbox`/`Radio` 的
+  Control + Accent、`Progress` 的 Track + Accent），不会再把上一个角色的颜色当成起点。
+  主题 `revision` 变化时**所有槽**一起重建（逐槽重置，整组刷新）。
+  - **不变量**：同一帧内一个 role 只能用一种 state（槽按 role 索引、不区分 state）。
+    需要两种外观时拆成两个角色（例如 `Track` 槽 + `Thumb` 滑块）。
+  - 反例：单槽共享 → Slider 轨道被染成强调色；`Track`/`Thumb` 共用角色 → 滚动条滑块看不见。
   - 验收点：`test_ui_style_snapshot`（角色不串色的语义断言 + 480×320 整幅像素哈希）
+- **绘制部件**（`style/painters.hpp`）：`paint::box` / `focus_ring` / `box_with_focus` /
+  `centered_text` 四个纯函数（零状态、零虚函数）。控件只选角色与矩形，不再手写框+边框+焦点环。
+  `LayoutNode::append_focus_ring` 只是它的转发（给“环心不是控件 bounds”的场景用）。
 - **布局字面量收口**（UI-35）：原先散在各控件里的魔法数字进了 `Theme`，并随 `with_density` 缩放——
   `dialog_margin / dialog_min_width / dialog_min_height`（DialogHost）、
   `window_min_width / window_min_extra_height / window_keep_visible`（Window）、

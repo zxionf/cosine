@@ -1,6 +1,6 @@
 # 主题令牌对照表（UI-11 / UI-39）
 
-> 范围：`src/ui/theme.hpp` 的 `Theme` 字段与其消费方。
+> 范围：`src/ui/style/theme.hpp` 的 `Theme` 字段与其消费方。
 > 规则：**每个样式令牌必须映射到 ≥1 个 `StyleRole`，或明确标注为「度量 / 策略 / 布局」。**
 > 只被赋值、无人读取的令牌视为死令牌，必须在同一任务内删除。
 
@@ -15,7 +15,7 @@
 ## 2. 样式令牌 → 角色
 
 `StyleRole` 有 12 个：`Surface` / `Control` / `Input` / `Track` / `Accent` / `Row` / `MenuItem` /
-`Tooltip` / `Chrome` / `RowSelected` / `Knob` / `Thumb`，解析实现在 `src/ui/style.hpp` 的
+`Tooltip` / `Chrome` / `RowSelected` / `Knob` / `Thumb`，解析实现在 `src/ui/style/style.hpp` 的
 `Theme::style(role, state)`。
 `ControlState` 有 5 个：`Normal` / `Hovered` / `Pressed` / `Disabled` / `Checked`（UI-40 新增）。
 
