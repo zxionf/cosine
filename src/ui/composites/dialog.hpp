@@ -27,6 +27,7 @@ class DialogHost;
 class Dialog : public Panel
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Dialog; }
     explicit Dialog(std::string title = "Dialog", float width = 420.0f)
         : Panel(0.0f, 0.0f, width, 0.0f)
     {

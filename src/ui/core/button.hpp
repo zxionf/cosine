@@ -17,6 +17,9 @@ namespace xel::ui
 class Button : public LeafNode
 {
 public:
+    // 语义（UI-52）：让通用代码不必 dynamic_cast 就知道这是按钮。
+    WidgetRole semantics_role() const override { return WidgetRole::Button; }
+    std::string_view semantics_label() const override { return label_; }
     explicit Button(std::string label, std::function<void()> handler = {})
         : label_{std::move(label)}, handler_{std::move(handler)}
     {}
@@ -24,10 +27,10 @@ public:
     void set_label(std::string label) { label_ = std::move(label); mark_layout_dirty(); }
     const std::string& label() const { return label_; }
     void set_on_click(std::function<void()> handler) { handler_ = std::move(handler); }
-    void set_enabled(bool enabled) { enabled_ = enabled; mark_layout_dirty(); }
-    bool enabled() const { return enabled_; }
+    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
+    bool enabled() const { return is_enabled(); }
     // 伪状态：用于 gallery 与测试展示 pressed 外观，不参与事件流程。
-    void set_pressed(bool pressed) { pressed_ = pressed; }
+    void set_pressed(bool pressed) { input.pressed = pressed; }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
@@ -57,7 +60,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const BoxStyle style = visual_style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
+        const BoxStyle style = visual_style(StyleRole::Control, input.state());
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const float radius = corner_radius(style.radius);
 
@@ -81,27 +84,27 @@ public:
 
     bool focusable() const override { return true; }
 
-    void on_mouse_leave() override { pressed_ = false; }
+    void on_mouse_leave() override { input.pressed = false; }
     bool on_mouse_down(glm::vec2, int) override
     {
-        if (!enabled_) return false;
-        pressed_ = true;
+        if (!is_enabled()) return false;
+        input.pressed = true;
         return true;
     }
     bool on_mouse_up(glm::vec2, int) override
     {
-        pressed_ = false;
+        input.pressed = false;
         return true;
     }
     bool on_click(glm::vec2, int) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         if (handler_) handler_();
         return true;
     }
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (enabled_ && (key == event::KeyCode::Enter || key == event::KeyCode::KeypadEnter || key == event::KeyCode::Space)) {
+        if (input.enabled && (key == event::KeyCode::Enter || key == event::KeyCode::KeypadEnter || key == event::KeyCode::Space)) {
             if (handler_) handler_();
             return true;
         }
@@ -114,8 +117,6 @@ public:
 private:
     std::string label_;
     std::function<void()> handler_;
-    bool enabled_ = true;
-    bool pressed_ = false;
     graphics::TextDebugOptions debug_{};
 };
 } // namespace xel::ui

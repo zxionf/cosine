@@ -20,6 +20,8 @@ namespace xel::ui
 class ListView : public LeafNode
 {
 public:
+    // 语义：列表类（Table / TreeView 会覆写为更具体的 role）。
+    WidgetRole semantics_role() const override { return WidgetRole::List; }
     void set_row_height(float height)
     {
         row_height_ = std::max(12.0f, height);

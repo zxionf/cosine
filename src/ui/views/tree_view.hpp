@@ -31,6 +31,7 @@ struct TreeNode
 class TreeView : public ListView
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Tree; }
     TreeView(float width = 320.0f, float height = 240.0f)
     {
         set_min_size({width, height});

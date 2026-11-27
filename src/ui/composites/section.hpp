@@ -20,6 +20,9 @@ namespace xel::ui
 class Section : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Panel; }
+    std::string_view semantics_label() const override { return title_; }
+    bool semantics_expanded() const override { return expanded_; }
     Section() : Section(std::string{})
     {
     }

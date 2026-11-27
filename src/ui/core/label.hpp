@@ -23,6 +23,8 @@ enum class TextAlign
 class Label : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Label; }
+    std::string_view semantics_label() const override { return text_; }
     explicit Label(std::string text, float size = 0.0f, glm::vec4 color = glm::vec4{0.0f})
         : text_{std::move(text)}, size_{size}, color_{color}
     {}

@@ -14,6 +14,7 @@ namespace xel::ui
 class Progress : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Progress; }
     explicit Progress(float width = 220.0f) : preferred_width_{width} {}
 
     void set_value(float value)

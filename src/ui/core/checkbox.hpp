@@ -17,6 +17,9 @@ namespace xel::ui
 class Checkbox : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::CheckBox; }
+    std::string_view semantics_label() const override { return label_; }
+    bool semantics_checkable() const override { return true; }
     explicit Checkbox(std::string label, bool checked = false,
                       std::function<void(bool)> handler = {})
         : label_{std::move(label)}, checked_{checked}, handler_{std::move(handler)}
@@ -24,7 +27,8 @@ public:
 
     void set_checked(bool checked) { checked_ = checked; }
     bool checked() const { return checked_; }
-    void set_enabled(bool enabled) { enabled_ = enabled; }
+    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
+    bool enabled() const { return is_enabled(); }
     void set_on_change(std::function<void(bool)> handler) { handler_ = std::move(handler); }
 
     glm::vec2 measure(glm::vec2 constraints) override
@@ -50,14 +54,13 @@ public:
         const float box = std::round(t.checkbox_size);
         const float bx = std::round(global_.pos.x);
         const float by = std::round(global_.pos.y + (global_.size.y - box) * 0.5f);
-        const BoxStyle control = visual_style(StyleRole::Control, control_state(enabled_, is_hovered(), pressed_));
+        const BoxStyle control = visual_style(StyleRole::Control, input.state());
         const glm::vec4 box_bounds{bx, by, box, box};
         const float radius = std::round(corner_radius(t.radius_small));
 
         // UI-40：框体走 Input 角色（与 TextInput 同为「表单框」），不再直读 checkbox_bg/border，
         // 也不再手写 is_hovered() ? accent : checkbox_border 的三元式。
-        const BoxStyle frame = visual_style(StyleRole::Input,
-                                            control_state(enabled_, is_hovered(), false));
+        const BoxStyle frame = visual_style(StyleRole::Input, input.state());
         graphics::append_rounded_rect(list, box_bounds, radius, frame.fill);
         graphics::append_rounded_ring(list, box_bounds, radius, t.border, frame.border);
 
@@ -67,8 +70,7 @@ public:
             const float marker = box - inset * 2.0f;
             // UI-38 起过渡按角色分槽，这里可以安全地再请求 Accent（不会再污染 label 的
             // Control 过渡），勾选块因此也有了颜色过渡。
-            const BoxStyle accent = visual_style(StyleRole::Accent,
-                                                 enabled_ ? ControlState::Normal : ControlState::Disabled);
+            const BoxStyle accent = visual_style(StyleRole::Accent, input.state());
             graphics::append_rounded_rect(list,
                                           {bx + inset, by + inset, marker, marker},
                                           radius * 0.5f,
@@ -87,41 +89,39 @@ public:
 
     bool focusable() const override { return true; }
 
-    void on_mouse_leave() override { pressed_ = false; }
+    void on_mouse_leave() override { input.pressed = false; }
     bool on_mouse_down(glm::vec2, int) override
     {
-        if (!enabled_) return false;
-        pressed_ = true;
+        if (!is_enabled()) return false;
+        input.pressed = true;
         return true;
     }
     bool on_mouse_up(glm::vec2, int) override
     {
-        pressed_ = false;
+        input.pressed = false;
         return true;
     }
     bool on_click(glm::vec2, int) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         checked_ = !checked_;
         if (handler_) handler_(checked_);
         return true;
     }
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (enabled_ && (key == event::KeyCode::Space || key == event::KeyCode::Enter || key == event::KeyCode::KeypadEnter)) {
+        if (input.enabled && (key == event::KeyCode::Space || key == event::KeyCode::Enter || key == event::KeyCode::KeypadEnter)) {
             checked_ = !checked_;
             if (handler_) handler_(checked_);
             return true;
         }
         return false;
     }
-    void on_focus_lost() override { pressed_ = false; Widget::on_focus_lost(); }
+    void on_focus_lost() override { input.pressed = false; Widget::on_focus_lost(); }
 
 private:
     std::string label_;
     bool checked_ = false;
-    bool enabled_ = true;
-    bool pressed_ = false;
     std::function<void(bool)> handler_;
 };
 } // namespace xel::ui

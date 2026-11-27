@@ -55,6 +55,10 @@ target_link_libraries(test_ui_visual_state PRIVATE cosine_ui)
 add_executable(test_ui_measure_cache test_ui_measure_cache.cpp)
 target_link_libraries(test_ui_measure_cache PRIVATE cosine_ui)
 
+add_executable(test_ui_architecture test_ui_architecture.cpp)
+target_link_libraries(test_ui_architecture PRIVATE cosine_ui)
+target_compile_definitions(test_ui_architecture PRIVATE COSINE_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
 add_executable(test_ui_transition test_ui_transition.cpp)
 target_link_libraries(test_ui_transition PRIVATE cosine_ui)
 
@@ -322,6 +326,7 @@ set(COSINE_TEST_TARGETS
     test_ui_tree_contract
     test_ui_visual_state
     test_ui_measure_cache
+    test_ui_architecture
     test_ui_transition
     test_ui_style_snapshot
     test_ui_pointer_events
@@ -448,6 +453,7 @@ add_test(NAME ui_state_ownership COMMAND test_ui_state_ownership)
 add_test(NAME ui_tree_contract COMMAND test_ui_tree_contract)
 add_test(NAME ui_visual_state COMMAND test_ui_visual_state)
 add_test(NAME ui_measure_cache COMMAND test_ui_measure_cache)
+add_test(NAME ui_architecture COMMAND test_ui_architecture)
 add_test(NAME ui_transition COMMAND test_ui_transition)
 add_test(NAME ui_style_snapshot COMMAND test_ui_style_snapshot)
 add_test(NAME ui_pointer_events COMMAND test_ui_pointer_events)

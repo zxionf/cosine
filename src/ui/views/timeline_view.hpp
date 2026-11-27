@@ -217,7 +217,7 @@ public:
             }
             selected_track_ = hit.track;
             selected_time_ = hit.time;
-            dragging_ = true;
+            input.dragging = true;
             primary_origin_ = hit.time;
             drag_start_time_ = time_at_x(pos.x);
             capture_drag_origins();
@@ -258,7 +258,7 @@ public:
             return true;
         }
 
-        if (!dragging_ || timeline_ == nullptr || drag_origins_.empty()) return false;
+        if (!input.dragging || timeline_ == nullptr || drag_origins_.empty()) return false;
 
         const float duration = timeline_->duration();
         // 吸附作用在主关键帧上，其余按同一 delta 跟随。
@@ -297,11 +297,11 @@ public:
 
     bool on_mouse_up(glm::vec2, int) override
     {
-        const bool handled = dragging_ || scrubbing_ || box_selecting_;
+        const bool handled = input.dragging || scrubbing_ || box_selecting_;
         if (box_selecting_) collect_box_selection();
 
         // 拖动结束：上报所有真正位移过的关键帧，由编辑器合成一条复合命令。
-        if (dragging_ && move_end_) {
+        if (input.dragging && move_end_) {
             std::vector<KeyMove> moves;
             for (const DragOrigin& entry : drag_origins_) {
                 if (std::fabs(entry.current - entry.origin) > 1.0e-4f) {
@@ -311,7 +311,7 @@ public:
             if (!moves.empty()) move_end_(moves);
         }
 
-        dragging_ = false;
+        input.dragging = false;
         scrubbing_ = false;
         box_selecting_ = false;
         drag_origins_.clear();
@@ -533,7 +533,6 @@ private:
     int selected_track_ = -1;
     float selected_time_ = 0.0f;
     scene::NodeId selected_node_ = scene::kInvalidNode;
-    bool dragging_ = false;
     bool scrubbing_ = false;
     bool box_selecting_ = false;
     glm::vec2 box_start_{0.0f, 0.0f};

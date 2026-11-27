@@ -19,6 +19,7 @@ namespace xel::ui
 class Image : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Image; }
     enum class Fit
     {
         Fill,    // 拉伸填满

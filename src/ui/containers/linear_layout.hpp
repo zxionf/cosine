@@ -19,6 +19,7 @@ namespace xel::ui
 class LinearLayout : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Panel; }
     enum class Axis
     {
         Vertical,

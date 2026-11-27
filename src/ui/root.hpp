@@ -13,6 +13,7 @@ namespace xel::ui
 class UIRoot : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Custom; }
     UIRoot(float x, float y, float width, float height);
     ~UIRoot() = default;
 

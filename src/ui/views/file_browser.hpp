@@ -43,6 +43,7 @@ inline std::string ascii_lower(std::string value)
 class FileBrowser : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::List; }
     explicit FileBrowser(glm::vec2 size = {560.0f, 372.0f})
     {
         set_size(size);

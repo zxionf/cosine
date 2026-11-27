@@ -30,6 +30,7 @@ struct TableColumn
 class Table : public ListView
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Table; }
     Table(float width = 480.0f, float height = 240.0f)
     {
         set_min_size({width, height});

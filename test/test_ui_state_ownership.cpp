@@ -59,9 +59,18 @@ void test_parts_are_inline()
     check(sizeof(ui::Widget) <= 440, "Widget stays under 440 bytes after inline transition state");
 }
 
-// 2) 状态映射与旧的自由函数完全等价。
+// 状态映射与旧的优先级规则完全等价（UI-52 后自由函数已删除，参考实现就写在这里）。
 void test_state_mapping_matches_control_state()
 {
+    // 旧 control_state() 的优先级：Disabled > Pressed > Hovered > Checked > Normal。
+    const auto reference = [](bool enabled, bool hovered, bool pressed, bool checked) {
+        if (!enabled) return ui::ControlState::Disabled;
+        if (pressed) return ui::ControlState::Pressed;
+        if (hovered) return ui::ControlState::Hovered;
+        if (checked) return ui::ControlState::Checked;
+        return ui::ControlState::Normal;
+    };
+
     int mismatches = 0;
     for (int mask = 0; mask < 16; ++mask) {
         const bool enabled = (mask & 1) != 0;
@@ -74,11 +83,11 @@ void test_state_mapping_matches_control_state()
         state.hovered = hovered;
         state.pressed = pressed;
 
-        if (state.state(checked) != ui::control_state(enabled, hovered, pressed, checked)) {
+        if (state.state(checked) != reference(enabled, hovered, pressed, checked)) {
             ++mismatches;
         }
     }
-    check(mismatches == 0, "Interaction::state() == control_state() for all 16 combinations");
+    check(mismatches == 0, "Interaction::state() == legacy priority for all 16 combinations");
 
     ui::Interaction disabled;
     disabled.enabled = false;

@@ -20,6 +20,8 @@ namespace xel::ui
 class TextInput : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::TextField; }
+    bool semantics_editable() const override { return true; }
     explicit TextInput(std::string text = {}, float preferred_width = 220.0f)
         : text_{std::move(text)}, preferred_width_{preferred_width}
     {
@@ -38,7 +40,8 @@ public:
     }
 
     const std::string& text() const { return text_; }
-    void set_enabled(bool enabled) { enabled_ = enabled; }
+    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
+    bool enabled() const { return is_enabled(); }
     void set_on_change(std::function<void(const std::string&)> handler) { handler_ = std::move(handler); }
 
     // 多行模式：Enter 换行、Up/Down 跨行、Home/End 行内跳转。
@@ -103,8 +106,7 @@ public:
         // 编辑中始终用强调色标出边框（鼠标点击进入编辑也应可见）；
         // 焦点环只在键盘操作期间叠加，两者职责不同。
         // UI-40：强调边框由 Input:Checked 表达，不再手写 is_focused() ? accent : border。
-        const BoxStyle style = visual_style(StyleRole::Input,
-                                            control_state(enabled_, is_hovered(), false, is_focused()));
+        const BoxStyle style = visual_style(StyleRole::Input, input.state(is_focused()));
         const float radius = corner_radius(style.radius);
         graphics::append_rounded_rect(list, bounds, radius, style.fill);
 
@@ -128,17 +130,17 @@ public:
 
     bool on_mouse_down(glm::vec2 pos, int) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         cursor_ = index_from_point(pos);
         anchor_ = cursor_;
-        dragging_ = true;
+        input.dragging = true;
         mark_layout_dirty();
         return true;
     }
 
     bool on_mouse_move(glm::vec2 pos) override
     {
-        if (!dragging_) return false;
+        if (!input.dragging) return false;
         cursor_ = index_from_point(pos);
         mark_layout_dirty();
         return true;
@@ -146,13 +148,13 @@ public:
 
     bool on_mouse_up(glm::vec2, int) override
     {
-        dragging_ = false;
+        input.dragging = false;
         return true;
     }
 
     bool on_char(char32_t codepoint) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         if (codepoint == U'\n') {
             if (!multiline_) return false;
             replace_selection("\n");
@@ -165,7 +167,7 @@ public:
 
     bool on_key_down(event::KeyCode key, event::Modifier mods) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
 
         const bool shift = event::has_modifier(mods, event::Modifier::Shift);
         const bool ctrl = event::has_modifier(mods, event::Modifier::Control);
@@ -235,7 +237,7 @@ public:
         }
     }
 
-    void on_focus_lost() override { dragging_ = false; Widget::on_focus_lost(); }
+    void on_focus_lost() override { input.dragging = false; Widget::on_focus_lost(); }
 
 private:
     float line_height() const
@@ -336,8 +338,7 @@ private:
     {
         const auto& t = ui_theme();
         // UI-40：文字色取 Input 角色（已按 Disabled 切换），不再直读 t.text / t.text_disabled。
-        const BoxStyle text_style = visual_style(
-            StyleRole::Input, control_state(enabled_, is_hovered(), false, is_focused()));
+        const BoxStyle text_style = visual_style(StyleRole::Input, input.state(is_focused()));
         auto* atlas = font_atlas();
         // 用字体行高而不是字号来垂直居中；不要再 max(pad, ...)，
         // 否则行高小于可用高度时会被推到偏下的位置。
@@ -384,8 +385,7 @@ private:
     void draw_multi_line(graphics::DrawList& list, float font_size, float pad, float line) const
     {
         const auto& t = ui_theme();
-        const BoxStyle text_style = visual_style(
-            StyleRole::Input, control_state(enabled_, is_hovered(), false, is_focused()));
+        const BoxStyle text_style = visual_style(StyleRole::Input, input.state(is_focused()));
         auto* atlas = font_atlas();
         const std::size_t lines = line_count();
         const std::size_t cursor_line = line_of(cursor_);
@@ -544,8 +544,6 @@ private:
     float preferred_width_ = 220.0f;
     float max_height_ = 0.0f;
     bool multiline_ = false;
-    bool enabled_ = true;
-    bool dragging_ = false;
     mutable float scroll_offset_ = 0.0f;
     mutable float scroll_y_ = 0.0f;
     std::function<void(const std::string&)> handler_;

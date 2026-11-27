@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 67,
+      "skipped_count": 68,
       "status": "paused",
       "steps": [
         {
@@ -4991,41 +4991,41 @@
           "desc": "目录按 geom/layout/tree/input/style/node/semantics/widgets/containers/composites/system 分层（git mv 单独提交）",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T09:11:09Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "D1–D4 依赖规则由测试断言守住",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T09:11:09Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "43 个控件实现 semantics()，enabled/pressed/dragging/selected 收敛到 Interaction",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T09:11:09Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "grep 'bool enabled_' src/ui == 0；grep 'control_state(' src/ui == 0",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T09:11:09Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "单文件 ≤250 行；ctest 全绿",
           "id": "A5",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T09:11:09Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -5046,7 +5046,7 @@
           "uid": "tsk_01M8DY34YQJ4H9YGPRC4KJD9DG"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-27T09:11:13Z",
       "goal": "UI-52 目录重组 + Semantics 旁挂 + 依赖规则可断言",
       "id": "T47",
       "line": "ui",
@@ -5060,8 +5060,53 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
-      "steps": [],
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 新增 Semantics（WidgetRole + 派生投影）并让 43 控件声明 role"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 状态收敛：enabled/pressed/dragging 进 Interaction，删除 control_state 自由函数"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 新增 test_ui_architecture（D1-D4 依赖规则 + K2/K3/K5 指标断言）"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 全量验证：ctest + 快照 + 冒烟 + 指标看板"
+        }
+      ],
       "title": "UI-52 目录重组 + Semantics 旁挂 + 依赖规则可断言",
       "uid": "tsk_01M8DY3A2DG557A94VJC8BDBTQ"
     }

@@ -21,6 +21,7 @@ namespace xel::ui
 class TabView : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::TabView; }
     TabView()
     {
         auto bar = std::make_unique<TabBar>();

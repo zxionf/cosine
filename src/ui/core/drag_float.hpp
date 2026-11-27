@@ -20,6 +20,9 @@ namespace xel::ui
 class DragFloat : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::TextField; }
+    bool semantics_editable() const override { return true; }
+    std::string_view semantics_label() const override { return label_; }
     explicit DragFloat(std::string label = {}, float width = 150.0f)
         : label_(std::move(label)), preferred_width_(width)
     {}
@@ -36,8 +39,8 @@ public:
 
     void set_precision(int digits) { precision_ = std::clamp(digits, 0, 6); }
     void set_suffix(std::string suffix) { suffix_ = std::move(suffix); }
-    void set_enabled(bool enabled) { enabled_ = enabled; }
-    bool enabled() const { return enabled_; }
+    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
+    bool enabled() const { return is_enabled(); }
 
     void set_value(float value)
     {
@@ -66,14 +69,8 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        ControlState state = ControlState::Normal;
-        if (!enabled_) {
-            state = ControlState::Disabled;
-        } else if (dragging_) {
-            state = ControlState::Pressed;
-        } else if (is_hovered()) {
-            state = ControlState::Hovered;
-        }
+        // UI-52：拖动 = Pressed，其余状态统一走 Interaction。
+        const ControlState state = input.state();
 
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const BoxStyle style = visual_style(StyleRole::Input, state);
@@ -92,7 +89,7 @@ public:
         const float pad = std::max(4.0f, t.padding * 0.5f);
         // UI-40：文字色统一取 style.text（已按 Disabled 切换），不再直读 t.text / t.text_disabled。
         const glm::vec4 label_color = style.text;
-        const glm::vec4 value_color = dragging_ && enabled_ ? t.accent_text : style.text;
+        const glm::vec4 value_color = input.dragging && is_enabled() ? t.accent_text : style.text;
 
         float x = global_.pos.x + pad;
         if (!label_.empty()) {
@@ -110,8 +107,8 @@ public:
 
     bool on_mouse_down(glm::vec2 pos, int) override
     {
-        if (!enabled_) return false;
-        dragging_ = true;
+        if (!is_enabled()) return false;
+        input.dragging = true;
         drag_start_x_ = pos.x;
         drag_start_value_ = value_;
         if (drag_begin_) drag_begin_();
@@ -120,7 +117,7 @@ public:
 
     bool on_mouse_move(glm::vec2 pos) override
     {
-        if (!dragging_) return false;
+        if (!input.dragging) return false;
         const float per_pixel = step_per_pixel();
         set_value(drag_start_value_ + (pos.x - drag_start_x_) * per_pixel);
         notify();
@@ -129,15 +126,15 @@ public:
 
     bool on_mouse_up(glm::vec2, int) override
     {
-        const bool was_dragging = dragging_;
-        dragging_ = false;
+        const bool was_dragging = input.dragging;
+        input.dragging = false;
         if (was_dragging && drag_end_) drag_end_();
         return was_dragging;
     }
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         const float delta =
             step_ > 0.0f ? step_ : std::max(1.0e-4f, (max_value_ - min_value_) / 100.0f);
         if (key == event::KeyCode::Left || key == event::KeyCode::Down) {
@@ -161,7 +158,7 @@ public:
 
     void on_focus_lost() override
     {
-        dragging_ = false;
+        input.dragging = false;
         Widget::on_focus_lost();
     }
 
@@ -195,8 +192,6 @@ private:
     float value_ = 0.0f;
     float step_ = 0.0f;
     int precision_ = 1;
-    bool enabled_ = true;
-    bool dragging_ = false;
     float drag_start_x_ = 0.0f;
     float drag_start_value_ = 0.0f;
     std::function<void(float)> handler_;

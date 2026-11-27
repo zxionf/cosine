@@ -21,6 +21,9 @@ namespace xel::ui
 class ColorInput : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::TextField; }
+    bool semantics_editable() const override { return true; }
+    std::string_view semantics_label() const override { return label_; }
     explicit ColorInput(std::string label = {}, float width = 250.0f)
         : label_(std::move(label)), preferred_width_(width)
     {
@@ -40,8 +43,8 @@ public:
 
     glm::vec4 value() const { return color_; }
 
-    void set_enabled(bool enabled) { enabled_ = enabled; }
-    bool enabled() const { return enabled_; }
+    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
+    bool enabled() const { return is_enabled(); }
 
     void set_on_change(std::function<void(glm::vec4)> handler) { handler_ = std::move(handler); }
     // 选中色块：上报 (before, after)，供编辑器生成一条撤销命令。
@@ -64,12 +67,8 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        ControlState state = ControlState::Normal;
-        if (!enabled_) {
-            state = ControlState::Disabled;
-        } else if (is_hovered()) {
-            state = ControlState::Hovered;
-        }
+        // UI-52：状态映射不再手写，统一走 Interaction::state()。
+        const ControlState state = input.state();
 
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const BoxStyle style = visual_style(StyleRole::Input, state);
@@ -96,7 +95,7 @@ public:
             graphics::append_rounded_rect(list, rect, swatch_radius, palette_[i]);
             if (same_color(palette_[i], color_)) {
                 graphics::append_rounded_ring(list, rect, swatch_radius, 2.0f,
-                                              enabled_ ? t.accent : t.text_disabled);
+                                              input.enabled ? t.accent : t.text_disabled);
             }
         }
 
@@ -119,7 +118,7 @@ public:
 
     bool on_mouse_down(glm::vec2 pos, int) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         const int index = swatch_hit(pos);
         if (index < 0) return false;
 
@@ -132,7 +131,7 @@ public:
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (!enabled_ || palette_.empty()) return false;
+        if (!is_enabled() || palette_.empty()) return false;
 
         int current = -1;
         for (std::size_t i = 0; i < palette_.size(); ++i) {
@@ -230,7 +229,6 @@ private:
     glm::vec4 color_{1.0f, 1.0f, 1.0f, 1.0f};
     std::string label_;
     float preferred_width_ = 250.0f;
-    bool enabled_ = true;
     std::function<void(glm::vec4)> handler_;
     std::function<void(glm::vec4, glm::vec4)> commit_;
 };

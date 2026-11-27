@@ -8,6 +8,7 @@
 #include "ui/layout_metrics.hpp"
 #include "ui/layout_params.hpp"
 #include "ui/measure_cache.hpp"
+#include "ui/semantics.hpp"
 #include "ui/style_types.hpp"
 #include "ui/visual_state.hpp"
 #include "events/key_code.hpp"
@@ -146,6 +147,34 @@ public:
         children_.clear();
         mark_layout_dirty();
     }
+
+    // 语义投影（UI-52）：派生视图，不存第二份真值。
+    // 除 role/label 这类控件常量外，状态一律从 Interaction 现读；子类只需覆写 semantics_role/label。
+    // 命名带 semantics_ 前缀：Widget 已有控件自己的 role()（如 typography.hpp 的 Heading::role()）。
+    virtual WidgetRole semantics_role() const { return WidgetRole::Custom; }
+    virtual std::string_view semantics_label() const { return {}; }
+    virtual bool semantics_checkable() const { return false; }
+    virtual bool semantics_editable() const { return false; }
+    virtual bool semantics_expanded() const { return false; }
+
+    Semantics semantics() const
+    {
+        Semantics s;
+        s.role = semantics_role();
+        s.label = semantics_label();
+        s.enabled = input.enabled;
+        s.focused = input.focused;
+        s.selected = input.selected;
+        s.checkable = semantics_checkable();
+        s.expanded = semantics_expanded();
+        s.editable = semantics_editable();
+        return s;
+    }
+
+    // 禁用语义（UI-52）：以前 8 个控件各自持有一个 bool enabled_，
+    // 于是“禁用”无法被通用代码查询，也无法保证每个新控件都映射到 Disabled 样式状态。
+    bool is_enabled() const { return input.enabled; }
+    virtual void set_enabled(bool enabled) { input.enabled = enabled; mark_layout_dirty(); }
 
     // 唯一合法的子项挂载入口：设 parent / context 并加入 children_。
     // 派生类不要再直接 children_.push_back —— 漏设 parent 会让事件冒泡链断掉。

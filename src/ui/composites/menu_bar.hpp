@@ -111,6 +111,7 @@ private:
 class MenuPopup : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Menu; }
     MenuPopup(MenuBar& owner, float width, float height)
         : owner_{&owner}
     {
@@ -186,6 +187,7 @@ const std::vector<MenuItem>& menu_items(const MenuBar& bar, int index);
 class MenuBar : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Menu; }
     MenuBar() = default;
 
     int add_menu(std::string title, std::vector<MenuItem> items)

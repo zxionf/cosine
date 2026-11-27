@@ -45,16 +45,8 @@ inline float ease_out_quad(float t)
     return 1.0f - k * k;
 }
 
-// 唯一的交互状态派生入口：控件不得再自己写 if 链决定用哪套颜色。
-// `checked` 用于「已选 / 正在拖」这类需要和 hover 并列表达的状态（UI-40 新增）。
-inline ControlState control_state(bool enabled, bool hovered, bool pressed, bool checked = false)
-{
-    if (!enabled) return ControlState::Disabled;
-    if (pressed)  return ControlState::Pressed;
-    if (hovered)  return ControlState::Hovered;
-    if (checked)  return ControlState::Checked;
-    return ControlState::Normal;
-}
+// 交互状态 → 样式状态：唯一入口已移到 Interaction::state()（UI-52）。
+// 保留这段注释是为了让后来者明白“为什么这里不应再出现 if 链”。
 
 inline BoxStyle Theme::style(StyleRole role, ControlState state) const
 {

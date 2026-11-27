@@ -29,6 +29,8 @@ namespace xel::ui
 class Window : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Dialog; }
+    std::string_view semantics_label() const override { return title_; }
     // 标题栏最小高度：实际值由 chrome() 按字体行高与主题 padding 派生，不低于此值。
     static constexpr float kDefaultTitleHeight = 16;
 

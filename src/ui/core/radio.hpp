@@ -17,6 +17,9 @@ namespace xel::ui
 class Radio : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Radio; }
+    std::string_view semantics_label() const override { return label_; }
+    bool semantics_checkable() const override { return true; }
     explicit Radio(std::string label, bool selected = false,
                    std::function<void()> handler = {})
         : label_{std::move(label)}, selected_{selected}, handler_{std::move(handler)}
@@ -35,7 +38,8 @@ public:
     }
 
     void set_on_select(std::function<void()> handler) { handler_ = std::move(handler); }
-    void set_enabled(bool enabled) { enabled_ = enabled; }
+    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
+    bool enabled() const { return is_enabled(); }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {
@@ -58,14 +62,13 @@ public:
         const float box = t.checkbox_size;
         const float bx = global_.pos.x;
         const float by = global_.pos.y + (global_.size.y - box) * 0.5f;
-        const BoxStyle control = visual_style(StyleRole::Control, control_state(enabled_, is_hovered(), false));
+        const BoxStyle control = visual_style(StyleRole::Control, input.state());
         const glm::vec4 box_bounds{bx, by, box, box};
         // 单选标记：modern 为圆形（radius_pill 被 clamp 到半宽），classic 为方形。
         const float radius = corner_radius(t.radius_pill);
 
         // UI-40：框体走 Input 角色（与 Checkbox 一致），不再直读 checkbox_bg/border。
-        const BoxStyle frame = visual_style(StyleRole::Input,
-                                            control_state(enabled_, is_hovered(), false));
+        const BoxStyle frame = visual_style(StyleRole::Input, input.state());
         graphics::append_rounded_rect(list, box_bounds, radius, frame.fill);
         graphics::append_rounded_ring(list, box_bounds, radius, t.border, frame.border);
 
@@ -75,8 +78,7 @@ public:
             const float cy = by + box * 0.5f;
             const float r = box * 0.28f;
             // UI-38 起过渡按角色分槽，这里可以安全地再请求 Accent（不再污染 label 的 Control 过渡）。
-            const BoxStyle accent = visual_style(StyleRole::Accent,
-                                                 enabled_ ? ControlState::Normal : ControlState::Disabled);
+            const BoxStyle accent = visual_style(StyleRole::Accent, input.state());
             const glm::vec4 marker = accent.fill;
             graphics::Triangle upper{cx, cy - r, cx + r, cy, cx, cy + r, marker};
             graphics::Triangle lower{cx, cy - r, cx - r, cy, cx, cy + r, marker};
@@ -98,13 +100,13 @@ public:
 
     bool on_click(glm::vec2, int) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         select();
         return true;
     }
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         if (key == event::KeyCode::Space || key == event::KeyCode::Enter || key == event::KeyCode::KeypadEnter) {
             select();
             return true;
@@ -116,7 +118,6 @@ public:
 private:
     std::string label_;
     bool selected_ = false;
-    bool enabled_ = true;
     std::function<void()> handler_;
 };
 } // namespace xel::ui

@@ -14,6 +14,7 @@ namespace xel::ui
 class RadioGroup : public Vbox
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Radio; }
     explicit RadioGroup(float width = 200.0f)
         : Vbox(0.0f, 0.0f, width, 0.0f)
     {

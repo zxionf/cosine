@@ -60,14 +60,22 @@ void assert_inside(const graphics::DrawList& list, glm::vec4 rect)
 void test_control_state()
 {
     using ui::ControlState;
-    using ui::control_state;
 
-    assert(control_state(true, false, false) == ControlState::Normal);
-    assert(control_state(true, true, false) == ControlState::Hovered);
-    assert(control_state(true, true, true) == ControlState::Pressed);
-    // 优先级：Disabled > Pressed > Hovered > Normal。
-    assert(control_state(false, true, true) == ControlState::Disabled);
-    assert(control_state(true, false, true) == ControlState::Pressed);
+    // UI-52：状态映射唯一入口是 Interaction::state()（自由函数 control_state 已删除）。
+    const auto state_of = [](bool enabled, bool hovered, bool pressed, bool checked = false) {
+        ui::Interaction state;
+        state.enabled = enabled;
+        state.hovered = hovered;
+        state.pressed = pressed;
+        return state.state(checked);
+    };
+    assert(state_of(true, false, false) == ControlState::Normal);
+    assert(state_of(true, true, false) == ControlState::Hovered);
+    assert(state_of(true, true, true) == ControlState::Pressed);
+    // 优先级：Disabled > Pressed > Hovered > Checked > Normal。
+    assert(state_of(false, true, true) == ControlState::Disabled);
+    assert(state_of(true, false, true) == ControlState::Pressed);
+    assert(state_of(true, false, false, true) == ControlState::Checked);
 }
 
 void test_style_roles()

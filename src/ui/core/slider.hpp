@@ -17,6 +17,7 @@ namespace xel::ui
 class Slider : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Slider; }
     explicit Slider(float width = 180.0f)
         : preferred_width_{width}
     {}
@@ -41,7 +42,8 @@ public:
 
     float value() const { return value_; }
     void set_step(float step) { step_ = step; set_value(value_); }
-    void set_enabled(bool enabled) { enabled_ = enabled; }
+    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
+    bool enabled() const { return is_enabled(); }
     void set_on_change(std::function<void(float)> handler) { handler_ = std::move(handler); }
 
     glm::vec2 measure(glm::vec2 constraints) override
@@ -65,26 +67,24 @@ public:
 
         const float track_y = center_y - t.slider_height * 0.5f;
         const float draw_radius = corner_radius(t.radius_pill);
-        const BoxStyle track_style = visual_style(StyleRole::Track,
-                                                  control_state(enabled_, is_hovered(), false));
+        const BoxStyle track_style = visual_style(StyleRole::Track, input.state());
         graphics::append_rounded_rect(list, {track_x, track_y, track_w, t.slider_height}, track_radius, track_style.fill);
 
         const float range = std::max(1e-6f, max_value_ - min_value_);
         const float norm = std::clamp((value_ - min_value_) / range, 0.0f, 1.0f);
         const float fill_w = track_w * norm;
         if (fill_w > 0.0f) {
-            const BoxStyle fill_style = visual_style(StyleRole::Accent, control_state(enabled_, false, false));
+            const BoxStyle fill_style = visual_style(StyleRole::Accent, input.state());
             graphics::append_rounded_rect(list, {track_x, track_y, fill_w, t.slider_height}, track_radius, fill_style.fill);
         }
 
         const glm::vec4 handle_bounds{track_x + fill_w - radius, center_y - radius, radius * 2.0f, radius * 2.0f};
         // UI-40：手柄走 Knob 角色（拖动 = Checked 态），不再手写 mix_color(handle, accent)。
-        const BoxStyle handle_style = visual_style(
-            StyleRole::Knob, control_state(enabled_, is_hovered(), false, dragging_));
+        const BoxStyle handle_style = visual_style(StyleRole::Knob, input.state(input.dragging));
         graphics::append_rounded_rect(list, handle_bounds, draw_radius, handle_style.fill);
 
         // 拖动反馈：手柄外圈一条强调色环（不依赖 FocusPolicy，仅表示正在拖拽）。
-        if (dragging_ && enabled_) {
+        if (input.dragging && is_enabled()) {
             graphics::append_rounded_ring(list,
                                           {handle_bounds.x - 1.0f, handle_bounds.y - 1.0f,
                                            handle_bounds.z + 2.0f, handle_bounds.w + 2.0f},
@@ -94,7 +94,7 @@ public:
         append_focus_ring(list, handle_bounds, draw_radius);
 
         // 拖动中的数值气泡：clamp 在控件内，避开父级裁剪。
-        if (dragging_ && enabled_) {
+        if (input.dragging && is_enabled()) {
             if (auto* atlas = font_atlas()) {
                 const std::string text = step_ >= 1.0f
                     ? std::format("{:.0f}", value_)
@@ -132,25 +132,25 @@ public:
 
     bool on_mouse_down(glm::vec2 pos, int) override
     {
-        if (!enabled_) return false;
-        dragging_ = true;
+        if (!is_enabled()) return false;
+        input.dragging = true;
         update_from_pos(pos);
         return true;
     }
     bool on_mouse_move(glm::vec2 pos) override
     {
-        if (!dragging_) return false;
+        if (!input.dragging) return false;
         update_from_pos(pos);
         return true;
     }
     bool on_mouse_up(glm::vec2, int) override
     {
-        dragging_ = false;
+        input.dragging = false;
         return true;
     }
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         const float range = max_value_ - min_value_;
         const float delta = step_ > 0.0f ? step_ : range * 0.01f;
         if (key == event::KeyCode::Left || key == event::KeyCode::Down) {
@@ -175,7 +175,7 @@ public:
         }
         return false;
     }
-    void on_focus_lost() override { dragging_ = false; Widget::on_focus_lost(); }
+    void on_focus_lost() override { input.dragging = false; Widget::on_focus_lost(); }
 
 private:
     void update_from_pos(glm::vec2 pos)
@@ -199,8 +199,6 @@ private:
     float max_value_ = 1.0f;
     float value_ = 0.0f;
     float step_ = 0.0f;
-    bool enabled_ = true;
-    bool dragging_ = false;
     std::function<void(float)> handler_;
 };
 } // namespace xel::ui

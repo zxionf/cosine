@@ -16,6 +16,7 @@ namespace xel::ui
 class Splitter : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Splitter; }
     enum class Orientation { Horizontal, Vertical };
 
     Splitter(float width, float height, Orientation orientation = Orientation::Horizontal)
@@ -157,9 +158,8 @@ public:
         const float h = orientation_ == Orientation::Horizontal ? global_.size.y : handle;
 
         // 手柄：常态用主题的 splitter 色（比面板亮一档），hover 提亮，拖动变强调色。
-        // UI-40：状态统一由 control_state 推导，不再手写 is_hovered() 三元式；
-        // 拖动（Pressed）用 accent 半透明，与旧观感一致。
-        const ControlState bar_state = control_state(true, is_hovered(), dragging_);
+        // UI-52：状态统一由 Interaction 推导（拖 = Pressed，hover = Hovered）。
+        const ControlState bar_state = Interaction{true, is_hovered(), input.dragging}.state();
         const BoxStyle bar_style = visual_style(StyleRole::Control, bar_state);
         glm::vec4 bar_color = t.splitter;
         if (bar_state == ControlState::Pressed) {
@@ -170,7 +170,7 @@ public:
         const float bar_radius = corner_radius(t.radius_small);
         graphics::append_rounded_rect(list, {x, y, w, h}, bar_radius, bar_color);
         // 拖动反馈：描边强调色细环。
-        if (dragging_) {
+        if (input.dragging) {
             graphics::append_rounded_ring(list, {x, y, w, h}, bar_radius, 1.0f, t.accent);
         }
 
@@ -187,13 +187,13 @@ public:
     bool on_mouse_down(glm::vec2 pos, int) override
     {
         if (!handle_rect().contains(pos)) return false;
-        dragging_ = true;
+        input.dragging = true;
         return true;
     }
 
     bool on_mouse_move(glm::vec2 pos) override
     {
-        if (!dragging_) return false;
+        if (!input.dragging) return false;
         const float handle = handle_size();
         if (orientation_ == Orientation::Horizontal) {
             const float usable = std::max(1.0f, global_.size.x - handle);
@@ -207,7 +207,7 @@ public:
 
     bool on_mouse_up(glm::vec2, int) override
     {
-        dragging_ = false;
+        input.dragging = false;
         return true;
     }
 
@@ -276,6 +276,5 @@ private:
     float fixed_second_ = -1.0f;
     float preferred_width_ = 400.0f;
     float preferred_height_ = 300.0f;
-    bool dragging_ = false;
 };
 } // namespace xel::ui

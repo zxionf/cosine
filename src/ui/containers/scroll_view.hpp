@@ -10,6 +10,7 @@ namespace xel::ui
 {
 class ScrollView : public Widget {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::ScrollView; }
     enum class Axis { Vertical, Horizontal, Both };
 
     ScrollView();

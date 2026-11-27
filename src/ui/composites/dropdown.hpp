@@ -25,6 +25,7 @@ namespace detail
 class DropdownList : public Widget
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::List; }
     DropdownList(Dropdown& owner, float width, float height) : owner_{&owner}
     {
         set_min_size({width, height});
@@ -154,16 +155,18 @@ public:
     {
         const auto& t = ui_theme();
         const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
-        const BoxStyle style = visual_style(StyleRole::Control,
-                                            control_state(enabled_, is_hovered() || is_open(), pressed_));
+        // 展开/hover 都算作 Hovered；展开或聚焦走 Input:Checked（与 TextInput 同口径）。
+        const bool active = is_hovered() || is_open();
+        const BoxStyle style = visual_style(
+            StyleRole::Control, Interaction{input.enabled, active, input.pressed}.state());
         const float radius = corner_radius(style.radius);
 
         graphics::append_rounded_rect(list, bounds, radius, style.fill);
         // 编辑/展开中始终强调边框；焦点环只在 focus_policy 允许时叠加。
         // UI-40：强调边框由 Input:Checked 表达（与 TextInput 同口径），不手写三元式。
-        const BoxStyle frame = visual_style(StyleRole::Input,
-                                            control_state(enabled_, is_hovered() || is_open(), false,
-                                                          is_focused()));
+        const BoxStyle frame = visual_style(
+            StyleRole::Input,
+            Interaction{input.enabled, active, false, false, false, is_focused()}.state(true));
         if (t.border > 0.0f) {
             graphics::append_rounded_ring(list, bounds, radius, t.border, frame.border);
         }
@@ -188,24 +191,24 @@ public:
     bool focusable() const override { return true; }
     bool hit_testable() const override { return true; }
 
-    void on_mouse_leave() override { pressed_ = false; }
+    void on_mouse_leave() override { input.pressed = false; }
     bool on_mouse_down(glm::vec2, int button) override
     {
-        if (!enabled_ || button != 0) return false;
-        pressed_ = true;
+        if (!is_enabled() || button != 0) return false;
+        input.pressed = true;
         if (is_open()) close();
         else open();
         return true;
     }
     bool on_mouse_up(glm::vec2, int) override
     {
-        pressed_ = false;
+        input.pressed = false;
         return true;
     }
 
     bool on_key_down(event::KeyCode key, event::Modifier) override
     {
-        if (!enabled_) return false;
+        if (!is_enabled()) return false;
         if (!is_open()) {
             if (key == event::KeyCode::Space || key == event::KeyCode::Enter
                 || key == event::KeyCode::KeypadEnter || key == event::KeyCode::Down) {
@@ -296,8 +299,6 @@ private:
     std::vector<std::string> options_;
     int selected_ = -1;
     int highlight_ = 0;
-    bool enabled_ = true;
-    bool pressed_ = false;
     detail::DropdownList* popup_ = nullptr;
     ui::Scrim* scrim_ = nullptr;
     std::function<void(int)> on_change_;

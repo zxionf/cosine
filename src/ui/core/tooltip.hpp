@@ -15,6 +15,7 @@ namespace xel::ui
 class Tooltip : public LeafNode
 {
 public:
+    WidgetRole semantics_role() const override { return WidgetRole::Tooltip; }
     explicit Tooltip(std::string text = {})
         : text_{std::move(text)}
     {
