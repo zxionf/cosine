@@ -31,3 +31,8 @@ target/
 
 # clion
 cmake-build-debug/
+
+# 测试在 cwd 写出的快照图（ctest 跑在 build/ 下，从仓库根直接跑会落到这里）
+/style_snapshot.png
+/style_snapshot_light.png
+/table_snapshot.png
