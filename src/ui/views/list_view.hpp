@@ -5,7 +5,7 @@
 #include "ui/scroll_state.hpp"
 #include "ui/style.hpp"
 #include "ui/theme.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -17,7 +17,7 @@ namespace xel::ui
 {
 // 行列表的行为基元：滚动、选中、键盘、可见行计算。
 // 子类只实现「有多少行」和「怎么画一行」，多列/缩进/文件系统语义都留在子类。
-class ListView : public Widget
+class ListView : public LeafNode
 {
 public:
     void set_row_height(float height)
@@ -62,15 +62,7 @@ public:
     void append_to(graphics::DrawList&) const override {}
 
     // 子类决定尺寸来源（Table 用 min_size，TreeView 用 min/max）。
-    glm::vec2 measure(glm::vec2 constraints) override
-    {
-        (void)constraints;
-        return clamp_size(preferred_size());
-    }
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
+    // 默认（首选尺寸 + clamp）由 LeafNode 提供（UI-47）。
 
     bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
     {

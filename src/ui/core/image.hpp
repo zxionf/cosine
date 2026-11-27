@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui/theme.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/box.hpp"
 #include "graphics/line.hpp"
 #include "graphics/sprite.hpp"
@@ -16,7 +16,7 @@ namespace xel::ui
 {
 // 图像控件：texture_id 非 0 时按 fit 绘制真实纹理（直角、可选底板/边框），
 // 为 0 时画占位（圆角底色 + 边框 + 对角交叉 + 居中文案）。
-class Image : public Widget
+class Image : public LeafNode
 {
 public:
     enum class Fit
@@ -120,16 +120,6 @@ public:
         return "image";
     }
 
-    glm::vec2 measure(glm::vec2 constraints) override
-    {
-        (void)constraints;
-        return clamp_size(preferred_size());
-    }
-
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

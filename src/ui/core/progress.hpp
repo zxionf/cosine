@@ -2,7 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/box.hpp"
 
 #include <algorithm>
@@ -11,7 +11,7 @@
 namespace xel::ui
 {
 // 进度条：0..1 的确定进度，颜色跟随主题。
-class Progress : public Widget
+class Progress : public LeafNode
 {
 public:
     explicit Progress(float width = 220.0f) : preferred_width_{width} {}
@@ -42,10 +42,6 @@ public:
         return {preferred_width_, std::max(t.slider_height * 2.0f, 10.0f)};
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

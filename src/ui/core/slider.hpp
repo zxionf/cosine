@@ -2,7 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/box.hpp"
 
 #include <algorithm>
@@ -14,7 +14,7 @@
 
 namespace xel::ui
 {
-class Slider : public Widget
+class Slider : public LeafNode
 {
 public:
     explicit Slider(float width = 180.0f)
@@ -52,10 +52,6 @@ public:
         return {preferred_width_, height};
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

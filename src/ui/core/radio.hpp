@@ -2,7 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
 #include "graphics/triangle.hpp"
@@ -14,7 +14,7 @@
 namespace xel::ui
 {
 // 单选按钮：选中时显示菱形标记，与 Checkbox 的方形标记区分。
-class Radio : public Widget
+class Radio : public LeafNode
 {
 public:
     explicit Radio(std::string label, bool selected = false,
@@ -51,10 +51,6 @@ public:
         };
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

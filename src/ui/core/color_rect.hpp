@@ -1,11 +1,11 @@
 #pragma once
 
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/rectangle.hpp"
 
 namespace xel::ui
 {
-class ColorRect : public Widget
+class ColorRect : public LeafNode
 {
 public:
     ColorRect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)
@@ -33,16 +33,6 @@ public:
         rectangle.append_to(list);
     }
 
-    glm::vec2 measure(glm::vec2 constraints) override
-    {
-        (void)constraints;
-        return clamp_size(preferred_size());
-    }
-
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void on_mouse_enter() override
     {

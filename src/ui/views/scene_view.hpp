@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "anim/scene.hpp"
 #include "graphics/box.hpp"
 #include "graphics/rectangle.hpp"
@@ -14,7 +14,7 @@ namespace xel::ui
 // 把 scene::Scene 渲染成 DrawList 指令的控件。
 // 目前支持：Group（仅 transform）、Shape（矩形 / 椭圆）、Text、Image（纹理 / 色块回退）。
 // rotation 作用于矩形、旋转四边形；椭圆与文字暂不参与旋转。
-class SceneView : public Widget
+class SceneView : public LeafNode
 {
 public:
     explicit SceneView(scene::Scene* scene = nullptr) : scene_(scene) {}
@@ -40,10 +40,6 @@ public:
         return clamp_size(preferred_size());
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

@@ -2,7 +2,7 @@
 
 #include "ui/style.hpp"
 #include "ui/theme.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/box.hpp"
 #include "graphics/rectangle.hpp"
 
@@ -17,7 +17,7 @@ namespace xel::ui
 // 预览区底部的时间标尺（M6.4b）：刻度 + 读秒 + 播放头。
 // 语义与时间轴标尺一致（点击 / 拖动即 seek），但这里只表达总进度，
 // 单位是「占整个 duration 的比例」，因此不需要像素每秒，窗口缩放自适应。
-class PreviewRuler : public Widget
+class PreviewRuler : public LeafNode
 {
 public:
     void set_duration(float seconds)
@@ -39,10 +39,6 @@ public:
         return clamp_size({width, kHeight});
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     bool on_mouse_down(glm::vec2 pos, int) override
     {

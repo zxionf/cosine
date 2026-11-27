@@ -2,7 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
 
@@ -14,7 +14,7 @@
 
 namespace xel::ui
 {
-class Checkbox : public Widget
+class Checkbox : public LeafNode
 {
 public:
     explicit Checkbox(std::string label, bool checked = false,
@@ -41,10 +41,6 @@ public:
         };
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

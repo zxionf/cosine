@@ -65,19 +65,19 @@ public:
 
     graphics::TextureSlot texture_slot() const override { return graphics::TextureSlot::Texture; }
 
-    virtual float x()       const { return local_.pos.x; }
-    virtual float y()       const { return local_.pos.y; }
-    virtual float width()   const { return local_.size.x; }
-    virtual float height()  const { return local_.size.y; }
+    float x()       const { return local_.pos.x; }
+    float y()       const { return local_.pos.y; }
+    float width()   const { return local_.size.x; }
+    float height()  const { return local_.size.y; }
 
     Rect local_bounds()  const { return local_; }
     Rect global_bounds() const { return global_; }
 
-    virtual void set_pos(float x, float y) { local_.pos = {x, y}; mark_layout_dirty(); }
-    virtual void set_size(float width, float height) { local_.size = {width, height}; mark_layout_dirty(); }
-    virtual void set_pos(glm::vec2 pos) { local_.pos = pos; mark_layout_dirty(); }
-    virtual void set_size(glm::vec2 size) { local_.size = size; mark_layout_dirty(); }
-    virtual void set_global_bounds(Rect bounds) { global_ = bounds; }
+    void set_pos(float x, float y) { local_.pos = {x, y}; mark_layout_dirty(); }
+    void set_size(float width, float height) { local_.size = {width, height}; mark_layout_dirty(); }
+    void set_pos(glm::vec2 pos) { local_.pos = pos; mark_layout_dirty(); }
+    void set_size(glm::vec2 size) { local_.size = size; mark_layout_dirty(); }
+    void set_global_bounds(Rect bounds) { global_ = bounds; }
 
     // 布局写入入口（只能在 arrange 内用）：只改几何，不触发脏标记。
     // slot 是全局矩形；local_ 与 global_ 同步，保证 local_bounds() == 最近一次 arrange 的 slot。
@@ -103,7 +103,7 @@ public:
     virtual const std::vector<std::unique_ptr<Widget>>& children() const { return children_; }
     // overlay 是顶层绘制/命中层：root 先绘制普通子项，再绘制 overlay；命中测试反向进行。
     virtual const std::vector<std::unique_ptr<Widget>>& overlays() const { static const std::vector<std::unique_ptr<Widget>> empty; return empty; }
-    virtual Widget* parent() const { return parent_; }
+    Widget* parent() const { return parent_; }
     void set_parent(Widget* parent) { parent_ = parent; }
 
     // 唯一合法的子项挂载入口：设 parent / context 并加入 children_。
@@ -185,7 +185,8 @@ public:
     virtual Overflow overflow() const { return Overflow::Visible; }
     // 容器是否把子控件裁剪在自身范围内（命中测试与渲染共用同一语义）。
     // Clip 与 Scroll 都裁剪，区别只是 Scroll 自带滚动条。
-    virtual bool clips_children() const { return overflow() != Overflow::Visible; }
+    // 非虚（UI-47）：它是 overflow() 的派生，全仓 0 个覆写；覆写它只会与覆写 overflow() 打架。
+    bool clips_children() const { return overflow() != Overflow::Visible; }
 
     // 内容实际占用的尺寸（容器在 arrange 里写入）；用于判断是否溢出。
     glm::vec2 content_extent() const { return content_extent_; }
@@ -207,7 +208,7 @@ public:
     bool focus_visible() const;
     void append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const;
     void set_visible(bool visible) { visible_ = visible; mark_layout_dirty(); }
-    virtual void debug() { debug_ = true; }
+    void debug() { debug_ = true; }
     void set_debug(bool enabled) { debug_ = enabled; mark_layout_dirty(); }
     bool is_debug() const { return debug_; }
     void debug_recursive()
@@ -435,16 +436,17 @@ public:
     float corner_radius(float fallback) const { return radius_override_.value_or(fallback); }
 
     // 内边距
-    virtual float padding_left()   const { return padding_.left; }
-    virtual float padding_right()  const { return padding_.right; }
-    virtual float padding_top()    const { return padding_.top; }
-    virtual float padding_bottom() const { return padding_.bottom; }
+    // 非虚（UI-47）：全仓 0 个覆写；派生类要改度量应当走 box/padding 部件，不再开新的虚函数。
+    float padding_left()   const { return padding_.left; }
+    float padding_right()  const { return padding_.right; }
+    float padding_top()    const { return padding_.top; }
+    float padding_bottom() const { return padding_.bottom; }
 
     // 外边距
-    virtual float margin_left()    const { return margin_.left; }
-    virtual float margin_right()   const { return margin_.right; }
-    virtual float margin_top()     const { return margin_.top; }
-    virtual float margin_bottom()  const { return margin_.bottom; }
+    float margin_left()    const { return margin_.left; }
+    float margin_right()   const { return margin_.right; }
+    float margin_top()     const { return margin_.top; }
+    float margin_bottom()  const { return margin_.bottom; }
 
     // 文字基线相对控件顶边的偏移（UI-36）：默认无文本 → 用高度一半（居中）。
     // Label/Button 这类有文字的控件覆写 baseline_offset_for()，供 Align::baseline_align() 使用。

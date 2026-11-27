@@ -2,7 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
 
@@ -12,7 +12,7 @@
 
 namespace xel::ui
 {
-class Tooltip : public Widget
+class Tooltip : public LeafNode
 {
 public:
     explicit Tooltip(std::string text = {})
@@ -78,10 +78,6 @@ public:
         return tooltip_size();
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

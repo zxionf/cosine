@@ -2,7 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/text_debug.hpp"
 #include "graphics/box.hpp"
@@ -14,7 +14,7 @@
 
 namespace xel::ui
 {
-class Button : public Widget
+class Button : public LeafNode
 {
 public:
     explicit Button(std::string label, std::function<void()> handler = {})
@@ -43,10 +43,7 @@ public:
         return {width, t.control_height};
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
+    // arrange 由 LeafNode 提供（UI-47）：叶子只接受父容器给的矩形。
 
     // 基线对齐（UI-36）：按钮文字在控件内垂直居中，按行高 80% 估算基线。
     float baseline_offset_for(float h) const override

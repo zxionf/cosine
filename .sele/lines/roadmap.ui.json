@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 62,
+      "skipped_count": 63,
       "status": "paused",
       "steps": [
         {
@@ -4444,6 +4444,446 @@
       ],
       "title": "UI-38..UI-41 + UI-45 提交记账",
       "uid": "tsk_01M8C2E0RXNZHQ3H748RG23KK7"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "基类虚函数 50→34（删除附 A 的 16 个从未被覆写的虚函数）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T07:31:51Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "20 处纯样板 arrange 归零（附 B 清单控件改继承 LeafNode）",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T07:31:51Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 74/74 且快照哈希不变：c8a0966c / eb32c524",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T07:31:51Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "新增 test_ui_node_contract 覆盖多态性与 clips_children 派生关系",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T07:31:51Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T07:21:28Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-27T07:31:56Z",
+      "goal": "UI-47 Widget 减法：删 16 个死虚函数 + LeafNode 下沉 20 处 arrange 样板",
+      "id": "T42",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 删 16 个死虚函数（附 A）：50→34"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 新增 LeafNode 并迁移 20 个样板 arrange（附 B）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 新增 test_ui_node_contract（多态性 + clips_children 派生）"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 全量验证：ctest + 快照哈希 + 三入口冒烟"
+        }
+      ],
+      "title": "UI-47 Widget 减法：删 16 个死虚函数 + LeafNode 下沉 20 处 arrange 样板",
+      "uid": "tsk_01M8DY2V7HDC5Q8Y4YKDJ9TVR8"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "4 个部件按值内嵌到 Widget，36 个散落字段归组",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "43 个控件调用点零修改（现有访问器转发到部件）",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ctest 全绿且快照哈希不变",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "新增 test_ui_state_ownership：Interaction::state() 与旧 control_state() 16 组合等价",
+          "id": "A4",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T07:21:32Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M8DY2V7HDC5Q8Y4YKDJ9TVR8"
+        }
+      ],
+      "finished_at": null,
+      "goal": "UI-48 部件化就位：LayoutParams/BoxMetrics/Interaction/VisualState（行为零变化）",
+      "id": "T43",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-48 部件化就位：LayoutParams/BoxMetrics/Interaction/VisualState（行为零变化）",
+      "uid": "tsk_01M8DY2ZQHWV64ABM4SYN62P9A"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "11 处几何写绕过点归零（附 C）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "children_ 私有，4 个遍历点统一 for_each_child，遍历方式 2→1",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "Section/PreviewPane 的 children() 覆写迁移到 for_each_child",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ctest 全绿且快照哈希不变",
+          "id": "A4",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T07:21:32Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M8DY2ZQHWV64ABM4SYN62P9A"
+        }
+      ],
+      "finished_at": null,
+      "goal": "UI-49 收权：几何唯一写入口 set_geometry + 树唯一遍历入口 for_each_child",
+      "id": "T44",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-49 收权：几何唯一写入口 set_geometry + 树唯一遍历入口 for_each_child",
+      "uid": "tsk_01M8DY2ZT3B6V775VJ6NMKPFEC"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "sizeof(VisualState) ≤ 128 且无堆分配",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "Theme 生成 12×5=60 项样式索引表，VisualState 输出与 Theme::style() 逐字段等价",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "一帧一角色一状态（UI-46 教训）固化为断言",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ctest 全绿；快照哈希若变化须在提交信息记录新旧值",
+          "id": "A4",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T07:21:37Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M8DY2ZQHWV64ABM4SYN62P9A"
+        }
+      ],
+      "finished_at": null,
+      "goal": "UI-50 VisualState 索引化：过渡缓存 1688B→≤128B、去堆分配",
+      "id": "T45",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-50 VisualState 索引化：过渡缓存 1688B→≤128B、去堆分配",
+      "uid": "tsk_01M8DY34W633P0BWH0J060XYHZ"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "MeasureCache::Key 支持文本/字号/换行宽等派生输入",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "Label 与 TreeView 不再自持缓存实现",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "改文本/改主题字号/递归失效三种场景均有测试覆盖",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "ctest 全绿",
+          "id": "A4",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T07:21:38Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M8DY2ZT3B6V775VJ6NMKPFEC"
+        }
+      ],
+      "finished_at": null,
+      "goal": "UI-51 测量缓存统一：基类/Label/TreeView 三套→一套（key 可扩展）",
+      "id": "T46",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-51 测量缓存统一：基类/Label/TreeView 三套→一套（key 可扩展）",
+      "uid": "tsk_01M8DY34YQJ4H9YGPRC4KJD9DG"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "目录按 geom/layout/tree/input/style/node/semantics/widgets/containers/composites/system 分层（git mv 单独提交）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "D1–D4 依赖规则由测试断言守住",
+          "id": "A2",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "43 个控件实现 semantics()，enabled/pressed/dragging/selected 收敛到 Interaction",
+          "id": "A3",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "grep 'bool enabled_' src/ui == 0；grep 'control_state(' src/ui == 0",
+          "id": "A4",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        },
+        {
+          "desc": "单文件 ≤250 行；ctest 全绿",
+          "id": "A5",
+          "requires_human": false,
+          "status": "unverified",
+          "verified_at": null,
+          "verified_by": null
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T07:21:43Z",
+      "current_step": null,
+      "depends": [
+        {
+          "type": "task",
+          "uid": "tsk_01M8DY2ZT3B6V775VJ6NMKPFEC"
+        },
+        {
+          "type": "task",
+          "uid": "tsk_01M8DY34W633P0BWH0J060XYHZ"
+        },
+        {
+          "type": "task",
+          "uid": "tsk_01M8DY34YQJ4H9YGPRC4KJD9DG"
+        }
+      ],
+      "finished_at": null,
+      "goal": "UI-52 目录重组 + Semantics 旁挂 + 依赖规则可断言",
+      "id": "T47",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "todo",
+      "steps": [],
+      "title": "UI-52 目录重组 + Semantics 旁挂 + 依赖规则可断言",
+      "uid": "tsk_01M8DY3A2DG557A94VJC8BDBTQ"
     }
   ]
 }

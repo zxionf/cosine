@@ -2,7 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "events/event.hpp"
 #include "graphics/box.hpp"
 
@@ -17,7 +17,7 @@ namespace xel::ui
 // 拖动改值的数值框（属性面板用）。
 // 左键按住横向拖动改变数值；方向键微调；Home/End 到边界。
 // 显示 `label  value`，label 为空时只显示数值。
-class DragFloat : public Widget
+class DragFloat : public LeafNode
 {
 public:
     explicit DragFloat(std::string label = {}, float width = 150.0f)
@@ -62,10 +62,6 @@ public:
         return {width, ui_theme().control_height};
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

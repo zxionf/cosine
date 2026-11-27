@@ -2,7 +2,7 @@
 
 #include "ui/theme.hpp"
 #include "ui/style.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "events/event.hpp"
 #include "graphics/box.hpp"
 
@@ -18,7 +18,7 @@ namespace xel::ui
 // 颜色输入：一排预设色块 + 当前色十六进制显示。
 // 点击色块即选中；键盘 Left/Right 在预设间移动。
 // 十六进制文本只读（文本输入留待 TextInput 组合，见 M6.2 边界）。
-class ColorInput : public Widget
+class ColorInput : public LeafNode
 {
 public:
     explicit ColorInput(std::string label = {}, float width = 250.0f)
@@ -60,10 +60,6 @@ public:
         return {width, ui_theme().control_height};
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui/theme.hpp"
-#include "ui/widget.hpp"
+#include "ui/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/text_debug.hpp"
 #include "graphics/utf8.hpp"
@@ -20,7 +20,7 @@ enum class TextAlign
     Right,
 };
 
-class Label : public Widget
+class Label : public LeafNode
 {
 public:
     explicit Label(std::string text, float size = 0.0f, glm::vec4 color = glm::vec4{0.0f})
@@ -118,10 +118,6 @@ public:
         return measured;
     }
 
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
 
     void append_to(graphics::DrawList& list) const override
     {
