@@ -118,37 +118,51 @@ void Widget::append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float r
 BoxStyle Widget::visual_style(StyleRole role, ControlState state) const
 {
     const auto& theme_value = ui_theme();
-    const BoxStyle target = theme_value.style(role, state);
-    // revision 取本 context 的（UI-42）：多 root / lab / 测试各自一轮，不互相打断缓存。
     const std::uint64_t revision = context() != nullptr ? context()->theme_revision() : 0;
-    if (visual.transition == nullptr) visual.transition = std::make_unique<StyleTransition>();
 
-    // 主题变化（切换主题/圆角/密度/过渡时长）：所有槽重建为目标样式，不做过渡。
-    // 逐槽重建（关键）：旧实现用单槽 + 整对象赋值，一次主题变化只会刷新最后一个
-    // 被请求的角色，其余角色留着旧主题的颜色。
-    if (visual.transition->revision != revision) {
-        for (auto& slot : visual.transition->slots) slot = StyleSlot{};
-        visual.transition->revision = revision;
+    // 主题变化（切换主题/圆角/密度/过渡时长）：所有槽重建，不做过渡。
+    // 逐槽重建（UI-38）：旧实现用单槽 + 整对象赋值，一次主题变化只刷新最后一个角色。
+    StyleTransition& transition = visual.transition;
+    if (transition.revision != revision) {
+        for (auto& slot : transition.slots) slot = StyleSlot{};
+        transition.revision = revision;
     }
 
-    StyleSlot& slot = visual.transition->slot(role);
+    StyleSlot& slot = transition.slot(role);
+    const auto style_of = [&](ControlState s) { return theme_value.style(role, s); };
+
+    // 首次使用：吸附到目标状态（不做淡入）。与旧实现一致。
     if (!slot.started) {
-        slot = StyleSlot{state, target, target, 1.0f, true};
-        return target;
+        slot.from = state;
+        slot.to = state;
+        slot.started = true;
+        slot.reversing = false;
+        slot.progress = 1.0f;
+        return style_of(state);
     }
-    if (slot.state != state) {
-        // 从本槽自己的当前插值结果出发，不会跨角色取色。
-        slot.from = lerp_style(slot.from, slot.to, ease_out_quad(slot.progress));
-        slot.to = target;
-        slot.state = state;
-        slot.progress = transition_duration() <= 0.0f ? 1.0f : 0.0f;
+    if (slot.to != state) {
+        const bool back_to_from = slot.from == state && slot.progress < 1.0f;
+        if (back_to_from) {
+            // 反向：保持 from/to 不变，只把进度往回走 → 中途反向不跳变。
+            slot.reversing = true;
+        } else {
+            // 走向新目标：起点取上一个目标状态（旧实现取“当前插值色”；
+            // 见 widget_style.hpp 里关于“第三个状态被打断”的近似说明）。
+            slot.from = slot.to;
+            slot.to = state;
+            slot.reversing = false;
+            slot.progress = transition_duration() <= 0.0f ? 1.0f : 0.0f;
+        }
+    } else if (slot.reversing) {
+        // 反向途中目标又变回 to：继续正向走。
+        slot.reversing = false;
     }
-    return lerp_style(slot.from, slot.to, ease_out_quad(slot.progress));
+    return lerp_style(style_of(slot.from), style_of(slot.to), ease_out_quad(slot.progress));
 }
 
 bool Widget::transition_active() const
 {
-    return visual.transition != nullptr && visual.transition->any_active();
+    return visual.transition.any_active();
 }
 
 float Widget::transition_duration() const
@@ -159,25 +173,30 @@ float Widget::transition_duration() const
 
 BoxStyle Widget::current_transition_style(StyleRole role) const
 {
-    if (visual.transition == nullptr) {
-        return ui_theme().style(role, ControlState::Normal);
-    }
-    const StyleSlot& slot = visual.transition->slot(role);
+    const StyleSlot& slot = visual.transition.slot(role);
     if (!slot.started) return ui_theme().style(role, ControlState::Normal);
-    return lerp_style(slot.from, slot.to, ease_out_quad(slot.progress));
+    return lerp_style(ui_theme().style(role, slot.from), ui_theme().style(role, slot.to),
+                      ease_out_quad(slot.progress));
 }
 
 void Widget::advance_transition(float dt)
 {
-    if (visual.transition == nullptr) return;
     const float duration = transition_duration();
-    for (auto& slot : visual.transition->slots) {
+    for (auto& slot : visual.transition.slots) {
         if (!slot.started || slot.progress >= 1.0f) continue;
         if (duration <= 0.0f) {
             slot.progress = 1.0f;
-            continue;
+        } else if (slot.reversing) {
+            slot.progress = std::max(0.0f, slot.progress - dt / duration);
+            if (slot.progress <= 0.0f) {
+                // 回到起点：settle 成 from == to == from，后续按普通状态处理。
+                slot.to = slot.from;
+                slot.reversing = false;
+                slot.progress = 1.0f;
+            }
+        } else {
+            slot.progress = std::min(1.0f, slot.progress + dt / duration);
         }
-        slot.progress = std::min(1.0f, slot.progress + dt / duration);
     }
 }
 } // namespace xel::ui

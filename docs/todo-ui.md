@@ -27,7 +27,7 @@
 | M3 | 纯样板 `arrange()` | 20 | 0 | 见附 B 的探测命令 |
 | M4 | 状态字段副本 | `enabled_` 8 / `pressed_` 3 / `dragging_` 5 / `selected_` 6+1 | 各 1 | `grep -rc "bool enabled_" src/ui` |
 | M5 | 测量缓存套数 | 3 | 1 | `grep -rln "measure_cache_hit\|MeasureKey\|cached_visible_rows" src/ui` |
-| M6 | 过渡状态内存 | 1,688 B + 1 new | ≤ 128 B、0 new | 单测 `sizeof(VisualState)` 断言 |
+| M6 | 过渡状态内存 | 1,688 B + 1 new | R4 后：**104 B、0 new** | 单测 `sizeof(VisualState) <= 128` + trivially_destructible |
 | M7 | 几何写绕过点 | 11 | 0 | 见附 C 的探测命令 |
 | M8 | 树遍历方式 | 2 种 / 4 点 | 1 种（`for_each_child`） | `grep -rn "children_" src/ui --include=*.hpp` |
 | M9 | 新增控件行数 | 90~130 | ≤ 60 | 以新增的 `Tag`（示例控件）实测 |
@@ -512,6 +512,6 @@ cd build && ctest && ./test/test_ui_style_snapshot.exe
 | R1 (T42) | **done** | 2026-11-27 | 虚函数 50→34；样板 arrange 17→0；`test_ui_node_contract` 22 条断言；ctest **75/75**；快照 `c8a0966c` / `eb32c524` 不变；三入口冒烟 0 validation | 样板数 20→**17**（`collapsible_header`/`text_input`/`file_browser` 的 arrange 另含语义）；实际 21 文件 +528/−142 |
 | R2 (T43) | **done** | 2026-11-27 | 4 部件按值内嵌（LayoutParams 72B / BoxMetrics 36B / Interaction 6B / VisualState 8B）；`sizeof(Widget)` 280→288；`test_ui_state_ownership` 20 条断言（16 组合等价）；ctest **76/76**；快照 `c8a0966c`/`eb32c524` 不变 | 字段名 `layout` 与既有虚函数 `layout()` 冲突 → 改用 `layout_`（尾下划线）；控件目录 **0 文件改动**（达成） |
 | R3 (T44) | **done** | 2026-11-27 | `children_` 私有 + `child_count/child_at/replace_child/clear_children/remove_children_if/for_each_child`；几何写绕过点 **0**（实为 12 处：11 global_ + 1 local_）；4 个树遍历点统一；`children()` 去虚；`debug_recursive` 补上 overlays；Section 改为 adopt content_（脏链修复）；PreviewPane 删除 shadow `children_`；ctest **77/77**；快照不变 | 越界一次：`src/cosine/preview_pane.hpp` 必须改（它 shadow 了基类 children_）——在“只改 src/ui”边界外，已在提交信息里声明；`clear_children` 需保持 public（debug 面板重建子项用） |
-| R4 (T45) | todo | — | — | — |
+| R4 (T45) | **done** | 2026-11-27 | `StyleSlot` 140B→**8B**、`VisualState` 1688B+new→**104B 内嵌**；`sizeof(Widget)` 288→384；交互控件 ≈1970→384 B（−81%）；`test_ui_visual_state` 16 断言（12×5 等价 + 反向不跳变 + 主题重建）；ctest **78/78**；快照不变 | 不建 Theme 60 项索引表（改为按需现算，避免第二份真相）；新增 `started`/`reversing` 两个 bool；`StyleRole`/`ControlState` 底层类型改 `uint8_t`；从没动画的控件 +96 B |
 | R5 (T46) | todo | — | — | — |
 | R6 (T47) | todo | — | — | — |

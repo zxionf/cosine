@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 65,
+      "skipped_count": 66,
       "status": "paused",
       "steps": [
         {
@@ -4773,33 +4773,33 @@
           "desc": "sizeof(VisualState) ≤ 128 且无堆分配",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:11:36Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "Theme 生成 12×5=60 项样式索引表，VisualState 输出与 Theme::style() 逐字段等价",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:11:36Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "一帧一角色一状态（UI-46 教训）固化为断言",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:11:36Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿；快照哈希若变化须在提交信息记录新旧值",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:11:36Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -4812,7 +4812,7 @@
           "uid": "tsk_01M8DY2ZQHWV64ABM4SYN62P9A"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-27T08:11:40Z",
       "goal": "UI-50 VisualState 索引化：过渡缓存 1688B→≤128B、去堆分配",
       "id": "T45",
       "line": "ui",
@@ -4826,8 +4826,53 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
-      "steps": [],
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 Theme 增样式索引表 + StyleSlot 索引化（≤128B）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 VisualState 内嵌去堆 + widget.cpp 迁移"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 新增 test_ui_visual_state（等价性 + 内存 + 一帧一角色一状态）"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 验证：ctest + 快照（允许一次变化并记录）"
+        }
+      ],
       "title": "UI-50 VisualState 索引化：过渡缓存 1688B→≤128B、去堆分配",
       "uid": "tsk_01M8DY34W633P0BWH0J060XYHZ"
     },

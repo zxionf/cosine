@@ -48,14 +48,15 @@ struct Exposed : ui::Progress
 void test_parts_are_inline()
 {
     static_assert(sizeof(ui::Interaction) <= 8, "Interaction 必须是 6 个 bool 的小结构");
-    static_assert(sizeof(ui::VisualState) == sizeof(void*), "VisualState 目前只持有一个惰性指针");
+    static_assert(sizeof(ui::StyleSlot) <= 8, "UI-50：过渡槽压到 8 B（状态对 + 进度）");
     static_assert(std::is_trivially_copyable_v<ui::BoxMetrics>, "BoxMetrics 必须是纯数据");
 
     check(sizeof(ui::Interaction) <= 8, "Interaction fits in 8 bytes");
     check(sizeof(ui::BoxMetrics) == 36, "BoxMetrics is 9 floats (padding/override/margin)");
     check(sizeof(ui::LayoutParams) == 72, "LayoutParams is 18 floats worth of intent");
-    // 部件内嵌后 Widget 仍在同一量级（280 → 288，仅对齐损失）。
-    check(sizeof(ui::Widget) <= 296, "Widget stays under 296 bytes after part extraction");
+    // UI-50 后 VisualState 内嵌 12 个 8 B 槽 + revision，总大小 ≤ 128 B。
+    check(sizeof(ui::VisualState) <= 128, "VisualState stays under 128 bytes (inline, no heap)");
+    check(sizeof(ui::Widget) <= 440, "Widget stays under 440 bytes after inline transition state");
 }
 
 // 2) 状态映射与旧的自由函数完全等价。

@@ -155,31 +155,46 @@ struct Interaction {
 - `control_state(enabled, hovered, pressed, checked)` 自由函数**删除**，改为 `input.state(checked)`（13 处 `pressed_` 赋值点同时收敛）。
 - 列表类（`ListView` 的 `int selected_`、`TabBar`/`Dropdown`/`RadioGroup` 的 `int selected_`、`TimelineView` 的 `selected_track_`）**保留索引**，通过 `Interaction::selected` 暴露"是否有选中"给语义层——索引是它们的数据，语义是统一视图。
 
-### 4.4 `VisualState`（样式过渡：从 1,688 B 降到 ≤ 128 B）— 目标 ≤ 90 行
+### 4.4 `VisualState`（样式过渡：从 1,688 B 降到 104 B、去堆分配）
 
-现状：`StyleTransition` 内含 12 个 `StyleSlot`，每槽 `from/to` 各一个 `BoxStyle`（64 B）→ `sizeof = 1,688`，且 `unique_ptr` 惰性堆分配、控件终身持有。
+旧实现：`StyleTransition` 内含 12 个 `StyleSlot`，每槽 `from/to` 各一个 `BoxStyle`（64 B）→ `sizeof = 1,688`，还要 `unique_ptr` 惰性堆分配。
 
-新设计：**颜色不再存在槽里**，槽只存索引与进度，颜色从主题表按索引取（Flyweight）：
+新实现（UI-50 已落地）：**槽里只存「状态对 + 进度」**，颜色在渲染时按 `(role, state)` 从当前 Theme 现算：
 
 ```cpp
-struct StyleSlot {                 // 8 B
-    ControlState state = ControlState::Normal;
-    std::uint16_t from = 0;        // Theme 样式表索引
-    std::uint16_t to   = 0;
-    float progress = 1.0f;
+struct StyleSlot {                 // 实测 8 B
+    ControlState from = ControlState::Normal;  // 1 B（enum 底层类型固定为 uint8_t）
+    ControlState to   = ControlState::Normal;  // 1 B
+    bool started = false;                      // 1 B（首次使用：吸附，不做淡入）
+    bool reversing = false;                    // 1 B（反向过渡：进度往回走）
+    float progress = 1.0f;                     // 4 B
 };
-struct VisualState {               // 12 × 8 + revision(8) + started 位图(2) ≈ 106 B
-    std::array<StyleSlot, kStyleRoleCount> slots;   // kStyleRoleCount = 12
-    std::uint64_t revision = 0;
-    std::uint16_t started = 0;
-    BoxStyle style(StyleRole role, ControlState state, const Theme& theme);  // 现有 visual_style 的实现搬进来
+struct VisualState {               // 实测 104 B（12 × 8 + revision 8）
+    mutable StyleTransition transition;        // 内嵌，不再 unique_ptr
 };
 ```
 
-- **零堆分配**：`VisualState` 内嵌在 `LayoutNode`，不再 `make_unique`。
-- **可共享**：`transition_ms == 0` 或无状态变化时不写入，主题表由 `Theme` 独占（每个 context 一份）。
-- 内存对比：交互过的控件由 **280 + 1,688 ≈ 1,970 B + 1 次 new** → **≈ 380 B、0 次 new**。
-- 保持现有语义：`(role, state)` 分槽、`from = lerp(from, to, progress)` 的中途反向不跳变、revision 变更逐槽重建、**一帧一角色一状态**（UI-46 的教训固化为断言）。
+与初版设计的差异（已实施后校正）：
+
+| 初版 | 实际 | 原因 |
+|---|---|---|
+| Theme 里建 12×5 = 60 项样式索引表 | **不建表**，按需 `theme.style(role, state)` 现算 | 索引表要与 Theme 字段保持同步（`with_*` 每次改字段就得重建），而现算只有一次 switch；避免了“表是第二份真相”的风险 |
+| `started` 位图 + 索引 | `started`/`reversing` 两个 bool 存在槽里 | 保留两个已确立的语义：首帧吸附、中途反向不跳变 |
+| 中途反向从“当前插值色”再出发 | 反向 = 进度回退（`reversing`）；三状态快速交替时 from 取上一个目标状态 | 存中间色需要 48 B/槽；反向回退能精确覆盖 hover→press→hover 这类常见路径 |
+
+内存对比（实测）：
+
+| | 之前 | 之后 |
+|---|---|---|
+| `StyleSlot` | 140 B | **8 B** |
+| `VisualState` | 1,688 B + 1 次 `new` | **104 B，0 次 `new`** |
+| `sizeof(Widget)` | 288 B（+ 惰性 1,688） | **384 B（全含）** |
+| 交互过的控件总量 | ≈ 1,970 B | **384 B（−81%）** |
+| 从未动画的控件 | 288 B | 384 B（+96 B） |
+
+取舍：用“所有控件 +96 B”换“交互控件 −1,586 B 且零堆”。后者是热点（每次 hover 过的控件），前者是一次性常数。
+
+保持的语义：`(role, state)` 分槽、首帧吸附、中途反向不跳变、revision 变更逐槽重建、**一帧一角色一状态**（UI-46 教训已在 `widget_style.hpp` 注释与 `test_ui_visual_state` 里固化）。
 
 ### 4.5 `Semantics`（派生投影，不存第二份真值）
 
@@ -246,9 +261,9 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 对象 | 现在 | 目标 | 说明 |
 |---|---|---|---|
 | `sizeof(Widget)` | 280 B | ≤ 300 B | 部件内嵌后**不显著增大**；字段只是从散落改成聚合 |
-| 过渡状态 | 1,688 B + `new`（惰性、终身持有） | **≤ 128 B、0 `new`** | `VisualState` 内嵌 + 索引化 |
-| 交互过控件的总内存 | ≈ 1,970 B | **≈ 380 B** | −80% |
-| 每控件堆分配 | 1（交互后） | **0** | 部件全部按值 |
+| `StyleSlot` / `VisualState` | 140 B / 1,688 B + `new` | **8 B / 104 B，0 次 `new`** |
+| 交互过控件的总内存 | ≈ 1,970 B | **≈ 384 B（−81%）** |
+| 每控件堆分配 | 1（交互后） | **0** |
 
 **硬规则**：任何部件都不得是 `std::unique_ptr<Part>`；不得为"组合"引入逐部件的动态分配。
 
@@ -331,6 +346,8 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 2026-11-27 | 首版：类型模型、六条契约、43 控件映射、目录与依赖规则 |
 | 2026-11-27 | R1 实施后校正：「纯样板 arrange」实测 **17** 个（原估 20）；`CollapsibleHeader`/`TextInput`/`FileBrowser` 的 arrange 另含自己的语义，不属样板 |
 | 2026-11-27 | R2 实施后校正：部件成员名 `layout` → `layout_`（与既有的虚函数 `layout()` 冲突）；`Display` 枚举下沉到 `layout_params.hpp` 并用 `using Display = ::xel::ui::Display;` 保持 `Widget::Display::Flow` 写法 |
+| 2026-11-27 | R3 实施后记录：几何写绕过 12 处（估 11，漏算 menu_bar 构造的 `local_`）；`clear_children()` 保持 public；Section 改 `adopt(content_)`；越界改 `src/cosine/preview_pane.hpp`（shadow 了基类 `children_`） |
+| 2026-11-27 | R4 实施后校正：不建 Theme 样式索引表（改为按需 `theme.style(role,state)` 现算，避免第二份真相）；槽内保留 `started`/`reversing` 两个 bool 以维持“首帧吸附 + 反向不跳变”；实测 `StyleSlot` 8 B、`VisualState` 104 B、`sizeof(Widget)` 384 B；`StyleRole`/`ControlState` 底层类型固定为 `uint8_t` |
 
 ---
 
