@@ -120,36 +120,79 @@ int count_code_lines_with(const fs::path& dir, const std::string& needle,
 // 不是几何原语。真正该独立的原语是 rect / align / layout_metrics / layout_budget / measure_cache。
 void test_geometry_does_not_depend_on_nodes()
 {
-    for (const char* file : {"layout_budget.hpp", "layout_metrics.hpp",
-                             "align.hpp", "rect.hpp", "measure_cache.hpp"}) {
-        const fs::path p = ui_root() / file;
-        if (!fs::exists(p)) continue;
+    // UI-53 后纯原语住在 geom/（measure_cache 在 layout/）。
+    // 注意：文件不存在时必须判失败——否则路径写错会让断言“真空通过”。
+    const fs::path geom = ui_root() / "geom";
+    for (const char* file : {"align.hpp", "rect.hpp", "layout_metrics.hpp", "layout_budget.hpp"}) {
+        const fs::path p = geom / file;
+        if (!fs::exists(p)) {
+            check(false, std::string("D1: geom/") + file + " exists");
+            continue;
+        }
         const std::string text = read_file(p);
-        check(!contains(text, "#include \"ui/widget.hpp\""),
-              std::string("D1: ") + file + " does not include widget.hpp");
-        check(!contains(text, "#include \"ui/leaf_node.hpp\""),
-              std::string("D1: ") + file + " does not include leaf_node.hpp");
+        check(!contains(text, "#include \"ui/node/widget.hpp\"")
+                  && !contains(text, "#include \"ui/widget.hpp\""),
+              std::string("D1: geom/") + file + " does not include the widget tree");
+    }
+    const fs::path cache = ui_root() / "layout" / "measure_cache.hpp";
+    check(fs::exists(cache), "D1: layout/measure_cache.hpp exists");
+    if (fs::exists(cache)) {
+        const std::string text = read_file(cache);
+        check(!contains(text, "#include \"ui/node/widget.hpp\""),
+              "D1: layout/measure_cache.hpp does not include the widget tree");
     }
 }
 
 // D3：样式层不得依赖具体控件。
 void test_style_does_not_depend_on_widgets()
 {
-    const std::vector<std::string> exts{".hpp", ".cpp"};
-    const fs::path style_dir = ui_root() / "style";
-    const int style_hits = count_occurrences(ui_root() / "core", "#include \"ui/style.hpp\"", exts);
-    check(style_hits >= 0, "D3: style.hpp is consumed by widgets (direction is downward)");
-
-    // style/theme/style_types 不得 include 任何控件头。
-    for (const char* file : {"style.hpp", "style_types.hpp", "theme.hpp", "theme.cpp"}) {
-        const fs::path p = ui_root() / file;
-        if (!fs::exists(p)) continue;
-        const std::string text = read_file(p);
-        const bool bad = contains(text, "#include \"ui/core/") || contains(text, "#include \"ui/containers/")
-            || contains(text, "#include \"ui/composites/") || contains(text, "#include \"ui/views/");
-        check(!bad, std::string("D3: ") + file + " does not include concrete widgets");
+    // UI-53 后样式层住在 ui/style/；逐个文件检查不得 include 具体控件。
+    const fs::path style = ui_root() / "style";
+    if (!fs::exists(style)) {
+        check(false, "D3: ui/style/ exists");
+        return;
     }
-    (void)style_dir;
+    for (const auto& entry : fs::directory_iterator(style)) {
+        if (!entry.is_regular_file()) continue;
+        const auto ext = entry.path().extension().string();
+        if (ext != ".hpp" && ext != ".cpp") continue;
+        const std::string text = read_file(entry.path());
+        const bool bad = contains(text, "#include \"ui/core/")
+            || contains(text, "#include \"ui/containers/")
+            || contains(text, "#include \"ui/composites/")
+            || contains(text, "#include \"ui/views/");
+        check(!bad, "D3: style/" + entry.path().filename().string()
+                        + " does not include concrete widgets");
+    }
+}
+
+// D5（UI-53）：旧路径只能留“转发头”，不得再放实现。
+// 这样兼容层不会变成第二套真相，也为后续删除兼容头提供了硬条件。
+void test_shims_are_trivial()
+{
+    int shims = 0;
+    int bad = 0;
+    for (const auto& entry : fs::directory_iterator(ui_root())) {
+        if (!entry.is_regular_file()) continue;
+        if (entry.path().extension() != ".hpp") continue;
+        const std::string text = read_file(entry.path());
+        if (!contains(text, "兼容转发（UI-53）")) continue;
+        ++shims;
+        int code_lines = 0;
+        std::istringstream in(text);
+        std::string line;
+        while (std::getline(in, line)) {
+            const std::size_t first = line.find_first_not_of(" \t");
+            if (first == std::string::npos) continue;
+            if (line.compare(first, 15, "#pragma once") == 0) continue;
+            if (line.compare(first, 2, "//") == 0) continue;
+            ++code_lines;
+        }
+        if (code_lines > 1) ++bad;
+    }
+    check(shims == 22, "D5: expected 22 forwarding shims", "found=" + std::to_string(shims));
+    check(bad == 0, "D5: shims contain only a single #include line",
+          "bad=" + std::to_string(bad));
 }
 
 // D2：基础控件与容器不得反向依赖复合控件/视图。
@@ -253,6 +296,7 @@ int main()
 {
     test_geometry_does_not_depend_on_nodes();
     test_style_does_not_depend_on_widgets();
+    test_shims_are_trivial();
     test_lower_layers_do_not_include_upper_layers();
     test_tree_storage_is_private();
     test_geometry_single_write_entry();

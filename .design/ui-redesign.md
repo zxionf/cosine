@@ -50,6 +50,28 @@
 
 ## 3. 目标目录与依赖规则
 
+### 3.1 已落地结构（UI-53 as-built）
+
+```
+ui/
+  geom/        align.hpp rect.hpp layout_metrics.hpp layout_budget.hpp        纯数据 + 纯函数
+  layout/      layout_params.hpp measure_cache.hpp layout_utils.hpp
+               scroll_mode.hpp scroll_state.hpp
+  style/       style.hpp style_types.hpp theme.{hpp,cpp} widget_style.hpp
+               visual_state.hpp box_metrics.hpp
+  input/       interaction.hpp
+  node/        widget.{hpp,cpp} leaf_node.hpp
+  semantics/   semantics.hpp
+  system/      root.{hpp,cpp} ui_system.{hpp,cpp} uicontext.hpp
+  core/ containers/ composites/ views/      （未动：控件实现本体）
+```
+
+旧路径（`ui/widget.hpp` 等 22 个）保留为**转发头**：一行 `#include` + `兼容转发（UI-53）` 标记，
+由 `test_ui_architecture` 的 D5 断言锁住“只能转发、不能放实现”。删除转发头时同步重写
+259 处 include（已登记为 R7，见 `docs/todo-ui.md`）。
+
+### 3.2 目标结构（原设计，含尚未拆出的 widgets/ 与 tree/）
+
 ```
 ui/
   geom/        Rect Edges Align layout_metrics layout_budget          纯数据 + 纯函数
@@ -65,16 +87,17 @@ ui/
   system/      UIRoot UISystem（dispatch / focus / modal / dpi）
 ```
 
-**层内依赖规则（必须可由 grep 断言）**：
+**层内依赖规则（已由 `test_ui_architecture` 断言）**：
 
-| # | 规则 | 现状违反 |
+| # | 规则 | 状态 |
 |---|---|---|
-| D1 | `geom/` `layout/` 不得 include `node/` | 是（几何规则写在 `Widget` 里） |
-| D2 | `widgets/` 不得 include `widgets/` | 是（`composites/` 内互相 include） |
-| D3 | `style/` 不得 include `widgets/` | 是（`widget.hpp` 直接引用 style 语义） |
-| D4 | `semantics/` 不得 include 任何 `ui/*` 之外的头 | 新层，从零建立 |
+| D1 | `geom/` 与 `layout/measure_cache.hpp` 不得 include 控件树 | ✅ 断言守住 |
+| D2 | `core/` `containers/` 不得 include `composites/` `views/` | ✅ 断言守住 |
+| D3 | `style/` 不得 include 具体控件 | ✅ 断言守住 |
+| D4 | `semantics/` 只依赖标准库 | ✅（semantics.hpp 只 include \<cstdint\>/\<string_view\>） |
+| D5 | 旧路径只能留转发头（不得放实现） | ✅ 断言守住（22 个） |
 
-> 断言的实现形态：CTest 里跑一个 `grep` 断言（不是脚本文件，符合 AGENTS 第 9 条）。
+> 断言实现：`test/test_ui_architecture.cpp` 直接读源文件做文本断言（不引入脚本，符合 AGENTS 第 9 条）。
 
 ---
 
@@ -349,6 +372,8 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 2026-11-27 | R3 实施后记录：几何写绕过 12 处（估 11，漏算 menu_bar 构造的 `local_`）；`clear_children()` 保持 public；Section 改 `adopt(content_)`；越界改 `src/cosine/preview_pane.hpp`（shadow 了基类 `children_`） |
 | 2026-11-27 | R4 实施后校正：不建 Theme 样式索引表（改为按需 `theme.style(role,state)` 现算，避免第二份真相）；槽内保留 `started`/`reversing` 两个 bool 以维持“首帧吸附 + 反向不跳变”；实测 `StyleSlot` 8 B、`VisualState` 104 B、`sizeof(Widget)` 384 B；`StyleRole`/`ControlState` 底层类型固定为 `uint8_t` |
 | 2026-11-27 | R5 实施后记录：新增 `ui/measure_cache.hpp`（`MeasureKey` 56 B / `MeasureCache` 72 B）；文本键用 FNV-1a 哈希（不存 `std::string`，否则 Widget 456 B）；`Widget` 432 B；Label 删除自带缓存 45 行，TreeView 行缓存接入 `invalidate_measure()` |
+| 2026-11-27 | R6 实施后记录：新增 `semantics/`（WidgetRole 20 种 + 派生投影，26 控件覆写）；8+3+5 份状态字段并入 `Interaction`；删除 `control_state()` 自由函数；新增 `test_ui_architecture`（D1–D3 + K1/K2/K3/K5/K6） |
+| 2026-11-27 | R7（UI-53）目录重组：22 个文件移入 geom/layout/style/input/node/semantics/system；旧路径留转发头（D5 断言）； 259 处 include 重写延后为独立机械提交 |
 
 ---
 

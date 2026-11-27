@@ -1,35 +1,4 @@
 #pragma once
-
-namespace xel::ui
-{
-enum class MainAlign {
-    Start,
-    Center,
-    End,
-    SpaceBetween,
-};
-
-struct Align {
-    float x = 0.f;   // 0=左, 0.5=中, 1=右
-    float y = 0.f;   // 0=上, 0.5=中, 1=下
-
-    bool stretch_x = false;
-    bool stretch_y = false;
-    // 基线对齐（UI-36）：仅水平流（Hbox）的交叉轴生效，按文字基线对齐。
-    bool baseline = false;
-
-    static constexpr Align h_stretch() { return {0.0f, 0.0f, true, false}; }
-    static constexpr Align v_stretch() { return {0.0f, 0.0f, false, true}; }
-    static constexpr Align baseline_align() { return {0.0f, 0.0f, false, false, true}; }
-
-    static constexpr Align top_left()     { return {0.0f, 0.0f}; }
-    static constexpr Align top_center()   { return {0.5f, 0.0f}; }
-    static constexpr Align top_right()    { return {1.0f, 0.0f}; }
-    static constexpr Align center_left()  { return {0.0f, 0.5f}; }
-    static constexpr Align center()       { return {0.5f, 0.5f}; }
-    static constexpr Align center_right() { return {1.0f, 0.5f}; }
-    static constexpr Align bottom_left()  { return {0.0f, 1.0f}; }
-    static constexpr Align bottom_center(){ return {0.5f, 1.0f}; }
-    static constexpr Align bottom_right() { return {1.0f, 1.0f}; }
-};
-} // namespace xel::ui
+// 兼容转发（UI-53）：文件已移入 ui/geom/。新代码请直接 include "ui/geom/align.hpp"。
+// remove-after: 待全仓 include 重写完成后删除本文件（见 docs/todo-ui.md R7）。
+#include "ui/geom/align.hpp"

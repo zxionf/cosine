@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 68,
+      "skipped_count": 69,
       "status": "paused",
       "steps": [
         {
@@ -5109,6 +5109,110 @@
       ],
       "title": "UI-52 目录重组 + Semantics 旁挂 + 依赖规则可断言",
       "uid": "tsk_01M8DY3A2DG557A94VJC8BDBTQ"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "22 个头/源文件移入 6 个语义目录（git mv 保留历史）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T09:27:42Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "旧路径保留 forwarding 头（标注 remove-after 计划），include 零改动、构建与 80 测试全绿",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T09:27:42Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "CMake 源列表与 PCH 同步更新；快照哈希不变",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T09:27:42Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "D1-D4 依赖断言在 test_ui_architecture 中更新为新目录",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T09:27:42Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T09:21:10Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-27T09:27:42Z",
+      "goal": "UI-53 目录重组：src/ui 按语义分层（geom/layout/style/input/node/semantics/system）",
+      "id": "T48",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 git mv 文件到 geom/layout/style/input/node/semantics/system"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 旧路径 forwarding 头 + CMake/PCH 同步"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 更新 test_ui_architecture 的 D1-D3 规则到新目录"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 验证：ctest 80/80 + 快照不变 + 冒烟"
+        }
+      ],
+      "title": "UI-53 目录重组：src/ui 按语义分层（geom/layout/style/input/node/semantics/system）",
+      "uid": "tsk_01M8E4Y190ERVGQC6GD8R3XJ3F"
     }
   ]
 }
