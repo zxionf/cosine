@@ -510,7 +510,7 @@ cd build && ctest && ./test/test_ui_style_snapshot.exe
 | 批 | 状态 | 完成时间 | 实测结果 | 与计划的偏差 |
 |---|---|---|---|---|
 | R1 (T42) | **done** | 2026-11-27 | 虚函数 50→34；样板 arrange 17→0；`test_ui_node_contract` 22 条断言；ctest **75/75**；快照 `c8a0966c` / `eb32c524` 不变；三入口冒烟 0 validation | 样板数 20→**17**（`collapsible_header`/`text_input`/`file_browser` 的 arrange 另含语义）；实际 21 文件 +528/−142 |
-| R2 (T43) | todo | — | — | — |
+| R2 (T43) | **done** | 2026-11-27 | 4 部件按值内嵌（LayoutParams 72B / BoxMetrics 36B / Interaction 6B / VisualState 8B）；`sizeof(Widget)` 280→288；`test_ui_state_ownership` 20 条断言（16 组合等价）；ctest **76/76**；快照 `c8a0966c`/`eb32c524` 不变 | 字段名 `layout` 与既有虚函数 `layout()` 冲突 → 改用 `layout_`（尾下划线）；控件目录 **0 文件改动**（达成） |
 | R3 (T44) | todo | — | — | — |
 | R4 (T45) | todo | — | — | — |
 | R5 (T46) | todo | — | — | — |

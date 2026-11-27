@@ -58,7 +58,7 @@ void Widget::append_debug_tree(graphics::DrawList& list) const
 void Widget::debug_rect(graphics::DrawList& list) const
 {
     auto [x, y, w, h] = global_;
-    const glm::vec4 color = hovered_ ? glm::vec4{1, 0, 1, 1} : glm::vec4{0, 1, 0, 1};
+    const glm::vec4 color = input.hovered ? glm::vec4{1, 0, 1, 1} : glm::vec4{0, 1, 0, 1};
     graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, color};
     graphics::Line right_l  {x + w, y,      x + w,  y + h,  1.0f, color};
     graphics::Line bottom_l {x,     y + h,  x + w,  y + h,  1.0f, color};
@@ -83,7 +83,7 @@ graphics::FontAtlas* Widget::font_atlas() const
 
 bool Widget::focus_visible() const
 {
-    if (!focused_) return false;
+    if (!input.focused) return false;
     const UIContext* ctx = context();
     if (ctx == nullptr) return true;
     switch (ctx->theme().focus_policy) {
@@ -121,17 +121,17 @@ BoxStyle Widget::visual_style(StyleRole role, ControlState state) const
     const BoxStyle target = theme_value.style(role, state);
     // revision 取本 context 的（UI-42）：多 root / lab / 测试各自一轮，不互相打断缓存。
     const std::uint64_t revision = context() != nullptr ? context()->theme_revision() : 0;
-    if (transition_ == nullptr) transition_ = std::make_unique<StyleTransition>();
+    if (visual.transition == nullptr) visual.transition = std::make_unique<StyleTransition>();
 
     // 主题变化（切换主题/圆角/密度/过渡时长）：所有槽重建为目标样式，不做过渡。
     // 逐槽重建（关键）：旧实现用单槽 + 整对象赋值，一次主题变化只会刷新最后一个
     // 被请求的角色，其余角色留着旧主题的颜色。
-    if (transition_->revision != revision) {
-        for (auto& slot : transition_->slots) slot = StyleSlot{};
-        transition_->revision = revision;
+    if (visual.transition->revision != revision) {
+        for (auto& slot : visual.transition->slots) slot = StyleSlot{};
+        visual.transition->revision = revision;
     }
 
-    StyleSlot& slot = transition_->slot(role);
+    StyleSlot& slot = visual.transition->slot(role);
     if (!slot.started) {
         slot = StyleSlot{state, target, target, 1.0f, true};
         return target;
@@ -148,7 +148,7 @@ BoxStyle Widget::visual_style(StyleRole role, ControlState state) const
 
 bool Widget::transition_active() const
 {
-    return transition_ != nullptr && transition_->any_active();
+    return visual.transition != nullptr && visual.transition->any_active();
 }
 
 float Widget::transition_duration() const
@@ -159,19 +159,19 @@ float Widget::transition_duration() const
 
 BoxStyle Widget::current_transition_style(StyleRole role) const
 {
-    if (transition_ == nullptr) {
+    if (visual.transition == nullptr) {
         return ui_theme().style(role, ControlState::Normal);
     }
-    const StyleSlot& slot = transition_->slot(role);
+    const StyleSlot& slot = visual.transition->slot(role);
     if (!slot.started) return ui_theme().style(role, ControlState::Normal);
     return lerp_style(slot.from, slot.to, ease_out_quad(slot.progress));
 }
 
 void Widget::advance_transition(float dt)
 {
-    if (transition_ == nullptr) return;
+    if (visual.transition == nullptr) return;
     const float duration = transition_duration();
-    for (auto& slot : transition_->slots) {
+    for (auto& slot : visual.transition->slots) {
         if (!slot.started || slot.progress >= 1.0f) continue;
         if (duration <= 0.0f) {
             slot.progress = 1.0f;

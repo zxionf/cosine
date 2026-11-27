@@ -43,6 +43,9 @@ target_link_libraries(test_ui_style PRIVATE cosine_ui)
 add_executable(test_ui_node_contract test_ui_node_contract.cpp)
 target_link_libraries(test_ui_node_contract PRIVATE cosine_ui)
 
+add_executable(test_ui_state_ownership test_ui_state_ownership.cpp)
+target_link_libraries(test_ui_state_ownership PRIVATE cosine_ui)
+
 add_executable(test_ui_transition test_ui_transition.cpp)
 target_link_libraries(test_ui_transition PRIVATE cosine_ui)
 
@@ -306,6 +309,7 @@ set(COSINE_TEST_TARGETS
     test_ui_theme
     test_ui_style
     test_ui_node_contract
+    test_ui_state_ownership
     test_ui_transition
     test_ui_style_snapshot
     test_ui_pointer_events
@@ -428,6 +432,7 @@ add_test(NAME ui_gallery COMMAND test_ui_gallery)
 add_test(NAME ui_theme COMMAND test_ui_theme)
 add_test(NAME ui_style COMMAND test_ui_style)
 add_test(NAME ui_node_contract COMMAND test_ui_node_contract)
+add_test(NAME ui_state_ownership COMMAND test_ui_state_ownership)
 add_test(NAME ui_transition COMMAND test_ui_transition)
 add_test(NAME ui_style_snapshot COMMAND test_ui_style_snapshot)
 add_test(NAME ui_pointer_events COMMAND test_ui_pointer_events)

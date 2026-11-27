@@ -3,8 +3,12 @@
 #include "graphics/drawable.hpp"
 #include "ui/rect.hpp"
 #include "ui/align.hpp"
+#include "ui/box_metrics.hpp"
+#include "ui/interaction.hpp"
 #include "ui/layout_metrics.hpp"
+#include "ui/layout_params.hpp"
 #include "ui/style_types.hpp"
+#include "ui/visual_state.hpp"
 #include "events/key_code.hpp"
 
 #include <algorithm>
@@ -46,14 +50,6 @@ public:
 // 这样既能让 arrange 复用 measure 结果（少测一次），又不会跨轮读到旧值。
 std::uint64_t layout_epoch();
 void advance_layout_epoch();
-
-struct Edges
-{
-    float left = 0.0f;
-    float top = 0.0f;
-    float right = 0.0f;
-    float bottom = 0.0f;
-};
 
 class Widget : public graphics::Drawable
 {
@@ -152,21 +148,13 @@ public:
     const Theme& ui_theme() const;
     graphics::FontAtlas* font_atlas() const;
 
-    // 可见性三态（UI-33）：
-    //   Flow       参与流式布局（默认）
-    //   Positioned 绝对定位：不占位，但仍 arrange（相当于旧的 absolute）
-    //   Hidden     完全不参与布局，也不绘制
-    // set_visible(false) 等价于 Hidden；set_absolute(true) 等价于 Positioned。
-    enum class Display
-    {
-        Flow,
-        Positioned,
-        Hidden,
-    };
-    Display display() const { return !visible_ ? Display::Hidden : display_; }
+    // 可见性三态的定义在 layout_params.hpp（UI-48）；别名保持 `Widget::Display::Flow` 写法不变。
+    using Display = ::xel::ui::Display;
+
+    Display display() const { return !visible_ ? Display::Hidden : layout_.display; }
     void set_display(Display value)
     {
-        display_ = value == Display::Hidden ? Display::Flow : value;
+        layout_.display = value == Display::Hidden ? Display::Flow : value;
         visible_ = value != Display::Hidden;
         mark_layout_dirty();
     }
@@ -198,12 +186,12 @@ public:
     }
 
     bool visible() const { return visible_; }
-    bool is_hovered() const { return hovered_; }
-    void set_hovered(bool hovered) { hovered_ = hovered; }
+    bool is_hovered() const { return input.hovered; }
+    void set_hovered(bool hovered) { input.hovered = hovered; }
 
     // 焦点由基类持有：控件不再各自保存 focused_，样式解析与焦点环统一读这里。
-    bool is_focused() const { return focused_; }
-    void set_focused(bool focused) { focused_ = focused; }
+    bool is_focused() const { return input.focused; }
+    void set_focused(bool focused) { input.focused = focused; }
     // 焦点可见性由 FocusPolicy 决定；样式解析与焦点环实现在 widget.cpp。
     bool focus_visible() const;
     void append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const;
@@ -240,8 +228,11 @@ public:
         Modal,
     };
     virtual Layer layer() const { return Layer::Content; }
-    void set_align(Align a) { align_self_ = a; has_align_ = true; mark_layout_dirty(); }
-    std::optional<Align> align_self() const { return has_align_ ? std::optional<Align>(align_self_) : std::nullopt; }
+    void set_align(Align a) { layout_.align_self = a; layout_.has_align = true; mark_layout_dirty(); }
+    std::optional<Align> align_self() const
+    {
+        return layout_.has_align ? std::optional<Align>(layout_.align_self) : std::nullopt;
+    }
 
     // 尺寸与对齐规格的不可变快照（UI-36）：把 align / flex / pct / aspect / fill 收敛成一份数据，
     // 便于调试面板展示与测试断言。存储仍然是「单一真相」的分散字段，set_layout_spec() 是转发。
@@ -258,8 +249,8 @@ public:
     };
     LayoutSpec layout_spec() const
     {
-        return {align_self(), flex_grow_, size_percent_, aspect_ratio_,
-                fill_x_, fill_y_, min_size_, max_size_};
+        return {align_self(), layout_.flex_grow, layout_.size_percent, layout_.aspect_ratio,
+                layout_.fill_x, layout_.fill_y, layout_.min_size, layout_.max_size};
     }
     void set_layout_spec(const LayoutSpec& spec)
     {
@@ -274,44 +265,44 @@ public:
 
     // 内边距：显式调用即「锁住」该值，主题重刷（set_context / UIRoot::set_theme）不再覆盖。
     // 容器把主题值套进来时走 apply_theme_padding()，那条路径会跳过已锁定的控件。
-    void    set_padding(Edges edges)    { padding_ = edges; padding_override_ = true; mark_layout_dirty(); }
+    void    set_padding(Edges edges)    { box.padding = edges; box.padding_override = true; mark_layout_dirty(); }
     void    set_padding(float all)      { set_padding(Edges{all, all, all, all}); }
-    Edges   padding() const             { return padding_; }
-    bool    padding_override() const    { return padding_override_; }
+    Edges   padding() const             { return box.padding; }
+    bool    padding_override() const    { return box.padding_override; }
     // 交还给主题：之后 apply_theme_padding() 才会重新生效。
-    void    clear_padding_override()    { padding_override_ = false; }
+    void    clear_padding_override()    { box.padding_override = false; }
     // 主题套用入口（Panel / TabView 的 set_context 用）：显式设定过的内边距不覆盖。
     void    apply_theme_padding(float all)
     {
-        if (padding_override_) return;
-        padding_ = {all, all, all, all};
+        if (box.padding_override) return;
+        box.padding = {all, all, all, all};
         mark_layout_dirty();
     }
-    void    set_margin(Edges edges)     { margin_ = edges; mark_layout_dirty(); }
-    void    set_margin(float all)       { margin_ = {all, all, all, all}; mark_layout_dirty(); }
-    Edges   margin() const              { return margin_; }
+    void    set_margin(Edges edges)     { box.margin = edges; mark_layout_dirty(); }
+    void    set_margin(float all)       { box.margin = {all, all, all, all}; mark_layout_dirty(); }
+    Edges   margin() const              { return box.margin; }
 
-    void    set_flex_grow(float grow)   { flex_grow_ = grow < 0.0f ? 0.0f : grow; mark_layout_dirty(); }
-    float   flex_grow() const           { return flex_grow_; }
+    void    set_flex_grow(float grow)   { layout_.flex_grow = grow < 0.0f ? 0.0f : grow; mark_layout_dirty(); }
+    float   flex_grow() const           { return layout_.flex_grow; }
 
     // 绝对定位：脱离流式布局，按 (x, y) 相对父内容区定位；容器不计入其尺寸。
     void set_absolute(bool value)
     {
-        if (value && display_ != Display::Positioned) absolute_pos_ = local_.pos; // 兼容：从当前位置开始
-        display_ = value ? Display::Positioned : Display::Flow;
+        if (value && layout_.display != Display::Positioned) layout_.absolute_pos = local_.pos; // 兼容：从当前位置开始
+        layout_.display = value ? Display::Positioned : Display::Flow;
         mark_layout_dirty();
     }
-    bool absolute() const { return display_ == Display::Positioned; }
+    bool absolute() const { return layout_.display == Display::Positioned; }
 
     // 相对偏移与全局位置分离：arrange 会改写 local_.pos（全局），
     // 若 absolute 子项读 x()/y() 会每帧累加父偏移。
     void set_absolute_pos(glm::vec2 pos)
     {
-        absolute_pos_ = pos;
-        display_ = Display::Positioned;
+        layout_.absolute_pos = pos;
+        layout_.display = Display::Positioned;
         mark_layout_dirty();
     }
-    glm::vec2 absolute_pos() const { return absolute_pos_; }
+    glm::vec2 absolute_pos() const { return layout_.absolute_pos; }
 
     // 同层绘制/命中顺序键：数值大的画在上面、命中优先。默认 0（按加入顺序）。
     void set_z_index(int value) { z_index_ = value; }
@@ -346,30 +337,30 @@ public:
         });
         return order;
     }
-    void set_min_size(glm::vec2 size) { min_size_ = size; mark_layout_dirty(); }
-    void set_max_size(glm::vec2 size) { max_size_ = size; mark_layout_dirty(); }
-    glm::vec2 min_size() const { return min_size_; }
-    glm::vec2 max_size() const { return max_size_; }
-    glm::vec2 clamp_size(glm::vec2 size) const { return glm::clamp(size, min_size_, max_size_); }
+    void set_min_size(glm::vec2 size) { layout_.min_size = size; mark_layout_dirty(); }
+    void set_max_size(glm::vec2 size) { layout_.max_size = size; mark_layout_dirty(); }
+    glm::vec2 min_size() const { return layout_.min_size; }
+    glm::vec2 max_size() const { return layout_.max_size; }
+    glm::vec2 clamp_size(glm::vec2 size) const { return glm::clamp(size, layout_.min_size, layout_.max_size); }
 
     // 叶子的自然尺寸（UI-32）：构造期确定的 preferred size，与 arrange 的几何分离。
     // measure() 用它而不是 local_.size —— 后者是最近一次 arrange 的结果，被 stretch
     // 之后会「记住」放大值，再也缩不回去（P1-6）。
-    void set_preferred_size(glm::vec2 size) { preferred_size_ = size; mark_layout_dirty(); }
-    glm::vec2 preferred_size() const { return preferred_size_; }
+    void set_preferred_size(glm::vec2 size) { layout_.preferred = size; mark_layout_dirty(); }
+    glm::vec2 preferred_size() const { return layout_.preferred; }
 
     // 外部显式指定尺寸：几何与自然尺寸一起改。
     // 调试面板这类「用户改 Size」用它；布局内部的 arrange 不要调（arrange 只写几何）。
     void request_size(glm::vec2 size)
     {
-        preferred_size_ = size;
+        layout_.preferred = size;
         set_size(size);
     }
 
     // 尺寸规格：每轴占父级可用空间的比例（>0 启用）与宽高比（>0 启用）。
-    void set_size_percent(glm::vec2 pct) { size_percent_ = pct; mark_layout_dirty(); }
+    void set_size_percent(glm::vec2 pct) { layout_.size_percent = pct; mark_layout_dirty(); }
     void set_size_percent(float x, float y) { set_size_percent({x, y}); }
-    glm::vec2 size_percent() const { return size_percent_; }
+    glm::vec2 size_percent() const { return layout_.size_percent; }
 
     // Fill 尺寸模式：沿该轴吃满父级内容区。
     // 与 size_percent=1 的几何结果相同，但语义显式：
@@ -377,14 +368,14 @@ public:
     //   - 父级据此知道“这个子项不该把我的自然尺寸撞大”（预算在 UI-32 统一）。
     void set_fill(bool x, bool y)
     {
-        fill_x_ = x;
-        fill_y_ = y;
+        layout_.fill_x = x;
+        layout_.fill_y = y;
         mark_layout_dirty();
     }
-    bool fill_x() const { return fill_x_; }
-    bool fill_y() const { return fill_y_; }
-    void set_aspect_ratio(float ratio) { aspect_ratio_ = ratio > 0.0f ? ratio : 0.0f; mark_layout_dirty(); }
-    float aspect_ratio() const { return aspect_ratio_; }
+    bool fill_x() const { return layout_.fill_x; }
+    bool fill_y() const { return layout_.fill_y; }
+    void set_aspect_ratio(float ratio) { layout_.aspect_ratio = ratio > 0.0f ? ratio : 0.0f; mark_layout_dirty(); }
+    float aspect_ratio() const { return layout_.aspect_ratio; }
 
     // 容器测量子项的统一入口（唯一）：
     //   - constraints 是父级内容区的可用尺寸（已扣 padding，**未扣 margin**）；
@@ -437,16 +428,16 @@ public:
 
     // 内边距
     // 非虚（UI-47）：全仓 0 个覆写；派生类要改度量应当走 box/padding 部件，不再开新的虚函数。
-    float padding_left()   const { return padding_.left; }
-    float padding_right()  const { return padding_.right; }
-    float padding_top()    const { return padding_.top; }
-    float padding_bottom() const { return padding_.bottom; }
+    float padding_left()   const { return box.padding.left; }
+    float padding_right()  const { return box.padding.right; }
+    float padding_top()    const { return box.padding.top; }
+    float padding_bottom() const { return box.padding.bottom; }
 
     // 外边距
-    float margin_left()    const { return margin_.left; }
-    float margin_right()   const { return margin_.right; }
-    float margin_top()     const { return margin_.top; }
-    float margin_bottom()  const { return margin_.bottom; }
+    float margin_left()    const { return box.margin.left; }
+    float margin_right()   const { return box.margin.right; }
+    float margin_top()     const { return box.margin.top; }
+    float margin_bottom()  const { return box.margin.bottom; }
 
     // 文字基线相对控件顶边的偏移（UI-36）：默认无文本 → 用高度一半（居中）。
     // Label/Button 这类有文字的控件覆写 baseline_offset_for()，供 Align::baseline_align() 使用。
@@ -485,8 +476,8 @@ public:
     virtual bool on_key_down(event::KeyCode key, event::Modifier mods) { (void)key; (void)mods; return false; }
     virtual bool on_key_up(event::KeyCode key, event::Modifier mods) { (void)key; (void)mods; return false; }
     virtual bool on_char(char32_t codepoint) { (void)codepoint; return false; }
-    virtual void on_focus_gained() { focused_ = true; }
-    virtual void on_focus_lost() { focused_ = false; }
+    virtual void on_focus_gained() { input.focused = true; }
+    virtual void on_focus_lost() { input.focused = false; }
 
     // 布局脏标记：任何尺寸/子项变化都会沿 parent 链向上传播，并使测量缓存失效。
     // 布局进行中（LayoutPassScope）时只失效缓存、不重新标记脏：arrange 期间的几何写入是
@@ -557,33 +548,26 @@ public:
 protected:
     // 构造期的结构性默认内边距（Vbox/Hbox 的 4px）：不锁定，主题仍可接管。
     // 与 set_padding() 的区别就在于此——后者是调用方的显式意图。
-    void set_default_padding(float all) { padding_ = {all, all, all, all}; }
+    void set_default_padding(float all) { box.padding = {all, all, all, all}; }
     // 容器 arrange 时记录内容实际占用尺寸，供 content_overflows() 查询。
     void set_content_extent(glm::vec2 extent) { content_extent_ = extent; }
 
+    // ── 四个部件（UI-48）─────────────────────────────────────────────
+    // 以前这里是 22 个平铺字段（布局意图 / 盒模型 / 交互状态 / 样式过渡），
+    // 现在各自归组：字段语义不变、访问器签名不变，43 个控件无需修改。
+    LayoutParams layout_;   // preferred/min/max/pct/fill/aspect/flex/align/absolute/display
+    BoxMetrics   box;      // padding（含 override）/ margin
+    Interaction  input;    // enabled/hovered/pressed/dragging/selected/focused
+    VisualState  visual;   // 样式过渡（惰性、R4 将去堆）
+
     Rect global_;
     Rect local_;
-    Align align_self_ = Align::top_left();
-    bool has_align_ = false;
     Widget* parent_ = nullptr;
     // 子项存储统一放基类，派生类通过 adopt() 挂入（不要自持一份）。
     std::vector<std::unique_ptr<Widget>> children_;
     UIContext* context_ = nullptr;
     std::shared_ptr<const bool> alive_token_ = std::make_shared<const bool>(true);
-    Edges padding_{};
-    bool padding_override_ = false;
-    Edges margin_{};
-    float flex_grow_ = 0.0f;
-    Display display_ = Display::Flow;
-    glm::vec2 absolute_pos_{0.0f, 0.0f};
     int z_index_ = 0;
-    glm::vec2 size_percent_{-1.0f, -1.0f};
-    bool fill_x_ = false;
-    bool fill_y_ = false;
-    float aspect_ratio_ = 0.0f;
-    glm::vec2 min_size_{0.0f, 0.0f};
-    glm::vec2 max_size_{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
-    glm::vec2 preferred_size_{0.0f, 0.0f};
 
 public:
     // 每帧钩子：推进状态过渡，再交给控件自己的动画钩子。
@@ -612,8 +596,7 @@ private:
     void advance_transition(float dt);
 
     bool visible_ = true;
-    bool hovered_ = false;
-    bool focused_ = false;
+    // 交互状态（hovered/focused）已移入 input 部件（UI-48）；这里只留下不与部件重叠的布尔。
     bool debug_ = false;
     std::optional<float> radius_override_;
     bool layout_dirty_ = true;
@@ -626,7 +609,6 @@ private:
     mutable bool measure_valid_ = false;
     // 本轮是否已把“失效”告知祖先链（UI-34 早退）。
     bool notified_ = false;
-    // visual_style() 在 const 的 append_to 中惰性更新过渡状态。
-    mutable std::unique_ptr<StyleTransition> transition_;
+    // visual_style() 在 const 的 append_to 中惰性更新过渡状态（部件内 mutable）。
 };
 } // namespace xel::ui

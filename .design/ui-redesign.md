@@ -122,7 +122,8 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override = 0;   // 保留
     void      arrange(Rect slot) override = 0;               // 保留
 
-    LayoutParams  layout;    // 原 15 个字段：preferred/min/max/pct/fill/aspect/flex/align/absolute
+    // 字段名用 layout_ 而非 layout（UI-48 实测）：Widget 已有虚函数 layout()，同名会冲突。
+    LayoutParams  layout_;   // 原 15 个字段：preferred/min/max/pct/fill/aspect/flex/align/absolute
     BoxMetrics    box;       // 原 3 个字段：padding / padding_override / margin
     Interaction   input;     // 状态唯一所有者（见 §4.3）
     VisualState   visual;    // 样式过渡（见 §4.4，内嵌、无堆）
@@ -329,6 +330,7 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 |---|---|
 | 2026-11-27 | 首版：类型模型、六条契约、43 控件映射、目录与依赖规则 |
 | 2026-11-27 | R1 实施后校正：「纯样板 arrange」实测 **17** 个（原估 20）；`CollapsibleHeader`/`TextInput`/`FileBrowser` 的 arrange 另含自己的语义，不属样板 |
+| 2026-11-27 | R2 实施后校正：部件成员名 `layout` → `layout_`（与既有的虚函数 `layout()` 冲突）；`Display` 枚举下沉到 `layout_params.hpp` 并用 `using Display = ::xel::ui::Display;` 保持 `Widget::Display::Flow` 写法 |
 
 ---
 
