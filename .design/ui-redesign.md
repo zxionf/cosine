@@ -129,7 +129,7 @@ public:
     VisualState   visual;    // 样式过渡（见 §4.4，内嵌、无堆）
 
 protected:
-    // 测量缓存：唯一一套（见 K6）
+    // 测量缓存：唯一一套（见 K6）——ui/measure_cache.hpp 的 MeasureCache
     MeasureCache cache_;
 };
 ```
@@ -278,7 +278,7 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | **K3** | 几何唯一写入口：`geometry_` 私有，写只用 `set_geometry()` | `grep "global_ = \|global_\.pos = \|global_\.size = " → 0` |
 | **K4** | 语义是投影：`Semantics` 无 setter，字段全部 `const` 派生 | 编译期（无 `set_*`） |
 | **K5** | 新控件不新增基类虚函数：R1 后基类虚函数 ≤ 34（可选 R7 后 ≤ 30） | `grep -c "    virtual " node/*.hpp` |
-| **K6** | 测量缓存一套、key 可扩展 | `Label`/`TreeView` 不再自持 cache；`MeasureCache::Key` 支持 text/size/wrap |
+| **K6** | 测量缓存一套、key 可扩展 | 单一 `MeasureCache` 成员（protected）；`MeasureKey` = constraints + epoch + 派生输入（text_hash/font_size/wrap_width/…） |
 
 补充不变量（沿用已有教训，写进测试）：
 
@@ -348,6 +348,7 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 2026-11-27 | R2 实施后校正：部件成员名 `layout` → `layout_`（与既有的虚函数 `layout()` 冲突）；`Display` 枚举下沉到 `layout_params.hpp` 并用 `using Display = ::xel::ui::Display;` 保持 `Widget::Display::Flow` 写法 |
 | 2026-11-27 | R3 实施后记录：几何写绕过 12 处（估 11，漏算 menu_bar 构造的 `local_`）；`clear_children()` 保持 public；Section 改 `adopt(content_)`；越界改 `src/cosine/preview_pane.hpp`（shadow 了基类 `children_`） |
 | 2026-11-27 | R4 实施后校正：不建 Theme 样式索引表（改为按需 `theme.style(role,state)` 现算，避免第二份真相）；槽内保留 `started`/`reversing` 两个 bool 以维持“首帧吸附 + 反向不跳变”；实测 `StyleSlot` 8 B、`VisualState` 104 B、`sizeof(Widget)` 384 B；`StyleRole`/`ControlState` 底层类型固定为 `uint8_t` |
+| 2026-11-27 | R5 实施后记录：新增 `ui/measure_cache.hpp`（`MeasureKey` 56 B / `MeasureCache` 72 B）；文本键用 FNV-1a 哈希（不存 `std::string`，否则 Widget 456 B）；`Widget` 432 B；Label 删除自带缓存 45 行，TreeView 行缓存接入 `invalidate_measure()` |
 
 ---
 

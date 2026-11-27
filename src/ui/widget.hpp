@@ -7,6 +7,7 @@
 #include "ui/interaction.hpp"
 #include "ui/layout_metrics.hpp"
 #include "ui/layout_params.hpp"
+#include "ui/measure_cache.hpp"
 #include "ui/style_types.hpp"
 #include "ui/visual_state.hpp"
 #include "events/key_code.hpp"
@@ -553,7 +554,7 @@ public:
         for_each_child([](Widget& child) { child.clear_layout_dirty_recursive(); });
     }
     // 测量缓存失效（单节点）。派生类只管自己的派生度量。
-    virtual void invalidate_measure() { measure_valid_ = false; }
+    virtual void invalidate_measure() { measure_cache_.invalidate(); }
     // 递归失效：主题/密度/字号切换后必须走这个（否则容器拿旧缓存 + 新主题 = 尺寸错位）。
     void invalidate_measure_recursive()
     {
@@ -561,29 +562,34 @@ public:
         for_each_child([](Widget& child) { child.invalidate_measure_recursive(); });
     }
 
-    // 测量缓存的三个入口（派生类 measure() 用）：
-    //   - 命中条件：仍有效、同一轮布局、约束相同；
-    //   - 布局轮次是唯一跨轮失效手段，不依赖子项是否在 arrange 里标脏。
+    // 测量缓存入口（UI-51 统一）：所有控件共用同一份 MeasureCache。
+    //   - 布局级命中：仍有效 + 同一轮布局 + 约束相同；
+    //   - 派生输入命中：派生类用 measure_cache_hit(MeasureKey) 把自己关心的字段填进去
+    //     （Label 的文本/字号/换行宽等）。
     bool measure_cache_hit(glm::vec2 constraints) const
     {
-        return measure_valid_ && measure_epoch_ == layout_epoch()
-            && constraints == measure_constraints_;
+        MeasureKey probe;
+        probe.constraints = constraints;
+        probe.epoch = layout_epoch();
+        return measure_cache_.hit(probe);
     }
-    glm::vec2 measure_cached() const { return measure_cache_; }
+    bool measure_cache_hit(const MeasureKey& probe) const { return measure_cache_.hit(probe); }
+    glm::vec2 measure_cached() const { return measure_cache_.result; }
     void store_measure(glm::vec2 constraints, glm::vec2 result)
     {
-        measure_cache_ = result;
-        measure_constraints_ = constraints;
-        measure_epoch_ = layout_epoch();
-        measure_valid_ = true;
+        MeasureKey probe;
+        probe.constraints = constraints;
+        probe.epoch = layout_epoch();
+        measure_cache_.store(probe, result);
     }
+    void store_measure(const MeasureKey& probe, glm::vec2 result) { measure_cache_.store(probe, result); }
     // 测量已失效（调试面板与断言用）。
-    bool measure_valid() const { return measure_valid_; }
+    bool measure_valid() const { return measure_cache_.valid; }
     // 本轮已统计过（测过或按规则跳过）：清除“已通知祖先”标记，下次变更重新传播。
     // 容器对该轮不参与流式的子项（Hidden / Positioned）也要调用它。
     void mark_measured()
     {
-        measure_valid_ = true;
+        measure_cache_.valid = true;
         notified_ = false;
     }
 
@@ -634,6 +640,11 @@ public:
 protected:
     virtual void on_update(float /*dt*/) {}
 
+    // 测量缓存（UI-51）：约束 + 布局轮次 + 可选派生输入，一套到底。
+    // protected 而非 private：派生类要把自己的派生输入写进 MeasureKey（Label 的文本、
+    // 字号、换行宽…），但存储仍是单一成员，不存在第二套缓存。
+    mutable MeasureCache measure_cache_{};
+
 private:
     float transition_duration() const;
     BoxStyle current_transition_style(StyleRole role) const;
@@ -646,11 +657,6 @@ private:
     bool layout_dirty_ = true;
     int tab_order_ = 0;
     glm::vec2 content_extent_{0.0f, 0.0f};
-    // measure 缓存（UI-34）：约束 + 布局轮次双重键。
-    mutable glm::vec2 measure_cache_{0.0f, 0.0f};
-    mutable glm::vec2 measure_constraints_{0.0f, 0.0f};
-    mutable std::uint64_t measure_epoch_ = 0;
-    mutable bool measure_valid_ = false;
     // 本轮是否已把“失效”告知祖先链（UI-34 早退）。
     bool notified_ = false;
     // visual_style() 在 const 的 append_to 中惰性更新过渡状态（部件内 mutable）。

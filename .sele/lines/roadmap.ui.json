@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 66,
+      "skipped_count": 67,
       "status": "paused",
       "steps": [
         {
@@ -4882,33 +4882,33 @@
           "desc": "MeasureCache::Key 支持文本/字号/换行宽等派生输入",
           "id": "A1",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:25:34Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "Label 与 TreeView 不再自持缓存实现",
           "id": "A2",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:25:34Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "改文本/改主题字号/递归失效三种场景均有测试覆盖",
           "id": "A3",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:25:34Z",
+          "verified_by": "agent:pi"
         },
         {
           "desc": "ctest 全绿",
           "id": "A4",
           "requires_human": false,
-          "status": "unverified",
-          "verified_at": null,
-          "verified_by": null
+          "status": "pass",
+          "verified_at": "2026-11-27T08:25:34Z",
+          "verified_by": "agent:pi"
         }
       ],
       "archived_at": null,
@@ -4921,7 +4921,7 @@
           "uid": "tsk_01M8DY2ZT3B6V775VJ6NMKPFEC"
         }
       ],
-      "finished_at": null,
+      "finished_at": "2026-11-27T08:25:34Z",
       "goal": "UI-51 测量缓存统一：基类/Label/TreeView 三套→一套（key 可扩展）",
       "id": "T46",
       "line": "ui",
@@ -4935,8 +4935,53 @@
       "plan": "roadmap",
       "review_policy": "mixed",
       "skipped_count": 0,
-      "status": "todo",
-      "steps": [],
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 新增 MeasureCache/MeasureKey（键可扩展，含派生输入）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 Widget 用统一缓存；Label 删除自带缓存实现"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 TreeView 行缓存接入统一失效路径"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 新增 test_ui_measure_cache + 全量验证"
+        }
+      ],
       "title": "UI-51 测量缓存统一：基类/Label/TreeView 三套→一套（key 可扩展）",
       "uid": "tsk_01M8DY34YQJ4H9YGPRC4KJD9DG"
     },

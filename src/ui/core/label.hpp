@@ -34,34 +34,34 @@ public:
     {
         if (text_ == text) return;
         text_ = std::move(text);
-        invalidate_measure_cache();
+        invalidate_measure();
         mark_layout_dirty();
     }
     const std::string& text() const { return text_; }
     void set_text_size(float size)
     {
         size_ = size;
-        invalidate_measure_cache();
+        invalidate_measure();
         mark_layout_dirty();
     }
     void set_text_color(glm::vec4 color) { color_ = color; }
     void set_wrap(bool wrap)
     {
         wrap_ = wrap;
-        invalidate_measure_cache();
+        invalidate_measure();
         mark_layout_dirty();
     }
     bool wrap() const { return wrap_; }
     void set_max_lines(int max_lines)
     {
         max_lines_ = max_lines;
-        invalidate_measure_cache();
+        invalidate_measure();
         mark_layout_dirty();
     }
     void set_ellipsis(bool ellipsis)
     {
         ellipsis_ = ellipsis;
-        invalidate_measure_cache();
+        invalidate_measure();
         mark_layout_dirty();
     }
 
@@ -76,7 +76,7 @@ public:
     void set_line_spacing(float spacing)
     {
         line_spacing_ = std::max(0.0f, spacing);
-        invalidate_measure_cache();
+        invalidate_measure();
         mark_layout_dirty();
     }
     float line_spacing() const { return line_spacing_; }
@@ -104,8 +104,16 @@ public:
             if (max_size().x < wrap_width) wrap_width = max_size().x;
         }
 
-        const MeasureKey key{text_, size, wrap_width, line_spacing_, max_lines_, wrapping, atlas};
-        if (cache_matches(key)) return measure_cache_.result;
+        MeasureKey key;
+        key.epoch = layout_epoch();
+        key.text_hash = measure_hash_text(text_);
+        key.font_size = size;
+        key.wrap_width = wrap_width;
+        key.line_spacing = line_spacing_;
+        key.max_lines = max_lines_;
+        key.wrap = wrapping;
+        key.resource = atlas;
+        if (measure_cache_.hit(key)) return measure_cache_.result;
 
         glm::vec2 measured = wrapping
             ? atlas->measure_wrapped(text_, size, wrap_width, line_spacing_)
@@ -114,7 +122,7 @@ public:
             const float line_h = atlas->line_step(size, line_spacing_);
             measured.y = std::min(measured.y, static_cast<float>(max_lines_) * line_h);
         }
-        store_cache(key, measured);
+        measure_cache_.store(key, measured);
         return measured;
     }
 
@@ -161,6 +169,24 @@ public:
     }
     bool hit_testable() const override { return false; }
 
+    // 非换行时的文本宽度；只用于居中/右对齐。与 measure() 共用同一份缓存（UI-51）。
+    float text_width(float size, graphics::FontAtlas* atlas) const
+    {
+        if (wrap_) return global_bounds().size.x;
+        MeasureKey key;
+        key.epoch = layout_epoch();
+        key.text_hash = measure_hash_text(text_);
+        key.font_size = size;
+        key.wrap_width = -1.0f;
+        key.line_spacing = line_spacing_;
+        key.wrap = false;
+        key.resource = atlas;
+        if (measure_cache_.hit(key)) return measure_cache_.result.x;
+        const float width = atlas->measure(text_, size, line_spacing_).x;
+        measure_cache_.store(key, {width, 0.0f});
+        return width;
+    }
+
     // 基线对齐（UI-36）：文字行框在控件内垂直居中，基线按行高 80% 估算
     // （无精确 ascent/descent 数据时的经验值，与字形渲染色块比例一致）。
     float baseline_offset_for(float h) const override
@@ -173,63 +199,8 @@ public:
     }
 
 private:
-    struct MeasureKey
-    {
-        std::string text;
-        float size = 0.0f;
-        float wrap_width = -1.0f;
-        float line_spacing = 0.0f;
-        int max_lines = 0;
-        bool wrap = false;
-        const graphics::FontAtlas* atlas = nullptr;
-    };
-
-    struct MeasureCache
-    {
-        std::string text;
-        float size = 0.0f;
-        float wrap_width = -1.0f;
-        float line_spacing = 0.0f;
-        int max_lines = 0;
-        bool wrap = false;
-        const graphics::FontAtlas* atlas = nullptr;
-        bool valid = false;
-        glm::vec2 result{0.0f, 0.0f};
-    };
-
-    void invalidate_measure_cache() const { measure_cache_.valid = false; }
-
-    bool cache_matches(const MeasureKey& key) const
-    {
-        const auto& c = measure_cache_;
-        return c.valid && c.text == key.text && c.size == key.size
-            && c.wrap_width == key.wrap_width && c.line_spacing == key.line_spacing
-            && c.max_lines == key.max_lines && c.wrap == key.wrap && c.atlas == key.atlas;
-    }
-
-    void store_cache(const MeasureKey& key, glm::vec2 result) const
-    {
-        measure_cache_.text = key.text;
-        measure_cache_.size = key.size;
-        measure_cache_.wrap_width = key.wrap_width;
-        measure_cache_.line_spacing = key.line_spacing;
-        measure_cache_.max_lines = key.max_lines;
-        measure_cache_.wrap = key.wrap;
-        measure_cache_.atlas = key.atlas;
-        measure_cache_.valid = true;
-        measure_cache_.result = result;
-    }
-
-    // 非换行时的文本宽度；只用于居中/右对齐，走同一份缓存。
-    float text_width(float size, graphics::FontAtlas* atlas) const
-    {
-        if (wrap_) return global_.size.x;
-        const MeasureKey key{text_, size, -1.0f, line_spacing_, 0, false, atlas};
-        if (cache_matches(key)) return measure_cache_.result.x;
-        const float width = atlas->measure(text_, size, line_spacing_).x;
-        store_cache(key, {width, 0.0f});
-        return width;
-    }
+    // 缓存实现已上千到 Widget（UI-51）：统一用 ui/measure_cache.hpp 的 MeasureCache，
+    // 派生输入（文本/字号/换行宽…）填进 MeasureKey，不再各自维护一套。
 
     float align_offset(float text_w, float available_w) const
     {
@@ -252,6 +223,5 @@ private:
     bool pixel_snap_ = true;
     float line_spacing_ = 0.0f;
     graphics::TextDebugOptions debug_{};
-    mutable MeasureCache measure_cache_{};
 };
 } // namespace xel::ui

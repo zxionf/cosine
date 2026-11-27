@@ -48,6 +48,15 @@ public:
         scroll_.jump_to(0.0f);
         mark_layout_dirty();
     }
+
+    // 测量失效（主题/密度/字号切换、invalidate_measure_recursive）也要丢掉行缓存（UI-51）：
+    // 以前 visible_cache_ 只由结构变更（set_roots / 展开折叠）手动失效，
+    // 现在接到统一的失效路径上，不再是一套独立缓存。
+    void invalidate_measure() override
+    {
+        ListView::invalidate_measure();
+        invalidate_visible();
+    }
     const std::vector<TreeNode>& roots() const { return roots_; }
     std::size_t root_count() const { return roots_.size(); }
 
