@@ -1,7 +1,7 @@
-#include "ui/ui_system.hpp"
+#include "ui/system/ui_system.hpp"
 #include "backend/window.hpp"
 #include "ui/composites/window.hpp"
-#include "ui/theme.hpp"
+#include "ui/style/theme.hpp"
 
 #include <algorithm>
 

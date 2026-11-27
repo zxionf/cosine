@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui/widget.hpp"
-#include "ui/align.hpp"
+#include "ui/node/widget.hpp"
+#include "ui/geom/align.hpp"
 
 #include <cstddef>
 #include <memory>

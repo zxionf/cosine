@@ -7,11 +7,11 @@
 //   3. 控件的派生输入变化（改文本）必须 miss，相同输入必须 hit；
 //   4. TreeView 的行缓存挂在同一失效路径上。
 #include "ui/core/label.hpp"
-#include "ui/measure_cache.hpp"
-#include "ui/theme.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/layout/measure_cache.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/system/ui_system.hpp"
 #include "ui/views/tree_view.hpp"
-#include "ui/widget.hpp"
+#include "ui/node/widget.hpp"
 
 #include "graphics/font_atlas.hpp"
 

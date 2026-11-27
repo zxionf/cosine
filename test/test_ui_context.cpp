@@ -1,8 +1,8 @@
 #include "graphics/font_atlas.hpp"
 #include "ui/core/label.hpp"
 #include "ui/containers/panel.hpp"
-#include "ui/root.hpp"
-#include "ui/uicontext.hpp"
+#include "ui/system/root.hpp"
+#include "ui/system/uicontext.hpp"
 #include "ui/containers/vbox.hpp"
 
 #include <cassert>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui/theme.hpp"
-#include "ui/leaf_node.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/node/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/text_debug.hpp"
 #include "graphics/utf8.hpp"

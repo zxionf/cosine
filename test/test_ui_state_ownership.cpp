@@ -6,13 +6,13 @@
 //   2. Interaction::state() 与旧的自由函数 control_state() 在全部 16 种组合下等价；
 //   3. 访问器仍然写/读同一份存储（部件是唯一真相，方法只是转发）；
 //   4. 布局部件与测量契约一致（min/max/pct/fill/aspect 的 clamp 行为不变）。
-#include "ui/box_metrics.hpp"
+#include "ui/style/box_metrics.hpp"
 #include "ui/core/progress.hpp"
-#include "ui/interaction.hpp"
-#include "ui/layout_params.hpp"
-#include "ui/style.hpp"
-#include "ui/visual_state.hpp"
-#include "ui/widget.hpp"
+#include "ui/input/interaction.hpp"
+#include "ui/layout/layout_params.hpp"
+#include "ui/style/style.hpp"
+#include "ui/style/visual_state.hpp"
+#include "ui/node/widget.hpp"
 
 #include <cstdio>
 #include <string>

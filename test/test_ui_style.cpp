@@ -3,11 +3,11 @@
 #include "ui/core/checkbox.hpp"
 #include "ui/core/progress.hpp"
 #include "ui/core/radio.hpp"
-#include "ui/root.hpp"
+#include "ui/system/root.hpp"
 #include "ui/core/slider.hpp"
-#include "ui/style.hpp"
-#include "ui/theme.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/style/style.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <algorithm>
 #include <cassert>

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ui/views/table.hpp"
-#include "ui/theme.hpp"
-#include "ui/widget.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/node/widget.hpp"
 
 #include <algorithm>
 #include <cctype>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui/widget.hpp"
-#include "ui/uicontext.hpp"
+#include "ui/node/widget.hpp"
+#include "ui/system/uicontext.hpp"
 
 #include <functional>
 #include <memory>

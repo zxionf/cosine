@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ui/core/tab_bar.hpp"
-#include "ui/layout_utils.hpp"
-#include "ui/uicontext.hpp"
-#include "ui/theme.hpp"
-#include "ui/widget.hpp"
+#include "ui/layout/layout_utils.hpp"
+#include "ui/system/uicontext.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/rectangle.hpp"
 
 #include <algorithm>

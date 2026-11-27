@@ -16,7 +16,7 @@
 //
 // spacing 是相邻子项间距；margin 参与主轴自然尺寸与预算（全轴语义，UI-30 起）。
 
-#include "ui/layout_metrics.hpp"
+#include "ui/geom/layout_metrics.hpp"
 
 #include <algorithm>
 #include <cmath>

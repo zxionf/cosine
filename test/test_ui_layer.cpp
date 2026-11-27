@@ -3,8 +3,8 @@
 #include "events/event.hpp"
 #include "ui/containers/vbox.hpp"
 #include "ui/composites/window.hpp"
-#include "ui/root.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/root.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <cassert>
 #include <cstdio>

@@ -2,11 +2,11 @@
 
 #include "graphics/box.hpp"
 #include "graphics/line.hpp"
-#include "ui/layout_metrics.hpp"
-#include "ui/theme.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/style/theme.hpp"
 #include "ui/core/collapsible_header.hpp"
 #include "ui/containers/vbox.hpp"
-#include "ui/widget.hpp"
+#include "ui/node/widget.hpp"
 
 #include <algorithm>
 #include <memory>

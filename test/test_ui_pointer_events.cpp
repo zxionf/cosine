@@ -1,8 +1,8 @@
 #include "events/event.hpp"
 #include "graphics/drawable.hpp"
-#include "ui/root.hpp"
-#include "ui/ui_system.hpp"
-#include "ui/widget.hpp"
+#include "ui/system/root.hpp"
+#include "ui/system/ui_system.hpp"
+#include "ui/node/widget.hpp"
 
 #include <cassert>
 #include <iostream>

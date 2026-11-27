@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui/core/label.hpp"
-#include "ui/theme.hpp"
+#include "ui/style/theme.hpp"
 
 #include <string>
 

@@ -13,7 +13,7 @@
 #include "ui/core/label.hpp"
 #include "ui/core/progress.hpp"
 #include "ui/core/slider.hpp"
-#include "ui/theme.hpp"
+#include "ui/style/theme.hpp"
 
 #include <cstdint>
 #include <cstdio>

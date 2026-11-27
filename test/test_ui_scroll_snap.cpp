@@ -1,6 +1,6 @@
 #include "graphics/drawable.hpp"
 #include "ui/core/label.hpp"
-#include "ui/root.hpp"
+#include "ui/system/root.hpp"
 #include "ui/containers/scroll_view.hpp"
 #include "ui/views/table.hpp"
 #include "ui/views/tree_view.hpp"

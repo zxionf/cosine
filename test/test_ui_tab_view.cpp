@@ -2,7 +2,7 @@
 #include "ui/core/label.hpp"
 #include "ui/containers/panel.hpp"
 #include "ui/composites/tab_view.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <cassert>
 #include <cmath>

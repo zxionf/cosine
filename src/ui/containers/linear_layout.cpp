@@ -1,9 +1,9 @@
 #include "ui/containers/linear_layout.hpp"
 
-#include "ui/layout_budget.hpp"
-#include "ui/layout_metrics.hpp"
-#include "ui/layout_utils.hpp"
-#include "ui/uicontext.hpp"
+#include "ui/geom/layout_budget.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/layout/layout_utils.hpp"
+#include "ui/system/uicontext.hpp"
 
 #include <algorithm>
 #include <vector>

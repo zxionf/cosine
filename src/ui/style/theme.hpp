@@ -5,9 +5,9 @@
 
 #include <glm/glm.hpp>
 
-#include "ui/style_types.hpp"
+#include "ui/style/style_types.hpp"
 
-#include "ui/scroll_mode.hpp"
+#include "ui/layout/scroll_mode.hpp"
 
 namespace xel::ui
 {

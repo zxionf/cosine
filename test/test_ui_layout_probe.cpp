@@ -16,8 +16,8 @@
 #include "ui/core/label.hpp"
 #include "ui/containers/panel.hpp"
 #include "ui/core/splitter.hpp"
-#include "ui/layout_metrics.hpp"
-#include "ui/root.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/system/root.hpp"
 
 #include <cmath>
 #include <cstdio>

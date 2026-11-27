@@ -1,8 +1,8 @@
 #include "ui/containers/wrap.hpp"
 
-#include "ui/layout_metrics.hpp"
-#include "ui/layout_utils.hpp"
-#include "ui/uicontext.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/layout/layout_utils.hpp"
+#include "ui/system/uicontext.hpp"
 
 #include <algorithm>
 #include <vector>

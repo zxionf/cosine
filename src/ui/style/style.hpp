@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/theme.hpp"
+#include "ui/style/theme.hpp"
 
 #include <algorithm>
 #include <cmath>

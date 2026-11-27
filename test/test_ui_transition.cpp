@@ -1,9 +1,9 @@
 #include "graphics/drawable.hpp"
 #include "ui/core/button.hpp"
-#include "ui/root.hpp"
-#include "ui/style.hpp"
-#include "ui/theme.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/root.hpp"
+#include "ui/style/style.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <cassert>
 #include <cmath>

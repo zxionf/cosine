@@ -1,6 +1,6 @@
 #include "ui/core/label.hpp"
 #include "ui/composites/menu_bar.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <cassert>
 #include <cstdio>

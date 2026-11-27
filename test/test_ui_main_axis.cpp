@@ -18,8 +18,8 @@
 #include "ui/core/color_rect.hpp"
 #include "ui/core/image.hpp"
 #include "ui/core/label.hpp"
-#include "ui/layout_budget.hpp"
-#include "ui/layout_metrics.hpp"
+#include "ui/geom/layout_budget.hpp"
+#include "ui/geom/layout_metrics.hpp"
 #include "ui/views/tree_view.hpp"
 
 #include <cmath>

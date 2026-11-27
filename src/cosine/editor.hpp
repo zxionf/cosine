@@ -18,13 +18,13 @@
 #include "ui/containers/panel.hpp"
 #include "ui/containers/vbox.hpp"
 #include "ui/core/preview_ruler.hpp"
-#include "ui/root.hpp"
+#include "ui/system/root.hpp"
 #include "ui/views/scene_view.hpp"
 #include "ui/core/splitter.hpp"
 #include "ui/views/timeline_view.hpp"
 #include "ui/views/tree_view.hpp"
-#include "ui/ui_system.hpp"
-#include "ui/widget.hpp"
+#include "ui/system/ui_system.hpp"
+#include "ui/node/widget.hpp"
 
 #include <cstdint>
 #include <functional>

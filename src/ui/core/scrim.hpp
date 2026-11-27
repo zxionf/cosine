@@ -1,7 +1,7 @@
 #pragma once
 
 #include "graphics/rectangle.hpp"
-#include "ui/widget.hpp"
+#include "ui/node/widget.hpp"
 
 #include <functional>
 

@@ -7,11 +7,11 @@
 //      并锁住 UI-46 的教训——同一帧同一 role 只能一种状态（不同 role 互不影响）。
 #include "ui/core/button.hpp"
 #include "ui/core/slider.hpp"
-#include "ui/style.hpp"
-#include "ui/theme.hpp"
-#include "ui/ui_system.hpp"
-#include "ui/visual_state.hpp"
-#include "ui/widget_style.hpp"
+#include "ui/style/style.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/system/ui_system.hpp"
+#include "ui/style/visual_state.hpp"
+#include "ui/style/widget_style.hpp"
 
 #include <cmath>
 #include <cstdio>

@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 69,
+      "skipped_count": 70,
       "status": "paused",
       "steps": [
         {
@@ -5213,6 +5213,110 @@
       ],
       "title": "UI-53 目录重组：src/ui 按语义分层（geom/layout/style/input/node/semantics/system）",
       "uid": "tsk_01M8E4Y190ERVGQC6GD8R3XJ3F"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "259 处 include 改为新路径（geom/layout/style/input/node/semantics/system）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T09:45:58Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "22 个转发头删除，src/ui 根目录不再有 .hpp",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T09:45:58Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "D5 断言改为'shim 数量 == 0'，D1/D3 仍有效",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T09:45:59Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 80/80 + 快照不变 + 三入口无 validation",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T09:45:59Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T09:34:51Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-27T09:46:03Z",
+      "goal": "UI-54 include 重写与转发头清理（R8）：旧路径彻底退场",
+      "id": "T49",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 重写 src/ui 内部 include"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 重写 src/cosine + examples + test 的 include"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 删除 22 个转发头 + 更新 D5 断言"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 验证：ctest 80/80 + 快照 + 冒烟"
+        }
+      ],
+      "title": "UI-54 include 重写与转发头清理（R8）：旧路径彻底退场",
+      "uid": "tsk_01M8E5Q3EHGPF1DH8MG3PSH7N1"
     }
   ]
 }

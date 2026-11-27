@@ -10,8 +10,8 @@
 #include "ui/core/drag_float.hpp"
 #include "ui/core/label.hpp"
 #include "ui/core/text_input.hpp"
-#include "ui/root.hpp"
-#include "ui/theme.hpp"
+#include "ui/system/root.hpp"
+#include "ui/style/theme.hpp"
 #include "xel_application.hpp"
 
 #include <algorithm>

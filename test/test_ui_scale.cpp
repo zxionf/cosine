@@ -1,7 +1,7 @@
 // 缩放/坐标换算测试：framebuffer→logical、pointer_pos 更新、ui_scale 设置。
 #include "events/event.hpp"
-#include "ui/root.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/root.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <cassert>
 #include <cstdio>

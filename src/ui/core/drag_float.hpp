@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ui/theme.hpp"
-#include "ui/style.hpp"
-#include "ui/leaf_node.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/style/style.hpp"
+#include "ui/node/leaf_node.hpp"
 #include "events/event.hpp"
 #include "graphics/box.hpp"
 

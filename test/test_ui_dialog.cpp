@@ -1,5 +1,5 @@
 #include "ui/composites/dialog.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <cassert>
 #include <iostream>

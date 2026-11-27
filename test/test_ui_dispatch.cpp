@@ -4,9 +4,9 @@
 #include "graphics/drawable.hpp"
 #include "ui/core/button.hpp"
 #include "ui/core/label.hpp"
-#include "ui/root.hpp"
+#include "ui/system/root.hpp"
 #include "ui/composites/section.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/ui_system.hpp"
 #include "ui/composites/window.hpp"
 
 #include <cassert>

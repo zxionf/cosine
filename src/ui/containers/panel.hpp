@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ui/theme.hpp"
-#include "ui/style.hpp"
-#include "ui/uicontext.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/style/style.hpp"
+#include "ui/system/uicontext.hpp"
 #include "ui/containers/vbox.hpp"
 #include "graphics/box.hpp"
 

@@ -7,9 +7,9 @@
 #include "ui/core/checkbox.hpp"
 #include "ui/core/drag_float.hpp"
 #include "ui/core/label.hpp"
-#include "ui/root.hpp"
-#include "ui/ui_system.hpp"
-#include "ui/widget.hpp"
+#include "ui/system/root.hpp"
+#include "ui/system/ui_system.hpp"
+#include "ui/node/widget.hpp"
 
 #include <memory>
 

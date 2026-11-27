@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui/rect.hpp"
-#include "ui/widget.hpp"
+#include "ui/geom/rect.hpp"
+#include "ui/node/widget.hpp"
 
 #include <algorithm>
 #include <cmath>

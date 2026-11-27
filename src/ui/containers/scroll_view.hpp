@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ui/theme.hpp"
-#include "ui/widget.hpp"
-#include "ui/scroll_mode.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/node/widget.hpp"
+#include "ui/layout/scroll_mode.hpp"
 
 #include <vector>
 

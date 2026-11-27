@@ -11,10 +11,10 @@
 #include "ui/containers/linear_layout.hpp"
 #include "ui/core/label.hpp"
 #include "ui/core/splitter.hpp"
-#include "ui/root.hpp"
-#include "ui/theme.hpp"
-#include "ui/ui_system.hpp"
-#include "ui/widget.hpp"
+#include "ui/system/root.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/system/ui_system.hpp"
+#include "ui/node/widget.hpp"
 
 #include <cstdio>
 #include <memory>

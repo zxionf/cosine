@@ -1,8 +1,8 @@
 #include "ui/core/label.hpp"
 #include "ui/containers/panel.hpp"
-#include "ui/root.hpp"
-#include "ui/theme.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/root.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <cassert>
 #include <cstring>

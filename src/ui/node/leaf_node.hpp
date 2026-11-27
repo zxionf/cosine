@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/widget.hpp"
+#include "ui/node/widget.hpp"
 
 namespace xel::ui
 {

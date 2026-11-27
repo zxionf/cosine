@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/leaf_node.hpp"
+#include "ui/node/leaf_node.hpp"
 
 namespace xel::ui
 {

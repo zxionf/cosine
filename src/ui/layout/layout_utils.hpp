@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui/layout_metrics.hpp"
-#include "ui/widget.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/node/widget.hpp"
 
 #include <algorithm>
 

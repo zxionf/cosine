@@ -1,7 +1,7 @@
 #include "ui/containers/scroll_view.hpp"
 
-#include "ui/layout_metrics.hpp"
-#include "ui/style.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/style/style.hpp"
 #include "graphics/box.hpp"
 #include "graphics/rectangle.hpp"
 

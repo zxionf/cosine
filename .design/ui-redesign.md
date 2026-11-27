@@ -66,8 +66,9 @@ ui/
   core/ containers/ composites/ views/      （未动：控件实现本体）
 ```
 
-旧路径（`ui/widget.hpp` 等 22 个）保留为**转发头**：一行 `#include` + `兼容转发（UI-53）` 标记，
-由 `test_ui_architecture` 的 D5 断言锁住“只能转发、不能放实现”。删除转发头时同步重写
+旧路径在 R7（UI-53）时曾是**转发头**（一行 `#include` + 标记），R8（UI-54）已彻底删除：
+259 处 include 全部改到新路径，`src/ui` 根目录不再有任何头/源文件。
+`test_ui_architecture` 的 D5 断言现在锁住“根目录无头文件 + 无转发头”。
 259 处 include（已登记为 R7，见 `docs/todo-ui.md`）。
 
 ### 3.2 目标结构（原设计，含尚未拆出的 widgets/ 与 tree/）
@@ -95,7 +96,7 @@ ui/
 | D2 | `core/` `containers/` 不得 include `composites/` `views/` | ✅ 断言守住 |
 | D3 | `style/` 不得 include 具体控件 | ✅ 断言守住 |
 | D4 | `semantics/` 只依赖标准库 | ✅（semantics.hpp 只 include \<cstdint\>/\<string_view\>） |
-| D5 | 旧路径只能留转发头（不得放实现） | ✅ 断言守住（22 个） |
+| D5 | `src/ui` 根目录不得有头/源文件，不得有转发头（旧路径彻底退场） | ✅ 断言守住（UI-54 后） |
 
 > 断言实现：`test/test_ui_architecture.cpp` 直接读源文件做文本断言（不引入脚本，符合 AGENTS 第 9 条）。
 
@@ -373,7 +374,7 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 2026-11-27 | R4 实施后校正：不建 Theme 样式索引表（改为按需 `theme.style(role,state)` 现算，避免第二份真相）；槽内保留 `started`/`reversing` 两个 bool 以维持“首帧吸附 + 反向不跳变”；实测 `StyleSlot` 8 B、`VisualState` 104 B、`sizeof(Widget)` 384 B；`StyleRole`/`ControlState` 底层类型固定为 `uint8_t` |
 | 2026-11-27 | R5 实施后记录：新增 `ui/measure_cache.hpp`（`MeasureKey` 56 B / `MeasureCache` 72 B）；文本键用 FNV-1a 哈希（不存 `std::string`，否则 Widget 456 B）；`Widget` 432 B；Label 删除自带缓存 45 行，TreeView 行缓存接入 `invalidate_measure()` |
 | 2026-11-27 | R6 实施后记录：新增 `semantics/`（WidgetRole 20 种 + 派生投影，26 控件覆写）；8+3+5 份状态字段并入 `Interaction`；删除 `control_state()` 自由函数；新增 `test_ui_architecture`（D1–D3 + K1/K2/K3/K5/K6） |
-| 2026-11-27 | R7（UI-53）目录重组：22 个文件移入 geom/layout/style/input/node/semantics/system；旧路径留转发头（D5 断言）； 259 处 include 重写延后为独立机械提交 |
+| 2026-11-27 | R8（UI-54）include 重写：259 处改到新路径（22 条映射，前后计数均 259）；删除 22 个转发头，`src/ui` 根目录文件数归 0；D5 改为“根目录无头文件 + 无转发头”；修复遗漏的 `test/CMakeLists.txt` PCH 路径 |
 
 ---
 

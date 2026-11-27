@@ -9,7 +9,7 @@
 #include "ui/containers/hbox.hpp"
 #include "ui/core/label.hpp"
 #include "ui/core/progress.hpp"
-#include "ui/root.hpp"
+#include "ui/system/root.hpp"
 #include "ui/views/scene_view.hpp"
 #include "xel_application.hpp"
 

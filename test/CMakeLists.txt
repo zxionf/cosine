@@ -381,8 +381,8 @@ foreach(pch_test IN ITEMS test_ui_layout test_ui_controls test_text)
         <string>
         <vector>
         <glm/glm.hpp>
-        ${PROJECT_SOURCE_DIR}/src/ui/widget.hpp
-        ${PROJECT_SOURCE_DIR}/src/ui/theme.hpp
+        ${PROJECT_SOURCE_DIR}/src/ui/node/widget.hpp
+        ${PROJECT_SOURCE_DIR}/src/ui/style/theme.hpp
     )
 endforeach()
 

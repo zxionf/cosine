@@ -14,7 +14,7 @@ namespace xel::anim { namespace scene = ::xel::scene; }
 #include "ui/containers/hbox.hpp"
 #include "ui/composites/scroll_panel.hpp"
 #include "ui/core/text_input.hpp"
-#include "ui/theme.hpp"
+#include "ui/style/theme.hpp"
 
 #include <algorithm>
 #include <cmath>

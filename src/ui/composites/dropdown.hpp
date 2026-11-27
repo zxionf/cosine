@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ui/theme.hpp"
-#include "ui/style.hpp"
-#include "ui/widget.hpp"
-#include "ui/root.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/style/style.hpp"
+#include "ui/node/widget.hpp"
+#include "ui/system/root.hpp"
 #include "ui/core/scrim.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"

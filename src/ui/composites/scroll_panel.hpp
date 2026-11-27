@@ -3,8 +3,8 @@
 #include "ui/containers/panel.hpp"
 #include "ui/containers/scroll_view.hpp"
 #include "ui/containers/vbox.hpp"
-#include "ui/layout_metrics.hpp"
-#include "ui/layout_utils.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/layout/layout_utils.hpp"
 
 #include <algorithm>
 #include <memory>

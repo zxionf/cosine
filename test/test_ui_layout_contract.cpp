@@ -7,7 +7,7 @@
 #include "ui/core/label.hpp"
 #include "ui/composites/section.hpp"
 #include "ui/containers/vbox.hpp"
-#include "ui/widget.hpp"
+#include "ui/node/widget.hpp"
 
 #include <cmath>
 #include <cstdio>

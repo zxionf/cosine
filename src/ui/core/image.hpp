@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui/theme.hpp"
-#include "ui/leaf_node.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/node/leaf_node.hpp"
 #include "graphics/box.hpp"
 #include "graphics/line.hpp"
 #include "graphics/sprite.hpp"

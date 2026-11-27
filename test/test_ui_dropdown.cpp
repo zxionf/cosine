@@ -1,7 +1,7 @@
 #include "ui/composites/dropdown.hpp"
 #include "ui/core/color_rect.hpp"
-#include "ui/root.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/root.hpp"
+#include "ui/system/ui_system.hpp"
 #include "ui/containers/vbox.hpp"
 
 #include <cassert>

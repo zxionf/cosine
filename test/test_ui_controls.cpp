@@ -4,9 +4,9 @@
 #include "ui/core/text_input.hpp"
 #include "ui/core/tooltip.hpp"
 #include "ui/core/checkbox.hpp"
-#include "ui/root.hpp"
+#include "ui/system/root.hpp"
 #include "ui/core/slider.hpp"
-#include "ui/ui_system.hpp"
+#include "ui/system/ui_system.hpp"
 
 #include <cassert>
 #include <cmath>

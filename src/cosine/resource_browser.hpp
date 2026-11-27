@@ -10,7 +10,7 @@
 #include "ui/core/label.hpp"
 #include "ui/core/spacer.hpp"
 #include "ui/core/text_input.hpp"
-#include "ui/root.hpp"
+#include "ui/system/root.hpp"
 #include "ui/views/file_browser.hpp"
 
 #include <cstdint>

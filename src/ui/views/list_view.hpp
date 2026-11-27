@@ -2,10 +2,10 @@
 
 #include "events/event.hpp"
 #include "graphics/box.hpp"
-#include "ui/scroll_state.hpp"
-#include "ui/style.hpp"
-#include "ui/theme.hpp"
-#include "ui/leaf_node.hpp"
+#include "ui/layout/scroll_state.hpp"
+#include "ui/style/style.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/node/leaf_node.hpp"
 
 #include <algorithm>
 #include <cmath>

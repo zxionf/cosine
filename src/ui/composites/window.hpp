@@ -1,11 +1,11 @@
 #pragma once
 
 #include "ui/containers/vbox.hpp"
-#include "ui/root.hpp"
-#include "ui/style.hpp"
+#include "ui/system/root.hpp"
+#include "ui/style/style.hpp"
 #include "graphics/text_debug.hpp"
-#include "ui/theme.hpp"
-#include "ui/widget.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/box.hpp"
 #include "graphics/line.hpp"
 #include "graphics/rectangle.hpp"

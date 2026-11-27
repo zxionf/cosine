@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/style_types.hpp"
+#include "ui/style/style_types.hpp"
 
 namespace xel::ui
 {

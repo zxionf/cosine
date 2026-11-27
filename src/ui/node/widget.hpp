@@ -1,16 +1,16 @@
 #pragma once
 
 #include "graphics/drawable.hpp"
-#include "ui/rect.hpp"
-#include "ui/align.hpp"
-#include "ui/box_metrics.hpp"
-#include "ui/interaction.hpp"
-#include "ui/layout_metrics.hpp"
-#include "ui/layout_params.hpp"
-#include "ui/measure_cache.hpp"
-#include "ui/semantics.hpp"
-#include "ui/style_types.hpp"
-#include "ui/visual_state.hpp"
+#include "ui/geom/rect.hpp"
+#include "ui/geom/align.hpp"
+#include "ui/style/box_metrics.hpp"
+#include "ui/input/interaction.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/layout/layout_params.hpp"
+#include "ui/layout/measure_cache.hpp"
+#include "ui/semantics/semantics.hpp"
+#include "ui/style/style_types.hpp"
+#include "ui/style/visual_state.hpp"
 #include "events/key_code.hpp"
 
 #include <algorithm>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ui/theme.hpp"
-#include "ui/style.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/style/style.hpp"
 #include "ui/views/list_view.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"

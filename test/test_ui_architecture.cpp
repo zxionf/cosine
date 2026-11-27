@@ -166,33 +166,22 @@ void test_style_does_not_depend_on_widgets()
     }
 }
 
-// D5（UI-53）：旧路径只能留“转发头”，不得再放实现。
-// 这样兼容层不会变成第二套真相，也为后续删除兼容头提供了硬条件。
-void test_shims_are_trivial()
+// D5（UI-54/R8）：旧路径已彻底清除——src/ui 根目录不再有头文件，也没有转发头。
+// 保留这条断言是因为：一旦有人为了“方便”再建一个旧路径转发头，它会立即红。
+void test_shims_are_gone()
 {
+    int root_headers = 0;
     int shims = 0;
-    int bad = 0;
     for (const auto& entry : fs::directory_iterator(ui_root())) {
         if (!entry.is_regular_file()) continue;
-        if (entry.path().extension() != ".hpp") continue;
-        const std::string text = read_file(entry.path());
-        if (!contains(text, "兼容转发（UI-53）")) continue;
-        ++shims;
-        int code_lines = 0;
-        std::istringstream in(text);
-        std::string line;
-        while (std::getline(in, line)) {
-            const std::size_t first = line.find_first_not_of(" \t");
-            if (first == std::string::npos) continue;
-            if (line.compare(first, 15, "#pragma once") == 0) continue;
-            if (line.compare(first, 2, "//") == 0) continue;
-            ++code_lines;
-        }
-        if (code_lines > 1) ++bad;
+        const auto ext = entry.path().extension().string();
+        if (ext == ".hpp" || ext == ".cpp") ++root_headers;
+        if (ext != ".hpp") continue;
+        if (contains(read_file(entry.path()), "兼容转发")) ++shims;
     }
-    check(shims == 22, "D5: expected 22 forwarding shims", "found=" + std::to_string(shims));
-    check(bad == 0, "D5: shims contain only a single #include line",
-          "bad=" + std::to_string(bad));
+    check(root_headers == 0, "D5: src/ui root has no headers/sources (all moved into subdirs)",
+          "found=" + std::to_string(root_headers));
+    check(shims == 0, "D5: no forwarding shims left", "found=" + std::to_string(shims));
 }
 
 // D2：基础控件与容器不得反向依赖复合控件/视图。
@@ -296,7 +285,7 @@ int main()
 {
     test_geometry_does_not_depend_on_nodes();
     test_style_does_not_depend_on_widgets();
-    test_shims_are_trivial();
+    test_shims_are_gone();
     test_lower_layers_do_not_include_upper_layers();
     test_tree_storage_is_private();
     test_geometry_single_write_entry();

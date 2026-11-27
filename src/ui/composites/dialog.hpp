@@ -4,10 +4,10 @@
 #include "ui/containers/hbox.hpp"
 #include "ui/core/label.hpp"
 #include "ui/containers/panel.hpp"
-#include "ui/root.hpp"
+#include "ui/system/root.hpp"
 #include "ui/core/scrim.hpp"
-#include "ui/layout_metrics.hpp"
-#include "ui/theme.hpp"
+#include "ui/geom/layout_metrics.hpp"
+#include "ui/style/theme.hpp"
 #include "ui/containers/vbox.hpp"
 #include "graphics/rectangle.hpp"
 

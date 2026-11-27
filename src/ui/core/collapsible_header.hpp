@@ -3,8 +3,8 @@
 #include "graphics/font_atlas.hpp"
 #include "graphics/line.hpp"
 #include "graphics/rectangle.hpp"
-#include "ui/theme.hpp"
-#include "ui/widget.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/node/widget.hpp"
 
 #include <algorithm>
 #include <string>

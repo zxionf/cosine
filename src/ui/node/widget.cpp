@@ -1,13 +1,13 @@
-#include "ui/widget.hpp"
+#include "ui/node/widget.hpp"
 
 #include "graphics/drawable.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
 #include "graphics/line.hpp"
-#include "ui/style.hpp"
-#include "ui/theme.hpp"
-#include "ui/uicontext.hpp"
-#include "ui/widget_style.hpp"
+#include "ui/style/style.hpp"
+#include "ui/style/theme.hpp"
+#include "ui/system/uicontext.hpp"
+#include "ui/style/widget_style.hpp"
 
 namespace xel::ui
 {
