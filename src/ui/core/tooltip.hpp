@@ -2,6 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
+#include "ui/style/painters.hpp"
 #include "ui/node/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
@@ -83,15 +84,12 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const BoxStyle style = t.style(StyleRole::Tooltip, ControlState::Normal);
         const float radius = corner_radius(style.radius);
+        const Rect bounds{global_.pos, global_.size};
 
-        // tooltip_bg 是半透明色：圆角几何用九宫格不重叠切分，不会叠出亮边。
-        graphics::append_rounded_rect(list, bounds, radius, style.fill);
-        if (style.border_width > 0.0f) {
-            graphics::append_rounded_ring(list, bounds, radius, style.border_width, style.border);
-        }
+        // UI-57：半透明底的圆角几何用九宫格不重叠切分，不会叠出亮边。
+        paint::box(list, bounds, style, radius);
 
         if (auto* atlas = font_atlas()) {
             // UI-41：字号来自 Tooltip 角色的 Small 档，不再直读 small_text_size。

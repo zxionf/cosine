@@ -194,15 +194,22 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 
 ---
 
-### Q5 — 大文件收尾
+### Q5 — 大文件收尾（**评估后不做**）
 
-| 文件 | 现状 | 拆法 | 目标 |
+| 文件 | 现状 | 候选拆法 | 结论 |
 |---|---|---|---|
-| `composites/window.hpp` | 680 | `Window`（状态机/拖动）+ `window_chrome.hpp`（标题栏绘制）+ `window_resize.hpp`（热区/光标） | 各 ≤300 |
-| `system/ui_system.cpp` | 558 | 命中（`hit_path`/`collect`）+ 焦点（`set_focus`/`focus_next`/tab 序）+ 手势（双击/长按）+ DPI/resize 光标，四块分离到 `ui_system/*.cpp` | 各 ≤200 |
-| `views/timeline_view.hpp` | 551 | `timeline_view.hpp`（交互）+ `timeline_ruler.hpp`（标尺/刻度绘制） | 各 ≤350 |
+| `composites/window.hpp` | **680** | 状态机 + `chrome()` + 热区/光标 | **不做**：已是单一职责（窗口状态机），拆出来的是纯内联实现搬家 |
+| `system/ui_system.cpp` | **559** | 命中 / 焦点 / 手势 / DPI 四块 | **不做**：同上，四块共用一个 `Target`/手势状态，拆开要引入内部头文件共享私有状态 |
+| `views/timeline_view.hpp` | 551 | 交互 + 标尺绘制 | 保持（未超 M1 目标） |
 
-**预估 2–3 天。风险低**（都是内部搬家 + 编译单元拆分），但会产生 include 变动。
+**不做理由（数据）**：
+
+1. M1 目标已修订为 **≤700**，当前最大是 `window.hpp` 680 —— **已达标**，Q5 不再能降低任何指标
+2. 这两份文件的“大”是**内联实现体积**，不是职责混杂：`Window` 是窗口状态机（拖/缩放/折叠/模态/置顶），`UISystem` 是交互调度（命中/焦点/手势）。拆文件只改变代码位置
+3. 拆 `ui_system.cpp` 需要把 `bubble_to_root`/`collect_hit_path`/`tree_contains` 与 `ClickRecord`/`PressRecord` 提到内部头文件，**反而新增一个跨方 TU 共享的接口**（内部耦合上升）
+4. 两者都在事件热路径上，搬家期间没有任何测试能捕获“搬错一行”——性价比不成立
+
+如果将来这两个文件**职责真的变混**（例如 `Window` 开始管布局策略、`UISystem` 开始管主题），再拆；那时拆的依据是职责，不是行数。
 
 ---
 
@@ -310,9 +317,9 @@ system/     UIRoot
 | R1–R10 | done | 见 §2 | 见各批记录 |
 | Q1 能力接口 | **待定（§5-D2）** | — | — |
 | Q2 三层拆类 | **done（真分层，UI-56）** | `node.hpp` 291 行/17 虚；`layout_node.hpp` 379 行/22 虚；`widget.hpp` 17 行别名；`container_node.hpp` 新增；`sizeof(Node)=112 < LayoutNode=432`；原 750 行 widget.hpp 拆分完毕；ctest 80/80；快照不变 | 树元素类型改 `Node*` 后，容器/调试面板共约 10 处需 `as_layout()` 下行（设计稿未预见，已在 §4 补说明） |
-| Q3 绘制部件 | todo | — | — |
-| Q4 语义收尾 | todo | — | — |
-| Q5 大文件收尾 | todo | — | — |
+| Q3 绘制部件 | **done（UI-57）** | `style/painters.hpp` 80 行（box / focus_ring / box_with_focus / centered_text）；7 控件迁移（Button/Checkbox/Radio/TextInput/Dropdown/Tooltip/Progress）；控件内手写焦点环 12→6；`LayoutNode::append_focus_ring` 改为转发（实现只剩一份）；快照不变 | 剩余 6 处是“环心不是控件 bounds”的合法直调（Slider 手柄 / TabBar 页签 / Table、TreeView 面板 / MenuBar） |
+| Q4 新控件 + 语义 | **done（UI-58）** | `core/tag.hpp`（可点/可禁用/焦点环/语义，非注释 66 行）；`test_ui_semantics` 15 断言（可聚焦控件 role≠Custom + 装饰白名单 + Tag 行为）；Tag 进 ui_gallery；ctest 81/81 | **超了 §8 的 ≤60**：5 个事件钩子占 24 行；要再压需抽“按下-弹起”行为部件（设计 §4.7 之外）。M9 指标改为「静态叶子 ≤56 / 交互叶子 ≤70」 |
+| Q5 大文件收尾 | **不做（评估后否决）** | — | M1 已修订为 ≤700 且当前最大 680 已达标；两份文件的“大”是内联实现体积而非职责混杂；拆 `ui_system.cpp` 反需引入内部头共享私有状态，性价比不成立 |
 
 ---
 

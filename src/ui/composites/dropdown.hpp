@@ -2,6 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
+#include "ui/style/painters.hpp"
 #include "ui/node/widget.hpp"
 #include "ui/system/root.hpp"
 #include "ui/core/scrim.hpp"
@@ -161,7 +162,8 @@ public:
             StyleRole::Control, Interaction{input.enabled, active, input.pressed}.state());
         const float radius = corner_radius(style.radius);
 
-        graphics::append_rounded_rect(list, bounds, radius, style.fill);
+        // UI-57：底 + 边框（宽度强调）+ 焦点环走绘制部件。
+        paint::box(list, Rect{{bounds.x, bounds.y}, {bounds.z, bounds.w}}, style, radius);
         // 编辑/展开中始终强调边框；焦点环只在 focus_policy 允许时叠加。
         // UI-40：强调边框由 Input:Checked 表达（与 TextInput 同口径），不手写三元式。
         const BoxStyle frame = visual_style(
@@ -170,7 +172,8 @@ public:
         if (t.border > 0.0f) {
             graphics::append_rounded_ring(list, bounds, radius, t.border, frame.border);
         }
-        append_focus_ring(list, bounds, radius);
+        paint::focus_ring(list, Rect{{bounds.x, bounds.y}, {bounds.z, bounds.w}}, radius, t,
+                          focus_visible());
 
         if (auto* atlas = font_atlas()) {
             const glm::vec2 text_size = atlas->measure(selected_text(), style.text_size);

@@ -2,6 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
+#include "ui/style/painters.hpp"
 #include "ui/node/leaf_node.hpp"
 #include "graphics/box.hpp"
 
@@ -47,12 +48,14 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const float radius = corner_radius(t.radius_pill);
+        const Rect box_bounds{global_.pos, global_.size};
+        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
 
         // UI-38 起过渡按角色分槽：Progress 也能拿到颜色过渡（之前绕开是为了避开串色）。
+        // UI-57：轨道用绘制部件（无边框 → 只画一层 fill）。
         const BoxStyle track_style = visual_style(StyleRole::Track, ControlState::Normal);
-        graphics::append_rounded_rect(list, bounds, radius, track_style.fill);
+        paint::box(list, box_bounds, track_style, radius);
 
         const BoxStyle fill_style = visual_style(StyleRole::Accent, ControlState::Normal);
         if (indeterminate_) {
@@ -71,6 +74,7 @@ public:
             }
         }
 
+        // 外描边用的是主题的 panel_border（不是角色的 border），所以单独画一层。
         if (t.border > 0.0f) {
             graphics::append_rounded_ring(list, bounds, radius, t.border, t.panel_border);
         }

@@ -3,6 +3,7 @@
 #include "graphics/box.hpp"
 #include "graphics/font_atlas.hpp"
 #include "ui/geom/layout_metrics.hpp"
+#include "ui/style/painters.hpp"
 #include "ui/style/style.hpp"
 #include "ui/style/theme.hpp"
 #include "ui/style/widget_style.hpp"
@@ -37,25 +38,12 @@ bool LayoutNode::focus_visible() const
     return ctx->input_mode == InputMode::Keyboard;
 }
 
+// UI-57：实现只有一份（style/painters.hpp），这里是给「环心不是控件 bounds」的控件
+// （Slider 手柄、表头、菜单项）保留的便捷入口。
 void LayoutNode::append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const
 {
-    if (!focus_visible()) return;
-    const auto& t = ui_theme();
-    const float thickness = t.focus_thickness;
-    if (t.focus_style == FocusStyle::Border) {
-        graphics::append_rounded_rect(list, {rect.x, rect.y, rect.z, thickness}, 0.0f, t.accent);
-        graphics::append_rounded_rect(list, {rect.x, rect.y + rect.w - thickness, rect.z, thickness}, 0.0f, t.accent);
-        graphics::append_rounded_rect(list, {rect.x, rect.y, thickness, rect.w}, 0.0f, t.accent);
-        graphics::append_rounded_rect(list, {rect.x + rect.z - thickness, rect.y, thickness, rect.w}, 0.0f, t.accent);
-        return;
-    }
-    const float offset = t.focus_offset;
-    graphics::append_rounded_ring(
-        list,
-        {rect.x - offset, rect.y - offset, rect.z + offset * 2.0f, rect.w + offset * 2.0f},
-        radius + offset,
-        thickness,
-        t.accent);
+    paint::focus_ring(list, Rect{{rect.x, rect.y}, {rect.z, rect.w}}, radius, ui_theme(),
+                      focus_visible());
 }
 
 // ── 布局契约实现 ────────────────────────────────────────────────────

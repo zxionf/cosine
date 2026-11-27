@@ -2,6 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
+#include "ui/style/painters.hpp"
 #include "ui/node/widget.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/utf8.hpp"
@@ -107,12 +108,9 @@ public:
         // UI-40：强调边框由 Input:Checked 表达，不再手写 is_focused() ? accent : border。
         const BoxStyle style = visual_style(StyleRole::Input, input.state(is_focused()));
         const float radius = corner_radius(style.radius);
-        graphics::append_rounded_rect(list, bounds, radius, style.fill);
-
-        if (style.border_width > 0.0f) {
-            graphics::append_rounded_ring(list, bounds, radius, style.border_width, style.border);
-        }
-        append_focus_ring(list, bounds, radius);
+        // UI-57：框 + 边框 + 焦点环走绘制部件。
+        paint::box_with_focus(list, Rect{{bounds.x, bounds.y}, {bounds.z, bounds.w}}, style, radius,
+                              ui_theme(), focus_visible());
 
         list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
 

@@ -2,6 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
+#include "ui/style/painters.hpp"
 #include "ui/node/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
@@ -60,8 +61,11 @@ public:
         // UI-40：框体走 Input 角色（与 TextInput 同为「表单框」），不再直读 checkbox_bg/border，
         // 也不再手写 is_hovered() ? accent : checkbox_border 的三元式。
         const BoxStyle frame = visual_style(StyleRole::Input, input.state());
-        graphics::append_rounded_rect(list, box_bounds, radius, frame.fill);
-        graphics::append_rounded_ring(list, box_bounds, radius, t.border, frame.border);
+        // UI-57：框体 + 边框 + 焦点环走绘制部件（边框宽度取主题的 t.border）。
+        BoxStyle frame_box = frame;
+        frame_box.border_width = t.border;
+        paint::box_with_focus(list, Rect{{box_bounds.x, box_bounds.y}, {box_bounds.z, box_bounds.w}},
+                              frame_box, radius, t, focus_visible());
 
         if (checked_) {
             // inset 取整：勾选块与外框同心，四边留白完全相等且边界落在整像素。
@@ -76,12 +80,10 @@ public:
                                           accent.fill);
         }
 
-        append_focus_ring(list, box_bounds, radius);
-
         if (auto* atlas = font_atlas()) {
-            const glm::vec2 text_size = atlas->measure(label_, control.text_size);
+            const glm::vec2 size = atlas->measure(label_, control.text_size);
             const float tx = bx + box + t.spacing;
-            const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
+            const float ty = global_.pos.y + (global_.size.y - size.y) * 0.5f;
             atlas->append_text(list, tx, ty, control.text_size, label_, control.text);
         }
     }

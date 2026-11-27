@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 74,
+      "skipped_count": 77,
       "status": "paused",
       "steps": [
         {
@@ -5589,6 +5589,219 @@
       ],
       "title": "UI-56 真分层：Node / LayoutNode / LeafNode / ContainerNode（设计 §4.1/§4/6）",
       "uid": "tsk_01M8EB5JA80FDGV3GNM01HB7ND"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "新增 style/painters.hpp：fill+border、focus ring、居中文本三个可复用件",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T12:16:57Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "≥8 个控件的 append_to 改为调用绘制部件，手写焦点环点 13→≤2",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T12:16:57Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "快照哈希 c8a0966c/eb32c524 逐字不变（纯等价替换）",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T12:16:57Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 80/80 + 三入口无 validation",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T12:16:57Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T12:06:37Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-27T12:16:57Z",
+      "goal": "UI-57 绘制部件 BoxPainter/TextPainter（设计 §4.7）",
+      "id": "T52",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 新增 style/painters.hpp（fill+border / focus ring / centered text）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 迁移 ≥8 个控件 + LayoutNode::append_focus_ring 转发"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 验证：快照不变 + ctest + 冒烟"
+        }
+      ],
+      "title": "UI-57 绘制部件 BoxPainter/TextPainter（设计 §4.7）",
+      "uid": "tsk_01M8EED01WV67GATB5WBJC562F"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "新增 Tag 控件（可点/可禁用/带焦点环）实测 ≤45 行，进 ui_gallery",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T12:26:20Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "新增 test_ui_semantics：遍历全树断言交互控件 role ≠ Custom，装饰控件在白名单",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T12:26:20Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest + 快照 c8a0966c/eb32c524 不变 + 三入口无 validation",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T12:26:21Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T12:23:43Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-27T12:26:21Z",
+      "goal": "UI-58 新控件实测 + 语义收尾（设计 §7/§8）",
+      "id": "T53",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 新增 Tag 控件（painters 复用）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 test_ui_semantics：role 覆盖 + 白名单"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 验证：ctest + 快照 + 冒烟"
+        }
+      ],
+      "title": "UI-58 新控件实测 + 语义收尾（设计 §7/§8）",
+      "uid": "tsk_01M8EFCA1YDP9EB61F433NP1GD"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "评估结论：不做，并记录数据依据（M1 已达标 / 职责不混 / 拆 ui_system 会抬高耦合）",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T12:31:35Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T12:31:34Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-27T12:31:35Z",
+      "goal": "UI-59 Q5 大文件拆分评估",
+      "id": "T54",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [],
+      "title": "UI-59 Q5 大文件拆分评估",
+      "uid": "tsk_01M8EFTNZ3C8AM42741Y22J2K1"
     }
   ]
 }

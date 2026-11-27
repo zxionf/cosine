@@ -21,6 +21,7 @@
 #include "ui/layout/scroll_mode.hpp"
 #include "ui/containers/scroll_view.hpp"
 #include "ui/core/slider.hpp"
+#include "ui/core/tag.hpp"
 #include "ui/containers/wrap.hpp"
 #include "ui/core/tab_bar.hpp"
 #include "ui/views/table.hpp"
@@ -432,6 +433,10 @@ inline UiGallery build(ui::UIRoot& root, std::uint32_t image_texture_id = 0,
         auto disabled = std::make_unique<ui::Button>("Disabled");
         disabled->set_enabled(false);
         row->add(std::move(disabled));
+        row->add(std::make_unique<ui::Tag>("Tag", [&gallery]() {
+            // UI-58：Tag 是新控件的成本实证（66 行，含 5 个事件钩子）。
+            if (gallery.stats != nullptr) gallery.stats->set_text("tag: clicked");
+        }));
         section->add(std::move(row));
 
         section->add(std::make_unique<ui::Label>("Checkbox", 18.0f));

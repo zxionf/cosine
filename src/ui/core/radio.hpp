@@ -2,6 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
+#include "ui/style/painters.hpp"
 #include "ui/node/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
@@ -68,8 +69,10 @@ public:
 
         // UI-40：框体走 Input 角色（与 Checkbox 一致），不再直读 checkbox_bg/border。
         const BoxStyle frame = visual_style(StyleRole::Input, input.state());
-        graphics::append_rounded_rect(list, box_bounds, radius, frame.fill);
-        graphics::append_rounded_ring(list, box_bounds, radius, t.border, frame.border);
+        // UI-57：框 + 边框 + 焦点环走绘制部件。
+        BoxStyle frame_box = frame;
+        frame_box.border_width = t.border;
+        paint::box_with_focus(list, Rect{{bx, by}, {box, box}}, frame_box, radius, t, focus_visible());
 
         if (selected_) {
             // 菱形：两个三角形拼成，作为单选标记。
@@ -84,8 +87,6 @@ public:
             upper.append_to(list);
             lower.append_to(list);
         }
-
-        append_focus_ring(list, box_bounds, radius);
 
         if (auto* atlas = font_atlas()) {
             const glm::vec2 text_size = atlas->measure(label_, control.text_size);

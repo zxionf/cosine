@@ -2,6 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
+#include "ui/style/painters.hpp"
 #include "ui/node/leaf_node.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/text_debug.hpp"
@@ -61,23 +62,18 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const BoxStyle style = visual_style(StyleRole::Control, input.state());
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
         const float radius = corner_radius(style.radius);
+        const Rect bounds{global_.pos, global_.size};
 
-        graphics::append_rounded_rect(list, bounds, radius, style.fill);
-        if (style.border_width > 0.0f) {
-            graphics::append_rounded_ring(list, bounds, radius, style.border_width, style.border);
-        }
-        append_focus_ring(list, bounds, radius);
+        // UI-57：框 + 边框 + 焦点环走绘制部件（设计 §4.7）。
+        paint::box_with_focus(list, bounds, style, radius, ui_theme(), focus_visible());
 
         if (auto* atlas = font_atlas()) {
-            const glm::vec2 text_size = atlas->measure(label_, style.text_size);
-            const float tx = global_.pos.x + (global_.size.x - text_size.x) * 0.5f;
-            const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
-            atlas->append_text(list, tx, ty, style.text_size, label_, style.text);
+            const glm::vec2 text_pos = paint::centered_text(list, bounds, label_, style, atlas);
             // debug 是叠加层，不能替代字形本身（否则只剩框子）。
             if (debug_.any()) {
-                graphics::append_text_debug(list, *atlas, tx, ty, style.text_size, label_, debug_);
+                graphics::append_text_debug(list, *atlas, text_pos.x, text_pos.y, style.text_size,
+                                            label_, debug_);
             }
         }
     }
