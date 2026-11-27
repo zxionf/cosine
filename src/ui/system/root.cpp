@@ -6,7 +6,7 @@
 namespace
 {
 // 只做地址比较，不解引用 target：target 可能是已销毁的悬空指针。
-bool widget_in_tree(xel::ui::Widget* root, xel::ui::Widget* target)
+bool widget_in_tree(xel::ui::Node* root, xel::ui::Node* target)
 {
     if (!root || !target) return false;
     if (root == target) return true;
@@ -23,9 +23,9 @@ bool widget_in_tree(xel::ui::Widget* root, xel::ui::Widget* target)
 xel::ui::Widget* first_focusable(xel::ui::Widget* root)
 {
     if (!root) return nullptr;
-    for (xel::ui::Widget* child : root->layer_paint_order()) {
-        if (child->focusable()) return child;
-        if (xel::ui::Widget* w = first_focusable(child)) return w;
+    for (xel::ui::Node* child : root->layer_paint_order()) {
+        if (child->focusable()) return xel::ui::as_layout(child);
+        if (xel::ui::Widget* w = first_focusable(xel::ui::as_layout(child))) return w;
     }
     return nullptr;
 }
@@ -40,18 +40,18 @@ UIRoot::UIRoot(float x, float y, float width, float height)
     set_context(&context_storage_);
 }
 
-void UIRoot::add(std::unique_ptr<Widget> child)
+void UIRoot::add(std::unique_ptr<Node> child)
 {
     adopt(std::move(child));
 }
 
-void UIRoot::remove(Widget* child)
+void UIRoot::remove(Node* child)
 {
     if (!child) return;
     for (std::size_t i = 0; i < child_count(); ++i) {
         if (child_at(i) != child) continue;
         // 先移入 trash_ 延后销毁（事件回调里可能还在使用该控件）
-        remove_children_if([child](const std::unique_ptr<Widget>& c) { return c.get() == child; });
+        remove_children_if([child](const std::unique_ptr<Node>& c) { return c.get() == child; });
         mark_layout_dirty();
         return;
     }
@@ -69,7 +69,7 @@ void UIRoot::clear_focus_hooks()
     focus_setter_ = {};
 }
 
-void UIRoot::add_overlay(std::unique_ptr<Widget> child)
+void UIRoot::add_overlay(std::unique_ptr<Node> child)
 {
     child->set_parent(this);
     child->set_context(context());
@@ -109,7 +109,7 @@ void UIRoot::set_theme(const Theme& value)
 void UIRoot::append_to(graphics::DrawList& list) const
 {
     // 统一按 layer 升序 → z 升序绘制；overlay 不再单独在 children 之上。
-    for (Widget* widget : layer_paint_order()) {
+    for (Node* widget : layer_paint_order()) {
         if (widget->visible()) widget->append_to(list);
     }
     if (is_debug()) append_debug_tree(list);
@@ -118,8 +118,7 @@ void UIRoot::append_to(graphics::DrawList& list) const
 void UIRoot::layout_child(Widget& child)
 {
     // 隐藏子项完全不参与布局（仍保留已有几何，重新可见时会被重排）。
-    if (child.display() == Widget::Display::Hidden) return;
-    // 铺满父容器的控件（如模态遮罩）不做测量协商。
+    if (child.display() == Widget::Display::Hidden) return;    // 铺满父容器的控件（如模态遮罩）不做测量协商。
     if (child.fills_parent()) {
         child.arrange({local_.pos, local_.size});
         return;
@@ -146,7 +145,7 @@ void UIRoot::layout()
     for (std::size_t i = 0; i < modal_frames_.size(); ++i) {
         if (!widget_in_tree(this, modal_frames_[i].window)) {
             if (Widget* scrim = modal_frames_[i].scrim) {
-                remove_children_if([scrim](const std::unique_ptr<Widget>& c) {
+                remove_children_if([scrim](const std::unique_ptr<Node>& c) {
                     return c.get() == scrim;
                 });
             }
@@ -171,8 +170,8 @@ void UIRoot::layout()
     // 轮次推进（UI-34）：measure 缓存以它为键，保证只在本轮内命中。
     advance_layout_epoch();
     LayoutPassScope layout_pass;
-    for (auto& child : children()) layout_child(*child);
-    for (auto& overlay : overlays()) layout_child(*overlay);
+    for (auto& child : children()) layout_child(as_layout(*child));
+    for (auto& overlay : overlays()) layout_child(as_layout(*overlay));
     // 收尾：清除整棵树的本轮脏标记（早退传播依赖它）。
     clear_layout_dirty_recursive();
 }
@@ -201,7 +200,7 @@ void UIRoot::push_modal(Widget* window, bool with_scrim)
     if (current != nullptr && widget_in_tree(window, current)) {
         return; // 已在子树内
     }
-    Widget* target = window->preferred_focus();
+    Widget* target = as_layout(window->preferred_focus());
     if (target == nullptr || !widget_in_tree(window, target)) {
         target = first_focusable(window);
     }
@@ -218,7 +217,7 @@ void UIRoot::pop_modal(Widget* window)
     Widget* restore = it->prev_focus;
     modal_frames_.erase(it);
     if (scrim != nullptr) {
-        remove_children_if([scrim](const std::unique_ptr<Widget>& child) {
+        remove_children_if([scrim](const std::unique_ptr<Node>& child) {
             return child.get() == scrim;
         });
     }

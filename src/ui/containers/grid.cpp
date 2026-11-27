@@ -42,7 +42,7 @@ void Grid::set_context(UIContext* context)
     apply_theme_spacing(context->theme().spacing);
 }
 
-void Grid::add(std::unique_ptr<Widget> child)
+void Grid::add(std::unique_ptr<Node> child)
 {
     adopt(std::move(child));
 }
@@ -56,7 +56,7 @@ void Grid::append_to(graphics::DrawList& list) const
 {
     if (is_debug()) debug_rect(list);
     // z-index 控制同层绘制顺序（大的在上）；没有非零 z 时保持加入顺序。
-    for (Widget* child : paint_order()) {
+    for (Node* child : paint_order()) {
         if (child->visible()) child->append_to(list);
     }
 }
@@ -147,13 +147,13 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
 
     // 隐藏与绝对定位子项不占格：行数只按流式子项计算。
     std::size_t flow_count = 0;
-    for (const auto& child : children()) {
-        if (child->display() == Display::Flow) {
+    for_each_layout_child([&](LayoutNode& child) {
+        if (child.display() == Display::Flow) {
             ++flow_count;
         } else {
-            child->mark_measured(); // 本轮按规则跳过
+            child.mark_measured(); // 本轮按规则跳过
         }
-    }
+    });
     const int rows = flow_count == 0
         ? 0
         : static_cast<int>((flow_count + static_cast<std::size_t>(cols) - 1) / static_cast<std::size_t>(cols));
@@ -171,7 +171,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
         std::vector<float> natural(static_cast<std::size_t>(cols), 0.0f);
         std::size_t flow = 0;
         for (std::size_t i = 0; i < child_count(); ++i) {
-            const auto& child = children()[i];
+            auto* child = child_at(i);
             if (child->display() != Display::Flow) continue;
             const int col = static_cast<int>(flow % static_cast<std::size_t>(cols));
             ++flow;
@@ -200,7 +200,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
 
     std::size_t flow = 0;
     for (std::size_t i = 0; i < child_count(); ++i) {
-        const auto& child = children()[i];
+        auto* child = child_at(i);
         if (child->display() != Display::Flow) continue;
         const int row = static_cast<int>(flow / static_cast<std::size_t>(cols));
         const int col = static_cast<int>(flow % static_cast<std::size_t>(cols));

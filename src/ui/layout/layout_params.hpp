@@ -35,12 +35,13 @@ struct LayoutParams
     glm::vec2 max_size{std::numeric_limits<float>::max(), std::numeric_limits<float>::max()};
     glm::vec2 size_percent{-1.0f, -1.0f};
     glm::vec2 absolute_pos{0.0f, 0.0f};
+    // 注意：可见性三态（Display）是 Node 的身份属性，不在布局意图里（UI-56 分层）。
     float flex_grow = 0.0f;
     float aspect_ratio = 0.0f;
     bool fill_x = false;
     bool fill_y = false;
     Align align_self = Align::top_left();
     bool has_align = false;
-    Display display = Display::Flow;
+    // 占位模式（Positioned/Hidden）由 Node 持有；这里只剩布局意图。
 };
 } // namespace xel::ui

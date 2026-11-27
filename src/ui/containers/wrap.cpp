@@ -40,7 +40,7 @@ void Wrap::set_context(UIContext* context)
     apply_theme_spacing(context->theme().spacing);
 }
 
-void Wrap::add(std::unique_ptr<Widget> child)
+void Wrap::add(std::unique_ptr<Node> child)
 {
     adopt(std::move(child));
 }
@@ -54,7 +54,7 @@ void Wrap::append_to(graphics::DrawList& list) const
 {
     if (is_debug()) debug_rect(list);
     // z-index 控制同层绘制顺序（大的在上）；没有非零 z 时保持加入顺序。
-    for (Widget* child : paint_order()) {
+    for (Node* child : paint_order()) {
         if (child->visible()) child->append_to(list);
     }
 }
@@ -74,7 +74,7 @@ std::vector<Wrap::Row> Wrap::layout_rows(float inner_w, bool unbounded)
     float used = 0.0f; // 当前行已占宽（含 margin 与间距）
 
     for (std::size_t i = 0; i < child_count(); ++i) {
-        const auto& child = children()[i];
+        auto* child = child_at(i);
         // 隐藏子项与绝对定位子项不参与折行。
         if (child->display() != Display::Flow) {
             child->mark_measured();

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ui/composites/menu_item.hpp"
+#include "ui/composites/menu_popup.hpp"
 #include "ui/system/root.hpp"
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
@@ -18,170 +20,10 @@
 
 namespace xel::ui
 {
-class MenuBar;
+// 菜单项（MenuItem）与浮层（detail::MenuScrim / MenuPopup）已拆到：
+//   ui/composites/menu_item.hpp、ui/composites/menu_popup.hpp（UI-55）。
+// 本文件只留 MenuBar 的状态机与交互。
 
-// 菜单项：普通项、分隔线（label 为空）、快捷键提示。
-struct MenuItem
-{
-    std::string label;
-    std::string shortcut;
-    bool separator = false;
-    bool enabled = true;
-    std::function<void()> action;
-    // 递归结构：天然支持任意层子菜单。
-    std::vector<MenuItem> children;
-
-    static MenuItem separator_item()
-    {
-        MenuItem item;
-        item.separator = true;
-        return item;
-    }
-
-    static MenuItem make(std::string label, std::function<void()> action,
-                         std::string shortcut = {}, bool enabled = true)
-    {
-        MenuItem item;
-        item.label = std::move(label);
-        item.shortcut = std::move(shortcut);
-        item.action = std::move(action);
-        item.enabled = enabled;
-        return item;
-    }
-
-    // 子菜单项：children 非空时显示右向箭头，悬停/Enter 展开。
-    static MenuItem submenu(std::string label, std::vector<MenuItem> children, bool enabled = true)
-    {
-        MenuItem item;
-        item.label = std::move(label);
-        item.children = std::move(children);
-        item.enabled = enabled;
-        return item;
-    }
-
-    bool has_submenu() const { return !children.empty(); }
-};
-
-namespace detail
-{
-// 全屏遮罩：点击空白关闭菜单；鼠标移动到菜单栏区域时切换当前菜单。
-class MenuScrim : public Widget
-{
-public:
-    explicit MenuScrim(std::function<void()> dismiss, std::function<void(glm::vec2)> hover_bar)
-        : dismiss_{std::move(dismiss)}, hover_bar_{std::move(hover_bar)}
-    {}
-
-    glm::vec2 measure(glm::vec2 size) override { return size; }
-    void arrange(Rect slot) override
-    {
-        set_geometry(slot);
-    }
-    void append_to(graphics::DrawList& list) const override
-    {
-        graphics::Rectangle backdrop{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y,
-                                     glm::vec4{0.0f, 0.0f, 0.0f, 0.05f}};
-        backdrop.append_to(list);
-    }
-    bool hit_testable() const override { return true; }
-    Layer layer() const override { return Layer::Floating; }
-    bool on_mouse_down(glm::vec2, int) override
-    {
-        if (dismiss_) dismiss_();
-        return true;
-    }
-    bool on_click(glm::vec2, int) override { return true; }
-    bool on_scroll(glm::vec2, glm::vec2) override
-    {
-        if (dismiss_) dismiss_();
-        return true;
-    }
-    bool on_mouse_move(glm::vec2 pos) override
-    {
-        if (hover_bar_) hover_bar_(pos);
-        return true;
-    }
-
-private:
-    std::function<void()> dismiss_;
-    std::function<void(glm::vec2)> hover_bar_;
-};
-
-// 下拉菜单浮层：绘制菜单项、处理悬停与点击；可持有任意层子菜单的内容。
-class MenuPopup : public Widget
-{
-public:
-    WidgetRole semantics_role() const override { return WidgetRole::Menu; }
-    MenuPopup(MenuBar& owner, float width, float height)
-        : owner_{&owner}
-    {
-        // 尺寸由 arrange() 经 set_geometry 写入（UI-49）；不要设置 min/max_size，
-        // 否则 clamp_size 会把后续尺寸锁死在创建时的值上。
-        set_geometry({{0.0f, 0.0f}, {width, height}});
-        set_preferred_size({width, height});
-    }
-
-    glm::vec2 measure(glm::vec2) override { return clamp_size(preferred_size()); }
-    // 直接写 local_/global_：宿主布局时每帧都会重新定位弹层，
-    // 走 set_pos/set_size 会持续标脏并触发整树重排。
-    void arrange(Rect slot) override
-    {
-        // UI-49：几何只能经 set_geometry 写（曾直写 local_/global_，绕过不变量）。
-        set_geometry(slot);
-    }
-    void append_to(graphics::DrawList& list) const override;
-    bool on_mouse_move(glm::vec2 pos) override;
-    void on_mouse_leave() override { hovered_ = -1; }
-    bool on_click(glm::vec2 pos, int) override;
-    bool hit_testable() const override { return true; }
-    Layer layer() const override { return Layer::Floating; }
-
-    // 内容源：顶层菜单或某层子菜单的拷贝（菜单项数量少，拷贝换来地址稳定）。
-    const std::vector<MenuItem>& items() const { return items_; }
-    void set_items(std::vector<MenuItem> items)
-    {
-        items_ = std::move(items);
-        hovered_ = -1;
-        keyboard_highlight_ = -1;
-        const glm::vec2 size = {content_width(), content_height()};
-        // 自然尺寸随内容走（浮层不用 measure 协商，measure() 报这个值）：
-        // 不更新 preferred 的话，root 重排会把浮层按构造期的 0 高摆放。
-        set_preferred_size(size);
-        set_geometry({global_bounds().pos, size});
-    }
-
-    int hovered() const { return hovered_; }
-    void set_hovered(int index)
-    {
-        hovered_ = index;
-        if (index >= 0) keyboard_highlight_ = -1;
-    }
-    int keyboard_highlight() const { return keyboard_highlight_; }
-    void set_keyboard_highlight(int index)
-    {
-        keyboard_highlight_ = index;
-        if (index >= 0) hovered_ = -1;
-    }
-    // 绘制用：鼠标优先，其次键盘。
-    int highlighted() const { return hovered_ >= 0 ? hovered_ : keyboard_highlight_; }
-
-    float row_height() const;
-    float separator_height() const;
-    // 某一项的顶部 y（global），供子菜单定位。
-    float item_top(int index) const;
-    float content_width() const;
-    float content_height() const;
-
-private:
-    int index_at(glm::vec2 pos) const;
-    MenuBar* owner_ = nullptr;
-    std::vector<MenuItem> items_;
-    int hovered_ = -1;
-    int keyboard_highlight_ = -1;
-};
-
-const std::vector<MenuItem>& menu_items(const MenuBar& bar, int index);
-} // namespace detail
 
 // 菜单栏：点击标题展开 overlay 菜单；打开后可用方向键在菜单间移动。
 class MenuBar : public Widget
@@ -418,7 +260,7 @@ private:
 
     UIRoot* find_root() const
     {
-        for (Widget* widget = const_cast<MenuBar*>(this); widget != nullptr; widget = widget->parent()) {
+        for (Node* widget = const_cast<MenuBar*>(this); widget != nullptr; widget = widget->parent()) {
             if (auto* root = dynamic_cast<UIRoot*>(widget)) return root;
         }
         return nullptr;
@@ -712,156 +554,9 @@ private:
     std::vector<int> sub_items_;
 };
 
-namespace detail
-{
-inline const std::vector<MenuItem>& menu_items(const MenuBar& bar, int index)
-{
-    static const std::vector<MenuItem> empty;
-    if (index < 0 || index >= bar.menu_count()) return empty;
-    return bar.menus_[static_cast<std::size_t>(index)];
-}
 
-inline float MenuPopup::row_height() const
-{
-    return owner_->ui_theme().control_height;
-}
 
-inline float MenuPopup::separator_height() const
-{
-    return 9.0f;
-}
 
-inline float MenuPopup::content_width() const
-{
-    const auto& t = owner_->ui_theme();
-    float width = 160.0f;
-    for (const auto& item : items_) {
-        if (item.separator) continue;
-        const float shortcut_w = item.shortcut.empty()
-            ? 0.0f : owner_->text_width(item.shortcut) + t.padding * 2.0f;
-        const float arrow_w = item.has_submenu() ? t.control_height * 0.5f : 0.0f;
-        width = std::max(width, owner_->text_width(item.label) + shortcut_w + arrow_w + t.padding * 3.0f);
-    }
-    return width;
-}
 
-inline float MenuPopup::content_height() const
-{
-    const auto& t = owner_->ui_theme();
-    float height = t.padding * 2.0f;
-    for (const auto& item : items_) {
-        height += item.separator ? separator_height() : row_height();
-    }
-    return height;
-}
 
-inline float MenuPopup::item_top(int index) const
-{
-    float y = global_.pos.y + owner_->ui_theme().padding;
-    const int count = std::min(index, static_cast<int>(items_.size()));
-    for (int i = 0; i < count; ++i) {
-        y += items_[static_cast<std::size_t>(i)].separator ? separator_height() : row_height();
-    }
-    return y;
-}
-
-inline int MenuPopup::index_at(glm::vec2 pos) const
-{
-    if (!global_.contains(pos)) return -1;
-    float y = global_.pos.y + owner_->ui_theme().padding;
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        const float row = items_[i].separator ? separator_height() : row_height();
-        if (pos.y >= y && pos.y <= y + row) return items_[i].separator ? -1 : static_cast<int>(i);
-        y += row;
-    }
-    return -1;
-}
-
-inline void MenuPopup::append_to(graphics::DrawList& list) const
-{
-    const auto& t = owner_->ui_theme();
-    const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
-    const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
-    const float radius = corner_radius(t.radius_medium);
-
-    graphics::append_rounded_rect(list, bounds, radius, surface.fill);
-    if (surface.border_width > 0.0f) {
-        graphics::append_rounded_ring(list, bounds, radius, surface.border_width, surface.border);
-    }
-
-    auto* atlas = owner_->font_atlas();
-    float y = global_.pos.y + t.padding;
-    const float line_h = atlas ? atlas->line_height(t.text_size) : t.text_size;
-    const int highlighted_index = highlighted();
-
-    for (std::size_t i = 0; i < items_.size(); ++i) {
-        const auto& item = items_[i];
-        const float row = item.separator ? separator_height() : row_height();
-
-        if (item.separator) {
-            graphics::Rectangle line{global_.pos.x + t.padding, y + row * 0.5f,
-                                     global_.size.x - t.padding * 2.0f, 1.0f, t.panel_border};
-            line.append_to(list);
-            y += row;
-            continue;
-        }
-
-        const bool active = static_cast<int>(i) == highlighted_index && item.enabled;
-        if (active) {
-            const BoxStyle style = t.style(StyleRole::MenuItem, ControlState::Hovered);
-            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, global_.size.x - 4.0f, row},
-                                          corner_radius(style.radius), style.fill);
-        }
-
-        // UI-43：菜单项的文字色/字号统一从 MenuItem 角色取（Disabled 由角色自动切 text_disabled）。
-        const BoxStyle item_style = t.style(StyleRole::MenuItem,
-                                            item.enabled ? ControlState::Normal : ControlState::Disabled);
-        const glm::vec4 color = item_style.text;
-        const float arrow_space = item.has_submenu() ? t.control_height * 0.5f : 0.0f;
-        if (atlas) {
-            const float text_y = y + (row - line_h) * 0.5f;
-            atlas->append_text(list, global_.pos.x + t.padding * 2.0f, text_y,
-                               item_style.text_size, item.label, color);
-            if (!item.shortcut.empty()) {
-                // UI-41：快捷键属于辅助信息，用 Small 档（以前只能与正文同字号）。
-                const float sc_size = t.text_size_of(TextSize::Small);
-                const float shortcut_w = atlas->measure(item.shortcut, sc_size).x;
-                const float sc_y = y + (row - atlas->line_height(sc_size)) * 0.5f;
-                atlas->append_text(list,
-                                   global_.pos.x + global_.size.x - t.padding * 2.0f - arrow_space - shortcut_w,
-                                   sc_y, sc_size, item.shortcut, t.text_disabled);
-            }
-        }
-
-        // 子菜单标记：右侧向三角。
-        if (item.has_submenu()) {
-            const float ax = global_.pos.x + global_.size.x - t.padding - 4.0f;
-            const float ay = y + row * 0.5f;
-            graphics::Triangle arrow{ax, ay - 4.0f, ax, ay + 4.0f, ax + 4.0f, ay,
-                                     item.enabled ? t.text_muted : t.text_disabled};
-            arrow.append_to(list);
-        }
-        y += row;
-    }
-}
-
-inline bool MenuPopup::on_mouse_move(glm::vec2 pos)
-{
-    const int index = index_at(pos);
-    if (index != hovered_) {
-        hovered_ = index;
-        keyboard_highlight_ = -1;
-        owner_->on_popup_hover(this, index);
-    }
-    return true;
-}
-
-inline bool MenuPopup::on_click(glm::vec2 pos, int)
-{
-    const int index = index_at(pos);
-    if (index < 0) return true;
-    owner_->activate(this, index);
-    return true;
-}
-} // namespace detail
 } // namespace xel::ui

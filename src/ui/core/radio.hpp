@@ -19,7 +19,6 @@ class Radio : public LeafNode
 public:
     WidgetRole semantics_role() const override { return WidgetRole::Radio; }
     std::string_view semantics_label() const override { return label_; }
-    bool semantics_checkable() const override { return true; }
     explicit Radio(std::string label, bool selected = false,
                    std::function<void()> handler = {})
         : label_{std::move(label)}, selected_{selected}, handler_{std::move(handler)}

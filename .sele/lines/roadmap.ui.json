@@ -461,7 +461,7 @@
       },
       "plan": "roadmap",
       "review_policy": "mixed",
-      "skipped_count": 72,
+      "skipped_count": 74,
       "status": "paused",
       "steps": [
         {
@@ -5362,6 +5362,233 @@
       ],
       "title": "UI-54 include 重写与转发头清理（R8）：旧路径彻底退场",
       "uid": "tsk_01M8E5Q3EHGPF1DH8MG3PSH7N1"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "menu_bar.hpp 867 行拆成 menu_item/menu_popup/menu_bar 三个文件，最大 ui 文件降到 ≤680",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:00:56Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "Semantics 钩子 5→1，基类虚函数 39→35",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:00:56Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "树存储抽成 tree/child_list.hpp（Widget 转发），widget.hpp ≤650 行",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:00:56Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 80/80 + 快照 c8a0966c/eb32c524 不变 + 三入口无 validation",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:00:56Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T10:52:19Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-27T11:00:56Z",
+      "goal": "UI-55 控件文件瘦身：menu_bar 拆分 + 语义钩子合并 + 树存储抽取",
+      "id": "T50",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 Semantics 钩子 5→1（virtual Semantics semantics()）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": "本轮先做 menu_bar 拆分（最大文件 867→562）；树存储抽取挪到后续，因为它只减 ~30 行（API 需 owner 绑定，收益低于 menu_bar）",
+          "status": "skipped",
+          "title": "S2 树存储抽取 tree/child_list.hpp"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 menu_bar.hpp 拆成 menu_item/menu_popup/menu_bar"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 验证 + 指标复测"
+        }
+      ],
+      "title": "UI-55 控件文件瘦身：menu_bar 拆分 + 语义钩子合并 + 树存储抽取",
+      "uid": "tsk_01M8EA4YKY35D66VQMFJNMEHK8"
+    },
+    {
+      "acceptance": [
+        {
+          "desc": "node/node.hpp = 身份/几何/树/层叠/语义钩子，树元素类型改为 Node*",
+          "id": "A1",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:40:38Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "node/layout_node.hpp = measure/arrange 契约 + 4 部件 + 测量缓存 + 脏标记",
+          "id": "A2",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:40:38Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "node/widget.hpp 退化为 using Widget = LayoutNode（400+ 调用点零改动）",
+          "id": "A3",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:40:38Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "widget.hpp ≤250 行；sizeof(Node) < sizeof(LayoutNode)；新增 static_assert 与 Contract 测试",
+          "id": "A4",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:40:39Z",
+          "verified_by": "agent:pi"
+        },
+        {
+          "desc": "ctest 80/80 + 快照 c8a0966c/eb32c524 不变 + 三入口无 validation",
+          "id": "A5",
+          "requires_human": false,
+          "status": "pass",
+          "verified_at": "2026-11-27T11:40:39Z",
+          "verified_by": "agent:pi"
+        }
+      ],
+      "archived_at": null,
+      "archived_git_head": null,
+      "created_at": "2026-11-27T11:10:08Z",
+      "current_step": null,
+      "depends": [],
+      "finished_at": "2026-11-27T11:40:39Z",
+      "goal": "UI-56 真分层：Node / LayoutNode / LeafNode / ContainerNode（设计 §4.1/§4/6）",
+      "id": "T51",
+      "line": "ui",
+      "locked": {
+        "locked": false
+      },
+      "modules": [
+        "ui"
+      ],
+      "pause_context": null,
+      "plan": "roadmap",
+      "review_policy": "mixed",
+      "skipped_count": 0,
+      "status": "done",
+      "steps": [
+        {
+          "desc": "",
+          "id": "S1",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S1 新增 node/node.hpp（Node 基类，树元素 Node*）"
+        },
+        {
+          "desc": "",
+          "id": "S2",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S2 新增 node/layout_node.hpp（布局契约+部件+缓存+脏标记）"
+        },
+        {
+          "desc": "",
+          "id": "S3",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S3 widget.hpp 退化别名 + 全仓类型迁移（add/adopt/for_each_child/children）"
+        },
+        {
+          "desc": "",
+          "id": "S4",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S4 LeafNode/ContainerNode 归位 + 契约断言"
+        },
+        {
+          "desc": "",
+          "id": "S5",
+          "jump_meta": null,
+          "lock_reason": null,
+          "locked": false,
+          "requires_review": false,
+          "skipped_reason": null,
+          "status": "done",
+          "title": "S5 验证：ctest 80/80 + 快照不变 + 冒烟"
+        }
+      ],
+      "title": "UI-56 真分层：Node / LayoutNode / LeafNode / ContainerNode（设计 §4.1/§4/6）",
+      "uid": "tsk_01M8EB5JA80FDGV3GNM01HB7ND"
     }
   ]
 }

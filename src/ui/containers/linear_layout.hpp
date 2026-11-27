@@ -26,7 +26,7 @@ public:
         Horizontal,
     };
 
-    void add(std::unique_ptr<Widget> child) override;
+    void add(std::unique_ptr<Node> child) override;
     // clear_children() 由 Widget 提供（UI-49：清空 + 标脏），派生类不再重写。
     void append_to(graphics::DrawList& list) const override;
 

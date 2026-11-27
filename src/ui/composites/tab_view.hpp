@@ -37,7 +37,7 @@ public:
     const TabBar& tab_bar() const { return *static_cast<const TabBar*>(child_at(0)); }
 
     // 返回页面下标（0 起，不含标签栏）。
-    int add_page(std::string label, std::unique_ptr<Widget> page)
+    int add_page(std::string label, std::unique_ptr<Node> page)
     {
         if (!page) return -1;
         const int index = static_cast<int>(page_count());
@@ -52,12 +52,12 @@ public:
     }
 
     // 兼容 Widget::add：作为新页面加入，标签名自动生成。
-    void add(std::unique_ptr<Widget> child) override
+    void add(std::unique_ptr<Node> child) override
     {
         add_page("Tab " + std::to_string(page_count() + 1), std::move(child));
     }
 
-    void set_page(int index, std::unique_ptr<Widget> page)
+    void set_page(int index, std::unique_ptr<Node> page)
     {
         if (!page || index < 0 || index >= static_cast<int>(page_count())) return;
         page->set_parent(this);
@@ -69,7 +69,7 @@ public:
 
     std::size_t page_count() const { return child_count() == 0 ? 0 : child_count() - 1; }
 
-    Widget* page(int index) const
+    LayoutNode* page(int index) const
     {
         if (index < 0 || index >= static_cast<int>(page_count())) return nullptr;
         return child_at(static_cast<std::size_t>(index) + 1);
@@ -262,7 +262,7 @@ public:
 
 
 private:
-    Widget* pages_owner(int page_index)
+    LayoutNode* pages_owner(int page_index)
     {
         return child_at(static_cast<std::size_t>(page_index) + 1);
     }

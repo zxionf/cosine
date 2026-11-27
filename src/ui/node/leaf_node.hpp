@@ -4,9 +4,9 @@
 
 namespace xel::ui
 {
-// 叶子控件基类（UI-47）：把全仓重复最多的两个样板收进基类。
+// 叶子节点（UI-47 / UI-56）：把全仓重复最多的两个样板收进基类。
 //
-// 判据（见 docs/todo-ui.md 附 B）：
+// 判据（见 docs/todo-ui.md）：
 //   - arrange(Rect) 函数体只有 `set_geometry(slot);`
 //   - measure(vec2) 函数体只有 `return clamp_size(preferred_size());`
 //
@@ -15,10 +15,10 @@ namespace xel::ui
 //
 // 注意：这里只是「默认实现」，不改变布局契约——measure 仍然是
 // 「constraints 向下、结果向上」，arrange 仍然只写几何、不触发脏标记。
-class LeafNode : public Widget
+class LeafNode : public LayoutNode
 {
 public:
-    // 首选尺寸（构造期确定，见 Widget::set_preferred_size）经 clamp 后即自然尺寸。
+    // 首选尺寸（构造期确定，见 set_preferred_size）经 clamp 后即自然尺寸。
     glm::vec2 measure(glm::vec2 /*constraints*/) override { return clamp_size(preferred_size()); }
 
     // 叶子不吃约束协商：父容器给什么矩形就用什么矩形。

@@ -53,7 +53,10 @@ void test_parts_are_inline()
 
     check(sizeof(ui::Interaction) <= 8, "Interaction fits in 8 bytes");
     check(sizeof(ui::BoxMetrics) == 36, "BoxMetrics is 9 floats (padding/override/margin)");
-    check(sizeof(ui::LayoutParams) == 72, "LayoutParams is 18 floats worth of intent");
+    // UI-56：Display 从布局意图移到 Node 层（可见性是节点身份属性）。
+    check(sizeof(ui::LayoutParams) == 68, "LayoutParams holds layout intent only (Display moved to Node)");
+    // 三层是包含关系：Node ⊂ LayoutNode。节点比布局节点轻（实测 112 vs 432）。
+    check(sizeof(ui::Node) < sizeof(ui::LayoutNode), "Node is lighter than LayoutNode");
     // UI-50 后 VisualState 内嵌 12 个 8 B 槽 + revision，总大小 ≤ 128 B。
     check(sizeof(ui::VisualState) <= 128, "VisualState stays under 128 bytes (inline, no heap)");
     check(sizeof(ui::Widget) <= 440, "Widget stays under 440 bytes after inline transition state");
@@ -153,8 +156,8 @@ void test_layout_part_derived_values()
     widget.set_display(ui::Widget::Display::Flow);
     check(widget.display() == ui::Widget::Display::Flow && widget.visible(),
           "Flow display implies visible");
-    check(widget.layout_part().display == ui::Display::Flow,
-          "Widget::Display aliases ui::Display (single definition)");
+    // UI-56：Display 从布局意图移到 Node 层（可见性是节点身份属性），布局部件里不再有它。
+    check(widget.display() == ui::Display::Flow, "Display lives on Node, not in LayoutParams");
 }
 
 int main()

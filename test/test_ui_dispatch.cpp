@@ -187,7 +187,7 @@ void test_rebuild_relayouts()
     f.layout();
 
     assert(sec->children().size() == 1);
-    const ui::Widget* row = sec->children().front().get();
+    const ui::Node* row = sec->children().front().get();
     if (!(row->global_bounds().size.y > 0.0f)) {
         std::fprintf(stderr, "rebuilt row height = %f\n", row->global_bounds().size.y);
     }

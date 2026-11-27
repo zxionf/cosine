@@ -375,6 +375,8 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 2026-11-27 | R5 实施后记录：新增 `ui/measure_cache.hpp`（`MeasureKey` 56 B / `MeasureCache` 72 B）；文本键用 FNV-1a 哈希（不存 `std::string`，否则 Widget 456 B）；`Widget` 432 B；Label 删除自带缓存 45 行，TreeView 行缓存接入 `invalidate_measure()` |
 | 2026-11-27 | R6 实施后记录：新增 `semantics/`（WidgetRole 20 种 + 派生投影，26 控件覆写）；8+3+5 份状态字段并入 `Interaction`；删除 `control_state()` 自由函数；新增 `test_ui_architecture`（D1–D3 + K1/K2/K3/K5/K6） |
 | 2026-11-27 | R8（UI-54）include 重写：259 处改到新路径（22 条映射，前后计数均 259）；删除 22 个转发头，`src/ui` 根目录文件数归 0；D5 改为“根目录无头文件 + 无转发头”；修复遗漏的 `test/CMakeLists.txt` PCH 路径 |
+| 2026-11-27 | R10（UI-55）`menu_bar.hpp` 867→562（拆出 menu_item/menu_popup）；语义钩子 5→3（checkable/editable 改 role 派生） |
+| 2026-11-27 | R11（UI-56）**真分层落地**：`node/node.hpp`(291 行/17 虚) + `node/layout_node.hpp`(379 行/22 虚) + `container_node.hpp`；`widget.hpp` 退化为 17 行别名；`sizeof(Node)=112 < LayoutNode=432`；树元素类型改为 `Node*`；Node 声明布局契约纯虚以便无转型遍历；`LayoutNode::child_at` 协变隐藏 + `for_each_layout_child`；K8 断言锁住结构 |
 
 ---
 

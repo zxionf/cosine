@@ -19,7 +19,6 @@ class Checkbox : public LeafNode
 public:
     WidgetRole semantics_role() const override { return WidgetRole::CheckBox; }
     std::string_view semantics_label() const override { return label_; }
-    bool semantics_checkable() const override { return true; }
     explicit Checkbox(std::string label, bool checked = false,
                       std::function<void(bool)> handler = {})
         : label_{std::move(label)}, checked_{checked}, handler_{std::move(handler)}

@@ -22,7 +22,6 @@ class ColorInput : public LeafNode
 {
 public:
     WidgetRole semantics_role() const override { return WidgetRole::TextField; }
-    bool semantics_editable() const override { return true; }
     std::string_view semantics_label() const override { return label_; }
     explicit ColorInput(std::string label = {}, float width = 250.0f)
         : label_(std::move(label)), preferred_width_(width)

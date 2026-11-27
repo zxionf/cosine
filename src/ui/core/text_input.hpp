@@ -21,7 +21,6 @@ class TextInput : public Widget
 {
 public:
     WidgetRole semantics_role() const override { return WidgetRole::TextField; }
-    bool semantics_editable() const override { return true; }
     explicit TextInput(std::string text = {}, float preferred_width = 220.0f)
         : text_{std::move(text)}, preferred_width_{preferred_width}
     {

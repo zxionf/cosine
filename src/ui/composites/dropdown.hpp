@@ -290,7 +290,7 @@ private:
 
     UIRoot* find_root() const
     {
-        for (Widget* widget = const_cast<Dropdown*>(this); widget != nullptr; widget = widget->parent()) {
+        for (Node* widget = const_cast<Dropdown*>(this); widget != nullptr; widget = widget->parent()) {
             if (auto* root = dynamic_cast<UIRoot*>(widget)) return root;
         }
         return nullptr;

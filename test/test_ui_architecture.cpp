@@ -9,9 +9,17 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
+
+#include "ui/node/container_node.hpp"
+#include "ui/node/leaf_node.hpp"
+#include "ui/node/layout_node.hpp"
+#include "ui/node/node.hpp"
 
 namespace fs = std::filesystem;
 
@@ -199,17 +207,16 @@ void test_lower_layers_do_not_include_upper_layers()
           "hits=" + std::to_string(containers_up));
 }
 
-// K2：树存储私有——派生类不得直接读写 children_（widget.hpp 是唯一合法使用者）。
+// K2：树存储私有——只有 node/node.hpp 能碰 children_（UI-56 后存储下沉到 Node）。
 void test_tree_storage_is_private()
 {
-    const std::vector<std::string> exts{".hpp", ".cpp"};
     int outside = 0;
     int inside = 0;
     for (const auto& entry : fs::recursive_directory_iterator(ui_root())) {
         if (!entry.is_regular_file()) continue;
         const auto ext = entry.path().extension().string();
         if (ext != ".hpp" && ext != ".cpp") continue;
-        const bool is_self = entry.path().filename() == "widget.hpp";
+        const bool is_self = entry.path().filename() == "node.hpp";
         std::istringstream in(read_file(entry.path()));
         std::string line;
         while (std::getline(in, line)) {
@@ -218,16 +225,14 @@ void test_tree_storage_is_private()
             else ++outside;
         }
     }
-    check(inside > 0, "K2: widget.hpp owns the child storage");
-    check(outside == 0, "K2: no children_ access outside widget.hpp",
+    check(inside > 0, "K2: node/node.hpp owns the child storage");
+    check(outside == 0, "K2: no children_ access outside node/node.hpp",
           "hits=" + std::to_string(outside));
-    (void)exts;
 }
 
-// K3：几何只能经 set_geometry 写（写点全部在 widget.hpp 的入口函数里）。
+// K3：几何只能经 set_geometry 写（写点全部在 node/node.hpp 的入口函数里）。
 void test_geometry_single_write_entry()
 {
-    const std::vector<std::string> exts{".hpp", ".cpp"};
     int outside = 0;
     for (const char* needle : {"global_ =", "global_.pos =", "global_.size =",
                                "local_ =", "local_.pos =", "local_.size ="}) {
@@ -235,7 +240,7 @@ void test_geometry_single_write_entry()
             if (!entry.is_regular_file()) continue;
             const auto ext = entry.path().extension().string();
             if (ext != ".hpp" && ext != ".cpp") continue;
-            if (entry.path().filename() == "widget.hpp") continue;
+            if (entry.path().filename() == "node.hpp") continue;
             std::istringstream in(read_file(entry.path()));
             std::string line;
             while (std::getline(in, line)) {
@@ -246,23 +251,28 @@ void test_geometry_single_write_entry()
     }
     check(outside == 0, "K3: geometry writes only inside set_geometry family",
           "outside_hits=" + std::to_string(outside));
-    (void)exts;
 }
 
-// K5：基类虚函数数量上限（UI-47 之后 34，UI-52 增加语义钩子后 39）。
+// K5：基类虚函数数量上限（UI-56 分层后：Node + LayoutNode 合计）。
 void test_base_virtual_budget()
 {
-    const std::string text = read_file(ui_root() / "widget.hpp");
     int virtuals = 0;
-    std::istringstream in(text);
-    std::string line;
-    while (std::getline(in, line)) {
-        const std::size_t first = line.find_first_not_of(" \t");
-        if (first == std::string::npos) continue;
-        if (line.compare(first, 8, "virtual ") == 0) ++virtuals;
+    int on_hooks = 0;
+    for (const char* file : {"node/node.hpp", "node/layout_node.hpp"}) {
+        std::istringstream in(read_file(ui_root() / file));
+        std::string line;
+        while (std::getline(in, line)) {
+            const std::size_t first = line.find_first_not_of(" \t");
+            if (first == std::string::npos) continue;
+            if (line.compare(first, 8, "virtual ") != 0) continue;
+            ++virtuals;
+            if (line.find(" on_") != std::string::npos) ++on_hooks;
+        }
     }
-    check(virtuals <= 42, "K5: Widget virtual budget (<= 42)",
+    check(virtuals <= 45, "K5: Node+LayoutNode virtual budget (<= 45)",
           "virtuals=" + std::to_string(virtuals));
+    check(on_hooks == 17, "K5: the 17 event hooks still live in LayoutNode",
+          "hooks=" + std::to_string(on_hooks));
 }
 
 // K1/K6：状态与缓存各只有一处。
@@ -281,27 +291,50 @@ void test_state_and_cache_ownership()
           "K6: exactly one MeasureKey definition (measure_cache.hpp)");
 }
 
-// K7（UI-37）：布局意图的写入点收敛——`layout_.` 的直接赋值只能出现在
-// set_layout_spec()（批量）与 set_placement()（占位）两个函数里。
-// 新增第三个写入者时这个数字会变，逼着作者先想清楚“这是不是又一个真相”。
+// K7（UI-37/UI-56）：布局意图的写入点收敛——`layout_.` 的直接赋值只能出现在
+// set_layout_spec()（批量）与两处 absolute_pos 写入（set_absolute / set_absolute_pos）。
+// 头文件 11 处 + 实现文件 1 处 = 12；新增第三个写入者时这个数字会变。
 void test_layout_single_writer()
 {
-    const std::string text = read_file(ui_root() / "node" / "widget.hpp");
     int writes = 0;
-    for (const char* field : {"align_self", "has_align", "flex_grow", "size_percent",
-                              "aspect_ratio", "fill_x", "fill_y", "min_size", "max_size",
-                              "preferred", "display", "absolute_pos"}) {
-        const std::string needle = std::string("layout_.") + field + " =";
-        std::size_t pos = 0;
-        while ((pos = text.find(needle, pos)) != std::string::npos) {
-            const std::size_t after = pos + needle.size();
-            // 排除 `layout_.display == …` 这类比较表达式。
-            if (after < text.size() && text[after] != '=') ++writes;
-            pos = after;
+    for (const char* file : {"node/layout_node.hpp", "node/layout_node.cpp"}) {
+        const std::string text = read_file(ui_root() / file);
+        for (const char* field : {"align_self", "has_align", "flex_grow", "size_percent",
+                                  "aspect_ratio", "fill_x", "fill_y", "min_size", "max_size",
+                                  "preferred", "absolute_pos"}) {
+            const std::string needle = std::string("layout_.") + field + " =";
+            std::size_t pos = 0;
+            while ((pos = text.find(needle, pos)) != std::string::npos) {
+                const std::size_t after = pos + needle.size();
+                // 排除 `layout_.display == …` 这类比较表达式。
+                if (after < text.size() && text[after] != '=') ++writes;
+                pos = after;
+            }
         }
     }
     check(writes == 12, "K7: layout_ is written by exactly two functions (12 assignments)",
           "found=" + std::to_string(writes));
+}
+
+// K8（UI-56）：三层结构成立——Node ⊂ LayoutNode，Widget 是 LayoutNode 的别名；
+// LeafNode / ContainerNode 都挂在 LayoutNode 下。用编译期断言锁住，防止“拆回去”。
+void test_three_layer_structure()
+{
+    static_assert(std::is_base_of_v<xel::ui::Node, xel::ui::LayoutNode>, "LayoutNode must derive from Node");
+    static_assert(std::is_same_v<xel::ui::Widget, xel::ui::LayoutNode>, "Widget is an alias of LayoutNode");
+    static_assert(std::is_base_of_v<xel::ui::LayoutNode, xel::ui::LeafNode>, "LeafNode : LayoutNode");
+    static_assert(std::is_base_of_v<xel::ui::LayoutNode, xel::ui::ContainerNode>, "ContainerNode : LayoutNode");
+    static_assert(!std::is_same_v<xel::ui::Node, xel::ui::LayoutNode>, "Node and LayoutNode are distinct");
+
+    check(sizeof(xel::ui::Node) < sizeof(xel::ui::LayoutNode), "Node is lighter than LayoutNode",
+          "node=" + std::to_string(sizeof(xel::ui::Node))
+              + " layout=" + std::to_string(sizeof(xel::ui::LayoutNode)));
+    // 树的元素类型是 Node（不是 Widget）——这是分层的核心事实。
+    check(sizeof(decltype(std::declval<const xel::ui::Node&>().children()))
+              == sizeof(std::vector<std::unique_ptr<xel::ui::Node>>),
+          "children() stores Node, not Widget");
+    check(fs::exists(ui_root() / "node" / "node.hpp") && fs::exists(ui_root() / "node" / "layout_node.hpp"),
+          "three-layer headers exist (node.hpp / layout_node.hpp)");
 }
 
 int main()
@@ -315,6 +348,7 @@ int main()
     test_base_virtual_budget();
     test_state_and_cache_ownership();
     test_layout_single_writer();
+    test_three_layer_structure();
 
     std::printf("architecture: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;

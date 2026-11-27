@@ -78,4 +78,11 @@ inline const char* to_string(WidgetRole role)
     }
     return "custom";
 }
+
+// 角色属性（UI-55）：由 role 纯派生，不需要每个控件各写一个虚函数。
+inline bool role_is_checkable(WidgetRole role)
+{
+    return role == WidgetRole::CheckBox || role == WidgetRole::Radio;
+}
+inline bool role_is_editable(WidgetRole role) { return role == WidgetRole::TextField; }
 } // namespace xel::ui

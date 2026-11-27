@@ -26,16 +26,16 @@ namespace xel::editor
 {
 namespace
 {
-bool is_descendant(const ui::Widget* widget, const ui::Widget* ancestor)
+bool is_descendant(const ui::Node* widget, const ui::Node* ancestor)
 {
     if (widget == nullptr || ancestor == nullptr) return false;
-    for (const ui::Widget* w = widget; w != nullptr; w = w->parent()) {
+    for (const ui::Node* w = widget; w != nullptr; w = w->parent()) {
         if (w == ancestor) return true;
     }
     return false;
 }
 
-bool widget_in_tree(const ui::Widget* root, const ui::Widget* target)
+bool widget_in_tree(const ui::Node* root, const ui::Node* target)
 {
     if (root == nullptr || target == nullptr) return false;
     if (root == target) return true;
@@ -48,7 +48,7 @@ bool widget_in_tree(const ui::Widget* root, const ui::Widget* target)
     return false;
 }
 
-std::string widget_name(const ui::Widget* widget)
+std::string widget_name(const ui::Node* widget)
 {
     if (widget == nullptr) return "-";
     if (dynamic_cast<const ui::Label*>(widget) != nullptr) return "Label";
@@ -74,7 +74,7 @@ std::string widget_name(const ui::Widget* widget)
     return "Widget";
 }
 
-void set_debug_recursive(ui::Widget* widget, bool enabled)
+void set_debug_recursive(ui::Node* widget, bool enabled)
 {
     if (widget == nullptr) return;
     widget->set_debug(enabled);
@@ -82,7 +82,7 @@ void set_debug_recursive(ui::Widget* widget, bool enabled)
     for (const auto& overlay : widget->overlays()) set_debug_recursive(overlay.get(), enabled);
 }
 
-void apply_text_debug_recursive(ui::Widget* widget, const ui::Widget* skip,
+void apply_text_debug_recursive(ui::Node* widget, const ui::Node* skip,
                                 const graphics::TextDebugOptions& options)
 {
     if (widget == nullptr || widget == skip) return;
@@ -122,7 +122,7 @@ DebugWindow::DebugWindow(ui::UIRoot& root) : root_(&root)
 
     // 验证用：COSINE_DEBUG_TARGET=1 直接抓 root 的第一个子项作为目标（离屏截图核对 Layout 页）。
     if (std::getenv("COSINE_DEBUG_TARGET") != nullptr && !root.children().empty()) {
-        target_ = root.children().front().get();
+        target_ = ui::as_layout(root.children().front().get());
         rebuild_children();
     }
 }
@@ -392,7 +392,7 @@ void DebugWindow::rebuild_children()
     if (auto* parent = target_->parent()) {
         children_box_->add(std::make_unique<ui::Button>(
             "^ parent: " + widget_name(parent), [this, parent] {
-                target_ = parent;
+                target_ = ui::as_layout(parent);
                 follow_ = false;
                 if (follow_box_ != nullptr) follow_box_->set_checked(false);
                 rebuild_children();
@@ -404,7 +404,7 @@ void DebugWindow::rebuild_children()
         auto* ptr = child.get();
         children_box_->add(std::make_unique<ui::Button>(
             widget_name(ptr), [this, ptr] {
-                target_ = ptr;
+                target_ = ui::as_layout(ptr);
                 follow_ = false;
                 if (follow_box_ != nullptr) follow_box_->set_checked(false);
                 rebuild_children();

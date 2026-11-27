@@ -94,7 +94,7 @@ int main()
         dd->open();
         ui.tick();
         assert(ui.root()->overlays().size() == base + 2);
-        auto* scrim = ui.root()->overlays()[base].get();
+        auto* scrim = xel::ui::as_layout(ui.root()->overlays()[base].get());
         assert(scrim->on_mouse_down({10.0f, 10.0f}, 0));
         assert(!dd->is_open());
         ui.tick();
@@ -104,7 +104,7 @@ int main()
         dd->open();
         ui.tick();
         assert(ui.root()->overlays().size() == base + 2);
-        auto* list = ui.root()->overlays()[base + 1].get();
+        auto* list = xel::ui::as_layout(ui.root()->overlays()[base + 1].get());
         const auto bounds = list->global_bounds();
         assert(bounds.size.x >= 160.0f);
         assert(bounds.size.y > 0.0f);
@@ -124,7 +124,7 @@ int main()
         // 列表行悬停高亮。
         dd->open();
         ui.tick();
-        list = ui.root()->overlays()[base + 1].get();
+        list = xel::ui::as_layout(ui.root()->overlays()[base + 1].get());
         const auto list_bounds = list->global_bounds();
         const float second_row_y = list_bounds.pos.y + pad + row * 1.5f;
         assert(list->on_mouse_move({list_bounds.pos.x + 4.0f, second_row_y}));

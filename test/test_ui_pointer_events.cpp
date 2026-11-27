@@ -53,7 +53,7 @@ struct Parent : ui::Widget
     void arrange(ui::Rect slot) override
     {
         set_geometry(slot);
-        for_each_child([&](ui::Widget& kid) { kid.arrange(slot); });
+        for_each_child([&](ui::Node& node) { ui::as_layout(node).arrange(slot); });
     }
     void append_to(graphics::DrawList&) const override {}
     bool on_double_click(glm::vec2, int) override

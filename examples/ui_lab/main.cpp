@@ -151,7 +151,7 @@ struct Density
 };
 
 // 本地控件名识别（参考 DebugOverlay 的判断链，lab 自用）。
-std::string widget_name(const xel::ui::Widget* widget)
+std::string widget_name(const xel::ui::Node* widget)
 {
     if (widget == nullptr) return "-";
     if (dynamic_cast<const Label*>(widget)) return "Label";
@@ -177,11 +177,11 @@ void set_debug_recursive(xel::ui::Widget* widget, bool enabled)
     if (widget == nullptr) return;
     widget->set_debug(enabled);
     for (const auto& child : widget->children()) {
-        set_debug_recursive(child.get(), enabled);
+        set_debug_recursive(xel::ui::as_layout(child.get()), enabled);
     }
 }
 
-bool widget_in_tree(const xel::ui::Widget* root, const xel::ui::Widget* target)
+bool widget_in_tree(const xel::ui::Node* root, const xel::ui::Node* target)
 {
     if (root == nullptr || target == nullptr) return false;
     if (root == target) return true;
@@ -194,10 +194,10 @@ bool widget_in_tree(const xel::ui::Widget* root, const xel::ui::Widget* target)
     return false;
 }
 
-bool is_descendant(const xel::ui::Widget* widget, const xel::ui::Widget* ancestor)
+bool is_descendant(const xel::ui::Node* widget, const xel::ui::Node* ancestor)
 {
     if (widget == nullptr || ancestor == nullptr) return false;
-    for (const xel::ui::Widget* w = widget; w != nullptr; w = w->parent()) {
+    for (const xel::ui::Node* w = widget; w != nullptr; w = w->parent()) {
         if (w == ancestor) return true;
     }
     return false;
@@ -386,8 +386,8 @@ void apply_label_debug(xel::ui::Widget* widget, const xel::graphics::TextDebugOp
     if (auto* label = dynamic_cast<Label*>(widget)) label->set_text_debug(options);
     else if (auto* button = dynamic_cast<Button*>(widget)) button->set_text_debug(options);
     else if (auto* window = dynamic_cast<xel::ui::Window*>(widget)) window->set_text_debug(options);
-    for (const auto& child : widget->children()) apply_label_debug(child.get(), options);
-    for (const auto& overlay : widget->overlays()) apply_label_debug(overlay.get(), options);
+    for (const auto& child : widget->children()) apply_label_debug(xel::ui::as_layout(child.get()), options);
+    for (const auto& overlay : widget->overlays()) apply_label_debug(xel::ui::as_layout(overlay.get()), options);
 }
 
 void build(Lab& lab, xel::ui::UIRoot& root)
@@ -765,7 +765,7 @@ void Lab::rebuild_widget_children()
     if (auto* parent = widget_target->parent()) {
         widget_children_box->add(std::make_unique<Button>(
             "^ parent: " + widget_name(parent), [this, parent] {
-                widget_target = parent;
+                widget_target = xel::ui::as_layout(parent);
                 widget_follow = false;
                 if (widget_follow_box != nullptr) widget_follow_box->set_checked(false);
                 rebuild_widget_children();
@@ -774,7 +774,7 @@ void Lab::rebuild_widget_children()
 
     widget_children_box->add(std::make_unique<Label>("children:", 16.0f));
     for (const auto& child : widget_target->children()) {
-        auto* ptr = child.get();
+        auto* ptr = xel::ui::as_layout(child.get());
         widget_children_box->add(std::make_unique<Button>(
             widget_name(ptr), [this, ptr] {
                 widget_target = ptr;

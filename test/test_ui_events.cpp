@@ -77,13 +77,14 @@ public:
         set_size(w, h);
     }
 
-    void add(std::unique_ptr<Widget> child) override { adopt(std::move(child)); }
+    void add(std::unique_ptr<Node> child) override { adopt(std::move(child)); }
 
     glm::vec2 measure(glm::vec2) override { return local_bounds().size; }
     void arrange(Rect slot) override
     {
         set_geometry(slot);
-        for_each_child([&](Widget& child) {
+        for_each_child([&](Node& node) {
+            auto& child = as_layout(node);
             child.arrange({{slot.pos.x + child.x(), slot.pos.y + child.y()}, child.measure(slot.size)});
         });
     }

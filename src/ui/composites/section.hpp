@@ -40,7 +40,7 @@ public:
         set_fill(true, false);
     }
 
-    void add(std::unique_ptr<Widget> child) override
+    void add(std::unique_ptr<Node> child) override
     {
         content_->add(std::move(child));
         // measure() 会把 content_ 的缓存高度传给父容器，不失效就一直是旧值。

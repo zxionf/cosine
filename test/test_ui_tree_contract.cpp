@@ -39,11 +39,11 @@ void check(bool ok, const char* name, const std::string& detail = std::string())
     std::printf("FAIL    %s -- %s\n", name, detail.c_str());
 }
 
-// 记录被遍历到的控件，用于验证 for_each_child 的覆盖面。
+// 记录被遍历到的节点，用于验证 for_each_child 的覆盖面。
 struct Collector
 {
-    std::vector<const ui::Widget*> seen;
-    void operator()(const ui::Widget& w) { seen.push_back(&w); }
+    std::vector<const ui::Node*> seen;
+    void operator()(const ui::Node& n) { seen.push_back(&n); }
 };
 
 // 带 overlays 的容器：用于验证"树遍历包含浮层"。
@@ -61,7 +61,7 @@ public:
         overlays_.push_back(std::move(over));
         overlays_.back()->set_parent(this);
     }
-    const std::vector<std::unique_ptr<ui::Widget>>& overlays() const override { return overlays_; }
+    const std::vector<std::unique_ptr<ui::Node>>& overlays() const override { return overlays_; }
 
     glm::vec2 measure(glm::vec2) override { return {100.0f, 40.0f}; }
     void arrange(ui::Rect slot) override { set_geometry(slot); }
@@ -71,7 +71,7 @@ public:
     ui::Widget* overlay_ = nullptr;
 
 private:
-    std::vector<std::unique_ptr<ui::Widget>> overlays_;
+    std::vector<std::unique_ptr<ui::Node>> overlays_;
 };
 
 // 探针：自定义遍历入口不可用（children() 已是普通函数），只能经 for_each_child。
@@ -85,7 +85,7 @@ public:
     void walk() const
     {
         TraversalProbe* self = const_cast<TraversalProbe*>(this);
-        for_each_child([self](ui::Widget&) { ++self->visited; });
+        for_each_child([self](ui::Node&) { ++self->visited; });
     }
 };
 } // namespace

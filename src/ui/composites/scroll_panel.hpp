@@ -30,7 +30,7 @@ public:
     const Vbox* content() const { return content_; }
 
     // 内容进入滚动区；需要固定表头时直接使用 content()->add() 之外的 API。
-    void add(std::unique_ptr<Widget> child) override
+    void add(std::unique_ptr<Node> child) override
     {
         content_->add(std::move(child));
     }

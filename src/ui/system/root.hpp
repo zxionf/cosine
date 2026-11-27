@@ -17,12 +17,12 @@ public:
     UIRoot(float x, float y, float width, float height);
     ~UIRoot() = default;
 
-    void add(std::unique_ptr<Widget> child) override;
+    void add(std::unique_ptr<Node> child) override;
     // 延迟移除普通子项（与 remove_overlay 同语义）：事件派发期间仍可能持有指针，
     // 实际析构发生在下一次 layout() 的 purge_trash()。
-    void remove(Widget* child);
+    void remove(Node* child);
     // overlay 按加入顺序叠放，后加入的在上层；尺寸由 measure 决定。
-    void add_overlay(std::unique_ptr<Widget> child);
+    void add_overlay(std::unique_ptr<Node> child);
     // 延迟移除：事件派发过程中可能仍持有目标指针，实际销毁发生在下一次 layout()。
     void remove_overlay(Widget* overlay);
     void clear_overlays() { overlays_.clear(); mark_layout_dirty(); }
@@ -44,7 +44,7 @@ public:
     void set_theme(const Theme& value);
     const Theme& ui_theme() const { return context_storage_.theme(); }
 
-    const std::vector<std::unique_ptr<Widget>>& overlays() const override { return overlays_; }
+    const std::vector<std::unique_ptr<Node>>& overlays() const override { return overlays_; }
     bool hit_testable() const override { return false; }
     void append_to(graphics::DrawList& list) const override;
     void layout() override;
@@ -56,7 +56,7 @@ private:
     void purge_trash();
 
     UIContext context_storage_;
-    std::vector<std::unique_ptr<Widget>> overlays_;
+    std::vector<std::unique_ptr<Node>> overlays_;
     // 模态帧：window / scrim / prev_focus 三份状态合并为一个元素，避免三数组错位。
     struct ModalFrame
     {
@@ -67,6 +67,6 @@ private:
     std::vector<ModalFrame> modal_frames_;
     FocusGetter focus_getter_;
     FocusSetter focus_setter_;
-    std::vector<std::unique_ptr<Widget>> trash_;
+    std::vector<std::unique_ptr<Node>> trash_;
 };
 } // namespace xel::ui

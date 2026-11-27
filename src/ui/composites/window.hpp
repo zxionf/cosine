@@ -273,7 +273,7 @@ public:
         }
         layout();
         mark_layout_dirty();
-        if (Widget* p = parent()) p->mark_layout_dirty();
+        if (Node* p = parent()) p->mark_layout_dirty();
     }
     bool maximized() const { return maximized_; }
 
@@ -283,12 +283,12 @@ public:
     // 置顶：把自身移到父容器子项末尾（插入序）。不改写兄弟的 z_index。
     void raise()
     {
-        if (Widget* p = parent()) p->raise_child(this);
+        if (Node* p = parent()) p->raise_child(this);
         // 显式置顶的窗口仍需最高 z（模态帧的 z 由 UIRoot::layout 统一分配）。
         if (always_on_top_) set_z_index(kOnTopZ);
     }
 
-    void add(std::unique_ptr<Widget> child) override
+    void add(std::unique_ptr<Node> child) override
     {
         if (body_ != nullptr) body_->add(std::move(child));
     }
@@ -565,7 +565,7 @@ public:
 
         layout(); // body_ 跟着新的 global_ 重新排
         mark_layout_dirty();
-        if (Widget* p = parent()) p->mark_layout_dirty();
+        if (Node* p = parent()) p->mark_layout_dirty();
         return true;
     }
 
@@ -586,7 +586,7 @@ private:
 
     UIRoot* find_root_widget() const
     {
-        Widget* node = const_cast<Window*>(this);
+        Node* node = const_cast<Window*>(this);
         while (node != nullptr) {
             if (auto* root = dynamic_cast<UIRoot*>(node)) return root;
             node = node->parent();

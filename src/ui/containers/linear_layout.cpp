@@ -36,7 +36,7 @@ void LinearLayout::apply_theme_spacing(float spacing)
     mark_layout_dirty();
 }
 
-void LinearLayout::add(std::unique_ptr<Widget> child)
+void LinearLayout::add(std::unique_ptr<Node> child)
 {
     adopt(std::move(child));
 }
@@ -51,7 +51,7 @@ void LinearLayout::append_to(graphics::DrawList& list) const
 {
     if (is_debug()) debug_rect(list);
     // z-index 控制同层绘制顺序（大的在上）；没有非零 z 时保持加入顺序。
-    for (Widget* child : paint_order()) {
+    for (Node* child : paint_order()) {
         if (child->visible()) child->append_to(list);
     }
 }
@@ -83,11 +83,14 @@ glm::vec2 LinearLayout::measure(glm::vec2 constraints)
     std::vector<MainAxisItem> items;
     float cross_max = 0.0f;
 
-    for (const auto& child : children()) {
+    // UI-56：子项存的是 Node，布局计算需要布局视图 → for_each_layout_child。
+    for_each_layout_child([&](LayoutNode& node) {
+        LayoutNode& child_ref = node;
+        auto* child = &child_ref;
         // 隐藏子项不参与流式尺寸；绝对定位子项也不参与。
         if (child->display() != Display::Flow) {
             child->mark_measured();
-            continue;
+            return;
         }
 
         const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
@@ -110,7 +113,7 @@ glm::vec2 LinearLayout::measure(glm::vec2 constraints)
         const float cross = horizontal ? (child->margin_top() + cs.y + child->margin_bottom())
                                        : (child->margin_left() + cs.x + child->margin_right());
         cross_max = std::max(cross_max, cross);
-    }
+    });
 
     const float available = horizontal ? inner_w : inner_h;
     const std::vector<float> main = resolve_main_axis(available, spacing_, items, false);
@@ -155,9 +158,10 @@ void LinearLayout::arrange(Rect slot)
     std::vector<MainAxisItem> specs;
     measured.reserve(child_count());
 
-    for (const auto& child : children()) {
-        // 流式子项：隐藏与绝定位的子项不占位、不参与 spacing / flex 分配。
-        if (child->display() != Display::Flow) continue;
+    // UI-56：布局计算需要 LayoutNode 视图。
+    for_each_layout_child([&](LayoutNode& node) {
+        auto* child = &node;
+        if (child->display() != Display::Flow) return;
 
         const glm::vec2 cs = Widget::measure_child(*child, {inner_w, inner_h});
         MainAxisItem item;
@@ -175,11 +179,11 @@ void LinearLayout::arrange(Rect slot)
         item.max_size = horizontal ? child->max_size().x : child->max_size().y;
         specs.push_back(item);
 
-        measured.push_back({child.get(), cs,
+        measured.push_back({child, cs,
                             item.margin_before, item.margin_after,
                             horizontal ? child->margin_top() : child->margin_left(),
                             horizontal ? child->margin_bottom() : child->margin_right()});
-    }
+    });
 
     const std::vector<float> main = resolve_main_axis(available, spacing_, specs);
 
@@ -278,12 +282,12 @@ void LinearLayout::arrange(Rect slot)
     // 内容实际占用尺寸 = 子项包围盒相对自身原点的范围（UI-36）：
     // 用于 content_overflows() 诊断，取真实几何而不是自然尺寸。
     glm::vec2 occupied{0.0f, 0.0f};
-    for (const auto& child : children()) {
-        if (child->display() == Display::Hidden) continue;
-        const auto b = child->global_bounds();
+    for_each_layout_child([&](LayoutNode& child) {
+        if (child.display() == Display::Hidden) return;
+        const auto b = child.global_bounds();
         occupied.x = std::max(occupied.x, b.pos.x + b.size.x - slot.pos.x);
         occupied.y = std::max(occupied.y, b.pos.y + b.size.y - slot.pos.y);
-    }
+    });
     set_content_extent(occupied);
 
     // 绝对定位子项：按自身坐标相对内容区放置，尺寸走同一套测量规则。

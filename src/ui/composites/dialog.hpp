@@ -65,7 +65,7 @@ public:
     }
 
     // 内容进入正文区。
-    void add(std::unique_ptr<Widget> child) override { body_->add(std::move(child)); }
+    void add(std::unique_ptr<Node> child) override { body_->add(std::move(child)); }
 
     // 便捷：正文加一段文字。
     void set_message(std::string message)
@@ -247,7 +247,7 @@ public:
 private:
     UIRoot* find_root() const
     {
-        for (Widget* widget = const_cast<DialogHost*>(this); widget != nullptr; widget = widget->parent()) {
+        for (Node* widget = const_cast<DialogHost*>(this); widget != nullptr; widget = widget->parent()) {
             if (auto* root = dynamic_cast<UIRoot*>(widget)) return root;
         }
         return nullptr;
