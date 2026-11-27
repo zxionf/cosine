@@ -596,6 +596,38 @@ void test_layout_spec_roundtrip()
               && near(back.size_percent.x, 0.5f) && near(back.aspect_ratio, 1.5f)
               && back.fill_x && near(back.min_size.y, 20.0f) && near(back.max_size.x, 200.0f),
           "LayoutSpec round-trips through the widget fields");
+
+    // UI-37：preferred 也进快照；单项 setter 都是读-改-写的糖，不会破坏其他字段。
+    ui::ColorRect leaf(0.0f, 0.0f, 40.0f, 20.0f, glm::vec4{1.0f});
+    leaf.set_align(ui::Align::center());
+    leaf.set_flex_grow(3.0f);
+    leaf.set_size_percent(0.25f, 0.75f);
+    leaf.set_aspect_ratio(2.0f);
+    leaf.set_fill(true, true);
+    leaf.set_min_size({5.0f, 6.0f});
+    leaf.set_max_size({500.0f, 600.0f});
+    leaf.set_preferred_size({33.0f, 44.0f});
+
+    const auto all = leaf.layout_spec();
+    check(all.align.has_value() && near(all.align->x, 0.5f), "set_align goes through LayoutSpec");
+    check(near(all.flex_grow, 3.0f), "set_flex_grow goes through LayoutSpec");
+    check(near(all.size_percent.x, 0.25f) && near(all.size_percent.y, 0.75f),
+          "set_size_percent goes through LayoutSpec");
+    check(near(all.aspect_ratio, 2.0f), "set_aspect_ratio goes through LayoutSpec");
+    check(all.fill_x && all.fill_y, "set_fill goes through LayoutSpec");
+    check(near(all.min_size.x, 5.0f) && near(all.max_size.y, 600.0f),
+          "min/max size go through LayoutSpec");
+    check(near(all.preferred.x, 33.0f) && near(all.preferred.y, 44.0f),
+          "set_preferred_size goes through LayoutSpec (UI-37)");
+
+    // 回写：直接改快照不应丢掉“没改的字段”。
+    ui::Widget::LayoutSpec tweak = all;
+    tweak.flex_grow = 0.0f;
+    leaf.set_layout_spec(tweak);
+    const auto after = leaf.layout_spec();
+    check(near(after.flex_grow, 0.0f) && near(after.preferred.x, 33.0f)
+              && near(after.size_percent.y, 0.75f) && after.align.has_value(),
+          "set_layout_spec writes the whole snapshot without dropping untouched fields");
 }
 } // namespace
 

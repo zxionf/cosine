@@ -226,12 +226,7 @@ public:
     using Display = ::xel::ui::Display;
 
     Display display() const { return !visible_ ? Display::Hidden : layout_.display; }
-    void set_display(Display value)
-    {
-        layout_.display = value == Display::Hidden ? Display::Flow : value;
-        visible_ = value != Display::Hidden;
-        mark_layout_dirty();
-    }
+    void set_display(Display value) { set_placement(value, std::nullopt); }
 
     // 溢出策略（UI-33）：
     //   Visible 内容可以超出自身（默认）
@@ -302,14 +297,21 @@ public:
         Modal,
     };
     virtual Layer layer() const { return Layer::Content; }
-    void set_align(Align a) { layout_.align_self = a; layout_.has_align = true; mark_layout_dirty(); }
+    void set_align(Align a)
+    {
+        LayoutSpec spec = layout_spec();
+        spec.align = a;
+        set_layout_spec(spec);
+    }
     std::optional<Align> align_self() const
     {
         return layout_.has_align ? std::optional<Align>(layout_.align_self) : std::nullopt;
     }
 
-    // 尺寸与对齐规格的不可变快照（UI-36）：把 align / flex / pct / aspect / fill 收敛成一份数据，
-    // 便于调试面板展示与测试断言。存储仍然是「单一真相」的分散字段，set_layout_spec() 是转发。
+    // 尺寸与对齐规格的不可变快照（UI-36 / UI-37）：把 align / flex / pct / aspect / fill /
+    // min/max / preferred 收敛成一份数据。存储仍然在 `layout_` 部件里，但**写入只经
+    // set_layout_spec()**（UI-37 后它是 layout_ 布局字段的唯一写入者）——
+    // 这样“布局意图”只有一个真相、一个入口，调试面板与测试都能拿快照断言。
     struct LayoutSpec
     {
         std::optional<Align> align;
@@ -320,21 +322,28 @@ public:
         bool fill_y = false;
         glm::vec2 min_size{0.0f, 0.0f};
         glm::vec2 max_size{0.0f, 0.0f};
+        glm::vec2 preferred{0.0f, 0.0f}; // UI-37：自然尺寸也进快照
     };
     LayoutSpec layout_spec() const
     {
         return {align_self(), layout_.flex_grow, layout_.size_percent, layout_.aspect_ratio,
-                layout_.fill_x, layout_.fill_y, layout_.min_size, layout_.max_size};
+                layout_.fill_x, layout_.fill_y, layout_.min_size, layout_.max_size,
+                layout_.preferred};
     }
+    // 布局字段的唯一写入者（UI-37）：其余“单项 setter”都是读-改-写的糖。
     void set_layout_spec(const LayoutSpec& spec)
     {
-        if (spec.align) set_align(*spec.align);
-        set_flex_grow(spec.flex_grow);
-        set_size_percent(spec.size_percent);
-        set_aspect_ratio(spec.aspect_ratio);
-        set_fill(spec.fill_x, spec.fill_y);
-        set_min_size(spec.min_size);
-        set_max_size(spec.max_size);
+        layout_.align_self = spec.align.value_or(Align::top_left());
+        layout_.has_align = spec.align.has_value();
+        layout_.flex_grow = spec.flex_grow < 0.0f ? 0.0f : spec.flex_grow;
+        layout_.size_percent = spec.size_percent;
+        layout_.aspect_ratio = spec.aspect_ratio > 0.0f ? spec.aspect_ratio : 0.0f;
+        layout_.fill_x = spec.fill_x;
+        layout_.fill_y = spec.fill_y;
+        layout_.min_size = spec.min_size;
+        layout_.max_size = spec.max_size;
+        layout_.preferred = spec.preferred;
+        mark_layout_dirty();
     }
 
     // 内边距：显式调用即「锁住」该值，主题重刷（set_context / UIRoot::set_theme）不再覆盖。
@@ -356,26 +365,27 @@ public:
     void    set_margin(float all)       { box.margin = {all, all, all, all}; mark_layout_dirty(); }
     Edges   margin() const              { return box.margin; }
 
-    void    set_flex_grow(float grow)   { layout_.flex_grow = grow < 0.0f ? 0.0f : grow; mark_layout_dirty(); }
+    void    set_flex_grow(float grow)
+    {
+        LayoutSpec spec = layout_spec();
+        spec.flex_grow = grow;
+        set_layout_spec(spec);
+    }
     float   flex_grow() const           { return layout_.flex_grow; }
 
     // 绝对定位：脱离流式布局，按 (x, y) 相对父内容区定位；容器不计入其尺寸。
     void set_absolute(bool value)
     {
-        if (value && layout_.display != Display::Positioned) layout_.absolute_pos = local_.pos; // 兼容：从当前位置开始
-        layout_.display = value ? Display::Positioned : Display::Flow;
-        mark_layout_dirty();
+        // 从当前位置开始（兼容旧行为）：仅当从“非 Positioned”切到 Positioned 时同步坐标。
+        const bool take_current = value && layout_.display != Display::Positioned;
+        set_placement(value ? Display::Positioned : Display::Flow,
+                      take_current ? std::optional<glm::vec2>(local_.pos) : std::nullopt);
     }
     bool absolute() const { return layout_.display == Display::Positioned; }
 
     // 相对偏移与全局位置分离：arrange 会改写 local_.pos（全局），
     // 若 absolute 子项读 x()/y() 会每帧累加父偏移。
-    void set_absolute_pos(glm::vec2 pos)
-    {
-        layout_.absolute_pos = pos;
-        layout_.display = Display::Positioned;
-        mark_layout_dirty();
-    }
+    void set_absolute_pos(glm::vec2 pos) { set_placement(Display::Positioned, pos); }
     glm::vec2 absolute_pos() const { return layout_.absolute_pos; }
 
     // 同层绘制/命中顺序键：数值大的画在上面、命中优先。默认 0（按加入顺序）。
@@ -411,8 +421,18 @@ public:
         });
         return order;
     }
-    void set_min_size(glm::vec2 size) { layout_.min_size = size; mark_layout_dirty(); }
-    void set_max_size(glm::vec2 size) { layout_.max_size = size; mark_layout_dirty(); }
+    void set_min_size(glm::vec2 size)
+    {
+        LayoutSpec spec = layout_spec();
+        spec.min_size = size;
+        set_layout_spec(spec);
+    }
+    void set_max_size(glm::vec2 size)
+    {
+        LayoutSpec spec = layout_spec();
+        spec.max_size = size;
+        set_layout_spec(spec);
+    }
     glm::vec2 min_size() const { return layout_.min_size; }
     glm::vec2 max_size() const { return layout_.max_size; }
     glm::vec2 clamp_size(glm::vec2 size) const { return glm::clamp(size, layout_.min_size, layout_.max_size); }
@@ -420,19 +440,29 @@ public:
     // 叶子的自然尺寸（UI-32）：构造期确定的 preferred size，与 arrange 的几何分离。
     // measure() 用它而不是 local_.size —— 后者是最近一次 arrange 的结果，被 stretch
     // 之后会「记住」放大值，再也缩不回去（P1-6）。
-    void set_preferred_size(glm::vec2 size) { layout_.preferred = size; mark_layout_dirty(); }
+    void set_preferred_size(glm::vec2 size)
+    {
+        LayoutSpec spec = layout_spec();
+        spec.preferred = size;
+        set_layout_spec(spec);
+    }
     glm::vec2 preferred_size() const { return layout_.preferred; }
 
     // 外部显式指定尺寸：几何与自然尺寸一起改。
     // 调试面板这类「用户改 Size」用它；布局内部的 arrange 不要调（arrange 只写几何）。
     void request_size(glm::vec2 size)
     {
-        layout_.preferred = size;
+        set_preferred_size(size);
         set_size(size);
     }
 
     // 尺寸规格：每轴占父级可用空间的比例（>0 启用）与宽高比（>0 启用）。
-    void set_size_percent(glm::vec2 pct) { layout_.size_percent = pct; mark_layout_dirty(); }
+    void set_size_percent(glm::vec2 pct)
+    {
+        LayoutSpec spec = layout_spec();
+        spec.size_percent = pct;
+        set_layout_spec(spec);
+    }
     void set_size_percent(float x, float y) { set_size_percent({x, y}); }
     glm::vec2 size_percent() const { return layout_.size_percent; }
 
@@ -442,13 +472,19 @@ public:
     //   - 父级据此知道“这个子项不该把我的自然尺寸撞大”（预算在 UI-32 统一）。
     void set_fill(bool x, bool y)
     {
-        layout_.fill_x = x;
-        layout_.fill_y = y;
-        mark_layout_dirty();
+        LayoutSpec spec = layout_spec();
+        spec.fill_x = x;
+        spec.fill_y = y;
+        set_layout_spec(spec);
     }
     bool fill_x() const { return layout_.fill_x; }
     bool fill_y() const { return layout_.fill_y; }
-    void set_aspect_ratio(float ratio) { layout_.aspect_ratio = ratio > 0.0f ? ratio : 0.0f; mark_layout_dirty(); }
+    void set_aspect_ratio(float ratio)
+    {
+        LayoutSpec spec = layout_spec();
+        spec.aspect_ratio = ratio;
+        set_layout_spec(spec);
+    }
     float aspect_ratio() const { return layout_.aspect_ratio; }
 
     // 容器测量子项的统一入口（唯一）：
@@ -675,6 +711,16 @@ protected:
     mutable MeasureCache measure_cache_{};
 
 private:
+    // 占位模式的唯一写入者（UI-37）：display 与 absolute_pos 都只经这里改。
+    // absolute_pos 传 nullopt 表示“保持原坐标”。
+    void set_placement(Display value, std::optional<glm::vec2> absolute_pos)
+    {
+        layout_.display = value == Display::Hidden ? Display::Flow : value;
+        visible_ = value != Display::Hidden;
+        if (absolute_pos) layout_.absolute_pos = *absolute_pos;
+        mark_layout_dirty();
+    }
+
     float transition_duration() const;
     BoxStyle current_transition_style(StyleRole role) const;
     void advance_transition(float dt);

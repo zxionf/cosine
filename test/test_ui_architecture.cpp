@@ -281,6 +281,29 @@ void test_state_and_cache_ownership()
           "K6: exactly one MeasureKey definition (measure_cache.hpp)");
 }
 
+// K7（UI-37）：布局意图的写入点收敛——`layout_.` 的直接赋值只能出现在
+// set_layout_spec()（批量）与 set_placement()（占位）两个函数里。
+// 新增第三个写入者时这个数字会变，逼着作者先想清楚“这是不是又一个真相”。
+void test_layout_single_writer()
+{
+    const std::string text = read_file(ui_root() / "node" / "widget.hpp");
+    int writes = 0;
+    for (const char* field : {"align_self", "has_align", "flex_grow", "size_percent",
+                              "aspect_ratio", "fill_x", "fill_y", "min_size", "max_size",
+                              "preferred", "display", "absolute_pos"}) {
+        const std::string needle = std::string("layout_.") + field + " =";
+        std::size_t pos = 0;
+        while ((pos = text.find(needle, pos)) != std::string::npos) {
+            const std::size_t after = pos + needle.size();
+            // 排除 `layout_.display == …` 这类比较表达式。
+            if (after < text.size() && text[after] != '=') ++writes;
+            pos = after;
+        }
+    }
+    check(writes == 12, "K7: layout_ is written by exactly two functions (12 assignments)",
+          "found=" + std::to_string(writes));
+}
+
 int main()
 {
     test_geometry_does_not_depend_on_nodes();
@@ -291,6 +314,7 @@ int main()
     test_geometry_single_write_entry();
     test_base_virtual_budget();
     test_state_and_cache_ownership();
+    test_layout_single_writer();
 
     std::printf("architecture: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;
