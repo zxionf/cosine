@@ -21,9 +21,16 @@ namespace xel::ui::paint
 inline void box(graphics::DrawList& list, Rect bounds, const BoxStyle& style, float radius)
 {
     const glm::vec4 rect{bounds.pos.x, bounds.pos.y, bounds.size.x, bounds.size.y};
-    graphics::append_rounded_rect(list, rect, radius, style.fill);
+    const bool has_fill = style.fill.a > 0.0f;
+    if (has_fill) {
+        graphics::append_rounded_rect(list, rect, radius, style.fill);
+    }
     if (style.border_width > 0.0f) {
+        // 填充已经铺到边框外沿：边框不再向外扩 1px，否则两条 fringe 带重叠、
+        // 半透明时会多出一圈提亮。
+        list.set_skip_outer_fringe(has_fill);
         graphics::append_rounded_ring(list, rect, radius, style.border_width, style.border);
+        list.set_skip_outer_fringe(false);
     }
 }
 

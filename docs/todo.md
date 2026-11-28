@@ -11,7 +11,7 @@
 | R14 | 单窗口 / 单 Renderer 假设 | backend |
 | R15 | 文本 shaping：BiDi / 复杂字形 / 字体回退 / IME | ui |
 | R17 | 序列化：二进制格式已定，资源引用待 CO-2 | cosine |
-| D01 | 圆角无抗锯齿（需 MSAA 或 SDF） | ui |
+| D01 | 圆角抗锯齿：已用顶点级 fringe（ImGui 式 1px alpha 边带）解决；圆/环（circle/ring 图元）与文字仍待处理 | ui |
 | D02 | Table/TreeView 行级背景不参与颜色过渡 | ui |
 | D03 | SceneView 椭圆/文字不随 rotation 旋转 | anim/ui |
 | D05 | File 菜单 Ctrl+N/O/S 键盘路由 | cosine（CO-2） |

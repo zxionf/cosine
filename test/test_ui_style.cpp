@@ -42,14 +42,16 @@ Geometry stats(const graphics::DrawList& list)
 }
 
 // 所有顶点必须落在给定矩形内（浮点容差），索引必须合法。
-void assert_inside(const graphics::DrawList& list, glm::vec4 rect)
+// margin：圆角的抗锯齿边带（fringe）按设计会向外扩 1 物理像素，属于预期。
+void assert_inside(const graphics::DrawList& list, glm::vec4 rect, float margin = 0.0f)
 {
+    const float slack = margin + 0.01f;
     for (const auto& batch : list.batches()) {
         for (const auto& vertex : batch.vertices) {
-            assert(vertex.pos.x >= rect.x - 0.01f);
-            assert(vertex.pos.y >= rect.y - 0.01f);
-            assert(vertex.pos.x <= rect.x + rect.z + 0.01f);
-            assert(vertex.pos.y <= rect.y + rect.w + 0.01f);
+            assert(vertex.pos.x >= rect.x - slack);
+            assert(vertex.pos.y >= rect.y - slack);
+            assert(vertex.pos.x <= rect.x + rect.z + slack);
+            assert(vertex.pos.y <= rect.y + rect.w + slack);
         }
         for (uint32_t index : batch.indices) {
             assert(index < batch.vertices.size());
@@ -173,7 +175,7 @@ void test_rounded_rect_geometry()
         const auto g = stats(list);
         assert(g.vertices == 4);
         assert(g.indices == 6);
-        assert_inside(list, bounds);
+        assert_inside(list, bounds, 1.45f);
     }
 
     // 圆角路径：顶点增多、索引合法、全部落在矩形内。
@@ -184,7 +186,7 @@ void test_rounded_rect_geometry()
         const auto g = stats(list);
         assert(g.vertices > 4);
         assert(g.indices % 3 == 0);
-        assert_inside(list, bounds);
+        assert_inside(list, bounds, 1.45f);
     }
 
     // 半径 clamp 到短边一半：越界半径与大半径结果一致。
@@ -199,7 +201,7 @@ void test_rounded_rect_geometry()
 
         assert(stats(a).vertices == stats(b).vertices);
         assert(stats(a).indices == stats(b).indices);
-        assert_inside(b, bounds);
+        assert_inside(b, bounds, 1.45f);
     }
 
     // 尺寸为 0 或完全透明时不产生任何几何。
@@ -224,7 +226,7 @@ void test_rounded_ring_geometry()
         const auto g = stats(list);
         assert(g.vertices == 16);
         assert(g.indices == 24);
-        assert_inside(list, bounds);
+        assert_inside(list, bounds, 1.45f);
     }
 
     // 圆角环：顶点更多，厚度不为 0，全部落在矩形内。
@@ -235,7 +237,7 @@ void test_rounded_ring_geometry()
         const auto g = stats(list);
         assert(g.vertices > 16);
         assert(g.indices % 3 == 0);
-        assert_inside(list, bounds);
+        assert_inside(list, bounds, 1.45f);
     }
 
     // 厚度为 0 或透明时不绘制。
@@ -253,7 +255,7 @@ void test_rounded_ring_geometry()
         list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
         graphics::append_inset_shadow(list, bounds, 8.0f, 6.0f, {0.0f, 0.0f, 0.0f, 0.12f});
         assert(stats(list).vertices > 0);
-        assert_inside(list, bounds);
+        assert_inside(list, bounds, 1.45f);
     }
 }
 
@@ -341,7 +343,7 @@ void test_focus_policy_matrix()
             } else {
                 assert(stats(list).vertices == 16);
                 assert(stats(list).indices == 24);
-                assert_inside(list, bounds);
+                assert_inside(list, bounds, 1.45f);
             }
         }
     }
@@ -402,7 +404,7 @@ void test_focus_visibility()
     button_ptr->append_focus_ring(border_list, control_bounds, 0.0f);
     assert(stats(border_list).vertices == 16);
     assert(stats(border_list).indices == 24);
-    assert_inside(border_list, control_bounds);
+    assert_inside(border_list, control_bounds, 1.45f);
 
     // Always：鼠标点击聚焦也显示边框，不要求先切到键盘模式。
     const auto button_bounds = button_ptr->bounds();
