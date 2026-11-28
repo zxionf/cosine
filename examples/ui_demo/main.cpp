@@ -1,65 +1,39 @@
-#include "ui_demo.hpp"
-#include "xel/version.hpp"
+// XEL UI Demo 入口。
+//
+// 只做装配：Application + demo::create() + app.run()。
+// 所有展示内容在 sections/ 下，外壳与注册表在 demo.{hpp,cpp}。
+
+#include "demo.hpp"
+
 #include "xel_application.hpp"
 
-#include <array>
+#include <cstdlib>
 #include <exception>
 #include <iostream>
-#include <string_view>
 
-namespace
+int main()
 {
-// 边沿检测：按住不放只触发一次。
-struct KeyLatch
-{
-    xel::event::KeyCode key = xel::event::KeyCode::Unknown;
-    bool prev = false;
-    bool pressed(bool down)
-    {
-        const bool fired = down && !prev;
-        prev = down;
-        return fired;
-    }
-};
-
-int run()
-{
-    xel::Application app{{1200, 800, "XEL Text Lab"}};
-    auto lab = xel::demo::build(app.ui().root());
-
-    KeyLatch f1{xel::event::KeyCode::F1};
-    KeyLatch f2{xel::event::KeyCode::F2};
-    KeyLatch f3{xel::event::KeyCode::F3};
-    KeyLatch f4{xel::event::KeyCode::F4};
-    KeyLatch f5{xel::event::KeyCode::F5};
-
-    // 每帧：F1–F5 调试开关 + 覆盖层状态跟着指针/焦点刷新。
-    return app.run([&](float) {
-        if (f1.pressed(app.window().key_down(f1.key))) lab.overlay->toggle();
-        if (f2.pressed(app.window().key_down(f2.key))) lab.toggle_glyph_boxes();
-        if (f3.pressed(app.window().key_down(f3.key))) lab.toggle_line_box();
-        if (f4.pressed(app.window().key_down(f4.key))) lab.toggle_advance();
-        if (f5.pressed(app.window().key_down(f5.key))) lab.toggle_pixel_snap();
-
-        if (lab.overlay->visible()) {
-            lab.overlay->update(app.gfx().stats(), app.ui().hovered(),
-                                app.ui().focused(), {0.0f, 0.0f});
-        }
-    });
-}
-} // namespace
-
-int main(int argc, char** argv)
-{
-    for (int i = 1; i < argc; ++i) {
-        if (std::string_view{argv[i]} == "--version") {
-            std::cout << xel::kProjectName << " " << xel::version_string() << '\n';
-            return 0;
-        }
-    }
-
     try {
-        return run();
+        xel::Application app{{1360, 880, "XEL UI Demo"}};
+
+        // 展示台接管整棵 UI 树；缩放开关需要 Application 才能生效，所以注入回调。
+        auto demo = demo::create(app.ui().root(),
+                                 [&app](float scale) { app.set_ui_scale(scale); });
+
+        // 离屏导出：定格一帧后写 PNG（用于文档截图与回归对比）。
+        if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
+            constexpr std::uint32_t kWidth = 1360;
+            constexpr std::uint32_t kHeight = 880;
+            app.ui().tick(1.0f / 60.0f);
+            demo->update(1.0f / 60.0f, app.gfx().stats(), nullptr, nullptr);
+            const bool ok = app.save_png(png, kWidth, kHeight);
+            std::cout << (ok ? "exported " : "export failed ") << png << '\n';
+            return ok ? 0 : 1;
+        }
+
+        return app.run([&](float dt) {
+            demo->update(dt, app.gfx().stats(), app.ui().hovered(), app.ui().focused());
+        });
     } catch (const std::exception& error) {
         std::cerr << "fatal: " << error.what() << '\n';
         return 1;

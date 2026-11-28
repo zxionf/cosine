@@ -5,7 +5,7 @@ MVP 的发布形态是**免安装的压缩包**：解压后直接运行，不需
 ## 版本号
 
 版本号唯一来源是根 `CMakeLists.txt` 的 `project(cosine VERSION ...)`。
-CMake 会生成 `xel/version.hpp`，`ui_demo --version` 输出：
+CMake 会生成 `xel/version.hpp`，`cosine --version` 输出：
 
 ```text
 cosine 0.5.0
@@ -23,8 +23,7 @@ cosine 0.5.0
 
 ```text
 dist/cosine-<version>-linux-<arch>/
-├── ui_demo
-├── ui_gallery
+├── cosine
 ├── assets/
 │   ├── fonts/default8.png
 │   ├── fonts/gb2312_level1.txt
@@ -57,8 +56,7 @@ dist/cosine-<version>-linux-<arch>.tar.gz
 
 ```text
 dist\cosine-<version>-windows-x64\
-├── ui_demo.exe
-├── ui_gallery.exe
+├── cosine.exe
 ├── assets\
 ├── run.cmd
 ├── VERSION
@@ -78,7 +76,7 @@ MSVC 不提供 `strip`；Release 产物已不含调试信息。
 3. 构建期注入的 `COSINE_ASSET_DIR`
 
 因此打包目录必须保持可执行文件与 `assets/` 同级；从任意 cwd 启动都能找到资源。
-包内提供两个可执行文件：`ui_demo`（最小面板）与 `ui_gallery`（全部控件展示）。
+包内提供产品本体：`cosine`（编辑器，`--version` / `COSINE_EXIT_AFTER` / `COSINE_EXPORT_PNG` 都可用）。
 
 ## 字体策略
 
@@ -96,7 +94,7 @@ CJK 字形默认从系统字体生成图集，查找顺序见 `graphics::find_cj
 **不内置 CJK TTF**：字体体积大且许可证各异。若目标机器没有中文字体，可以：
 
 ```bash
-COSINE_CJK_FONT=/path/NotoSansCJK-Regular.ttc ./ui_demo
+COSINE_CJK_FONT=/path/NotoSansCJK-Regular.ttc ./cosine
 ```
 
 或把字体放进 `assets/fonts/` 并自行设置上面的环境变量。

@@ -1,7 +1,7 @@
 # 发布说明模板
 
 > 复制本文件为 `dist/RELEASE_NOTES-<version>.md` 或粘贴到 GitHub Release。
-> 版本号与 `VERSION` / `ui_demo --version` / `project(cosine VERSION ...)` 保持一致。
+> 版本号与 `VERSION` / `cosine --version` / `project(cosine VERSION ...)` 保持一致。
 
 ## cosine <version>
 
@@ -55,7 +55,7 @@ ASAN:   <通过 / 未执行>
 ## 发布检查清单
 
 - [ ] 版本号已在 `CMakeLists.txt` 更新
-- [ ] `ui_demo --version` 输出正确
+- [ ] `cosine --version` 输出正确
 - [ ] `ctest` 全绿
 - [ ] ASAN 构建与测试通过
 - [ ] lavapipe 冒烟通过

@@ -55,7 +55,7 @@ assert(ok);
 
 ```bash
 cd build/examples
-COSINE_EXIT_AFTER=3 ./ui_gallery 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
+COSINE_EXIT_AFTER=3 ./font_lab 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
 ```
 
 编辑器（产品）：
@@ -77,13 +77,13 @@ COSINE_EDITOR_DENSITY=2 COSINE_EDITOR_TEXT_SIZE=22 COSINE_EXPORT_PNG=/tmp/editor
 
 计数为 0 即通过。**不要用 `timeout` 强杀**——会跳过析构，掩盖资源释放问题。
 
-不接该变量的示例只有 `ui_demo`（手工关窗或用 `timeout` 兜底）。
+所有示例都由 `Application::run()` 统一处理 `COSINE_EXIT_AFTER`。
 各示例的按键与专属环境变量见 `examples.md`。
 
 高 DPI 冒烟：
 
 ```bash
-COSINE_UI_SCALE=2 COSINE_EXIT_AFTER=3 ./ui_gallery
+COSINE_UI_SCALE=2 COSINE_EXIT_AFTER=3 ./font_lab
 ```
 
 验证重点是界面整体放大、字形清晰（按 `字号×比例` 重新栅格化）、
@@ -94,7 +94,7 @@ tooltip 与应用内命中位置不偏移。
 
 ## lavapipe 冒烟
 
-`scripts/smoke-lavapipe.sh` 用 Mesa 软件 Vulkan 驱动依次运行 `ui_demo` 与 `ui_gallery`，
+`scripts/smoke-lavapipe.sh` 用 Mesa 软件 Vulkan 驱动依次运行 `font_lab` 与 `moss`，
 并检查日志中不出现 Vulkan validation 错误。
 
 ```bash

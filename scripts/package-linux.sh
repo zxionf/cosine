@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 打包 Linux 可执行目录：
 #   dist/cosine-<version>-linux-<arch>/
-#     ui_demo  ui_gallery  assets/  run.sh  VERSION  README.md
+#     cosine  assets/  run.sh  VERSION  README.md
 # 以及同名 .tar.gz。
 #
 # 环境变量：
@@ -28,7 +28,7 @@ done
 
 echo "configuring ${build} (Release)"
 cmake -S "${root}" -B "${build}" -G Ninja -DCMAKE_BUILD_TYPE=Release "${deps[@]}"
-cmake --build "${build}" -j"${jobs}" --target ui_demo ui_gallery
+cmake --build "${build}" -j"${jobs}" --target cosine
 
 version="$(sed -n 's/^CMAKE_PROJECT_VERSION:STATIC=//p' "${build}/CMakeCache.txt" | head -n1)"
 if [ -z "${version}" ]; then
@@ -43,8 +43,7 @@ stage="${out}/${name}"
 rm -rf "${stage}"
 mkdir -p "${stage}"
 
-install -m 0755 "${build}/examples/ui_demo" "${stage}/ui_demo"
-install -m 0755 "${build}/examples/ui_gallery" "${stage}/ui_gallery"
+install -m 0755 "${build}/src/cosine/cosine" "${stage}/cosine"
 cp -a "${build}/src/assets" "${stage}/assets"
 cp "${root}/README.md" "${stage}/README.md"
 printf '%s\n' "${version}" > "${stage}/VERSION"
@@ -53,20 +52,16 @@ cat > "${stage}/run.sh" <<'RUN'
 #!/usr/bin/env sh
 # 从任意 cwd 启动；资源通过可执行文件旁的 assets/ 解析。
 cd "$(dirname "$0")" || exit 1
-exec ./ui_demo "$@"
+exec ./cosine "$@"
 RUN
 chmod 0755 "${stage}/run.sh"
 
 if [ "${COSINE_SKIP_STRIP:-0}" != "1" ]; then
-    strip --strip-unneeded "${stage}/ui_demo" "${stage}/ui_gallery" 2>/dev/null || true
+    strip --strip-unneeded "${stage}/cosine" 2>/dev/null || true
 fi
 
-"${stage}/ui_demo" --version >&2 || {
-    echo "packaged ui_demo failed to run" >&2
-    exit 1
-}
-"${stage}/ui_gallery" --version >&2 || {
-    echo "packaged ui_gallery failed to run" >&2
+"${stage}/cosine" --version >&2 || {
+    echo "packaged cosine failed to run" >&2
     exit 1
 }
 

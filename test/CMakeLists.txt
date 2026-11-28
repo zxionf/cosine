@@ -67,6 +67,20 @@ add_executable(test_ui_runtime test_ui_runtime.cpp)
 target_link_libraries(test_ui_runtime PRIVATE cosine_ui)
 
 # DisplayScale 是纯值对象：只链接 cosine_text（无 ui、无 backend）。
+add_executable(test_ui_demo
+    test_ui_demo.cpp
+    ${PROJECT_SOURCE_DIR}/examples/ui_demo/demo.cpp
+    ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/basics.cpp
+    ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/layout.cpp
+    ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/data.cpp
+    ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/overlay.cpp
+)
+target_include_directories(test_ui_demo PRIVATE
+    ${PROJECT_SOURCE_DIR}/examples/ui_demo
+    ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections
+)
+target_link_libraries(test_ui_demo PRIVATE cosine_ui)
+
 add_executable(test_display_scale test_display_scale.cpp)
 target_link_libraries(test_display_scale PRIVATE cosine_text)
 
@@ -91,13 +105,6 @@ target_link_libraries(test_ui_progress PRIVATE cosine_ui)
 add_executable(test_ui_submenu test_ui_submenu.cpp)
 target_link_libraries(test_ui_submenu PRIVATE cosine_ui)
 
-add_executable(test_ui_gallery test_ui_gallery.cpp)
-target_include_directories(test_ui_gallery PRIVATE
-    ${PROJECT_SOURCE_DIR}/examples/ui_gallery
-    ${COSINE_GENERATED_DIR}
-)
-target_link_libraries(test_ui_gallery PRIVATE cosine_ui)
-
 add_executable(test_version test_version.cpp)
 target_include_directories(test_version PRIVATE ${COSINE_GENERATED_DIR})
 
@@ -111,12 +118,6 @@ add_executable(test_key_code test_key_code.cpp)
 
 add_executable(test_ui_context test_ui_context.cpp)
 target_link_libraries(test_ui_context PRIVATE cosine_ui)
-
-add_executable(test_ui_demo test_ui_demo.cpp)
-target_include_directories(test_ui_demo PRIVATE
-    ${PROJECT_SOURCE_DIR}/examples/ui_demo
-)
-target_link_libraries(test_ui_demo PRIVATE cosine_ui)
 
 add_executable(test_render_target test_render_target.cpp)
 target_link_libraries(test_render_target PRIVATE Vulkan::Vulkan)
@@ -323,13 +324,11 @@ set(COSINE_TEST_TARGETS
     test_ui_controls
     test_text
     test_render_target
-    test_ui_demo
     test_ui_context
     test_key_code
     test_debug_metrics
     test_asset_path
     test_version
-    test_ui_gallery
     test_ui_theme
     test_ui_style
     test_ui_node_contract
@@ -341,6 +340,7 @@ set(COSINE_TEST_TARGETS
     test_ui_architecture
     test_ui_runtime
     test_display_scale
+    test_ui_demo
     test_ui_transition
     test_ui_style_snapshot
     test_ui_pointer_events
@@ -453,13 +453,11 @@ set_tests_properties(
 
 add_test(NAME ui_controls COMMAND test_ui_controls)
 add_test(NAME render_target COMMAND test_render_target)
-add_test(NAME ui_demo COMMAND test_ui_demo)
 add_test(NAME ui_context COMMAND test_ui_context)
 add_test(NAME key_code COMMAND test_key_code)
 add_test(NAME debug_metrics COMMAND test_debug_metrics)
 add_test(NAME asset_path COMMAND test_asset_path)
 add_test(NAME version COMMAND test_version)
-add_test(NAME ui_gallery COMMAND test_ui_gallery)
 add_test(NAME ui_theme COMMAND test_ui_theme)
 add_test(NAME ui_style COMMAND test_ui_style)
 add_test(NAME ui_node_contract COMMAND test_ui_node_contract)
@@ -471,6 +469,7 @@ add_test(NAME ui_semantics COMMAND test_ui_semantics)
 add_test(NAME ui_architecture COMMAND test_ui_architecture)
 add_test(NAME ui_runtime COMMAND test_ui_runtime)
 add_test(NAME display_scale COMMAND test_display_scale)
+add_test(NAME ui_demo COMMAND test_ui_demo)
 add_test(NAME ui_transition COMMAND test_ui_transition)
 add_test(NAME ui_style_snapshot COMMAND test_ui_style_snapshot)
 add_test(NAME ui_pointer_events COMMAND test_ui_pointer_events)

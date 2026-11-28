@@ -37,7 +37,7 @@ src/anim/       scene/property/timeline/easing/player、Command/CommandStack
 src/cosine/     编辑器（cosine_editor + cosine 可执行）
 src/events/     InputEvent、KeyCode/Modifier
 interpreter/    XEL 解释器（与 UI 解耦，可嵌入）
-examples/       ui_demo / ui_gallery / ui_anim_demo / ui_anim_showcase / ui_lab / moss / font_lab
+examples/       font_lab / moss（每个都只是「建树 + app.run()」）
 test/           CTest
 assets/         shader、字体
 ```
@@ -175,5 +175,5 @@ return app.run([&](float dt) { editor.tick(dt); });
 
 - 版本号唯一来源：根 `CMakeLists.txt` 的 `project(cosine VERSION ...)`。
 - 测试：`ctest` + ASAN + lavapipe 冒烟。
-- 打包：Linux `tar.gz` + Windows `zip`（内置 `ui_demo` 与 `ui_gallery`），见 `docs/packaging.md`。
+- 打包：Linux `tar.gz` + Windows `zip`（内置产品本体 `cosine`），见 `docs/packaging.md`。
 - 任务管理：`sele`（`sele status` / `sele tree`）；`.sele/` 只通过 sele 命令读写。

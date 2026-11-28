@@ -21,7 +21,7 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 | `todo.md` | 待办：欠账（R/D）、暂停池、风险、未决问题、有意不做的决策 |
 | `../.design/uml/` | UI 层架构图：包依赖、`Node`、控件分类、层叠、布局流水线、事件派发、模态、主题（PlantUML） |
 | `ui_theme_tokens.md` | 主题令牌 ↔ 样式角色对照表（12 个角色） |
-| `examples.md` | 示例用途、按键、环境变量（含 `ui_lab` 实验室） |
+| `examples.md` | 示例用途、按键、环境变量 |
 | `ci.md` | 构建命令、sanitizer、冒烟、测试分层与质量门、远端 CI 现状 |
 | `dependencies.md` | 第三方依赖、版本锁定、升级方式 |
 | `packaging.md` | 版本号、Linux/Windows 打包、资源与字体策略、运行依赖 |
@@ -59,15 +59,11 @@ src/
 └── xel_application.* 窗口 + Vulkan + UI 的装配与事件桥接
 
 examples/
-├── ui_demo/          文字排版实验台
-├── ui_gallery/       控件与样式验收展厅
-├── ui_anim_demo/     最小动画演示
-├── ui_anim_showcase/ 动画能力全景
-├── ui_lab/           高级 UI 实验室（实验代码，不进 ctest）
-├── moss/             最小渲染 demo
-└── font_lab/         字体图集实验
+├── ui_demo/          UI 展示台（分区式，注册表驱动）
+├── font_lab/         字体实验室
+└── moss/             手写冒烟用例
 
-test/                 CTest 用例（81 个，全部在 Release 下也真实执行）
+test/                 CTest 用例（82 个，全部在 Release 下也真实执行）
 interpreter/          XEL 解释器（与 UI 解耦，可嵌入）
 scripts/              CI、打包、冒烟脚本
 assets/               shader、字体与图集
@@ -80,15 +76,13 @@ assets/               shader、字体与图集
 ./scripts/ci-linux.sh
 
 # 运行示例
-./build/examples/ui_demo        # 文字实验台，F1–F5 切调试层
-./build/examples/ui_gallery     # 控件展厅，F1 调试面板
-./build/examples/ui_anim_demo   # 最小动画
+./build/examples/ui_demo        # UI 展示台（第二行标签页切分区）
 
 # 运行编辑器（产品）
 ./build/src/cosine/cosine
 
 # 冒烟（正常退出）
-(cd build/examples && COSINE_EXIT_AFTER=3 ./ui_gallery)
+(cd build/examples && COSINE_EXIT_AFTER=3 ./ui_demo)
 
 # 打包
 ./scripts/package-linux.sh

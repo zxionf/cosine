@@ -2,15 +2,24 @@
 // 只做装配：Application + Editor + 主循环；所有界面逻辑在 src/cosine/editor.*。
 
 #include "editor.hpp"
+#include "xel/version.hpp"
 #include "xel_application.hpp"
 
-#include <algorithm>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <string_view>
 
-int main()
+int main(int argc, char** argv)
 {
+    // --version：打包与冒烟脚本的存活校验（窗口/Vulkan 都不初始化）。
+    for (int i = 1; i < argc; ++i) {
+        if (std::string_view{argv[i]} == "--version") {
+            std::cout << xel::kProjectName << " " << xel::version_string() << '\n';
+            return 0;
+        }
+    }
+
     try {
         xel::Application app{{1280, 840, "cosine"}};
 
@@ -18,7 +27,7 @@ int main()
         // 析构顺序相反，Editor 先销毁。
         xel::editor::Editor editor{app.ui().root(), app.ui().uisys(), app.renderer()};
 
-        // 离屏导出（与 ui_anim_showcase 同一机制）：完成一次布局后渲染到 PNG 并退出。
+        // 离屏导出：完成一次布局后渲染到 PNG 并退出。
         if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
             constexpr std::uint32_t kExportW = 1280;
             constexpr std::uint32_t kExportH = 840;

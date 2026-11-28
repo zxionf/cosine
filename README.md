@@ -55,17 +55,16 @@ M4.6 文本/图集打磨进行中，下一步是 M5 XEL 绑定。路线见 `.des
 
 | 示例 | 用途 |
 |---|---|
-| `examples/ui_demo` | XEL Text Lab：文字排版实验台（对齐、换行、行距、降部、CJK、文字调试层） |
-| `examples/ui_gallery` | XEL UI Gallery：8 分区展示全部控件，可切主题/焦点策略/过渡/圆角/滚动模式 |
-| `examples/ui_anim_demo` | XEL Animation Demo：最小动画演示（Scene + Timeline + Player） |
-| `examples/ui_anim_showcase` | XEL Animation Showcase：缓动 / 层级 / 属性动画全景 + 播放控制与事件 |
+| `examples/ui_demo` | XEL UI Demo：分区式展示台（控件/布局/视图/浮层），注册表驱动、可扩展 |
+| `examples/font_lab` | XEL Font Lab：字号、字符串、字形度量与文字调试层 |
+| `examples/moss` | 手写冒烟用例：Window → Panel → ScrollView → ColorRect 最小链路 |
 
 每个示例的内容、按键与专属环境变量见 `docs/examples.md`。
 
 ```bash
 cmake --build build -j
-./build/examples/ui_gallery
-COSINE_GALLERY_SECTION=7 ./build/examples/ui_gallery   # 直接打开 Style 分区
+./build/examples/ui_demo
+COSINE_DEMO_SECTION=layout ./build/examples/ui_demo   # 直达某个分区
 ```
 
 ## 构建
@@ -96,8 +95,10 @@ cmake -S . -B build -DSLANGC_EXECUTABLE=/path/to/slangc
 
 ```bash
 cd build/examples
-COSINE_EXIT_AFTER=3 ./ui_gallery 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
+COSINE_EXIT_AFTER=3 ./ui_demo 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
 ```
+
+产品本体（编辑器）同理：`COSINE_EXIT_AFTER=3 ./build/src/cosine/cosine`。
 
 计数为 0 即通过。`COSINE_EXIT_AFTER` 走正常退出路径（覆盖析构与资源释放），
 不要用 `timeout` 强杀，否则会跳过析构。
@@ -131,7 +132,7 @@ src/
 ├── ui/               Widget 树、布局、控件、UISystem、UIContext、SceneView、DebugOverlay
 └── xel_application.* 窗口 + Vulkan + UI 的装配与事件桥接
 
-examples/             ui_demo / ui_gallery / ui_anim_demo / ui_anim_showcase
+examples/             ui_demo / font_lab / moss（对外发布用产品本体 src/cosine）
 interpreter/          XEL 解释器（与 UI 解耦，M5 起作为可嵌入库）
 test/                 CTest 用例
 scripts/              CI、打包、冒烟脚本

@@ -8,7 +8,7 @@ set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build="${COSINE_BUILD_DIR:-${root}/build-ci}"
 seconds="${COSINE_SMOKE_SECONDS:-10}"
-demos=(ui_demo ui_gallery)
+demos=(font_lab moss)
 
 if [ -z "${WAYLAND_DISPLAY:-}" ] && [ -z "${DISPLAY:-}" ]; then
     echo "skip: no WAYLAND_DISPLAY or DISPLAY"

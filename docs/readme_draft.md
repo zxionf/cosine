@@ -59,17 +59,15 @@ M4.6 文本/图集打磨完成前四项，下一步进入 M6.0（离屏渲染与
 
 | 示例 | 用途 |
 |---|---|
-| `examples/ui_demo` | XEL Text Lab：文字排版实验台（对齐、换行、行距、降部、CJK、文字调试层） |
-| `examples/ui_gallery` | XEL UI Gallery：8 分区展示全部控件，可切主题/焦点策略/过渡/圆角/滚动模式 |
-| `examples/ui_anim_demo` | XEL Animation Demo：最小动画演示（Scene + Timeline + Player） |
-| `examples/ui_anim_showcase` | XEL Animation Showcase：缓动 / 层级 / 属性动画全景 + 播放控制与事件 |
+| `examples/font_lab` | XEL Font Lab：字号、字符串、字形度量与文字调试层 |
+| `examples/moss` | 手写冒烟用例：Window → Panel → ScrollView → ColorRect 最小链路 |
 
 每个示例的内容、按键与专属环境变量见 `docs/examples.md`。
 
 ```bash
 cmake --build build -j
-./build/examples/ui_gallery
-COSINE_GALLERY_SECTION=7 ./build/examples/ui_gallery   # 直接打开 Style 分区
+./build/examples/font_lab
+COSINE_EXPORT_PNG=shot.png ./build/examples/font_lab   # 离屏导出
 ```
 
 ## 构建
@@ -100,7 +98,7 @@ cmake -S . -B build -DSLANGC_EXECUTABLE=/path/to/slangc
 
 ```bash
 cd build/examples
-COSINE_EXIT_AFTER=3 ./ui_gallery 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
+COSINE_EXIT_AFTER=3 ./cosine 2>&1 | grep -Ei 'VUID-|validation (error|warning)'
 ```
 
 计数为 0 即通过。`COSINE_EXIT_AFTER` 走正常退出路径（覆盖析构与资源释放），
@@ -112,7 +110,7 @@ COSINE_EXIT_AFTER=3 ./ui_gallery 2>&1 | grep -Ei 'VUID-|validation (error|warnin
 
 ```bash
 COSINE_CJK_FONT=/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc \
-COSINE_CJK_FONT_FACE=2 ./build/examples/ui_demo
+COSINE_CJK_FONT_FACE=2 ./build/examples/font_lab
 ```
 
 `assets/` 查找顺序：`COSINE_ASSET_DIR` → 可执行文件旁的 `assets/` → 构建期注入目录。
@@ -135,7 +133,7 @@ src/
 ├── ui/               Widget 树、布局、控件、UISystem、UIContext、SceneView、DebugOverlay
 └── xel_application.* 窗口 + Vulkan + UI 的装配与事件桥接
 
-examples/             ui_demo / ui_gallery / ui_anim_demo / ui_anim_showcase
+examples/             font_lab / moss
 interpreter/          XEL 解释器（与 UI 解耦，M5 起作为可嵌入库）
 test/                 CTest 用例
 scripts/              CI、打包、冒烟脚本
