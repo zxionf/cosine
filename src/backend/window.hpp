@@ -9,16 +9,24 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include "events/event_source.hpp"
+
 #include <glm/glm.hpp>
 
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <utility>
-#include <functional>
+#include <vector>
 
 namespace xel::backend
 {
-class Window
+// 平台窗口 + 输入源。
+//
+// GLFW 只出现在这个类里：窗口创建、光标、以及「GLFW 回调 → InputEvent」的翻译。
+// 对外只暴露 event::EventSource 的接口（poll/events/viewport/quit）+ 渲染需要的
+// extent / framebuffer_scale / Cursor，因此上层不需要认识任何 GLFW 常量。
+class Window final : public event::EventSource
 {
 public:
     Window(int width, int height, std::string name);
@@ -29,19 +37,33 @@ public:
     Window(Window&&) = delete;
     Window& operator=(Window&&) = delete;
 
-    bool should_close() { return glfwWindowShouldClose(window_); }
-    VkExtent2D get_extent()
-    {
-        int width = 0;
-        int height = 0;
-        glfwGetFramebufferSize(window_, &width, &height);
-        return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-    }
-    VkExtent2D get_window_extent();
-    std::pair<float, float> framebuffer_scale();
-    bool was_window_resized() { return framebuffer_resized_; }
+    // ── 渲染侧需要的窗口信息 ──────────────────────────────────────
+    VkExtent2D get_extent() const;
+    VkExtent2D get_window_extent() const;
+    std::pair<float, float> framebuffer_scale() const;
+    bool was_window_resized() const { return framebuffer_resized_; }
     void reset_window_resized_flag() { framebuffer_resized_ = false; }
     GLFWwindow* get_glfw_window() { return window_; }
+
+    // ── 坐标换算 ─────────────────────────────────────────────────
+    // ui_scale（逻辑像素 = 物理像素 ÷ ui_scale）由宿主注入；输入事件在翻译时
+    // 就用它把窗口坐标直接换成 UI 逻辑坐标，消费者不再各自换算。
+    void set_ui_scale(float scale);
+    float ui_scale() const { return ui_scale_; }
+
+    // 窗口坐标 → UI 逻辑坐标（÷DPR 已抵消，再 ÷ui_scale）。
+    glm::vec2 window_to_logical(glm::vec2 window_pos) const;
+    // 当前光标位置的窗口坐标。
+    glm::vec2 cursor_pos();
+
+    // ── event::EventSource ──────────────────────────────────────
+    void poll() override;
+    std::span<const event::InputEvent> events() const override { return pending_events_; }
+    bool has_pending_viewport() const override { return viewport_pending_; }
+    glm::vec2 take_viewport() override;
+    bool quit_requested() const override;
+    void request_quit() override;
+    bool key_down(event::KeyCode key) const override;
 
     // 系统光标形状（UI 层用，避免把 GLFW 常量泄漏到 ui）。
     enum class Cursor
@@ -52,46 +74,35 @@ public:
         ResizeNWSE,   // 左上 ↔ 右下
         ResizeNESW,   // 右上 ↔ 左下
     };
-    void set_cursor(Cursor cursor)
-    {
-        int shape = GLFW_ARROW_CURSOR;
-        switch (cursor) {
-            case Cursor::Arrow:      shape = GLFW_ARROW_CURSOR; break;
-            case Cursor::ResizeEW:   shape = GLFW_RESIZE_EW_CURSOR; break;
-            case Cursor::ResizeNS:   shape = GLFW_RESIZE_NS_CURSOR; break;
-            case Cursor::ResizeNWSE: shape = GLFW_RESIZE_NWSE_CURSOR; break;
-            case Cursor::ResizeNESW: shape = GLFW_RESIZE_NESW_CURSOR; break;
-        }
-        // 内联：UI 层（cosine_ui）不链接 backend 库，需在头文件提供实现。
-        auto it = cursor_cache_.find(shape);
-        if (it == cursor_cache_.end()) {
-            it = cursor_cache_.emplace(shape, glfwCreateStandardCursor(shape)).first;
-        }
-        glfwSetCursor(window_, it->second);
-    }
+    void set_cursor(Cursor cursor);
 
-    // 光标/坐标换算：窗口坐标 → framebuffer 物理像素（× DPR）。
-    // 属于 UI 层，不在这里做。
-    glm::vec2 cursor_pos();
-    glm::vec2 window_to_framebuffer(glm::vec2 window_pos);
-    glm::vec2 cursor_to_framebuffer();
-
-    void set_framebuffer_size(int width, int height)
-    {
-        width_ = width;
-        height_ = height;
-        framebuffer_resized_ = true;
-    }
+    // 尺寸变更登记（窗口回调或外部强制尺寸时调用）。
+    void set_framebuffer_size(int width, int height);
 
 private:
     void init_window();
+    void init_callbacks();
+    // 回调桥：从 GLFWwindow 的 user pointer 取回 Window（不再 static_cast 到 app）。
+    static Window* from_glfw(GLFWwindow* window);
+
+    void on_framebuffer_size(int width, int height);
+    void on_mouse_button(int button, int action, int mods);
+    void on_key(int key, int action, int mods);
+    void on_char(unsigned int codepoint);
+    void on_cursor_pos(double mx, double my);
+    void on_scroll(double xoffset, double yoffset);
 
     int width_;
     int height_;
     bool framebuffer_resized_ = false;
+    float ui_scale_ = 1.0f;
 
     std::string window_name_;
     GLFWwindow* window_ = nullptr;
     std::unordered_map<int, GLFWcursor*> cursor_cache_;
+
+    std::vector<event::InputEvent> pending_events_;
+    bool viewport_pending_ = false;
+    glm::vec2 viewport_{0.0f, 0.0f};
 };
-}
+} // namespace xel::backend

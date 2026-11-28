@@ -116,8 +116,10 @@ assets/         shader、字体
 
 ### 缩放与坐标
 
-- 坐标三跳：GLFW 窗口坐标 → `Window::cursor_to_framebuffer`（×DPR）→ `UISystem::framebuffer_to_logical`（÷ui_scale）→ UI 逻辑坐标。
-- 视图尺寸是**推模型**：宿主在初始化与 framebuffer resize 回调里调 `UISystem::set_viewport(物理像素)`，tick 时统一落地为 root 逻辑尺寸（不在 dispatch 中途重排）。`ui` 不 include `backend/*`（`test_ui_architecture` 的 D6 断言）。
+- 输入是**事件源**模型：`backend::Window` 实现 `events::EventSource`（`poll / events / take_viewport / quit / key_down`）。GLFW 回调在 Window 内部翻译成 `InputEvent`，**坐标在翻译期就换成 UI 逻辑坐标**（窗口坐标 ×DR​P ÷ ui_scale），消费者只需 `for (e : src.events()) ui.dispatch(e)`。
+  - 主循环用 `Application::poll_events()` 替代平台轮询；GLFW 只出现在 `src/backend/`（`test_ui_architecture` 的 D7 断言）。
+  - 调试用按住查询走 `EventSource::key_down(KeyCode)`，不再让 demo 自己调平台 API。
+- 视图尺寸是**推模型**：`Window` 在 framebuffer 回调里登记，`Application::poll_events()` 转给 `UiRuntime::set_viewport(物理像素)`，tick 时统一落地为 root 逻辑尺寸（不在 dispatch 中途重排）。`ui` 不 include `backend/*`（D6 断言）。
 - 光标同理：`UISystem` 只持有 `UiHost::set_cursor` 回调（`ui/system/ui_host.hpp`），`CursorShape` 是 ui 自己的枚举，平台映射留在 app 层。
 - `Application::set_ui_scale` 转给 `ui::UiRuntime::set_ui_scale`（**DPI 单一入口**）：夹到 [0.25, 4] 后一次扇出到 root 逻辑尺寸 / 渲染缩放 / 字体栅格化比例；运行时变化触发重布局。
 - `ui::UiRuntime`（`ui/system/ui_runtime.hpp`）是 UI 侧的组合根：拥有 root + UISystem，注入宿主能力（`Hooks{set_cursor, set_render_scale}` + 字体图集），**零平台/渲染依赖**（`test_ui_runtime` 只链接 `cosine_ui`，能编过就是约束成立）。无窗口逻辑测试与离屏导出直接用它。

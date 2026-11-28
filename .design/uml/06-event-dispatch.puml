@@ -4,14 +4,23 @@ title 图6 事件派发（命中 → 冒泡 → 焦点）
 skinparam defaultFontName "Microsoft YaHei"
 skinparam shadowing false
 
-actor "窗口后端" as WIN
+actor "平台窗口" as WIN
+participant "backend::Window\n(EventSource)" as SRC
+participant "Application" as APP
 participant "UISystem" as SYS
 participant "UIRoot" as ROOT
 participant "命中链" as PATH
 participant "目标控件" as T
 
-WIN -> SYS : dispatch(InputEvent)
-SYS -> SYS : framebuffer_to_logical(pos)
+== 一帧 ==
+WIN -> SRC : GLFW 回调（窗口/鼠标/键/字符/滚轮）
+SRC -> SRC : 翻译成 InputEvent\n窗口坐标 ×DPR ÷ ui_scale → 逻辑坐标
+APP -> SRC : poll()
+SRC -> APP : events()（上一轮收集，逻辑坐标）
+APP -> SYS : dispatch(event) 逐个派发
+APP -> SYS : set_viewport(take_viewport())\n（framebuffer 尺寸变化 → 下一 tick 落地）
+
+== 派发 ==
 SYS -> ROOT : hit_path(root, pos) → collect_hit_path
 ROOT -> PATH : layer_paint_order 反序\nModal → Floating → Content；层内 z 降序
 PATH -> PATH : 逐项检查 visible / clips_children / hit_testable\n并记录祖先链
@@ -39,5 +48,8 @@ note right of SYS
   光标：pointer_owner_at（命中链最深优先）
   → Node::cursor_at() → UiHost.set_cursor → 平台
   UISystem 不认识任何具体控件，也不 include backend/*
+  --
+  GLFW 只在 backend::Window 里（D7 断言）：
+  应用层只用 EventSource 接口，不 include 平台头
 end note
 @enduml

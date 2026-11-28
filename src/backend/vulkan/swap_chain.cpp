@@ -20,11 +20,11 @@ void SwapChain::cleanup()
 void SwapChain::recreate()
 {
     int width = 0, height = 0;
-    while ((width == 0 || height == 0) && !window_.should_close()) {
+    while ((width == 0 || height == 0) && !window_.quit_requested()) {
         glfwGetFramebufferSize(window_.get_glfw_window(), &width, &height);
         glfwPollEvents();
     }
-    if (window_.should_close()) {
+    if (window_.quit_requested()) {
         return;
     }
 

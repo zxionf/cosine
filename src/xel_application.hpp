@@ -20,17 +20,14 @@ public:
 
     // DPI：逻辑像素 → framebuffer 像素的缩放比（COSINE_UI_SCALE，默认 1.0）。
     float ui_scale() const { return ui.ui_scale(); }
-    // 转发到 UiRuntime：唯一扇出点（UISystem / renderer / 字体栅格化）。
+    // 转发到 UiRuntime：唯一扇出点（UISystem / renderer / 字体栅格化 / 输入换算）。
     void set_ui_scale(float scale);
+
+    // 一帧的事件阶段：拉取平台事件 → 翻译好的输入转给 UI → 应用视图尺寸变化。
+    // 主循环用它替代平台事件轮询，应用层不再接触平台 API。
+    void poll_events();
 
     Application(int window_w, int window_h, const std::string& title);
     ~Application();
-private:
-    static void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
-    static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-    static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void char_callback(GLFWwindow* window, unsigned int codepoint);
-    static void cursor_pos_callback(GLFWwindow* window, double mx, double my);
-    static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 };
 } // namespace xel

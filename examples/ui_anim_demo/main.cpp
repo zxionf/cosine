@@ -153,8 +153,8 @@ int run()
     const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
     float total_time = 0.0f;
 
-    while (!app.window_.should_close()) {
-        glfwPollEvents();
+    while (!app.window_.quit_requested()) {
+        app.poll_events();
 
         app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         app.renderer_.begin();
@@ -170,7 +170,7 @@ int run()
 
         total_time += dt;
         if (exit_after > 0.0f && total_time >= exit_after) {
-            glfwSetWindowShouldClose(app.window_.get_glfw_window(), GLFW_TRUE);
+            app.window_.request_quit();
         }
     }
     return 0;

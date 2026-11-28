@@ -53,8 +53,8 @@ int main()
     app.ui.root().add(std::move(window));
     // app.ui.root().debug_recursive();
 
-    while(!app.window_.should_close()) {
-        glfwPollEvents();
+    while(!app.window_.quit_requested()) {
+        app.poll_events();
 
         app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         app.renderer_.begin();

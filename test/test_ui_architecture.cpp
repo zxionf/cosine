@@ -38,6 +38,7 @@ void check(bool ok, const std::string& name, const std::string& detail = std::st
 }
 
 fs::path ui_root() { return fs::path(COSINE_SOURCE_DIR) / "src" / "ui"; }
+fs::path src_root() { return fs::path(COSINE_SOURCE_DIR) / "src"; }
 
 std::string read_file(const fs::path& path)
 {
@@ -188,6 +189,28 @@ void test_ui_does_not_depend_on_backend()
         + count_occurrences(ui_root() / "system", "#include \"ui/containers/", exts);
     check(concrete == 0, "D6: ui/system does not include concrete widgets",
           "hits=" + std::to_string(concrete));
+}
+
+// D7：平台细节只活在 backend/。
+// 应用层（src/*.cpp）与 ui 层都不得直接调 GLFW：窗口、事件、光标均由
+// backend::Window 实现（events::EventSource + 自有回调桥）。
+void test_glfw_is_confined_to_backend()
+{
+    int outside = 0;
+    std::string first_hit;
+    for (const auto& entry : fs::recursive_directory_iterator(src_root())) {
+        if (!entry.is_regular_file()) continue;
+        const auto ext = entry.path().extension().string();
+        if (ext != ".hpp" && ext != ".cpp") continue;
+        const fs::path relative = fs::relative(entry.path(), src_root());
+        if (relative.string().rfind("backend", 0) == 0) continue; // backend/ 内部允许
+        const std::string text = read_file(entry.path());
+        if (!contains(text, "glfw")) continue;
+        if (outside == 0) first_hit = relative.string();
+        ++outside;
+    }
+    check(outside == 0, "D7: GLFW stays inside src/backend",
+          "hits=" + std::to_string(outside) + " first=" + first_hit);
 }
 
 // D5（UI-54/R8）：旧路径已彻底清除——src/ui 根目录不再有头文件，也没有转发头。
@@ -374,6 +397,7 @@ int main()
     test_geometry_does_not_depend_on_nodes();
     test_style_does_not_depend_on_widgets();
     test_ui_does_not_depend_on_backend();
+    test_glfw_is_confined_to_backend();
     test_shims_are_gone();
     test_lower_layers_do_not_include_upper_layers();
     test_tree_storage_is_private();

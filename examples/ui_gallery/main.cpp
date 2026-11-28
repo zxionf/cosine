@@ -42,10 +42,10 @@ int run()
     bool f1_prev = false;
     bool open_dropdown_once = std::getenv("COSINE_GALLERY_DROPDOWN") != nullptr;
 
-    while (!app.window_.should_close()) {
-        glfwPollEvents();
+    while (!app.window_.quit_requested()) {
+        app.poll_events();
 
-        const bool f1_pressed = glfwGetKey(app.window_.get_glfw_window(), GLFW_KEY_F1) == GLFW_PRESS;
+        const bool f1_pressed = app.window_.key_down(xel::event::KeyCode::F1);
         if (f1_pressed && !f1_prev) gallery.debug->toggle();
         f1_prev = f1_pressed;
 
@@ -79,7 +79,7 @@ int run()
             static float total_time = 0.0f;
             total_time += dt;
             if (total_time >= static_cast<float>(std::atof(exit_after_env))) {
-                glfwSetWindowShouldClose(app.window_.get_glfw_window(), GLFW_TRUE);
+                app.window_.request_quit();
             }
         }
 

@@ -12,7 +12,7 @@ namespace
 // 边沿检测：按住不放只触发一次。
 struct KeyLatch
 {
-    int key = 0;
+    xel::event::KeyCode key = xel::event::KeyCode::Unknown;
     bool prev = false;
     bool pressed(bool down)
     {
@@ -27,21 +27,20 @@ int run()
     xel::Application app{1200, 800, "XEL Text Lab"};
     auto lab = xel::demo::build(app.ui.root());
 
-    KeyLatch f1{GLFW_KEY_F1};
-    KeyLatch f2{GLFW_KEY_F2};
-    KeyLatch f3{GLFW_KEY_F3};
-    KeyLatch f4{GLFW_KEY_F4};
-    KeyLatch f5{GLFW_KEY_F5};
+    KeyLatch f1{xel::event::KeyCode::F1};
+    KeyLatch f2{xel::event::KeyCode::F2};
+    KeyLatch f3{xel::event::KeyCode::F3};
+    KeyLatch f4{xel::event::KeyCode::F4};
+    KeyLatch f5{xel::event::KeyCode::F5};
 
-    while (!app.window_.should_close()) {
-        glfwPollEvents();
+    while (!app.window_.quit_requested()) {
+        app.poll_events();
 
-        auto* window = app.window_.get_glfw_window();
-        if (f1.pressed(glfwGetKey(window, f1.key) == GLFW_PRESS)) lab.overlay->toggle();
-        if (f2.pressed(glfwGetKey(window, f2.key) == GLFW_PRESS)) lab.toggle_glyph_boxes();
-        if (f3.pressed(glfwGetKey(window, f3.key) == GLFW_PRESS)) lab.toggle_line_box();
-        if (f4.pressed(glfwGetKey(window, f4.key) == GLFW_PRESS)) lab.toggle_advance();
-        if (f5.pressed(glfwGetKey(window, f5.key) == GLFW_PRESS)) lab.toggle_pixel_snap();
+        if (f1.pressed(app.window_.key_down(f1.key))) lab.overlay->toggle();
+        if (f2.pressed(app.window_.key_down(f2.key))) lab.toggle_glyph_boxes();
+        if (f3.pressed(app.window_.key_down(f3.key))) lab.toggle_line_box();
+        if (f4.pressed(app.window_.key_down(f4.key))) lab.toggle_advance();
+        if (f5.pressed(app.window_.key_down(f5.key))) lab.toggle_pixel_snap();
 
         app.renderer_.begin();
 

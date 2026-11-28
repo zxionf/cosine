@@ -1034,7 +1034,7 @@ void Renderer::begin_frame()
     // 必须在检查 result 之前避免使用它。
     if (result == vk::Result::eErrorOutOfDateKHR) {
         swap_chain_.recreate();
-        if (context_.window().should_close()) {
+        if (context_.window().quit_requested()) {
             return;
         }
         // recreate() 内部已 waitIdle，此时重建每图像信号量是安全的
@@ -1088,7 +1088,7 @@ void Renderer::end_frame()
     if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR || context_.window().was_window_resized())) {
         context_.window().reset_window_resized_flag();
         swap_chain_.recreate();
-        if (!context_.window().should_close()) {
+        if (!context_.window().quit_requested()) {
             recreate_render_finished_semaphores();
         }
     } else {
