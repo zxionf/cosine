@@ -1,0 +1,39 @@
+@startuml
+title 图6 事件派发（命中 → 冒泡 → 焦点）
+
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+
+actor "窗口后端" as WIN
+participant "UISystem" as SYS
+participant "UIRoot" as ROOT
+participant "命中链" as PATH
+participant "目标控件" as T
+
+WIN -> SYS : dispatch(InputEvent)
+SYS -> SYS : framebuffer_to_logical(pos)
+SYS -> ROOT : hit_path(root, pos) → collect_hit_path
+ROOT -> PATH : layer_paint_order 反序\nModal → Floating → Content；层内 z 降序
+PATH -> PATH : 逐项检查 visible / clips_children / hit_testable\n并记录祖先链
+PATH --> SYS : path = [root, ..., 最深可命中]
+
+SYS -> SYS : pressed_ = path.back()（按下时定目标）
+SYS -> SYS : update_long_press()\n手势阈值 double_click_ms / long_press_ms / slop
+
+SYS -> T : 冒泡：bubble_to_root(pressed_)\n逐层 on_mouse_down/move/up/click/scroll/key_*
+T --> SYS : 返回 true 即停止冒泡
+
+group 模态打开时
+  SYS -> SYS : focus_next / dispatch_key / dispatch_char\n只作用于 modal_top() 子树；焦点在作用域外则丢弃
+end
+
+group 安全移除
+  SYS -> ROOT : remove(node) → detach_child + trash_\n延后到下一次 layout 析构（事件栈仍持有指针）
+end
+
+note right of SYS
+  焦点：set_focus / focus_next 走 tab_order → 树序
+  焦点可见性：FocusPolicy(Keyboard/Always/Never) × InputMode
+  悬垂防护：Target{widget, alive_token(weak_ptr<const bool>)}
+end note
+@enduml

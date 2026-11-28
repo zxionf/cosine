@@ -1,0 +1,116 @@
+@startuml
+title 图2 Node：唯一元素类型（Widget 只是别名，sizeof = 416 B）
+
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+hide empty members
+
+class "graphics::Drawable" as Drawable {
+  + append_to(DrawList&)
+  + texture_slot()
+}
+
+class Node {
+  + bounds() : Rect
+  + set_pos() / set_size()
+  + set_geometry(Rect)
+  ..
+  + add(unique_ptr<Node>)
+  + adopt(unique_ptr<Node>)
+  + detach_child(index) : unique_ptr<Node>
+  + clear_children() / replace_child() / raise_child()
+  + children() / child_at() / child_count()
+  + for_each_child(F)
+  + parent() / set_parent()
+  ..
+  + display() / visible()
+  + overflow() / clips_children()
+  + layer() : Layer
+  + z_index() / set_z_index()
+  + paint_order() / layer_paint_order()
+  ..
+  + semantics() : Semantics
+  + semantics_role() / semantics_label()
+  + is_enabled() / set_enabled()
+  + is_hovered() / is_focused() / focus_visible()
+  ..
+  + layout_spec() / set_layout_spec()
+  + set_align() / align_self()
+  + set_min_size() / set_max_size() / clamp_size()
+  + set_preferred_size() / request_size()
+  + set_fill() / set_size_percent() / set_aspect_ratio()
+  + set_flex_grow() / set_absolute() / set_absolute_pos()
+  ..
+  + set_padding() / set_margin() / apply_theme_padding()
+  ..
+  + measure(vec2) : vec2
+  + arrange(Rect)
+  {static} + measure_child(Node&, vec2) : vec2
+  + mark_layout_dirty() / invalidate_measure()
+  + clear_layout_dirty() / layout_dirty()
+  + measure_cache_hit() / store_measure()
+  + content_extent() / content_overflows()
+  ..
+  + on_mouse_down() / on_mouse_up() / on_mouse_move()
+  + on_click() / on_scroll() / on_key_down() / on_char()
+  ..
+  + fixed_size() / fills_parent() / layout()
+  + update(dt)
+  + visual_style(role, state) : BoxStyle
+  + debug() / debug_recursive()
+}
+
+class "Widget" as Alias {
+  using Widget = Node
+}
+
+class LayoutParams <<部件>> {
+  min_size / max_size / preferred
+  size_percent / aspect_ratio
+  flex_grow / align_self / fill
+  absolute_pos
+}
+
+class BoxMetrics <<部件>> {
+  padding / padding_override / margin
+}
+
+class Interaction <<部件>> {
+  enabled / pressed / dragging
+  selected / hovered / focused
+}
+
+class VisualState <<部件>> {
+  12 个 StyleRole 的过渡槽
+  from / to / progress / revision
+}
+
+class MeasureCache <<部件>> {
+  MeasureKey(constraints, epoch)
+  result / valid
+}
+
+Drawable <|-- Node
+Node *--> "1" LayoutParams : layout_
+Node *--> "1" BoxMetrics : box
+Node *--> "1" Interaction : input
+Node *--> "1" VisualState : visual
+Node *--> "1" MeasureCache : measure_cache_
+Node ..> Alias
+
+note bottom of Node
+  上图的 .. 分隔线把 API 分成 12 组能力：
+  几何 / 树 / 可见性与层叠 / 语义 / 交互状态 /
+  布局意图 / 盒模型 / 测量 / 事件 / 策略与生命周期 / 调试
+  --
+  measure() 默认实现 = 叶子行为：clamp_size(preferred_size())
+  arrange() 默认实现 = 只写几何：set_geometry(slot)
+  语义不同的控件自己覆写（TextInput 夹滚动、CollapsibleHeader 由标题定高…）
+  --
+  4 个部件全部按值内嵌（无堆分配）
+  Interaction 是交互状态的唯一所有者，Semantics 只读它
+  Drawable 不占体积：无数据成员，单继承共用 Node 的 vptr
+  （实测 sizeof(Node) = 416 B、sizeof(Drawable) = 8 B）
+end note
+@enduml

@@ -1,0 +1,55 @@
+@startuml
+title 图3 控件分类（全部直接/间接继承 Node）
+
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+
+class Node
+abstract class LinearLayout
+class Vbox
+class Hbox
+class Panel
+class ScrollPanel
+class ScrollView
+class Grid
+class Wrap
+class Splitter
+class "core 叶子/交互控件\nButton Checkbox Radio Slider Progress\nLabel Heading Paragraph Tag Image\nColorRect Spacer PreviewRuler Tooltip Scrim" as Core
+class "输入类\nTextInput DragFloat ColorInput" as Inputs
+class TabBar
+class CollapsibleHeader
+class "复合 / 浮层\nWindow Dialog DialogHost Dropdown\nMenuBar MenuPopup TabView Section\nRadioGroup DebugOverlay" as Composites
+class ListView
+class Table
+class TreeView
+class FileBrowser
+class "SceneView / TimelineView" as Views
+
+Node <|-- LinearLayout
+LinearLayout <|-- Vbox
+LinearLayout <|-- Hbox
+Vbox <|-- Panel
+Panel <|-- ScrollPanel
+Node <|-- ScrollView
+Node <|-- Grid
+Node <|-- Wrap
+Node <|-- Splitter
+Node <|-- Core
+Node <|-- Inputs
+Node <|-- TabBar
+Node <|-- CollapsibleHeader
+Node <|-- Composites
+Node <|-- ListView
+ListView <|-- Table
+ListView <|-- TreeView
+Table <|-- FileBrowser
+Node <|-- Views
+
+note bottom of ListView
+  行为基元（组合而非继承）：
+  ScrollState / ScrollView / ListView / CollapsibleHeader / Scrim
+  --
+  ListView 统一滚动 / 选中 / 键盘 / 可见行窗口，
+  子类只实现 item_count() + draw_row()
+end note
+@enduml

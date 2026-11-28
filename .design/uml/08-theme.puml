@@ -1,0 +1,62 @@
+@startuml
+title 图8 主题 / 样式 / 语义投影
+
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+class UIContext {
+  + theme() : const Theme&
+  + set_theme(Theme)
+  + theme_revision() : uint64
+  + font_atlas : FontAtlas*
+  + input_mode : InputMode
+  + modifiers : Modifier
+}
+
+class Theme {
+  Density / FocusStyle / FocusPolicy
+  颜色（sRGB 书写，线性存储）
+  度量（padding / control_height / radius / 过渡时长）
+  + style(StyleRole, ControlState) : BoxStyle
+}
+
+class "StyleRole（12 种）" as StyleRole
+class "ControlState（5 种）" as ControlState
+class VisualState
+class Interaction
+class Semantics
+class "WidgetRole（20 种）" as WidgetRole
+
+class Node {
+  + visual_style(role, state) : BoxStyle
+  + update(dt)
+  + semantics() : Semantics
+}
+
+UIContext *--> Theme
+Theme --> StyleRole
+Theme --> ControlState
+Node *--> VisualState
+Node *--> Interaction
+Node ..> UIContext : context()
+Node --> Semantics : 派生投影
+Semantics --> WidgetRole
+Semantics ..> Interaction : enabled/focused/selected 现读
+
+note bottom of Semantics
+  Semantics 是只读投影，不存第二份真值：
+  除 role / label / checkable 外全部从 Interaction 现读。
+  层（Layer）不是对外语义 —— 对外用 WidgetRole。
+  role_is_checkable / role_is_editable 是 role 的纯派生。
+end note
+
+note bottom of VisualState
+  VisualState：12 个 StyleSlot（每槽 8 B，整块约 104 B，内嵌无堆）
+  revision 变化 → 所有槽重建（不做过过渡）
+  首次使用吸附到目标状态（不做淡入）
+  同一帧一个 role 只能用一种 state
+  主题切换：UIRoot::set_theme → 全树 set_context
+  + invalidate_measure_recursive + mark_layout_dirty
+end note
+@enduml

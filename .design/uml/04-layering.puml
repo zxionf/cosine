@@ -1,0 +1,63 @@
+@startuml
+title 图4 层叠：Layer 是主键，z_index 只在层内生效
+
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+enum Layer <<uint8_t>> {
+  Content
+  Floating
+  Modal
+}
+
+class Node {
+  + layer() : Layer
+  + z_index() / set_z_index(int)
+  + paint_order()
+  + layer_paint_order()
+}
+
+class "Content（默认）" as C {
+  普通控件
+  非模态 Window
+}
+
+class "Floating" as F {
+  Tooltip / DropdownList / MenuPopup
+  MenuScrim / 透明 Scrim
+}
+
+class "Modal" as M {
+  Scrim（默认）
+  DialogHost
+  Window::modal() == true
+}
+
+class "唯一消费入口" as Consumers {
+  UIRoot::append_to（绘制，正序）
+  collect_hit_path（命中，反序）
+  collect_focusable（Tab，正序）
+  update_tree（每帧推进，正序）
+  find_resize_target（窗口缩放，反序）
+}
+
+Node --> Layer : 派生身份，无字段
+Node --> C
+Node --> F
+Node --> M
+Node --> Consumers
+
+note bottom of Layer
+  排序契约
+  Content < Floating < Modal
+  绘制 / Tab / update：layer 升序 → z 升序（stable，同值按加入顺序）
+  命中：layer 降序 → z 降序
+  --
+  layer 永远压过 z：Content(z=999) 翻不过 Floating(z=0) 兄弟
+  layer 不参与布局，也不决定裁剪（裁剪只看 overflow()）
+  浮层必须挂 UIRoot 直接子项才能逃逸面板裁剪
+  Modal 帧的 z 由 UIRoot::layout() 归一化：
+  frame i → scrim 2i+1 / window 2i+2
+end note
+@enduml

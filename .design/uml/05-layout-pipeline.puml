@@ -1,0 +1,56 @@
+@startuml
+title 图5 布局流水线（失效 → measure → arrange → layout → 绘制）
+
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+
+participant "UISystem" as SYS
+participant "UIRoot" as ROOT
+participant "Node（容器）" as C
+participant "Node（子项）" as L
+
+== 失效传播 ==
+SYS -> ROOT : set_size / set_theme / 控件 setter
+ROOT -> ROOT : mark_layout_dirty()
+note right
+  in_layout_pass 时只失效缓存，不标脏
+  invalidate_measure() 清自己的测量缓存
+  notified_ 早退：祖先链只通知一次
+end note
+
+== 每帧 ==
+SYS -> SYS : tick(dt)
+SYS -> SYS : update_tree(root, dt)\nlayer_paint_order 正序 → node.update(dt)
+SYS -> ROOT : if (resized || layout_dirty()) layout()
+
+ROOT -> ROOT : purge_trash()\n剔除悬空模态帧 + 归一化 scrim z
+ROOT -> ROOT : advance_layout_epoch()\nLayoutPassScope（arrange 内不标脏）
+loop children_（顶层子项）
+  ROOT -> C : measure_child(child, root 内容区)
+  note right
+    顺序固定：margin → pct/fill → measure
+    → aspect_ratio + clamp（一起求解）
+    (constraints, epoch) 命中缓存则直接返回
+    无界轴不扣 margin、不生效 pct
+  end note
+  C -> L : measure_child(sub, 内容区)（递归）
+  L -> L : measure(spec)
+  L --> C : 结果 + mark_measured + store_measure
+  ROOT -> C : arrange(slot)
+  note right
+    三种分支：fills_parent / 顶层 fill_x 与 fill_y /
+    自由画布（child 自身坐标 + root 原点）
+  end note
+  C -> C : set_geometry(slot)（只写 bounds_，不标脏）
+  C -> L : arrange(sub_slot)（递归排子项）
+  C -> C : layout()（布局后钩子：Window 摆 chrome）
+end
+ROOT -> ROOT : clear_layout_dirty_recursive()
+
+== 绘制 ==
+ROOT -> ROOT : append_to(DrawList&)\nfor (layer_paint_order()) child->append_to()
+note right
+  控件只写顶点；
+  DrawList 负责 clip 栈 / 纹理槽 / 透明度批处理
+end note
+@enduml

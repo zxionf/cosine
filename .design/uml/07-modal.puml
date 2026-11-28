@@ -1,0 +1,34 @@
+@startuml
+title 图7 模态栈（UIRoot::modal_frames_）
+
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+
+participant "Window::set_modal(true)" as W
+participant "UIRoot" as ROOT
+participant "Scrim" as SCRIM
+participant "UISystem" as SYS
+
+W -> ROOT : push_modal(this, with_scrim = true)
+ROOT -> SCRIM : make_unique<Scrim>()（layer = Modal）\nset_z_index(window.z - 1)
+ROOT -> ROOT : add(scrim) → children_
+ROOT -> ROOT : ModalFrame{window, scrim, prev_focus}\n压入 modal_frames_，mark_layout_dirty()
+
+ROOT -> ROOT : layout() 归一化 z\nframe i → scrim 2i+1 / window 2i+2
+note right
+  单一 ModalFrame 栈把 window / scrim / prev_focus
+  收进同一个元素 → push / pop / 悬空剔除
+  三处各维护一次，不会三数组错位
+  scrim 的 z 比窗口小 1：命中窗口先、绘制遮罩先
+end note
+
+SYS -> SYS : focus_next / dispatch_key\n收集范围收窄到 modal_top()
+
+W -> ROOT : close() / set_modal(false) / destroy\n→ release_modal() → pop_modal()
+ROOT -> SCRIM : remove(scrim)（走 trash_ 延后析构）
+ROOT -> ROOT : 恢复 prev_focus\n仍在树中且不在被弹出子树内才恢复
+note right of ROOT
+  没有后台推进：模态栈只由显式命令改变；
+  窗口被父容器直接销毁时 layout() 剔除悬空帧
+end note
+@enduml

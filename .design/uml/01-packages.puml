@@ -1,0 +1,63 @@
+@startuml
+title 图1 包结构与依赖方向（实线 = 编译期依赖，虚线 = 弱依赖/接口）
+
+skinparam defaultFontName "Microsoft YaHei"
+skinparam shadowing false
+skinparam packageStyle rectangle
+left to right direction
+
+package "examples/*  演示程序" as examples
+package "src/cosine  编辑器（App 层）" as app
+
+package "src/ui  控件树与调度" as ui {
+  package "ui/system\nUIRoot / UISystem / UIContext" as ui_system
+  package "ui/composites\nWindow Dialog Dropdown MenuBar\nTabView Section ScrollPanel" as ui_composites
+  package "ui/views\nListView Table TreeView FileBrowser\nSceneView TimelineView" as ui_views
+  package "ui/containers\nLinearLayout(Vbox/Hbox) Grid Wrap\nPanel ScrollView Splitter" as ui_containers
+  package "ui/core\nButton Label Checkbox Slider TextInput\nTag Tooltip Scrim TabBar" as ui_core
+  package "ui/node\nNode（= Widget，唯一元素类型）" as ui_node
+  package "ui/geom  ui/layout\nRect Align LayoutBudget\nLayoutParams MeasureCache" as ui_geom
+  package "ui/style  ui/input  ui/semantics\nTheme Style VisualState\nInteraction Semantics" as ui_style
+}
+
+package "src/graphics  只产出顶点" as graphics {
+  package "DrawList / DrawBatch / Vertex" as drawlist
+  package "box / line / rectangle / sprite / triangle" as primitives
+  package "FontAtlas / FontFace" as atlas
+  package "Drawable（append_to 接口）" as drawable
+}
+
+package "src/backend/vulkan  渲染后端" as backend
+package "src/events  输入事件" as events
+
+examples --> app
+examples ..> ui
+app --> ui
+app --> graphics
+
+ui_composites --> ui_core
+ui_composites --> ui_containers
+ui_composites --> ui_system
+ui_views --> ui_containers
+ui_views ..> ui_core
+ui_containers --> ui_node
+ui_containers --> ui_geom
+ui_core --> ui_node
+ui_core --> ui_style
+ui_node --> ui_geom
+ui_node --> ui_style
+ui_node ..> drawable
+ui_system --> ui_node
+ui_system --> ui_style
+ui_system --> drawlist
+ui_geom ..> events
+ui_style ..> events
+ui ..> events
+
+backend --> drawlist
+backend ..> primitives
+
+note "架构断言（test/test_ui_architecture.cpp）\nD1  geom/ 与 layout/measure_cache 不得 include 控件树\nD2  core/、containers/ 不得 include composites/、views/\nD3  style/ 不得 include 具体控件\nD4  semantics/ 只用标准库\nD5  src/ui 根目录不放任何 .hpp/.cpp\nK1—K8  状态/缓存/写入点/虚函数预算/单类节点" as N1
+
+note "graphics 不认识 ui：\n只接收 DrawList，不认识控件类型。\n\nui 不调 Vulkan：只产出 DrawList，\n提交与管线状态全在 backend。" as N2
+@enduml

@@ -8,10 +8,6 @@
 
 namespace xel::ui
 {
-// UIRoot 是自由画布：子控件保留自己的局部坐标，Root 只负责 bounds 与裁剪边界。
-//
-// 浮层（弹层 / 菜单 / 提示 / 模态）就是 Root 的普通子项，靠 Layer + z_index 叠在上面：
-// Root 自身不裁剪，所以它们自然逃离面板的 clip 与命中限制；不需要单独的 overlay 列表。
 class UIRoot : public Widget
 {
 public:
