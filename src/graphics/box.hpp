@@ -2,6 +2,7 @@
 
 #include "drawable.hpp"
 #include "font_atlas.hpp"
+#include "sdf.hpp"
 
 #include <algorithm>
 #include <array>
@@ -11,17 +12,20 @@ namespace xel::graphics
 {
 // ── 圆角矩形 / 圆角环 / 内阴影 ──────────────────────────────────────
 //
-// 两种实现并存，调用方按需选：
+// 三代实现并存，**调用方只用前两个名字**，历史实现保留做对照与回退：
 //
-//   append_rounded_rect / append_rounded_ring
-//       顶点级抗锯齿（Dear ImGui 的 fringe 做法）。轮廓一次生成，
-//       外沿再加一圈 1 物理像素、alpha 从 1 → 0 的边带；shader 不需要改。
+//   append_rounded_rect / append_rounded_ring        ← 当前实现
+//       解析 SDF（sdf.hpp）：只提交 1 个 quad，fragment 里算距离，
+//       用 fwidth 把边缘收成 1 物理像素。顶点数与半径/DPI 无关。
+//
+//   append_rounded_rect_fringe / append_rounded_ring_fringe
+//       过渡方案：整条轮廓 + 1px alpha 边带（Dear ImGui 的 fringe 做法）。
+//       已被 SDF 取代，保留用于 A/B 对照与回退。
 //
 //   append_rounded_rect_hard / append_rounded_ring_hard
-//       旧的几何细分：中心 + 四边矩形 + 四角扇形，硬边。保留用于对照与回退。
+//       最初的几何细分：中心 + 四边矩形 + 四角扇形，硬边。
 //
-// 预乘 alpha 让这条路线天然正确：内圈是 (c, 1)，外圈是 (0,0,0,0)，
-// 光栅化插值得到 (c*t, t) —— 正好是 alpha = t 的预乘色。
+// 三者都保持「预乘 alpha」约定：fragment/顶点给的覆盖率同时乘 rgb 与 a。
 namespace box_detail
 {
 constexpr float kPi = 3.14159265358979323846f;
@@ -415,11 +419,12 @@ inline void append_rounded_ring_hard(DrawList& list, glm::vec4 rect, float radiu
     }
 }
 
-// ── 新实现：整条轮廓 + 1px alpha 边带（顶点级抗锯齿）──────────────
+// ── 过渡实现：整条轮廓 + 1px alpha 边带（顶点级抗锯齿）────────────
 //
-// with_fringe = false 时只画填充（内阴影那种多层叠加用它，避免多圈边带叠加）。
-inline void append_rounded_rect(DrawList& list, glm::vec4 rect, float radius, glm::vec4 color,
-                                bool with_fringe = true)
+// 已被解析 SDF（sdf.hpp）取代，保留用于 A/B 对照与回退，P5 删除。
+// with_fringe = false 时只画填充。
+inline void append_rounded_rect_fringe(DrawList& list, glm::vec4 rect, float radius,
+                                       glm::vec4 color, bool with_fringe = true)
 {
     const float w = rect.z;
     const float h = rect.w;
@@ -439,8 +444,8 @@ inline void append_rounded_rect(DrawList& list, glm::vec4 rect, float radius, gl
     box_detail::append_fill(list, path, color, with_fringe);
 }
 
-inline void append_rounded_ring(DrawList& list, glm::vec4 rect, float radius, float thickness,
-                                glm::vec4 color)
+inline void append_rounded_ring_fringe(DrawList& list, glm::vec4 rect, float radius,
+                                       float thickness, glm::vec4 color)
 {
     const float w = rect.z;
     const float h = rect.w;
@@ -470,8 +475,23 @@ inline void append_rounded_ring(DrawList& list, glm::vec4 rect, float radius, fl
     box_detail::append_ring(list, outer, inner, color, outer_fringe, true);
 }
 
-// 内阴影：从矩形上缘向内的多层半透明圆角条，重叠产生向下衰减的渐变。
-// 多层叠加必须关掉边带，否则每层各加一圈，边缘会发亮。
+// ── 现行实现：解析 SDF（一个 quad，fragment 里算距离）────────────
+//
+// 调用签名与旧几何路径完全一致（68 个调用点零改动）。
+// 顶点只有 4 个，不再需要按 DPI 细分、也不再需要 fringe。
+inline void append_rounded_rect(DrawList& list, glm::vec4 rect, float radius, glm::vec4 color)
+{
+    append_sdf_rect(list, rect, radius, color);
+}
+
+inline void append_rounded_ring(DrawList& list, glm::vec4 rect, float radius, float thickness,
+                                glm::vec4 color)
+{
+    append_sdf_ring(list, rect, radius, thickness, color);
+}
+
+// ── 内阴影：从矩形上缘向内的多层半透明圆角条，重叠产生向下衰减的渐变。
+// SDF 填充本身没有外扩边带，四层叠加只需直接画。
 inline void append_inset_shadow(DrawList& list, glm::vec4 rect, float radius, float size, glm::vec4 color)
 {
     if (size <= 0.0f || color.a <= 0.0f || rect.z <= 0.0f || rect.w <= 0.0f) return;
@@ -480,7 +500,7 @@ inline void append_inset_shadow(DrawList& list, glm::vec4 rect, float radius, fl
     for (int i = 0; i < layers; ++i) {
         const float k = static_cast<float>(i + 1) / static_cast<float>(layers);
         const float height = std::min(rect.w, size * k);
-        append_rounded_rect(list, {rect.x, rect.y, rect.z, height}, radius, color, false);
+        append_sdf_rect(list, {rect.x, rect.y, rect.z, height}, radius, color);
     }
 }
 } // namespace xel::graphics

@@ -32,6 +32,8 @@ struct PushConstant
     glm::vec2 scale;
     glm::vec2 translate;
     float time;
+    // 1 / ui_scale：SDF 的 AA 宽度需要「1 物理像素」对应的逻辑像素值。
+    float inv_ui_scale;
 };
 
 class Renderer : public RenderBackend

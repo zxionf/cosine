@@ -89,8 +89,8 @@ COSINE_UI_SCALE=2 COSINE_EXIT_AFTER=3 ./font_lab
 验证重点是界面整体放大、字形清晰（按 `字号×比例` 重新栅格化）、
 tooltip 与应用内命中位置不偏移。
 
-当前测试规模：`ctest` 共 **84** 个用例（含 ASAN 构建，同一份源码）；
-86 个测试源文件，含 `assert(` 2032 处与自写 `check()` 238 处；全部在 Release 下也真实执行。
+当前测试规模：`ctest` 共 **85** 个用例（含 ASAN 构建，同一份源码）；
+87 个测试源文件，含 `assert(` 2032 处与自写 `check()` 238 处；全部在 Release 下也真实执行。
 
 ## lavapipe 冒烟
 

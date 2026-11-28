@@ -32,9 +32,9 @@ using namespace xel;
 // 历史：
 //   833878f4  UI-38 完成时（Checkbox 框体仍直读 checkbox_bg/border）
 //   c8a0966c  UI-40 完成后（框体改走 Input 角色，与 TextInput 同色）
-constexpr uint32_t kSceneBaselineHash = 0x42c535f8;
+constexpr uint32_t kSceneBaselineHash = 0x18857e21;
 // 深色场景同一套控件 + Theme::light()（盯住 accent_on 与浅色调色板）。
-constexpr uint32_t kLightBaselineHash = 0xc9b3c5f6;
+constexpr uint32_t kLightBaselineHash = 0xb05393f2;
 
 uint32_t fnv1a(const unsigned char* data, std::size_t n)
 {

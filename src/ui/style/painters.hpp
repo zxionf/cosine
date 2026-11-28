@@ -18,19 +18,17 @@ namespace xel::ui::paint
 // 所以做成自由函数而不是部件对象：零存储、零虚函数、编译器可内联。
 
 // 底 + 边框（边框宽度为 0 时自动跳过）。radius 传已算好的圆角档位。
+//
+// 两者都是解析 SDF（一个 quad），边缘 AA 在 fragment 里完成，
+// 所以不需要 fringe，也没有「填充与边框边带重叠」的问题。
 inline void box(graphics::DrawList& list, Rect bounds, const BoxStyle& style, float radius)
 {
     const glm::vec4 rect{bounds.pos.x, bounds.pos.y, bounds.size.x, bounds.size.y};
-    const bool has_fill = style.fill.a > 0.0f;
-    if (has_fill) {
+    if (style.fill.a > 0.0f) {
         graphics::append_rounded_rect(list, rect, radius, style.fill);
     }
     if (style.border_width > 0.0f) {
-        // 填充已经铺到边框外沿：边框不再向外扩 1px，否则两条 fringe 带重叠、
-        // 半透明时会多出一圈提亮。
-        list.set_skip_outer_fringe(has_fill);
         graphics::append_rounded_ring(list, rect, radius, style.border_width, style.border);
-        list.set_skip_outer_fringe(false);
     }
 }
 

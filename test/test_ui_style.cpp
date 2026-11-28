@@ -178,14 +178,14 @@ void test_rounded_rect_geometry()
         assert_inside(list, bounds, 1.45f);
     }
 
-    // 圆角路径：顶点增多、索引合法、全部落在矩形内。
+    // 圆角路径：解析 SDF 只提交一个 quad（4 顶点 / 6 索引），AA 在 fragment 里。
     {
         graphics::DrawList list;
         list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
         graphics::append_rounded_rect(list, bounds, 6.0f, {1.0f, 1.0f, 1.0f, 1.0f});
         const auto g = stats(list);
-        assert(g.vertices > 4);
-        assert(g.indices % 3 == 0);
+        assert(g.vertices == 4);
+        assert(g.indices == 6);
         assert_inside(list, bounds, 1.45f);
     }
 
@@ -218,24 +218,24 @@ void test_rounded_ring_geometry()
 {
     const glm::vec4 bounds{10.0f, 20.0f, 120.0f, 60.0f};
 
-    // 半径为 0：四条直边矩形，不重叠、不遮挡中心。
+    // 直角边框：SDF 环同样是一个 quad（外框与内框在 shader 里求交）。
     {
         graphics::DrawList list;
         list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
         graphics::append_rounded_ring(list, bounds, 0.0f, 2.0f, {1.0f, 1.0f, 1.0f, 1.0f});
         const auto g = stats(list);
-        assert(g.vertices == 16);
-        assert(g.indices == 24);
+        assert(g.vertices == 4);
+        assert(g.indices == 6);
         assert_inside(list, bounds, 1.45f);
     }
 
-    // 圆角环：顶点更多，厚度不为 0，全部落在矩形内。
+    // 圆角环：仍是 1 个 quad，厚度不为 0。
     {
         graphics::DrawList list;
         list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
         graphics::append_rounded_ring(list, bounds, 8.0f, 2.0f, {1.0f, 1.0f, 1.0f, 1.0f});
         const auto g = stats(list);
-        assert(g.vertices > 16);
+        assert(g.vertices == 4);
         assert(g.indices % 3 == 0);
         assert_inside(list, bounds, 1.45f);
     }
@@ -338,8 +338,8 @@ void test_focus_policy_matrix()
             if (!expected) {
                 assert(stats(list).vertices == 0);
             } else if (rounded) {
-                // 外扩圆角环：顶点多于贴边四框，且会超出控件矩形（offset）。
-                assert(stats(list).vertices > 16);
+                // 外扩圆角环：同样是 1 个 SDF quad。
+                assert(stats(list).vertices == 4);
             } else {
                 assert(stats(list).vertices == 16);
                 assert(stats(list).indices == 24);
@@ -506,18 +506,18 @@ void test_classic_shapes()
     progress.set_context(&ctx);
     radio.set_context(&ctx);
 
-    // 经典：全部退化到矩形。slider = 轨道 + 填充 + 手柄 = 3 块矩形。
+    // 经典：无圆角，但仍然是 SDF quad。slider = 轨道 + 填充 + 手柄 = 3 个 quad。
     assert(draw(slider).vertices == 12);
-    // progress = 轨道 + 填充 + 贴边环（四条矩形）。
-    assert(draw(progress).vertices == 24);
+    // progress = 轨道 + 填充 + 贴边环（各 1 个 SDF quad）。
+    assert(draw(progress).vertices == 12);
     // radio = 方框 + 贴边环 + 菱形两个三角形（每个 3 顶点）。
-    assert(draw(radio).vertices == 4 + 16 + 6);
+    assert(draw(radio).vertices == 4 + 4 + 6);
 
-    // 圆角：轨道变胶囊、手柄变圆、progress 与 radio 也带圆弧（顶点数上升）。
+    // 圆角：解析 SDF 后每个圆角图元仍是 1 个 quad，顶点数不随半径增长。
     ctx.set_theme(ui::Theme::dark());
-    assert(draw(slider).vertices > 12);
-    assert(draw(progress).vertices > 24);
-    assert(draw(radio).vertices > 4 + 16 + 6);
+    assert(draw(slider).vertices == 12);
+    assert(draw(progress).vertices == 12);
+    assert(draw(radio).vertices == 4 + 4 + 6);
 }
 
 // Checkbox 的勾选块必须像素对齐且与外框同心：
@@ -537,12 +537,12 @@ void test_checkbox_pixel_alignment()
     list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
     checkbox.append_to(list);
 
-    // 顶点顺序：背景 4 → 边框环 16 → 勾选块 4（经典样式无圆角弧度）。
+    // 顶点顺序：背景 4 → 边框环 4（SDF 一个 quad）→ 勾选块 4。
     std::vector<glm::vec2> points;
     for (const auto& batch : list.batches()) {
         for (const auto& vertex : batch.vertices) points.push_back(vertex.pos);
     }
-    assert(points.size() == 24);
+    assert(points.size() == 12);
 
     // 所有顶点落在整像素上。
     for (const auto& point : points) {
@@ -554,9 +554,9 @@ void test_checkbox_pixel_alignment()
     const float box_cx = (points[0].x + points[2].x) * 0.5f;
     const float box_cy = (points[0].y + points[2].y) * 0.5f;
 
-    float mx0 = points[20].x, mx1 = points[20].x;
-    float my0 = points[20].y, my1 = points[20].y;
-    for (std::size_t i = 20; i < 24; ++i) {
+    float mx0 = points[8].x, mx1 = points[8].x;
+    float my0 = points[8].y, my1 = points[8].y;
+    for (std::size_t i = 8; i < 12; ++i) {
         mx0 = std::min(mx0, points[i].x);
         mx1 = std::max(mx1, points[i].x);
         my0 = std::min(my0, points[i].y);

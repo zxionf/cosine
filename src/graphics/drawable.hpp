@@ -44,12 +44,14 @@ struct DrawBatch
     // 建立时的累积透明度。预乘 alpha 下四个通道同乘，就是整棵子树淡出的正确结果。
     float opacity = 1.0f;
 
-    void add_vertex(glm::vec2 pos, glm::vec4 color, glm::vec2 uv = {0.0f, 0.0f})
+    void add_vertex(glm::vec2 pos, glm::vec4 color, glm::vec2 uv = {0.0f, 0.0f},
+                    glm::vec2 sdf_half = {0.0f, 0.0f}, glm::vec2 sdf_extra = {0.0f, 0.0f},
+                    uint32_t kind = 0)
     {
         if (opacity < 1.0f) {
             color = {color.r * opacity, color.g * opacity, color.b * opacity, color.a * opacity};
         }
-        vertices.push_back(Vertex{pos, color, uv});
+        vertices.push_back(Vertex{pos, color, uv, sdf_half, sdf_extra, kind});
     }
 };
 

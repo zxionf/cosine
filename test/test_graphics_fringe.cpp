@@ -80,7 +80,7 @@ void test_fill_structure()
     const glm::vec4 color{1.0f, 0.5f, 0.25f, 0.8f};
 
     DrawList list = make_list();
-    xel::graphics::append_rounded_rect(list, rect, radius, color);
+    xel::graphics::append_rounded_rect_fringe(list, rect, radius, color);
 
     const int segments = xel::graphics::box_detail::arc_segments(
         radius * list.pixel_ratio());
@@ -112,7 +112,7 @@ void test_fringe_width_follows_pixel_ratio()
     const glm::vec4 rect{0.0f, 0.0f, 200.0f, 100.0f};
     for (const float ratio : {1.0f, 2.0f, 1.5f}) {
         DrawList list = make_list(ratio);
-        xel::graphics::append_rounded_rect(list, rect, 12.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+        xel::graphics::append_rounded_rect_fringe(list, rect, 12.0f, {1.0f, 1.0f, 1.0f, 1.0f});
 
         // 找上边中点附近的一对（内圈, 外圈）顶点：x 相同、y 小的那个是外圈。
         float best = 1e9f;
@@ -137,7 +137,7 @@ void test_fringe_bounds()
 {
     const glm::vec4 rect{0.0f, 0.0f, 200.0f, 100.0f};
     DrawList list = make_list();
-    xel::graphics::append_rounded_rect(list, rect, 10.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_rect_fringe(list, rect, 10.0f, {1.0f, 1.0f, 1.0f, 1.0f});
 
     for (const auto& batch : list.batches()) {
         for (const auto& vertex : batch.vertices) {
@@ -155,9 +155,9 @@ void test_segments_follow_pixel_ratio()
 {
     const glm::vec4 rect{0.0f, 0.0f, 200.0f, 100.0f};
     DrawList low = make_list(1.0f);
-    xel::graphics::append_rounded_rect(low, rect, 20.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_rect_fringe(low, rect, 20.0f, {1.0f, 1.0f, 1.0f, 1.0f});
     DrawList high = make_list(3.0f);
-    xel::graphics::append_rounded_rect(high, rect, 20.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_rect_fringe(high, rect, 20.0f, {1.0f, 1.0f, 1.0f, 1.0f});
     assert(collect(high).vertices > collect(low).vertices);
 }
 
@@ -170,14 +170,14 @@ void test_ring_fringe()
     const int count = 4 * segments;
 
     DrawList full = make_list();
-    xel::graphics::append_rounded_ring(full, rect, radius, 2.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_ring_fringe(full, rect, radius, 2.0f, {1.0f, 1.0f, 1.0f, 1.0f});
     // 外轮廓 + 内轮廓 + 外 fringe + 内 fringe。
     assert(collect(full).vertices == static_cast<std::size_t>(4 * count));
     assert(collect(full).transparent_vertices == static_cast<std::size_t>(2 * count));
 
     DrawList skipped = make_list();
     skipped.set_skip_outer_fringe(true);
-    xel::graphics::append_rounded_ring(skipped, rect, radius, 2.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_ring_fringe(skipped, rect, radius, 2.0f, {1.0f, 1.0f, 1.0f, 1.0f});
     assert(collect(skipped).vertices == static_cast<std::size_t>(3 * count));
     assert(collect(skipped).transparent_vertices == static_cast<std::size_t>(count));
 }
@@ -187,7 +187,7 @@ void test_fill_without_fringe()
 {
     const glm::vec4 rect{0.0f, 0.0f, 120.0f, 40.0f};
     DrawList list = make_list();
-    xel::graphics::append_rounded_rect(list, rect, 8.0f, {1.0f, 1.0f, 1.0f, 1.0f}, false);
+    xel::graphics::append_rounded_rect_fringe(list, rect, 8.0f, {1.0f, 1.0f, 1.0f, 1.0f}, false);
     const int segments = xel::graphics::box_detail::arc_segments(8.0f);
     assert(collect(list).vertices == static_cast<std::size_t>(4 * segments + 1));
     assert(collect(list).transparent_vertices == 0);
@@ -203,20 +203,20 @@ void test_degenerate_cases()
     const glm::vec4 rect{0.0f, 0.0f, 100.0f, 40.0f};
 
     DrawList tiny = make_list();
-    xel::graphics::append_rounded_rect(tiny, rect, 0.5f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_rect_fringe(tiny, rect, 0.5f, {1.0f, 1.0f, 1.0f, 1.0f});
     assert(collect(tiny).vertices == 4);
 
     DrawList clamped = make_list();
-    xel::graphics::append_rounded_rect(clamped, rect, 1000.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_rect_fringe(clamped, rect, 1000.0f, {1.0f, 1.0f, 1.0f, 1.0f});
     DrawList exact = make_list();
-    xel::graphics::append_rounded_rect(exact, rect, 20.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_rect_fringe(exact, rect, 20.0f, {1.0f, 1.0f, 1.0f, 1.0f});
     assert(collect(clamped).vertices == collect(exact).vertices);
 
     DrawList empty = make_list();
-    xel::graphics::append_rounded_rect(empty, {0.0f, 0.0f, 0.0f, 40.0f}, 6.0f,
+    xel::graphics::append_rounded_rect_fringe(empty, {0.0f, 0.0f, 0.0f, 40.0f}, 6.0f,
                                        {1.0f, 1.0f, 1.0f, 1.0f});
-    xel::graphics::append_rounded_rect(empty, rect, 6.0f, {1.0f, 1.0f, 1.0f, 0.0f});
-    xel::graphics::append_rounded_ring(empty, rect, 8.0f, 0.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_rect_fringe(empty, rect, 6.0f, {1.0f, 1.0f, 1.0f, 0.0f});
+    xel::graphics::append_rounded_ring_fringe(empty, rect, 8.0f, 0.0f, {1.0f, 1.0f, 1.0f, 1.0f});
     assert(collect(empty).vertices == 0);
 }
 
@@ -227,7 +227,7 @@ void test_hard_path_still_available()
     DrawList hard = make_list();
     xel::graphics::append_rounded_rect_hard(hard, rect, 8.0f, {1.0f, 1.0f, 1.0f, 1.0f});
     DrawList soft = make_list();
-    xel::graphics::append_rounded_rect(soft, rect, 8.0f, {1.0f, 1.0f, 1.0f, 1.0f});
+    xel::graphics::append_rounded_rect_fringe(soft, rect, 8.0f, {1.0f, 1.0f, 1.0f, 1.0f});
 
     // 旧路径没有透明顶点（硬边），新路径有。
     assert(collect(hard).transparent_vertices == 0);
@@ -245,7 +245,7 @@ void test_no_extra_batches()
 {
     DrawList list = make_list();
     for (int i = 0; i < 20; ++i) {
-        xel::graphics::append_rounded_rect(
+        xel::graphics::append_rounded_rect_fringe(
             list, {static_cast<float>(i) * 12.0f, 0.0f, 10.0f, 10.0f}, 4.0f,
             {1.0f, 1.0f, 1.0f, 1.0f});
     }

@@ -810,7 +810,8 @@ void Renderer::update_push_constants()
     PushConstant push_constant{
         .scale      = glm::vec2(2.0f / logical_w, 2.0f / logical_h),
         .translate  = glm::vec2(-1.0f,                -1.0f),
-        .time = static_cast<float>(glfwGetTime())
+        .time = static_cast<float>(glfwGetTime()),
+        .inv_ui_scale = 1.0f / ui_scale_
     };
     command_buffers_[frame_index_].pushConstants<PushConstant>(pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, push_constant);
 }
@@ -1241,7 +1242,8 @@ std::vector<unsigned char> Renderer::render_offscreen(const graphics::Drawable& 
     const PushConstant push_constant{
         .scale = glm::vec2(2.0f / logical_w, 2.0f / logical_h),
         .translate = glm::vec2(-1.0f, -1.0f),
-        .time = static_cast<float>(glfwGetTime())};
+        .time = static_cast<float>(glfwGetTime()),
+        .inv_ui_scale = 1.0f / ui_scale};
     command_buffer.pushConstants<PushConstant>(
         pipeline_layout_, vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0,
         push_constant);
