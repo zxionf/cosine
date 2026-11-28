@@ -9,6 +9,7 @@ add_executable(ui_demo
     ui_demo/sections/layout.cpp
     ui_demo/sections/data.cpp
     ui_demo/sections/overlay.cpp
+    ui_demo/sections/icons.cpp
 )
 target_link_libraries(ui_demo PRIVATE cosine_app)
 target_include_directories(ui_demo PRIVATE

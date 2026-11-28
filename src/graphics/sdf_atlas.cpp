@@ -98,6 +98,9 @@ bool SdfAtlas::load(const std::string& png_path, const std::string& json_path, s
     double size = 0.0;
     double cell = 0.0;
     double px_range = 0.0;
+    // margin 在旧图集里可能不存在：缺省 0（等价于「uv 就是整个 cell」）。
+    double margin = 0.0;
+    find_number(json, "margin", margin);
     if (!find_number(json, "size", size) || !find_number(json, "cell", cell) ||
         !find_number(json, "px_range", px_range)) {
         return fail("bad metadata in " + json_path);
@@ -116,8 +119,8 @@ bool SdfAtlas::load(const std::string& png_path, const std::string& json_path, s
     std::copy(data, data + pixels.size(), pixels.begin());
     stbi_image_free(data);
 
-    if (!adopt(width, height, static_cast<int>(cell), static_cast<float>(px_range), std::move(pixels),
-               std::move(icons))) {
+    if (!adopt(width, height, static_cast<int>(cell), static_cast<int>(margin),
+               static_cast<float>(px_range), std::move(pixels), std::move(icons))) {
         return fail("metadata does not match " + png_path);
     }
     if (width < static_cast<int>(size)) {
@@ -126,10 +129,11 @@ bool SdfAtlas::load(const std::string& png_path, const std::string& json_path, s
     return true;
 }
 
-bool SdfAtlas::adopt(int width, int height, int cell, float px_range, std::vector<unsigned char> rgba,
-                     std::vector<Icon> icons)
+bool SdfAtlas::adopt(int width, int height, int cell, int margin, float px_range,
+                     std::vector<unsigned char> rgba, std::vector<Icon> icons)
 {
     if (width <= 0 || height <= 0 || cell <= 0) return false;
+    if (margin < 0 || margin * 2 >= cell) return false;
     if (rgba.size() != static_cast<std::size_t>(width) * height * 4) return false;
     for (const auto& icon : icons) {
         if (icon.col < 0 || icon.row < 0) return false;
@@ -138,6 +142,7 @@ bool SdfAtlas::adopt(int width, int height, int cell, float px_range, std::vecto
     width_ = width;
     height_ = height;
     cell_ = cell;
+    margin_ = margin;
     px_range_ = px_range;
     pixels_ = std::move(rgba);
     icons_ = std::move(icons);
@@ -159,10 +164,13 @@ bool SdfAtlas::icon_uv(int index, glm::vec4& uv) const
     const Icon& icon = icons_[static_cast<std::size_t>(index)];
     const float inv_w = 1.0f / static_cast<float>(width_);
     const float inv_h = 1.0f / static_cast<float>(height_);
-    const float x0 = static_cast<float>(icon.col * cell_);
-    const float y0 = static_cast<float>(icon.row * cell_);
-    uv = {x0 * inv_w, y0 * inv_h, (x0 + static_cast<float>(cell_)) * inv_w,
-          (y0 + static_cast<float>(cell_)) * inv_h};
+    // 只取内容区：cell 内的 margin 环留给 px_range（描边/AA 富余），
+    // 否则图标会按「cell 含空环」的比例被画小一圈。
+    const float x0 = static_cast<float>(icon.col * cell_ + margin_);
+    const float y0 = static_cast<float>(icon.row * cell_ + margin_);
+    const float x1 = static_cast<float>((icon.col + 1) * cell_ - margin_);
+    const float y1 = static_cast<float>((icon.row + 1) * cell_ - margin_);
+    uv = {x0 * inv_w, y0 * inv_h, x1 * inv_w, y1 * inv_h};
     return true;
 }
 } // namespace xel::graphics

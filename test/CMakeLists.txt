@@ -69,11 +69,13 @@ target_link_libraries(test_ui_runtime PRIVATE cosine_ui)
 # DisplayScale 是纯值对象：只链接 cosine_text（无 ui、无 backend）。
 add_executable(test_ui_demo
     test_ui_demo.cpp
+    ${PROJECT_SOURCE_DIR}/src/backend/asset_path.cpp
     ${PROJECT_SOURCE_DIR}/examples/ui_demo/demo.cpp
     ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/basics.cpp
     ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/layout.cpp
     ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/data.cpp
     ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/overlay.cpp
+    ${PROJECT_SOURCE_DIR}/examples/ui_demo/sections/icons.cpp
 )
 target_include_directories(test_ui_demo PRIVATE
     ${PROJECT_SOURCE_DIR}/examples/ui_demo
@@ -88,9 +90,6 @@ target_compile_definitions(test_graphics_sdf_icon PRIVATE COSINE_SOURCE_DIR="${P
 
 add_executable(test_graphics_sdf test_graphics_sdf.cpp)
 target_link_libraries(test_graphics_sdf PRIVATE cosine_text)
-
-add_executable(test_graphics_fringe test_graphics_fringe.cpp)
-target_link_libraries(test_graphics_fringe PRIVATE cosine_text)
 
 # graphics_demo 的纯逻辑测试（相机/画布/场景），无窗口无 GPU。
 add_executable(test_graphics_demo
@@ -362,7 +361,6 @@ set(COSINE_TEST_TARGETS
     test_ui_runtime
     test_display_scale
     test_graphics_demo
-    test_graphics_fringe
     test_graphics_sdf
     test_graphics_sdf_icon
     test_ui_demo
@@ -495,7 +493,6 @@ add_test(NAME ui_architecture COMMAND test_ui_architecture)
 add_test(NAME ui_runtime COMMAND test_ui_runtime)
 add_test(NAME display_scale COMMAND test_display_scale)
 add_test(NAME graphics_demo COMMAND test_graphics_demo)
-add_test(NAME graphics_fringe COMMAND test_graphics_fringe)
 add_test(NAME graphics_sdf COMMAND test_graphics_sdf)
 add_test(NAME graphics_sdf_icon COMMAND test_graphics_sdf_icon)
 add_test(NAME ui_demo COMMAND test_ui_demo)

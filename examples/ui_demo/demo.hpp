@@ -17,6 +17,7 @@
 // 产生两种并存的收起/展开语义。
 
 #include "graphics/frame_stats.hpp"
+#include "graphics/sdf_atlas.hpp"
 #include "ui/composites/scroll_panel.hpp"
 #include "ui/composites/tab_view.hpp"
 #include "ui/containers/hbox.hpp"
@@ -39,6 +40,10 @@ namespace ui = xel::ui;
 namespace graphics = xel::graphics;
 
 class Demo;
+
+// 图集上传：由 main 注入（需要 Application::renderer），返回图片槽号，失败返回 -1。
+// 放在构造期间执行，这样首个分区里构建的图标一出生就有 slot。
+using AtlasUploadFn = std::function<int(graphics::SdfAtlas&)>;
 
 // 一个分区 = 注册表里的一条记录。build 只在首次进入该标签页时调用一次。
 using BuildFn = void (*)(Demo&, ui::Vbox& column);
@@ -66,7 +71,9 @@ class Demo
 {
 public:
     // set_ui_scale 由 main 注入（Application::set_ui_scale）；留空则不提供缩放开关。
-    Demo(ui::UIRoot& root, std::function<void(float)> set_ui_scale);
+    // upload_atlas 由 main 注入（Renderer::upload_texture）；留空则图标画占位。
+    Demo(ui::UIRoot& root, std::function<void(float)> set_ui_scale,
+         AtlasUploadFn upload_atlas = {});
     ~Demo();
 
     Demo(const Demo&) = delete;
@@ -97,6 +104,16 @@ public:
     void set_ui_scale(float scale);
     float ui_scale() const { return ui_scale_; }
 
+    // ── MTSDF 图标图集 ────────────────────────────────────────────
+    // 加载在构造时完成（assets/sdf/ui_icons.*）；贴图上传由 main 负责，
+    // 因为只有 Application 才拿得到 Renderer。未加载时 valid()==false，
+    // 图标分区会画占位方块而不是崩。
+    graphics::SdfAtlas& sdf_atlas() { return sdf_atlas_; }
+    const graphics::SdfAtlas& sdf_atlas() const { return sdf_atlas_; }
+    // 图集所在的图片槽（0 基）；-1 表示还没上传。
+    int sdf_slot() const { return sdf_slot_; }
+    void set_sdf_slot(int slot) { sdf_slot_ = slot; }
+
     // ── 交互反馈：任何分区都可以调用，写到状态栏 ──────────────────────
     void note(std::string text);
 
@@ -115,6 +132,7 @@ private:
     ui::UIRoot* root_ = nullptr;
     Shell shell_;
     std::function<void(float)> set_ui_scale_;
+    AtlasUploadFn upload_atlas_;
 
     bool dark_ = true;
     bool rounded_ = true;
@@ -127,11 +145,15 @@ private:
     std::vector<ui::Vbox*> page_columns_;  // 每个标签页的内容列（懒填充）
     std::vector<bool> page_built_;
 
+    graphics::SdfAtlas sdf_atlas_{};
+    int sdf_slot_ = -1;
+
     std::string note_ = "就绪：点第二行的标签页切换分区，或用顶栏菜单";
 };
 
 // 创建演示台：构建外壳 + 显示首个分区（或 COSINE_DEMO_SECTION 指定的分区）。
-std::unique_ptr<Demo> create(ui::UIRoot& root, std::function<void(float)> set_ui_scale);
+std::unique_ptr<Demo> create(ui::UIRoot& root, std::function<void(float)> set_ui_scale,
+                             AtlasUploadFn upload_atlas = {});
 
 // ── 分区构建辅助（各 sections/*.cpp 共用）─────────────────────────
 // 说明文字（自动换行）。

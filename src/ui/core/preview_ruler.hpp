@@ -4,6 +4,7 @@
 #include "ui/style/theme.hpp"
 #include "ui/node/widget.hpp"
 #include "graphics/box.hpp"
+#include "graphics/font_atlas.hpp"
 #include "graphics/rectangle.hpp"
 
 #include <algorithm>

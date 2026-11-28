@@ -41,11 +41,22 @@ examples/       ui_demo / graphics_demo / font_lab / moss（UI 示例是「建�
                 graphics_demo 不走 UI，只向 RenderBackend 提交图元）
 test/           CTest
 assets/         shader、字体、sdf/（MTSDF 图标图集，由 tools/mtsdf_gen 烘焙）
-tools/          mtsdf_gen（开发期工具，不参与运行时）
-third_party/    msdfgen（MIT，vendored；仅 core）
+tools/          mtsdf_gen（开发期工具，不参与运行时；依赖 msdfgen，走 FetchContent）
 ```
 
 依赖单向：`graphics` 不依赖 backend；`ui` 依赖 `graphics` + `events`；`backend` 消费 `graphics` 的 DrawList。
+
+## 抗锯齿（SDF）
+
+所有圆角与图标都走**解析/图集距离场**，而不是几何细分或 MSAA：
+
+- `graphics/sdf.hpp`：圆角矩形、圆角环、MTSDF 图标，每个图元 **1 个 quad**；
+- `src/shaders/ui.slang`：按顶点 `kind`（0 精灵 / 1 矩形 / 2 环 / 3 图集）分支，
+  覆盖率 = `saturate(0.5 - d / fwidth(d))`，同时乘 rgb 与 alpha（预乘）；
+- `graphics/sdf_atlas.{hpp,cpp}`：加载 `assets/sdf/ui_icons.{png,json}`（RGBA8 UNORM），
+  由 `tools/mtsdf_gen` 烘焙；占用最后一个图片槽，不与业务图片抢号。
+
+因此顶点数与半径、DPI 都无关（圆角矩形 4 顶点，旧几何细分路径已删除）。
 
 ## 应用装配（Application）
 

@@ -52,14 +52,15 @@ COSINE_EXPORT_PNG=shot.png COSINE_DEMO_SECTION=data ./build/examples/ui_demo
 ```text
 examples/ui_demo/
 ├── main.cpp              装配：Application + demo::create() + app.run()
-├── demo.hpp              分区/外壳类型、构建辅助（hint/row/group/gap/subtitle）
+├── demo.hpp              分区/外壳类型、MTSDF 图集持有、构建辅助（hint/row/group/gap）
 ├── demo.cpp              外壳构建 + 分区注册表 + 主题/DPI/状态栏
 └── sections/
     ├── sections.hpp      各分区 build 函数声明（扩展点 ①：加声明）
     ├── basics.cpp        概览 / 基础控件 / 输入控件 / 文本与字体
     ├── layout.cpp        布局 / 容器与视图
     ├── data.cpp          数据视图（Table / TreeView / FileBrowser）
-    └── overlay.cpp       浮层与模态 / 媒体与时间
+    ├── overlay.cpp       浮层与模态 / 媒体与时间
+    └── icons.cpp         图标（MTSDF 图集：尺寸阶梯 / 染色 / 降级）
                           （扩展点 ②：实现 build_xxx；③：在 demo.cpp 注册）
 ```
 
@@ -79,6 +80,11 @@ examples/ui_demo/
 | 数据视图 | Table（弹性列/斑马纹/选中/滚动）、TreeView（展开/选中/键盘）、FileBrowser（只读目录） |
 | 浮层与模态 | Window（拖动/8 向 resize/自带折叠按钮）、模态 Window、Dialog + show_dialog、下拉与 Tooltip 的层叠 |
 | 媒体与时间 | Image 占位与 Fit 三态、PreviewRuler 拖动定位、色板随主题变化 |
+| 图标（MTSDF） | 同一份距离场图集在 16/24/32/48/64px 下的清晰度、顶点色染色与半透明、图标+文字组合、图集缺失时的降级方块 |
+
+> 图标走 `kind=3`（MTSDF 采样），不是位图拉伸：`SdfAtlas` 加载
+> `assets/sdf/ui_icons.{png,json}`，上传到**最后一个图片槽**（kMaxImageSlots-1），
+> 与业务图片互不抢占。图集由 `tools/mtsdf_gen` 烘焙，见下文。
 
 ### 顶栏能改什么（深度）
 
@@ -177,6 +183,39 @@ COSINE_EXPORT_SCALE=2 COSINE_EXPORT_PNG=shot2x.png ./build/examples/graphics_dem
 
 > 这个示例的 `COSINE_EXPORT_PNG` 自己调 `RenderBackend::capture()`，
 > 不走 `app.save_png()`（那条路径渲的是 UI 树）。
+
+---
+
+## SDF：圆角与图标怎么抗锯齿
+
+工程只有一条抗锯齿路线：**把距离交绘 fragment**。`ui.slang` 按顶点上的
+`kind` 分支，一个 pipeline 跑完所有图元：
+
+| kind | 图元 | 做法 | 顶点数 |
+|---|---|---|---|
+| 0 | 色块 / 文字 / 位图 | `color * texture(uv)` | — |
+| 1 | 圆角矩形 / 胶囊 | 局部坐标 + 半尺寸 + 半径 → `sd_rounded_box` | 1 quad |
+| 2 | 圆角环（边框 / 焦点环） | 外框与内框距离求交 | 1 quad |
+| 3 | MTSDF 图集图标 | `median(RGB)` 重建距离 | 1 quad |
+
+覆盖率统一是 `saturate(0.5 - d / fwidth(d))`，并**同时乘进 rgb 与 alpha**
+（预乘管线，半透明叠加不会发亮）。因为顶点已是逻辑坐标、投影会整体放大，
+`fwidth` 给的就是「每物理像素」的距离变化 —— 换 DPI 不需要额外参数。
+
+### 图标图集（MTSDF）
+
+```bash
+# 烘焙（开发期工具，不进产品；依赖 msdfgen，走 FetchContent）
+./build/tools/mtsdf_gen --out assets/sdf/ui_icons --cell 96 --padding 8 --px-range 6
+# → ui_icons.png (512×512 RGBA8 UNORM) + ui_icons.json
+```
+
+- **格式必须是 UNORM**，不能是 sRGB：距离是数据，走 sRGB 解码会被 gamma 扭曲。
+- `margin = padding + px_range` 会写进 JSON；`SdfAtlas::icon_uv()` 用它只取内容区，
+  否则图标会按「cell 含空环」的比例被画小一圈。
+- 生成器带方向自检（中心应在内、四角应在外），不一致就反向轮廓重烘。
+- 新增图标 = 在 `tools/mtsdf_gen/main.cpp` 的 `kIcons` 加一条
+  （形参是 `msdfgen::Shape&`，内置几何或以后接 SVG）→ 重新烘焙 → 提交 PNG+JSON。
 
 ---
 

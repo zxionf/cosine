@@ -96,13 +96,37 @@ void build_play(msdfgen::Shape& shape)
     });
 }
 
+// 朝右的尖括号粗线带（chevron）：外轮廓 + 内轮廓共 6 点，简单多边形、不自交。
+// 左端面在 x = -0.85 上，从上到下：P5(0.45) → P0(0.85) 与 P3(-0.45) → P2(-0.85)。
 void build_chevron(msdfgen::Shape& shape)
+{
+    add_edges(shape.addContour(), Points{
+        {-0.85,  0.85}, // 左上（外）
+        { 0.85,  0.00}, // 外尖
+        {-0.85, -0.85}, // 左下（外）
+        {-0.85, -0.45}, // 左下（内）
+        { 0.25,  0.00}, // 内尖
+        {-0.85,  0.45}, // 左上（内）
+    });
+}
+
+void build_oilk(msdfgen::Shape& shape)
 {
     // 朝右的 V 形箭头：两条粗线段的并集，靠折线描述外轮廓。
     const double t = 0.22; // 线宽
     add_edges(shape.addContour(), Points{
         {-0.7, 0.8}, {-0.2, 0.8}, {0.35, 0.2}, {0.1, 0.2},
         {0.35, -0.2}, {-0.2, -0.8}, {-0.7, -0.8}, {0.0, 0.0},
+    });
+}
+
+void build_plus(msdfgen::Shape& shape)
+{
+    // 加号：12 点凹多边形（中心在内、四角在外），用来验证凹角与 MSDF 保尖角。
+    add_edges(shape.addContour(), Points{
+        { 0.30,  0.90}, { 0.30,  0.30}, { 0.90,  0.30}, { 0.90, -0.30},
+        { 0.30, -0.30}, { 0.30, -0.90}, {-0.30, -0.90}, {-0.30, -0.30},
+        {-0.90, -0.30}, {-0.90,  0.30}, {-0.30,  0.30}, {-0.30,  0.90},
     });
 }
 
@@ -147,7 +171,9 @@ const IconDef kIcons[] = {
     {"play", &build_play},
     {"chevron", &build_chevron},
     {"arrow", &build_arrow},
+    {"plus", &build_plus},
     {"gear", &build_gear},
+    {"oilk", &build_oilk},
 };
 
 // generateMTSDF 已经把距离经 DistanceMapping 归一化到 [0,1]（0.5 = 边界）。
@@ -220,8 +246,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    // 未使用的 cell 填成「外部」（RGB=1、A=1），这样误采样也不会画出黑色。
     std::vector<unsigned char> atlas(
-        static_cast<std::size_t>(atlas_size) * atlas_size * 4, 0);
+        static_cast<std::size_t>(atlas_size) * atlas_size * 4, 255);
     msdfgen::Bitmap<float, 4> cell_bitmap(options.cell, options.cell);
 
     // 图形占据 cell 内的可用区域：留出 padding + px_range 的距离余量。
@@ -245,15 +272,46 @@ int main(int argc, char** argv)
         // translate 在缩放**之前**生效（shape 坐标系），所以要传像素偏移 / scale。
         const msdfgen::Vector2 translation(center / scale, center / scale);
         const msdfgen::Projection projection(msdfgen::Vector2(scale, scale), translation);
-        // 距离以 shape 坐标计：把像素范围的 px_range 换算回 shape 单位。
+        // 距离在 shape 空间计算，range 也要用 shape 单位（像素范围 / 缩放）。
         const double shape_range = options.range / scale;
         msdfgen::generateMTSDF(cell_bitmap, shape, projection, shape_range);
 
-        // 轮廓方向的约定在不同版本/输入下不一致：用中心像素自检一次。
-        // 中心应落在形状内部（A < 0.5）；否则把轮廓反向再烘一次。
-        if (cell_bitmap(options.cell / 2, options.cell / 2)[3] > 0.5f) {
+        // 轮廓方向约定在不同版本/输入下不一致，烘完再自检。
+        // 方向自检：四角应在外部，且内部像素占比要合理（不空不满）。
+        // 不能用「中心在内」：像 chevron 这种开口形状，cell 中心恰好落在
+        // 开口的内侧（外部），会被误判为方向反了。
+        // 四角 + 占比对凸/凹/开口形状都成立，对圆环也成立。
+        const auto direction_ok = [&]() {
+            const int e = options.cell - 1;
+            const float corners[4] = {cell_bitmap(2, 2)[3], cell_bitmap(e - 2, 2)[3],
+                                      cell_bitmap(2, e - 2)[3], cell_bitmap(e - 2, e - 2)[3]};
+            const bool corners_outside = corners[0] > 0.5f && corners[1] > 0.5f &&
+                                         corners[2] > 0.5f && corners[3] > 0.5f;
+
+            int interior = 0;
+            const int total = options.cell * options.cell;
+            for (int y = 0; y < options.cell; ++y) {
+                for (int x = 0; x < options.cell; ++x) {
+                    if (cell_bitmap(x, y)[3] < 0.5f) ++interior;
+                }
+            }
+            const double ratio = static_cast<double>(interior) / static_cast<double>(total);
+            const bool fill_ok = ratio > 0.01 && ratio < 0.99;
+
+            if (std::getenv("MTSDF_DEBUG")) {
+                std::fprintf(stderr, "  diag corners=[%.2f %.2f %.2f %.2f] fill=%.1f%%\n",
+                             corners[0], corners[1], corners[2], corners[3], ratio * 100.0);
+            }
+            return corners_outside && fill_ok;
+        };
+        if (!direction_ok()) {
             for (msdfgen::Contour& contour : shape.contours) contour.reverse();
             msdfgen::generateMTSDF(cell_bitmap, shape, projection, shape_range);
+            if (!direction_ok()) {
+                std::fprintf(stderr, "%s: contour direction is inconsistent\n",
+                             kIcons[index].name);
+                return 1;
+            }
         }
         if (std::getenv("MTSDF_DEBUG")) {
             double bl = 0.0, bb = 0.0, br = 0.0, bt = 0.0;
@@ -320,6 +378,9 @@ int main(int argc, char** argv)
          << "  \"size\": " << atlas_size << ",\n"
          << "  \"cell\": " << options.cell << ",\n"
          << "  \"padding\": " << options.padding << ",\n"
+         // margin = padding + px_range：cell 边缘到内容的空环。渲染时 UV 必须
+         // 跳过它（见 SdfAtlas::icon_uv），否则图标会比目标尺寸小一圈。
+         << "  \"margin\": " << static_cast<int>(margin) << ",\n"
          << "  \"px_range\": " << options.range << ",\n"
          << "  \"icons\": [\n";
     for (std::size_t i = 0; i < json_icons.size(); ++i) {

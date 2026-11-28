@@ -3,6 +3,7 @@
   "size": 512,
   "cell": 96,
   "padding": 8,
+  "margin": 14,
   "px_range": 6,
   "icons": [
     {"name": "rounded_rect", "col": 0, "row": 0},
@@ -10,6 +11,7 @@
     {"name": "play", "col": 2, "row": 0},
     {"name": "chevron", "col": 3, "row": 0},
     {"name": "arrow", "col": 4, "row": 0},
-    {"name": "gear", "col": 0, "row": 1}
+    {"name": "plus", "col": 0, "row": 1},
+    {"name": "gear", "col": 1, "row": 1}
   ]
 }

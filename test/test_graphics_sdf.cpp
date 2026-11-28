@@ -197,21 +197,19 @@ void test_sdf_ring_submission()
     assert(empty.batches().empty());
 }
 
-// 9) 顶点数与 DPI 无关：SDF 不需要按像素比重新细分（fringe 需要）。
-void test_sdf_vertex_count_is_dpi_independent()
+// 9) 顶点数与缩放/DPI 无关：SDF 只提交一个 quad，AA 在 fragment 里。
+void test_sdf_vertex_count_is_scale_independent()
 {
     const glm::vec4 rect{0.0f, 0.0f, 200.0f, 60.0f};
-    std::size_t counts[3] = {0, 0, 0};
-    int index = 0;
-    for (const float ratio : {1.0f, 2.0f, 3.0f}) {
+    const float radii[] = {2.0f, 12.0f, 30.0f, 1000.0f};
+    for (const float radius : radii) {
         DrawList list;
         list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
-        list.set_pixel_ratio(ratio);
-        xel::graphics::append_rounded_rect(list, rect, 12.0f, {1.0f, 1.0f, 1.0f, 1.0f});
-        for (const auto& batch : list.batches()) counts[index] += batch.vertices.size();
-        ++index;
+        xel::graphics::append_rounded_rect(list, rect, radius, {1.0f, 1.0f, 1.0f, 1.0f});
+        std::size_t vertices = 0;
+        for (const auto& batch : list.batches()) vertices += batch.vertices.size();
+        assert(vertices == 4);
     }
-    assert(counts[0] == 4 && counts[1] == 4 && counts[2] == 4);
 }
 
 // 10) 内阴影：四层 SDF 叠叠，每层 1 个 quad。
@@ -242,7 +240,7 @@ int main()
     test_mixed_kinds_share_one_batch();
     test_sdf_rect_submission();
     test_sdf_ring_submission();
-    test_sdf_vertex_count_is_dpi_independent();
+    test_sdf_vertex_count_is_scale_independent();
     test_inset_shadow_uses_sdf();
     std::cout << "graphics sdf vertex tests passed\n";
     return 0;

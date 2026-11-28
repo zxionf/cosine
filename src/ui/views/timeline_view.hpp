@@ -7,6 +7,7 @@
 #include "anim/timeline.hpp"
 #include "events/event.hpp"
 #include "graphics/box.hpp"
+#include "graphics/font_atlas.hpp"
 #include "graphics/rectangle.hpp"
 
 #include <algorithm>

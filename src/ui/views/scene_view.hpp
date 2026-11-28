@@ -3,6 +3,7 @@
 #include "ui/node/widget.hpp"
 #include "anim/scene.hpp"
 #include "graphics/box.hpp"
+#include "graphics/font_atlas.hpp"
 #include "graphics/rectangle.hpp"
 #include "graphics/sprite.hpp"
 

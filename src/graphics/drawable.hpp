@@ -161,19 +161,6 @@ public:
     std::vector<DrawBatch>& batches() { return batches_; }
     const std::vector<DrawBatch>& batches() const { return batches_; }
 
-    // ── 顶点级抗锯齿（fringe）的上下文 ────────────────────────────
-    //
-    // 后端在 append_to 之前注入：逻辑坐标 → framebuffer 像素比。
-    // 圆角/描边的 1px 渐变边带与圆弧细分都按它换算，所以换 DPI 不需要改调用点。
-    //
-    // skip_outer_fringe：填充已经铺到外沿时，描边不要再向外扩 1px，
-    // 否则两个 fringe 带重叠，半透明时会多出一圈提亮。
-    void set_pixel_ratio(float ratio) { pixel_ratio_ = ratio > 0.0f ? ratio : 1.0f; }
-    float pixel_ratio() const { return pixel_ratio_; }
-
-    void set_skip_outer_fringe(bool skip) { skip_outer_fringe_ = skip; }
-    bool skip_outer_fringe() const { return skip_outer_fringe_; }
-
 private:
     static glm::vec4 intersect(glm::vec4 a, glm::vec4 b)
     {
@@ -191,8 +178,6 @@ private:
     bool needs_new_batch_ = true;
     float opacity_ = 1.0f;
     std::vector<float> opacity_stack_;
-    float pixel_ratio_ = 1.0f;
-    bool skip_outer_fringe_ = false;
 };
 
 class Drawable

@@ -836,8 +836,6 @@ void Renderer::update_uniform_buffer()
 void Renderer::draw(const graphics::Drawable& d)
 {
     draw_list_.set_texture(d.texture_slot());
-    // 顶点级 AA（fringe）需要知道逻辑像素 → 物理像素的比：图元在 append_to 里读它。
-    draw_list_.set_pixel_ratio(ui_scale_);
     d.append_to(draw_list_);
 }
 
@@ -1207,7 +1205,6 @@ std::vector<unsigned char> Renderer::render_offscreen(const graphics::Drawable& 
     draw_list_.clear();
     reset_scissor();
     draw_list_.set_texture(drawable.texture_slot());
-    draw_list_.set_pixel_ratio(ui_scale);
     drawable.append_to(draw_list_);
 
     update_font_atlas_texture();

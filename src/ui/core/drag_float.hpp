@@ -5,6 +5,7 @@
 #include "ui/node/widget.hpp"
 #include "events/event.hpp"
 #include "graphics/box.hpp"
+#include "graphics/font_atlas.hpp"
 
 #include <algorithm>
 #include <cmath>

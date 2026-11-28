@@ -42,7 +42,7 @@ Geometry stats(const graphics::DrawList& list)
 }
 
 // 所有顶点必须落在给定矩形内（浮点容差），索引必须合法。
-// margin：圆角的抗锯齿边带（fringe）按设计会向外扩 1 物理像素，属于预期。
+// margin 由调用方给：SDF 图元的顶点就是 quad 四角，一般不需要额外容差。
 void assert_inside(const graphics::DrawList& list, glm::vec4 rect, float margin = 0.0f)
 {
     const float slack = margin + 0.01f;
@@ -175,7 +175,7 @@ void test_rounded_rect_geometry()
         const auto g = stats(list);
         assert(g.vertices == 4);
         assert(g.indices == 6);
-        assert_inside(list, bounds, 1.45f);
+        assert_inside(list, bounds);
     }
 
     // 圆角路径：解析 SDF 只提交一个 quad（4 顶点 / 6 索引），AA 在 fragment 里。
@@ -186,7 +186,7 @@ void test_rounded_rect_geometry()
         const auto g = stats(list);
         assert(g.vertices == 4);
         assert(g.indices == 6);
-        assert_inside(list, bounds, 1.45f);
+        assert_inside(list, bounds);
     }
 
     // 半径 clamp 到短边一半：越界半径与大半径结果一致。
@@ -201,7 +201,7 @@ void test_rounded_rect_geometry()
 
         assert(stats(a).vertices == stats(b).vertices);
         assert(stats(a).indices == stats(b).indices);
-        assert_inside(b, bounds, 1.45f);
+        assert_inside(b, bounds);
     }
 
     // 尺寸为 0 或完全透明时不产生任何几何。
@@ -226,7 +226,7 @@ void test_rounded_ring_geometry()
         const auto g = stats(list);
         assert(g.vertices == 4);
         assert(g.indices == 6);
-        assert_inside(list, bounds, 1.45f);
+        assert_inside(list, bounds);
     }
 
     // 圆角环：仍是 1 个 quad，厚度不为 0。
@@ -237,7 +237,7 @@ void test_rounded_ring_geometry()
         const auto g = stats(list);
         assert(g.vertices == 4);
         assert(g.indices % 3 == 0);
-        assert_inside(list, bounds, 1.45f);
+        assert_inside(list, bounds);
     }
 
     // 厚度为 0 或透明时不绘制。
@@ -255,7 +255,7 @@ void test_rounded_ring_geometry()
         list.set_full_clip({0.0f, 0.0f, 1000.0f, 1000.0f});
         graphics::append_inset_shadow(list, bounds, 8.0f, 6.0f, {0.0f, 0.0f, 0.0f, 0.12f});
         assert(stats(list).vertices > 0);
-        assert_inside(list, bounds, 1.45f);
+        assert_inside(list, bounds);
     }
 }
 
@@ -343,7 +343,7 @@ void test_focus_policy_matrix()
             } else {
                 assert(stats(list).vertices == 16);
                 assert(stats(list).indices == 24);
-                assert_inside(list, bounds, 1.45f);
+                assert_inside(list, bounds);
             }
         }
     }
@@ -404,7 +404,7 @@ void test_focus_visibility()
     button_ptr->append_focus_ring(border_list, control_bounds, 0.0f);
     assert(stats(border_list).vertices == 16);
     assert(stats(border_list).indices == 24);
-    assert_inside(border_list, control_bounds, 1.45f);
+    assert_inside(border_list, control_bounds);
 
     // Always：鼠标点击聚焦也显示边框，不要求先切到键盘模式。
     const auto button_bounds = button_ptr->bounds();

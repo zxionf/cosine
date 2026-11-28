@@ -1,6 +1,7 @@
 #include "demo.hpp"
 #include "sections/sections.hpp"
 
+#include "backend/asset_path.hpp"
 #include "ui/composites/menu_bar.hpp"
 #include "ui/composites/scroll_panel.hpp"
 #include "ui/containers/panel.hpp"
@@ -38,6 +39,8 @@ const std::vector<Section>& registry()
          &sections::build_overlays},
         {"media", "媒体与时间", "Image 占位与纹理、PreviewRuler 拖动定位、颜色色板。",
          &sections::build_media},
+        {"icons", "图标（MTSDF）", "同一份距离场图集在 16~64px 下的清晰度，以及无图集时的降级。",
+         &sections::build_icons},
     };
     return kSections;
 }
@@ -131,9 +134,23 @@ void gap(ui::Widget& parent, float height)
 
 
 // ── Demo ──────────────────────────────────────────────────────────
-Demo::Demo(ui::UIRoot& root, std::function<void(float)> set_ui_scale)
-: root_{&root}, set_ui_scale_(std::move(set_ui_scale))
+Demo::Demo(ui::UIRoot& root, std::function<void(float)> set_ui_scale, AtlasUploadFn upload_atlas)
+: root_{&root}, set_ui_scale_(std::move(set_ui_scale)), upload_atlas_(std::move(upload_atlas))
 {
+    // MTSDF 图集：缺失时只影响图标分区（画占位方块），不影响其它页面。
+    {
+        const auto png = xel::backend::asset_path("sdf/ui_icons.png");
+        const auto json = xel::backend::asset_path("sdf/ui_icons.json");
+        std::string error;
+        if (!sdf_atlas_.load(png.string(), json.string(), &error)) {
+            std::fprintf(stderr, "ui_demo: MTSDF atlas not loaded (%s)\n", error.c_str());
+        }
+    }
+    // 上传必须在构建页面之前：图标构造时就拿 slot，不靠事后回填。
+    if (upload_atlas_ && sdf_atlas_.valid()) {
+        sdf_slot_ = upload_atlas_(sdf_atlas_);
+    }
+
     build_shell();
     apply_theme();
 
@@ -439,8 +456,9 @@ void Demo::update(float /*dt*/, const graphics::FrameStats& stats, ui::Widget* h
 }
 
 // ── 工厂 ──────────────────────────────────────────────────────────
-std::unique_ptr<Demo> create(ui::UIRoot& root, std::function<void(float)> set_ui_scale)
+std::unique_ptr<Demo> create(ui::UIRoot& root, std::function<void(float)> set_ui_scale,
+                             AtlasUploadFn upload_atlas)
 {
-    return std::make_unique<Demo>(root, std::move(set_ui_scale));
+    return std::make_unique<Demo>(root, std::move(set_ui_scale), std::move(upload_atlas));
 }
 } // namespace demo

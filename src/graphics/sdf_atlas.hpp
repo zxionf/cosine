@@ -30,8 +30,8 @@ public:
     // 失败时返回 false 并写入 error；成功后 pixels() 是 width*height*4 的 RGBA8。
     bool load(const std::string& png_path, const std::string& json_path, std::string* error = nullptr);
     // 测试用：直接给像素与元数据（跳过文件 IO）。
-    bool adopt(int width, int height, int cell, float px_range, std::vector<unsigned char> rgba,
-               std::vector<Icon> icons);
+    bool adopt(int width, int height, int cell, int margin, float px_range,
+               std::vector<unsigned char> rgba, std::vector<Icon> icons);
 
     bool valid() const { return width_ > 0 && height_ > 0 && cell_ > 0; }
     int width() const { return width_; }
@@ -39,6 +39,9 @@ public:
     int cell() const { return cell_; }
     // 图集烘焙时的距离范围（像素）；描边/发光需要它，AA 本身不需要。
     float px_range() const { return px_range_; }
+    // cell 边缘到内容的空环宽度（像素，= padding + px_range）。
+    // icon_uv() 已把它排除，所以按目标尺寸画出的图标不会被空环压小。
+    int margin() const { return margin_; }
     uint64_t revision() const { return revision_; }
     const std::vector<unsigned char>& pixels() const { return pixels_; }
     const std::vector<Icon>& icons() const { return icons_; }
@@ -54,6 +57,7 @@ private:
     int width_ = 0;
     int height_ = 0;
     int cell_ = 0;
+    int margin_ = 0;
     float px_range_ = 0.0f;
     std::vector<unsigned char> pixels_;
     std::vector<Icon> icons_;

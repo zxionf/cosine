@@ -106,11 +106,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(freetype)
 
+# stb 是单头库，用固定 commit。注意：**不能**同时给 GIT_SHALLOW TRUE，
+# 因为浅克隆拿不到任意提交（FetchContent 会报 "Failed to checkout tag"）。
 FetchContent_Declare(
     stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
     GIT_TAG 003501f6d7a8668ce8b6d875e34dd97ad0d5d5b5
-    GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(stb)
 set(STB_INCLUDE_DIR ${stb_SOURCE_DIR} CACHE INTERNAL "stb include dir")

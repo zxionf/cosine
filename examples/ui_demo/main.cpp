@@ -7,6 +7,7 @@
 
 #include "xel_application.hpp"
 
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
@@ -17,8 +18,21 @@ int main()
         xel::Application app{{1360, 880, "XEL UI Demo"}};
 
         // 展示台接管整棵 UI 树；缩放开关需要 Application 才能生效，所以注入回调。
-        auto demo = demo::create(app.ui().root(),
-                                 [&app](float scale) { app.set_ui_scale(scale); });
+        // MTSDF 图标图集占最后一个图片槽（不与业务图片抢号）。
+        // 上传回调在 Demo 构造期间调用，所以首个分区里的图标一开始就有 slot。
+        const int icon_slot = static_cast<int>(xel::graphics::kMaxImageSlots) - 1;
+        auto demo = demo::create(
+            app.ui().root(), [&app](float scale) { app.set_ui_scale(scale); },
+            [&app, icon_slot](xel::graphics::SdfAtlas& atlas) -> int {
+                const bool ok = app.renderer().upload_texture(
+                    static_cast<std::uint32_t>(icon_slot), atlas.width(), atlas.height(),
+                    atlas.pixels().data());
+                if (!ok) {
+                    std::cerr << "ui_demo: failed to upload the MTSDF atlas\n";
+                    return -1;
+                }
+                return icon_slot;
+            });
 
         // 离屏导出：定格一帧后写 PNG（用于文档截图与回归对比）。
         if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {

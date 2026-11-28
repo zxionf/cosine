@@ -21,4 +21,5 @@ void build_containers(Demo& demo, ui::Vbox& column);
 void build_data(Demo& demo, ui::Vbox& column);
 void build_overlays(Demo& demo, ui::Vbox& column);
 void build_media(Demo& demo, ui::Vbox& column);
+void build_icons(Demo& demo, ui::Vbox& column);
 } // namespace demo::sections
