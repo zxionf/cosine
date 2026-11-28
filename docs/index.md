@@ -10,7 +10,7 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 3. `plan_archive.md` — 已完成阶段的计划原文归档
 4. `project_format.md` — `.cosine` 项目文件格式
 5. `examples.md` — 示例用途、按键、环境变量
-6. `ui_architecture.md` — UI 层架构
+6. `.design/uml/` — UI 层架构图（PlantUML，一图一文件）
 7. 按需深入具体主题（见下表）
 
 ## 文档地图
@@ -19,9 +19,8 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 |---|---|
 | `index.md` | 本页：入口与索引 |
 | `todo.md` | 待办：欠账（R/D）、暂停池、风险、未决问题、有意不做的决策 |
-| `ui_architecture.md` | UI 层架构：三层节点、布局契约、层级排序、模态、缩放、生命周期、契约断言 |
+| `../.design/uml/` | UI 层架构图：包依赖、`Node`、控件分类、层叠、布局流水线、事件派发、模态、主题（PlantUML） |
 | `ui_theme_tokens.md` | 主题令牌 ↔ 样式角色对照表（12 个角色） |
-| `todo-ui.md` | UI 层改造进度与剩余批次（R / Q 表） |
 | `examples.md` | 示例用途、按键、环境变量（含 `ui_lab` 实验室） |
 | `ci.md` | 构建命令、sanitizer、冒烟、测试分层与质量门、远端 CI 现状 |
 | `dependencies.md` | 第三方依赖、版本锁定、升级方式 |

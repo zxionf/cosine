@@ -172,6 +172,24 @@ void test_style_does_not_depend_on_widgets()
     }
 }
 
+// D6：UI 层不得依赖平台后端。
+// 视图尺寸与光标由 app 通过 UISystem::set_viewport / UiHost 注入，
+// 否则会出现「ui 高层直接吃 backend 低层」的反向依赖。
+void test_ui_does_not_depend_on_backend()
+{
+    const std::vector<std::string> exts{".hpp", ".cpp"};
+    const int hits = count_occurrences(ui_root(), "#include \"backend/", exts);
+    check(hits == 0, "D6: src/ui does not include backend/*",
+          "hits=" + std::to_string(hits));
+
+    // ui/system 也不得认识具体控件（调度器只认识 Node）。
+    const int concrete = count_occurrences(ui_root() / "system", "#include \"ui/composites/", exts)
+        + count_occurrences(ui_root() / "system", "#include \"ui/views/", exts)
+        + count_occurrences(ui_root() / "system", "#include \"ui/containers/", exts);
+    check(concrete == 0, "D6: ui/system does not include concrete widgets",
+          "hits=" + std::to_string(concrete));
+}
+
 // D5（UI-54/R8）：旧路径已彻底清除——src/ui 根目录不再有头文件，也没有转发头。
 // 保留这条断言是因为：一旦有人为了“方便”再建一个旧路径转发头，它会立即红。
 void test_shims_are_gone()
@@ -355,6 +373,7 @@ int main()
 {
     test_geometry_does_not_depend_on_nodes();
     test_style_does_not_depend_on_widgets();
+    test_ui_does_not_depend_on_backend();
     test_shims_are_gone();
     test_lower_layers_do_not_include_upper_layers();
     test_tree_storage_is_private();

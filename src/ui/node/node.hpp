@@ -5,6 +5,7 @@
 #include "ui/geom/align.hpp"
 #include "ui/geom/layout_metrics.hpp"
 #include "ui/geom/rect.hpp"
+#include "ui/input/cursor.hpp"
 #include "ui/input/interaction.hpp"
 #include "ui/layout/layout_params.hpp" // Display / LayoutParams
 #include "ui/layout/measure_cache.hpp"
@@ -210,6 +211,13 @@ public:
     void set_hovered(bool hovered) { input.hovered = hovered; }
     bool is_focused() const { return input.focused; }
     void set_focused(bool focused) { input.focused = focused; }
+    // 指针在此处时的光标形状：默认不改（Arrow）。
+    // UISystem 沿命中链由深到浅取第一个非 Arrow 的结果，所以它不需要认识任何具体控件。
+    virtual CursorShape cursor_at(glm::vec2 pos) const
+    {
+        (void)pos;
+        return CursorShape::Arrow;
+    }
     // 焦点可见性由 FocusPolicy 决定（实现与焦点环绘制在 node.cpp）。
     bool focus_visible() const;
     void append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const;

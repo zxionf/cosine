@@ -112,5 +112,7 @@ note bottom of Node
   Interaction 是交互状态的唯一所有者，Semantics 只读它
   Drawable 不占体积：无数据成员，单继承共用 Node 的 vptr
   （实测 sizeof(Node) = 416 B、sizeof(Drawable) = 8 B）
+  --
+  虚函数 38 个：17 事件钩子 + 1 光标钩子（cursor_at）+ 其余布局/语义/层叠钩子
 end note
 @enduml

@@ -41,14 +41,33 @@ xel::event::Modifier map_mods(int mods)
     if ((mods & GLFW_MOD_SUPER) != 0)   result = result | xel::event::Modifier::Super;
     return result;
 }
+
+// UI 光标概念 → 平台窗口光标（唯一的映射点，backend 不认识 ui）。
+xel::backend::Window::Cursor to_window_cursor(xel::ui::CursorShape shape)
+{
+    using Cursor = xel::backend::Window::Cursor;
+    switch (shape) {
+        case xel::ui::CursorShape::ResizeEW:   return Cursor::ResizeEW;
+        case xel::ui::CursorShape::ResizeNS:   return Cursor::ResizeNS;
+        case xel::ui::CursorShape::ResizeNWSE: return Cursor::ResizeNWSE;
+        case xel::ui::CursorShape::ResizeNESW: return Cursor::ResizeNESW;
+        case xel::ui::CursorShape::Arrow:      break;
+    }
+    return Cursor::Arrow;
+}
 } // namespace
 
 namespace xel
 {
 Application::Application(int window_w, int window_h, const std::string& title)
-: window_{window_w, window_h, title}, vulkan_context_{window_}, swap_chain_{vulkan_context_, window_}, renderer_{vulkan_context_, swap_chain_}, uisys{window_}
+: window_{window_w, window_h, title}, vulkan_context_{window_}, swap_chain_{vulkan_context_, window_}, renderer_{vulkan_context_, swap_chain_}, uisys{std::make_unique<ui::UIRoot>(0.0f, 0.0f, 0.0f, 0.0f)}
 {
     uisys.root()->context()->font_atlas = &renderer_.font_atlas();
+
+    // 视图尺寸与光标都由这里推给 UI：UISystem 不认识 backend::Window。
+    const auto extent = window_.get_extent();
+    uisys.set_viewport({static_cast<float>(extent.width), static_cast<float>(extent.height)});
+    uisys.bind_host({[this](ui::CursorShape shape) { window_.set_cursor(to_window_cursor(shape)); }});
 
     glfwSetWindowUserPointer(window_.get_glfw_window(), this);
 
@@ -86,6 +105,7 @@ void Application::framebuffer_resize_callback(GLFWwindow* window, int width, int
 {
     auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     app->window_.set_framebuffer_size(width, height);
+    app->uisys.set_viewport({static_cast<float>(width), static_cast<float>(height)});
 }
 
 void Application::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)

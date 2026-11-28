@@ -35,5 +35,9 @@ note right of SYS
   焦点：set_focus / focus_next 走 tab_order → 树序
   焦点可见性：FocusPolicy(Keyboard/Always/Never) × InputMode
   悬垂防护：Target{widget, alive_token(weak_ptr<const bool>)}
+  --
+  光标：pointer_owner_at（命中链最深优先）
+  → Node::cursor_at() → UiHost.set_cursor → 平台
+  UISystem 不认识任何具体控件，也不 include backend/*
 end note
 @enduml

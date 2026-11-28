@@ -1,6 +1,4 @@
 #include "ui/system/ui_system.hpp"
-#include "backend/window.hpp"
-#include "ui/composites/window.hpp"
 #include "ui/style/theme.hpp"
 
 #include <algorithm>
@@ -51,18 +49,20 @@ bool tree_contains(const xel::ui::Node* widget, const xel::ui::Node* target)
 
 namespace xel::ui
 {
-UISystem::UISystem(backend::Window& window) : window_{&window}
-{
-    root_ = std::make_unique<UIRoot>(0, 0, 0, 0);
-    install_focus_hooks();
-}
-
 UISystem::UISystem(std::unique_ptr<UIRoot> root) : root_{std::move(root)}
 {
     if (root_) {
         root_->mark_layout_dirty();
         install_focus_hooks();
     }
+}
+
+void UISystem::set_viewport(glm::vec2 framebuffer_size)
+{
+    if (framebuffer_size.x <= 0.0f || framebuffer_size.y <= 0.0f) return;
+    if (framebuffer_size == viewport_ && !scale_dirty_) return;
+    viewport_ = framebuffer_size;
+    viewport_dirty_ = true;
 }
 
 void UISystem::install_focus_hooks()
@@ -127,19 +127,16 @@ void UISystem::tick(float dt)
     update_long_press();
 
     bool resized = false;
-    if (window_) {
-        const auto extent = window_->get_extent();
-        resized = extent.width != last_width_ || extent.height != last_height_ || scale_dirty_;
-        if (resized) {
-            scale_dirty_ = false;
-            last_width_ = extent.width;
-            last_height_ = extent.height;
+    if (viewport_dirty_ || scale_dirty_) {
+        // 物理 extent → 逻辑尺寸；投影与输入按同一比例换算。
+        // 尺寸变化只在 tick 里落地：dispatch 回调里改 root 会在事件派发中途重排。
+        viewport_dirty_ = false;
+        scale_dirty_ = false;
+        if (viewport_.x > 0.0f && viewport_.y > 0.0f) {
             root_->set_pos(0, 0);
-            // 物理 extent → 逻辑尺寸；投影与输入按同一比例换算。
-            const float logical_w = static_cast<float>(extent.width) / ui_scale_;
-            const float logical_h = static_cast<float>(extent.height) / ui_scale_;
-            root_->set_size(logical_w, logical_h);
+            root_->set_size(viewport_ / ui_scale_);
             root_->mark_layout_dirty();
+            resized = true;
         }
     }
 
@@ -310,46 +307,21 @@ void UISystem::focus_next(bool backwards)
     set_focus(tabbable[index].widget);
 }
 
-Window* UISystem::find_resize_target(Widget* widget, glm::vec2 pos) const
+Widget* UISystem::pointer_owner_at(glm::vec2 pos) const
 {
-    if (!widget || !widget->visible()) return nullptr;
-    // 子控件（z 降序，顶层优先）先于自身，与命中顺序一致。
-    const auto order = widget->layer_paint_order();
-    for (auto it = order.rbegin(); it != order.rend(); ++it) {
-        if (Window* w = find_resize_target(*it, pos)) return w;
-    }
-    if (auto* win = dynamic_cast<Window*>(widget)) {
-        if (win->resize_edges_at(pos) != 0) return win;
+    // 最深命中优先：被遮住的控件不参与，边缘热区自然先于内容子控件。
+    const auto path = hit_path(root_.get(), pos);
+    for (auto it = path.rbegin(); it != path.rend(); ++it) {
+        if ((*it)->cursor_at(pos) != CursorShape::Arrow) return *it;
     }
     return nullptr;
 }
 
 void UISystem::update_resize_cursor(glm::vec2 pos)
 {
-    if (!window_) return;
-    Window* w = find_resize_target(root_.get(), pos);
-    if (w == nullptr) {
-        window_->set_cursor(backend::Window::Cursor::Arrow);
-        return;
-    }
-    const int edges = w->resize_edges_at(pos);
-    const bool h = (edges & Window::kEdgeLeft) != 0 || (edges & Window::kEdgeRight) != 0;
-    const bool v = (edges & Window::kEdgeTop) != 0 || (edges & Window::kEdgeBottom) != 0;
-    backend::Window::Cursor cursor;
-    if (h && v) {
-        // 对角线：左上↔右下（NWSE）或 右上↔左下（NESW）。
-        const bool nwse = ((edges & Window::kEdgeLeft) != 0 && (edges & Window::kEdgeTop) != 0)
-                        || ((edges & Window::kEdgeRight) != 0 && (edges & Window::kEdgeBottom) != 0);
-        cursor = nwse ? backend::Window::Cursor::ResizeNWSE
-                      : backend::Window::Cursor::ResizeNESW;
-    } else if (h) {
-        cursor = backend::Window::Cursor::ResizeEW;
-    } else if (v) {
-        cursor = backend::Window::Cursor::ResizeNS;
-    } else {
-        cursor = backend::Window::Cursor::Arrow;
-    }
-    window_->set_cursor(cursor);
+    if (!host_.set_cursor) return;
+    const Widget* owner = pointer_owner_at(pos);
+    host_.set_cursor(owner ? owner->cursor_at(pos) : CursorShape::Arrow);
 }
 
 void UISystem::dispatch_mouse_move(const event::InputEvent& event)
@@ -396,12 +368,12 @@ void UISystem::dispatch_mouse_button(const event::InputEvent& event)
     // 让控件能读到 Shift/Ctrl：鼠标回调本身不携带修饰键。
     if (auto* ctx = context()) ctx->modifiers = event.mods;
 
-    // resize 热区优先：鼠标在窗口边缘 resize_margin 内时，目标直接是窗口而非内容子控件。
+    // 光标自报者优先：窗口 resize 边这类控件声明「这里的指针交互归我」。
     const auto path = hit_path(root_.get(), event.mouse_pos);
     Widget* target = path.empty() ? nullptr : path.back();
     if (is_down) {
-        if (Widget* resize = find_resize_target(root_.get(), event.mouse_pos)) {
-            target = resize;
+        if (Widget* owner = pointer_owner_at(event.mouse_pos)) {
+            target = owner;
         }
     }
 

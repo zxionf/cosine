@@ -238,6 +238,22 @@ public:
         return edges;
     }
 
+    // 指针在 resize 热区时自报对应光标：UISystem 只负责把它转发给宿主。
+    CursorShape cursor_at(glm::vec2 pos) const override
+    {
+        const int edges = resize_edges_at(pos);
+        if (edges == 0) return CursorShape::Arrow;
+        const bool h = (edges & kEdgeLeft) != 0 || (edges & kEdgeRight) != 0;
+        const bool v = (edges & kEdgeTop) != 0 || (edges & kEdgeBottom) != 0;
+        if (h && v) {
+            // 对角线：左上↔右下（NWSE）或 右上↔左下（NESW）。
+            const bool nwse = ((edges & kEdgeLeft) != 0 && (edges & kEdgeTop) != 0)
+                           || ((edges & kEdgeRight) != 0 && (edges & kEdgeBottom) != 0);
+            return nwse ? CursorShape::ResizeNWSE : CursorShape::ResizeNESW;
+        }
+        return h ? CursorShape::ResizeEW : CursorShape::ResizeNS;
+    }
+
     // 关闭前确认：返回 false 则拒绝关闭（Esc 与点叉都走这里）。
     void set_on_close(std::function<bool()> handler) { on_close_ = std::move(handler); }
     // 请求关闭：on_close_ 拒绝时返回 false 且不吞事件。

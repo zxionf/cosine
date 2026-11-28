@@ -1,22 +1,18 @@
 #pragma once
 
 #include "ui/system/root.hpp"
+#include "ui/system/ui_host.hpp"
 #include "events/event.hpp"
-
-namespace xel::backend { class Window; }
 
 #include <memory>
 #include <vector>
 
 namespace xel::ui
 {
-class Window;
-
 class UISystem
 {
 public:
-    explicit UISystem(backend::Window& window);
-    // 无窗口构造，供纯逻辑测试使用；root 的 global bounds 由构造函数按尺寸设置。
+    // 唯一构造：root 自带尺寸（无窗口的纯逻辑测试、离屏导出都用这个）。
     explicit UISystem(std::unique_ptr<UIRoot> root);
     ~UISystem();
 
@@ -26,6 +22,13 @@ public:
     void tick();
     // dt 单位为秒；UI 状态过渡用它推进。无参重载按 1/60s 处理，保持旧调用点不变。
     void tick(float dt);
+
+    // 宿主注入：只提供光标回调（空则不改光标）。
+    void bind_host(UiHost host) { host_ = std::move(host); }
+
+    // 视图尺寸（framebuffer 物理像素）：由宿主在初始化与 resize 时推入。
+    // 不在 dispatch 回调里立即改 root：置脏，下一 tick 统一应用（与布局时机一致）。
+    void set_viewport(glm::vec2 framebuffer_size);
 
     // DPI：root 以逻辑像素为尺寸，物理 extent 除以该比例。默认 1.0，行为不变。
     void set_ui_scale(float scale)
@@ -101,9 +104,9 @@ private:
     void dispatch_key(const event::InputEvent& event);
     void dispatch_char(const event::InputEvent& event);
 
-    // resize 热区扫描：沿树（z 降序）找第一个 resize 边命中的 Window。
-    Window* find_resize_target(Widget* widget, glm::vec2 pos) const;
-    // 根据当前指针位置切换窗口 resize 光标（无热区时恢复箭头）。
+    // resize 热区扫描：沿命中链（最深优先）找第一个自报非 Arrow 光标的控件。
+    // 控件自己覆写 Node::cursor_at()，UISystem 不再认识任何具体控件类型。
+    Widget* pointer_owner_at(glm::vec2 pos) const;
     void update_resize_cursor(glm::vec2 pos);
 
     std::unique_ptr<UIRoot> root_;
@@ -144,11 +147,11 @@ private:
     ClickRecord last_click_;
     PressRecord press_;
 
-    uint32_t last_width_ = 0;
+    // 视图尺寸与 DPI：viewport_ 是 framebuffer 物理像素，root 用逻辑像素。
+    glm::vec2 viewport_{0.0f, 0.0f};
+    bool viewport_dirty_ = false;
     float ui_scale_ = 1.0f;
     bool scale_dirty_ = false;
-    uint32_t last_height_ = 0;
-
-    backend::Window* window_ = nullptr;
+    UiHost host_;
 };
 } // namespace xel::ui

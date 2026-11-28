@@ -10,6 +10,11 @@ participant "Node（容器）" as C
 participant "Node（子项）" as L
 
 == 失效传播 ==
+WIN -> SYS : set_viewport(物理像素)
+note right
+  宿主（app）在初始化与 resize 回调里推入；
+  UISystem 不再轮询 backend::Window。
+end note
 SYS -> ROOT : set_size / set_theme / 控件 setter
 ROOT -> ROOT : mark_layout_dirty()
 note right
