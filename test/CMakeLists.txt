@@ -66,6 +66,10 @@ target_compile_definitions(test_ui_architecture PRIVATE COSINE_SOURCE_DIR="${PRO
 add_executable(test_ui_runtime test_ui_runtime.cpp)
 target_link_libraries(test_ui_runtime PRIVATE cosine_ui)
 
+# DisplayScale 是纯值对象：只链接 cosine_text（无 ui、无 backend）。
+add_executable(test_display_scale test_display_scale.cpp)
+target_link_libraries(test_display_scale PRIVATE cosine_text)
+
 add_executable(test_ui_transition test_ui_transition.cpp)
 target_link_libraries(test_ui_transition PRIVATE cosine_ui)
 
@@ -336,6 +340,7 @@ set(COSINE_TEST_TARGETS
     test_ui_semantics
     test_ui_architecture
     test_ui_runtime
+    test_display_scale
     test_ui_transition
     test_ui_style_snapshot
     test_ui_pointer_events
@@ -465,6 +470,7 @@ add_test(NAME ui_measure_cache COMMAND test_ui_measure_cache)
 add_test(NAME ui_semantics COMMAND test_ui_semantics)
 add_test(NAME ui_architecture COMMAND test_ui_architecture)
 add_test(NAME ui_runtime COMMAND test_ui_runtime)
+add_test(NAME display_scale COMMAND test_display_scale)
 add_test(NAME ui_transition COMMAND test_ui_transition)
 add_test(NAME ui_style_snapshot COMMAND test_ui_style_snapshot)
 add_test(NAME ui_pointer_events COMMAND test_ui_pointer_events)

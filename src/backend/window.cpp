@@ -245,11 +245,6 @@ void Window::set_framebuffer_size(int width, int height)
     viewport_pending_ = width > 0 && height > 0;
 }
 
-void Window::set_ui_scale(float scale)
-{
-    ui_scale_ = scale > 0.0f ? scale : 1.0f;
-}
-
 VkExtent2D Window::get_extent() const
 {
     int width = 0;
@@ -275,12 +270,6 @@ std::pair<float, float> Window::framebuffer_scale() const
         static_cast<float>(framebuffer.width) / static_cast<float>(window.width),
         static_cast<float>(framebuffer.height) / static_cast<float>(window.height)
     };
-}
-
-glm::vec2 Window::window_to_logical(glm::vec2 window_pos) const
-{
-    const auto [sx, sy] = framebuffer_scale();
-    return {window_pos.x * sx / ui_scale_, window_pos.y * sy / ui_scale_};
 }
 
 glm::vec2 Window::cursor_pos()

@@ -1,5 +1,7 @@
 #include "xel_application.hpp"
 
+#include "graphics/display_scale.hpp"
+
 #include <algorithm>
 #include <cstdlib>
 #include <string>
@@ -20,6 +22,16 @@ xel::backend::Window::Cursor to_window_cursor(xel::ui::CursorShape shape)
     }
     return Cursor::Arrow;
 }
+
+// COSINE_UI_SCALE：auto 跟随真实 DPR，或指定倍数；未设置时为 1.0。
+float ui_scale_from_env(float dpr)
+{
+    const char* env = std::getenv("COSINE_UI_SCALE");
+    if (env == nullptr) return 1.0f;
+    const std::string_view value{env};
+    if (value == "auto") return std::max(1.0f, dpr);
+    return std::stof(std::string{value});
+}
 } // namespace
 
 namespace xel
@@ -27,7 +39,7 @@ namespace xel
 Application::Application(int window_w, int window_h, const std::string& title)
 : window_{window_w, window_h, title}, vulkan_context_{window_}, swap_chain_{vulkan_context_, window_}, renderer_{vulkan_context_, swap_chain_}, ui{}
 {
-    // 宿主能力一次性注入：字体图集、系统光标、渲染缩放（DPI 扇出）。
+    // 宿主能力一次性注入：字体图集、系统光标、渲染缩放。
     ui.set_font_atlas(&renderer_.font_atlas());
     ui.bind_host({
         [this](ui::CursorShape shape) { window_.set_cursor(to_window_cursor(shape)); },
@@ -35,34 +47,42 @@ Application::Application(int window_w, int window_h, const std::string& title)
         [this](float scale) { renderer_.set_scale(scale); },
     });
 
-    // 视图尺寸也由宿主推：UISystem 不认识 backend::Window。
+    // 显示比例的**唯一事实**：dpr 来自窗口，ui_scale 来自环境；之后每次变化都走
+    // apply_display_scale() 一次扇出（输入换算 / root 尺寸 / 渲染 / 字体）。
+    const float dpr = window_.framebuffer_scale().first;
+    scale_ = graphics::DisplayScale::make(dpr, ui_scale_from_env(dpr));
+
     const auto extent = window_.get_extent();
     ui.set_viewport({static_cast<float>(extent.width), static_cast<float>(extent.height)});
-
-    // DPI 缩放：COSINE_UI_SCALE=auto 跟随真实 DPR（framebuffer/window），
-    // 或指定 0.25–4 的倍数；默认 1.0，与旧行为一致。
-    float scale = 1.0f;
-    if (const char* env = std::getenv("COSINE_UI_SCALE")) {
-        const std::string_view value{env};
-        scale = value == "auto"
-            ? std::max(1.0f, window_.framebuffer_scale().first)
-            : std::stof(std::string{value});
-    }
-    set_ui_scale(scale);
+    apply_display_scale();
 }
 
 void Application::set_ui_scale(float scale)
 {
-    ui.set_ui_scale(scale);
-    // 输入换算与 DPI 同源：窗口坐标 → 逻辑坐标的那一步也在这里收口。
-    window_.set_ui_scale(ui.ui_scale());
+    scale_ = scale_.with_ui_scale(scale);
+    apply_display_scale();
+}
+
+void Application::apply_display_scale()
+{
+    // 一份显示比例，三处下发：UI 运行时（root 尺寸 + 渲染/字体）、输入翻译、渲染后端。
+    ui.set_display_scale(scale_);
+    window_.set_display_scale(scale_);
 }
 
 void Application::poll_events()
 {
     window_.poll();
     for (const auto& event : window_.events()) ui.dispatch(event);
-    if (window_.has_pending_viewport()) ui.set_viewport(window_.take_viewport());
+    if (window_.has_pending_viewport()) {
+        ui.set_viewport(window_.take_viewport());
+        // 跨屏移动/系统缩放下 dpr 会变：视图变化时重取一次，仍只在这一处更新。
+        const float dpr = window_.framebuffer_scale().first;
+        if (dpr > 0.0f && dpr != scale_.dpr) {
+            scale_ = scale_.with_dpr(dpr);
+            apply_display_scale();
+        }
+    }
 }
 
 Application::~Application() = default;

@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 
 #include "events/event_source.hpp"
+#include "graphics/display_scale.hpp"
 
 #include <glm/glm.hpp>
 
@@ -46,13 +47,16 @@ public:
     GLFWwindow* get_glfw_window() { return window_; }
 
     // ── 坐标换算 ─────────────────────────────────────────────────
-    // ui_scale（逻辑像素 = 物理像素 ÷ ui_scale）由宿主注入；输入事件在翻译时
-    // 就用它把窗口坐标直接换成 UI 逻辑坐标，消费者不再各自换算。
-    void set_ui_scale(float scale);
-    float ui_scale() const { return ui_scale_; }
+    // 显示比例（dpr + ui_scale）由宿主注入：输入事件在翻译时就换成 UI 逻辑坐标，
+    // 消费者不再各自换算，也不会在每个事件里重算 framebuffer/window 尺寸。
+    void set_display_scale(const graphics::DisplayScale& scale) { scale_ = scale; }
+    const graphics::DisplayScale& display_scale() const { return scale_; }
 
-    // 窗口坐标 → UI 逻辑坐标（÷DPR 已抵消，再 ÷ui_scale）。
-    glm::vec2 window_to_logical(glm::vec2 window_pos) const;
+    // 窗口坐标 → UI 逻辑坐标（= 窗口坐标 × dpr ÷ ui_scale）。
+    glm::vec2 window_to_logical(glm::vec2 window_pos) const
+    {
+        return scale_.window_to_logical(window_pos);
+    }
     // 当前光标位置的窗口坐标。
     glm::vec2 cursor_pos();
 
@@ -95,7 +99,7 @@ private:
     int width_;
     int height_;
     bool framebuffer_resized_ = false;
-    float ui_scale_ = 1.0f;
+    graphics::DisplayScale scale_{};
 
     std::string window_name_;
     GLFWwindow* window_ = nullptr;

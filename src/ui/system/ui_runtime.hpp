@@ -3,6 +3,8 @@
 #include "ui/system/ui_host.hpp"
 #include "ui/system/ui_system.hpp"
 
+#include "graphics/display_scale.hpp"
+
 #include <functional>
 #include <memory>
 
@@ -17,7 +19,8 @@ namespace xel::ui
 //
 // 它只做三件事，且全部与平台无关：
 //   1. 拥有 root + UISystem（UI 树 / 布局 / 事件 / 焦点）
-//   2. DPI 单一入口：set_ui_scale() 一次扇出到「逻辑像素换算 + 渲染缩放 + 字体栅格化」
+//   2. DPI 单一入口：set_display_scale() 把宿主给的 DisplayScale 转发到
+//      「root 逻辑尺寸 + 渲染缩放 + 字体栅格化」
 //   3. 宿主能力注入（光标 / 渲染缩放 / 字体图集），本类不 include 任何 backend 或渲染头
 //
 // 无窗口、无 GPU 的场景（逻辑测试、离屏导出）可以直接用：
@@ -49,12 +52,16 @@ public:
     // ── 视图与 DPI ────────────────────────────────────────────────
     // framebuffer 物理像素 → root 逻辑尺寸：由宿主在初始化与 resize 时推入。
     void set_viewport(glm::vec2 framebuffer_size);
-    // DPI 唯一入口：同一比例同步到 UISystem / 渲染器 / 字体栅格化。
-    void set_ui_scale(float scale);
-    float ui_scale() const { return ui_scale_; }
+    // 显示比例（dpr + ui_scale）是宿主注入的唯一事实：本类把它转发到
+    // UISystem（root 尺寸）与渲染后端（投影 / 字体栅格化）。
+    void set_display_scale(const graphics::DisplayScale& scale);
+    // 便利入口：只改用户比例（dpr 不变）。
+    void set_ui_scale(float scale) { set_display_scale(scale_.with_ui_scale(scale)); }
+    const graphics::DisplayScale& display_scale() const { return scale_; }
+    float ui_scale() const { return scale_.ui_scale; }
     glm::vec2 framebuffer_to_logical(glm::vec2 framebuffer_pos) const
     {
-        return framebuffer_pos / ui_scale_;
+        return scale_.framebuffer_to_logical(framebuffer_pos);
     }
     glm::vec2 pointer_pos() const { return uisys_.pointer_pos(); }
 
@@ -85,6 +92,6 @@ private:
     UISystem uisys_;
     Hooks hooks_;
     graphics::FontAtlas* font_atlas_ = nullptr;
-    float ui_scale_ = 1.0f;
+    graphics::DisplayScale scale_{};
 };
 } // namespace xel::ui

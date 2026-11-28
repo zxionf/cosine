@@ -1,16 +1,9 @@
 #include "ui/system/ui_runtime.hpp"
 
-#include <algorithm>
+#include "graphics/display_scale.hpp"
 
 namespace xel::ui
 {
-namespace
-{
-// DPI 合法区间：0.25×–4×。太小会让命中区域不可用，太大没有实际意义。
-constexpr float kMinUiScale = 0.25f;
-constexpr float kMaxUiScale = 4.0f;
-} // namespace
-
 UiRuntime::UiRuntime() : UiRuntime(std::make_unique<UIRoot>(0.0f, 0.0f, 0.0f, 0.0f)) {}
 
 UiRuntime::UiRuntime(std::unique_ptr<UIRoot> root) : uisys_{std::move(root)} {}
@@ -37,18 +30,18 @@ void UiRuntime::set_viewport(glm::vec2 framebuffer_size)
     uisys_.set_viewport(framebuffer_size);
 }
 
-void UiRuntime::set_ui_scale(float scale)
+void UiRuntime::set_display_scale(const graphics::DisplayScale& scale)
 {
-    const float value = std::clamp(scale, kMinUiScale, kMaxUiScale);
-    if (value == ui_scale_) return;
-    ui_scale_ = value;
-    uisys_.set_ui_scale(value); // 逻辑像素换算（root 尺寸 / 输入映射）
-    apply_render_scale();       // 渲染缩放 + 字体栅格化
+    // 夹取口径已在 DisplayScale::make 里做（单一实现）；这里只判是否需要重新扇出。
+    if (scale == scale_) return;
+    scale_ = scale;
+    uisys_.set_ui_scale(scale_.ui_scale); // 逻辑像素换算（root 尺寸 / 输入映射）
+    apply_render_scale();                 // 渲染缩放 + 字体栅格化
 }
 
 void UiRuntime::apply_render_scale()
 {
-    if (hooks_.set_render_scale) hooks_.set_render_scale(ui_scale_);
+    if (hooks_.set_render_scale) hooks_.set_render_scale(scale_.ui_scale);
 }
 
 void UiRuntime::tick()

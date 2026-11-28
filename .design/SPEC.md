@@ -116,7 +116,9 @@ assets/         shader、字体
 
 ### 缩放与坐标
 
-- 输入是**事件源**模型：`backend::Window` 实现 `events::EventSource`（`poll / events / take_viewport / quit / key_down`）。GLFW 回调在 Window 内部翻译成 `InputEvent`，**坐标在翻译期就换成 UI 逻辑坐标**（窗口坐标 ×DR​P ÷ ui_scale），消费者只需 `for (e : src.events()) ui.dispatch(e)`。
+- `graphics::DisplayScale`（`graphics/display_scale.hpp`）是 DPI 的**唯一事实**：`dpr`（framebuffer/window）+ `ui_scale`（COSINE_UI_SCALE），提供 `framebuffer_to_logical`（尺寸）与 `window_to_logical`（输入）两条换算；夹取口径（[0.25, 4]，非法值回退 1.0）只在这里定义一次（`test_display_scale` 锁住）。
+- `Application` 持有唯一一份 `DisplayScale`：初始化与视图变化时重取 dpr → `apply_display_scale()` 一次扇出到 `UiRuntime`（root 尺寸 + 渲染/字体）与 `backend::Window`（输入翻译）。
+- 输入是**事件源**模型：`backend::Window` 实现 `events::EventSource`（`poll / events / take_viewport / quit / key_down`）。GLFW 回调在 Window 内部翻译成 `InputEvent`，**坐标在翻译期就换成 UI 逻辑坐标**（窗口坐标 ×DR​P ÷ ui_scale，用注入的 `DisplayScale`，不再每个事件重算 framebuffer/window 尺寸），消费者只需 `for (e : src.events()) ui.dispatch(e)`。
   - 主循环用 `Application::poll_events()` 替代平台轮询；GLFW 只出现在 `src/backend/`（`test_ui_architecture` 的 D7 断言）。
   - 调试用按住查询走 `EventSource::key_down(KeyCode)`，不再让 demo 自己调平台 API。
 - 视图尺寸是**推模型**：`Window` 在 framebuffer 回调里登记，`Application::poll_events()` 转给 `UiRuntime::set_viewport(物理像素)`，tick 时统一落地为 root 逻辑尺寸（不在 dispatch 中途重排）。`ui` 不 include `backend/*`（D6 断言）。

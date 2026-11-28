@@ -93,8 +93,10 @@ void test_scale_single_source()
 
     runtime.set_ui_scale(100.0f); // 超界：夹到 4×
     check(near(runtime.ui_scale(), 4.0f), "ui scale is clamped to [0.25, 4]");
-    runtime.set_ui_scale(0.0f);   // 非正数：夹到 0.25×
-    check(near(runtime.ui_scale(), 0.25f), "non-positive scale falls back to the minimum");
+    runtime.set_ui_scale(0.0f);   // 非法值：回退到默认 1×，而不是缩到最小
+    check(near(runtime.ui_scale(), 1.0f), "invalid (non-positive) scale falls back to 1.0");
+    runtime.set_ui_scale(0.1f);   // 正值但过小：夹到 0.25×
+    check(near(runtime.ui_scale(), 0.25f), "too-small scale clamps to the minimum");
 }
 
 // 3) 树与事件：UiRuntime 是唯一入口，不需要窗口就能命中与派发。
