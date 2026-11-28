@@ -217,7 +217,6 @@ int run()
 
         auto* root = app.uisys.root();
         root->set_size(kW, kH);
-        root->set_global_bounds({{0.0f, 0.0f}, {kW, kH}});
         root->mark_layout_dirty();
         root->layout();
         root->clear_layout_dirty();

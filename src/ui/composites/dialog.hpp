@@ -211,10 +211,10 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         // 遮罩绘制与 Scrim 共用一份实现。
-        append_scrim(list, global_, 0.55f);
+        append_scrim(list, bounds_, 0.55f);
 
         if (!dialog_) return;
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip({bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y});
         dialog_->append_to(list);
         list.pop_clip();
     }

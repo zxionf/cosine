@@ -64,7 +64,7 @@ public:
         constexpr float kFallbackMax = 0.9f;
         const float handle = handle_size();
         const bool horizontal = orientation_ == Orientation::Horizontal;
-        const float extent = horizontal ? global_.size.x : global_.size.y;
+        const float extent = horizontal ? bounds_.size.x : bounds_.size.y;
         const float usable = extent - handle;
         if (usable <= 0.0f || child_count() < 2) return {kFallbackMin, kFallbackMax};
 
@@ -149,13 +149,13 @@ public:
         const auto& t = ui_theme();
         const float handle = handle_size();
         const float x = orientation_ == Orientation::Horizontal
-            ? global_.pos.x + resolved_first()
-            : global_.pos.x;
+            ? bounds_.pos.x + resolved_first()
+            : bounds_.pos.x;
         const float y = orientation_ == Orientation::Horizontal
-            ? global_.pos.y
-            : global_.pos.y + resolved_first();
-        const float w = orientation_ == Orientation::Horizontal ? handle : global_.size.x;
-        const float h = orientation_ == Orientation::Horizontal ? global_.size.y : handle;
+            ? bounds_.pos.y
+            : bounds_.pos.y + resolved_first();
+        const float w = orientation_ == Orientation::Horizontal ? handle : bounds_.size.x;
+        const float h = orientation_ == Orientation::Horizontal ? bounds_.size.y : handle;
 
         // 手柄：常态用主题的 splitter 色（比面板亮一档），hover 提亮，拖动变强调色。
         // 状态统一由 Interaction 推导（拖 = Pressed，hover = Hovered）。
@@ -196,11 +196,11 @@ public:
         if (!input.dragging) return false;
         const float handle = handle_size();
         if (orientation_ == Orientation::Horizontal) {
-            const float usable = std::max(1.0f, global_.size.x - handle);
-            apply_drag(pos.x - global_.pos.x, usable);
+            const float usable = std::max(1.0f, bounds_.size.x - handle);
+            apply_drag(pos.x - bounds_.pos.x, usable);
         } else {
-            const float usable = std::max(1.0f, global_.size.y - handle);
-            apply_drag(pos.y - global_.pos.y, usable);
+            const float usable = std::max(1.0f, bounds_.size.y - handle);
+            apply_drag(pos.y - bounds_.pos.y, usable);
         }
         return true;
     }
@@ -234,7 +234,7 @@ private:
     {
         const float handle = handle_size();
         const bool horizontal = orientation_ == Orientation::Horizontal;
-        const float extent = horizontal ? global_.size.x : global_.size.y;
+        const float extent = horizontal ? bounds_.size.x : bounds_.size.y;
         const float usable = std::max(0.0f, extent - handle);
         if (fixed_first_ >= 0.0f) return std::min(fixed_first_, usable);
         if (fixed_second_ >= 0.0f) return std::max(0.0f, usable - fixed_second_);
@@ -260,13 +260,13 @@ private:
         const float handle = handle_size();
         if (orientation_ == Orientation::Horizontal) {
             return {
-                {global_.pos.x + resolved_first(), global_.pos.y},
-                {handle, global_.size.y}
+                {bounds_.pos.x + resolved_first(), bounds_.pos.y},
+                {handle, bounds_.size.y}
             };
         }
         return {
-            {global_.pos.x, global_.pos.y + resolved_first()},
-            {global_.size.x, handle}
+            {bounds_.pos.x, bounds_.pos.y + resolved_first()},
+            {bounds_.size.x, handle}
         };
     }
 

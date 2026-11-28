@@ -40,7 +40,7 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         // hover 统一走 Interaction + Surface:Hovered。
         const BoxStyle style = visual_style(StyleRole::Surface,
                                             Interaction{true, is_hovered(), false}.state());

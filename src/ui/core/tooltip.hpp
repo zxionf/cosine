@@ -86,14 +86,14 @@ public:
         const auto& t = ui_theme();
         const BoxStyle style = t.style(StyleRole::Tooltip, ControlState::Normal);
         const float radius = corner_radius(style.radius);
-        const Rect bounds{global_.pos, global_.size};
+        const Rect bounds{bounds_.pos, bounds_.size};
 
         // 半透明底的圆角几何用九宫格不重叠切分，不会叠出亮边。
         paint::box(list, bounds, style, radius);
 
         if (auto* atlas = font_atlas()) {
             // 字号来自 Tooltip 角色的 Small 档。
-            atlas->append_text(list, global_.pos.x + t.padding, global_.pos.y + t.padding * 0.5f,
+            atlas->append_text(list, bounds_.pos.x + t.padding, bounds_.pos.y + t.padding * 0.5f,
                                style.text_size, text_, style.text);
         }
     }

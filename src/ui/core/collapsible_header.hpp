@@ -71,13 +71,13 @@ public:
     {
         const auto& t = ui_theme();
         const float hh = height();
-        graphics::Rectangle{global_.pos.x, global_.pos.y, global_.size.x, hh, t.panel_bg}
+        graphics::Rectangle{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, hh, t.panel_bg}
             .append_to(list);
 
         // 折叠三角：展开朝下（V），收起朝右（>）。
-        const float cy = global_.pos.y + hh * 0.5f;
+        const float cy = bounds_.pos.y + hh * 0.5f;
         const glm::vec4 glyph = t.text_muted;
-        const float ax = global_.pos.x + 8.0f;
+        const float ax = bounds_.pos.x + 8.0f;
         if (expanded_) {
             graphics::Line{ax, cy - 4.0f, ax + 7.0f, cy + 3.0f, 1.5f, glyph}.append_to(list);
             graphics::Line{ax + 7.0f, cy + 3.0f, ax + 14.0f, cy - 4.0f, 1.5f, glyph}
@@ -88,9 +88,9 @@ public:
         }
 
         if (auto* atlas = font_atlas()) {
-            const float text_y = atlas->centered_text_y(t.text_size, global_.pos.y, hh);
+            const float text_y = atlas->centered_text_y(t.text_size, bounds_.pos.y, hh);
             // 标题文字色取 Surface 角色。
-            atlas->append_text(list, global_.pos.x + 30.0f, text_y, t.text_size, title_,
+            atlas->append_text(list, bounds_.pos.x + 30.0f, text_y, t.text_size, title_,
                                t.style(StyleRole::Surface, ControlState::Normal).text);
         }
     }

@@ -45,7 +45,7 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const BoxStyle style = visual_style(StyleRole::Control, input.state());
-        const Rect bounds{global_.pos, global_.size};
+        const Rect bounds{bounds_.pos, bounds_.size};
         const float radius = corner_radius(style.radius);
         paint::box_with_focus(list, bounds, style, radius, ui_theme(), focus_visible());
         paint::centered_text(list, bounds, label_, style, font_atlas());

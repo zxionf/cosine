@@ -13,7 +13,7 @@
 └────────────────────────────┬─────────────────────────────────────┘
                              │ append_to(DrawList&)
 ┌─ ui/ ──────────────────────▼─────────────────────────────────────┐
-│ Node          身份 / 几何 / 树 / 可见性 / 层叠 / 语义钩子 (112 B)│
+│ Node          身份 / 几何 / 树 / 可见性 / 层叠 / 语义钩子 (96 B) │
 │ LayoutNode    布局契约 + 4 部件 + 测量缓存 + 脏标记 (432 B)      │
 │               (= `Widget` 别名，400+ 调用点不变)                 │
 │               默认 measure = clamp(preferred)，默认 arrange 只写几何│
@@ -57,7 +57,7 @@ core/ containers/ composites/ views/                       控件（按复杂度
 **两层节点**（设计 §4.1–§4.3）
 
 ```text
-Drawable → Node(112 B, 17 虚)
+Drawable → Node(96 B, 17 虚)
              └─ LayoutNode(432 B, 22 虚)  ← `Widget` 是它的别名
 ```
 
@@ -231,7 +231,7 @@ void Widget::set_preferred_size(glm::vec2);   // 构造期确定的自然尺寸
 glm::vec2 Widget::preferred_size() const;
 ```
 
-- `measure()` 读 `preferred_size()`，**不读** `local_.size` / `local_bounds().size`
+- `measure()` 读 `preferred_size()`，**不读** `bounds_.size` / `local_bounds().size`
   （后者是最近一次 `arrange` 的结果，被 stretch 放大后会让控件"只涨不缩"）
 - 已迁移：`ColorRect` / `Image` / `ListView` / `SceneView` / `TimelineView` / `TreeView` /
   `CollapsibleHeader`（按标题文字算）/ `DropdownList` / `MenuPopup`
@@ -297,16 +297,15 @@ bool content_overflows() const;                  // 内容 > 自身尺寸（任�
 - `Splitter`：`measure()` 由两个 pane 的自然尺寸推导；`arrange()` 分配像素时两侧都
   尊重子项 `min_size`（`clamp_first`），不再把一侧挤成负数
 
-**几何写入**（UI-31 起）：
+**几何写入**（UI-31 起，2026-11-28 收敛为单一存储）：
 
 ```cpp
-void Widget::set_geometry(Rect slot);      // arrange 内使用：local_ 与 global_ 同时写，不触发脏标记
-void Widget::set_arranged_pos(glm::vec2);  // 固定尺寸控件（Window）只跟随位置
+void Widget::set_geometry(Rect slot);   // arrange 内使用：写唯一几何字段，不触发脏标记
 ```
 
-- `arrange()` 只能用这两个入口写几何；`set_pos/set_size` 代表"外部请求"，会把树标脏
-- 容器必须写 `local_`：`local_bounds()` 等于最近一次 `arrange` 的 slot（DebugWindow/调试面板依赖这一点）
-- 容器 `layout()` 用 `global_` 重排，不能用 `local_`（陈旧值会把布局打回构造尺寸）
+- 几何只有一份（`bounds_`，全局坐标）；`local_bounds()` 是 `global_bounds()` 的历史别名
+- `arrange()` 只能用 `set_geometry` 写几何；`set_pos/set_size` 代表“外部请求”，会把树标脏
+- 容器 `layout()` 用最近一次 `arrange` 的几何重排，不能用构造期的陈旧值（会把布局打回构造尺寸）
 - 整轮 `UIRoot::layout()` 处于 `LayoutPassScope` 内：期间的脏标记只失效缓存、不重新标脏，
   所以布局结束时 `root->layout_dirty()` 为 false
 
@@ -347,7 +346,7 @@ Tab collect_focusable：layer 升序 → z 升序
 ### 4. 视口：`viewport_height()`
 
 ```cpp
-virtual float viewport_height() const { return global_.size.y; }
+virtual float viewport_height() const { return bounds_.size.y; }
 ```
 
 - `ListView` 的滚动/可见行计算都用它
@@ -410,7 +409,7 @@ w.set_layout_spec(spec);                      // 回写，等价于逐个 setter
 
 - **基线对齐**：`Align::baseline_align()` + `LayoutNode::baseline_offset_for(h)`（Label/Button 覆写）。
   Hbox 先算行内最大基线，再把子项对齐到它；Settings 的“标签 + 控件”行已改用基线对齐
-- **布局调试面板**：DebugWindow 第三页 `Layout`（只读）：global/local bounds、临时 measure、
+- **布局调试面板**：DebugWindow 第三页 `Layout`（只读）：bounds、临时 measure、
   display/overflow/overflows/dirty/measure_valid/baseline、content extent、clips、LayoutSpec。
   验证钩子：`COSINE_DEBUG_TAB=layout`、`COSINE_DEBUG_TARGET=1`
 - `content_extent` 只由 `arrange` 写入（子项包围盒），是 `content_overflows()` 的诊断依据；
@@ -422,12 +421,12 @@ w.set_layout_spec(spec);                      // 回写，等价于逐个 setter
 
 ```
 add/adopt  ──▶  measure(constraints)  ──▶  arrange(slot)  ──▶  layout()  ──▶  append_to(DrawList&)
-                 缓存结果                设置 global_         排子项        写顶点
+                 缓存结果                设置 bounds_         排子项        写顶点
 ```
 
 - `mark_layout_dirty()` 沿 `parent` 链传播到 `UIRoot`；已通知过的子树会早退（UI-34，见上方“measure 缓存与脏标记”）
 - `UISystem::tick()` 里：`if (resized || root_->layout_dirty()) { root_->layout(); root_->clear_layout_dirty(); }`
-- **自由画布语义**：`UIRoot::layout_child` 用 `child.x()/y()`（即 `local_.pos`）定位，所以绝对定位控件必须**同时**维护 `local_.pos` 与 `absolute_pos`
+- **自由画布语义**：`UIRoot::layout_child` 用 `child.x()/y()`（即几何字段）定位，所以绝对定位控件必须**同时**维护位置（`set_pos`）与 `absolute_pos`
 - `fills_parent()` 的控件跳过协商，直接 `arrange({parent.pos, parent.size})`
 - **顶层 Fill 模式**（UI-35）：同时声明 `fill_x && fill_y` 的顶层子项（应用的 `chrome_` Vbox）直接铺满 root；
   窗口/弹层等其余子项仍走自由画布定位。editor 因此不再手写 `place(...)`，也不再在 tick 里比较 `last_w_/last_h_`。

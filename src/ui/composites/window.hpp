@@ -41,7 +41,7 @@ public:
         set_min_size({ui_theme().window_min_width,
                       kDefaultTitleHeight + ui_theme().window_min_extra_height});
         set_max_size({1.0e6f, 1.0e6f});
-        // 两个坐标系必须同时初始化：UIRoot 的自由画布读 local_.pos，Vbox 读 absolute_pos。
+        // 自由画布坐标必须初始化：UIRoot 读 bounds_.pos，Vbox 读 absolute_pos。
         set_pos(pos);
         set_absolute_pos(pos);
 
@@ -218,10 +218,10 @@ public:
     int resize_edges_at(glm::vec2 pos) const
     {
         if (!resizable_) return 0;
-        const float left = global_.pos.x;
-        const float top = global_.pos.y;
-        const float right = left + global_.size.x;
-        const float bottom = top + global_.size.y;
+        const float left = bounds_.pos.x;
+        const float top = bounds_.pos.y;
+        const float right = left + bounds_.size.x;
+        const float bottom = top + bounds_.size.y;
         const float margin = chrome().resize_margin;
 
         const bool in_left = pos.x >= left && pos.x <= left + margin;
@@ -305,8 +305,7 @@ public:
     {
         // 窗口是固定尺寸控件：只用 slot 定位，不拿 slot.size 覆盖自身尺寸，
         // 否则被放进 Vbox 时会被拉伸。absolute_pos_ 保持「相对父内容区」语义。
-        set_arranged_pos(slot.pos);
-        set_geometry({global_bounds().pos, {width(), height()}});
+        set_geometry({slot.pos, {width(), height()}});
         layout();
     }
 
@@ -322,22 +321,22 @@ public:
         const float title = title_height();
         float footer_h = 0.0f;
         if (footer_ != nullptr && footer_->visible()) {
-            footer_h = footer_->measure({global_.size.x, 0.0f}).y;
+            footer_h = footer_->measure({bounds_.size.x, 0.0f}).y;
         }
         const float body_h = collapsed_ ? 0.0f : std::max(0.0f, height() - title - footer_h);
         body_->set_visible(!collapsed_);
         // 内容边带（默认 0 → 内容贴满窗口）；resize 命中带不参与布局。
         const float ins = content_inset_;
-        const float body_w = footer_ != nullptr ? global_.size.x
-                                                : std::max(0.0f, global_.size.x - ins);
+        const float body_w = footer_ != nullptr ? bounds_.size.x
+                                                : std::max(0.0f, bounds_.size.x - ins);
         // footer 已覆盖底部，body 不再为底部抓取带留空，避免中间 box 与 footer 之间出现缝。
         const float body_ins = footer_ != nullptr ? 0.0f : ins;
-        body_->arrange({{global_.pos.x + body_ins, global_.pos.y + title},
+        body_->arrange({{bounds_.pos.x + body_ins, bounds_.pos.y + title},
                         {body_w - body_ins, std::max(0.0f, body_h - body_ins)}});
         if (footer_ != nullptr) {
             footer_->set_visible(!collapsed_ && visible());
-            footer_->arrange({{global_.pos.x, global_.pos.y + height() - footer_h},
-                              {global_.size.x, footer_h}});
+            footer_->arrange({{bounds_.pos.x, bounds_.pos.y + height() - footer_h},
+                              {bounds_.size.x, footer_h}});
         }
     }
 
@@ -345,7 +344,7 @@ public:
     {
         if (!visible()) return;
         const auto& t = ui_theme();
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         const float radius = corner_radius(t.radius_panel);
         const bool active = mode_ != Mode::None;
 
@@ -520,7 +519,7 @@ public:
         if (mode_ == Mode::Drag) {
             const glm::vec2 next = clamp_position(pos - grab_);
             set_absolute_pos(next);
-            // UIRoot 是自由画布：每帧用 child.x()/y() 重定位，所以 local_.pos 也必须更新，
+            // UIRoot 是自由画布：每帧用 child.x()/y() 重定位，所以几何也必须更新，
             // 否则拖动会被下一帧 layout 撤销。Vbox 下则用 absolute_pos，两者同时保持。
             set_pos(next);
             set_geometry({next, global_bounds().size});
@@ -562,7 +561,7 @@ public:
             set_geometry({next_pos, next_size});
         }
 
-        layout(); // body_ 跟着新的 global_ 重新排
+        layout(); // body_ 跟着新的 bounds_ 重新排
         mark_layout_dirty();
         if (Node* p = parent()) p->mark_layout_dirty();
         return true;
@@ -608,17 +607,17 @@ private:
     Rect close_rect() const
     {
         const Chrome c = chrome();
-        return {{global_.pos.x + global_.size.x - c.inset - c.icon, global_.pos.y + c.inset},
+        return {{bounds_.pos.x + bounds_.size.x - c.inset - c.icon, bounds_.pos.y + c.inset},
                 {c.icon, c.icon}};
     }
     Rect collapse_rect() const
     {
         const Chrome c = chrome();
-        return {{global_.pos.x + c.inset, global_.pos.y + c.inset}, {c.icon, c.icon}};
+        return {{bounds_.pos.x + c.inset, bounds_.pos.y + c.inset}, {c.icon, c.icon}};
     }
     Rect title_rect() const
     {
-        return {{global_.pos.x, global_.pos.y}, {global_.size.x, title_height()}};
+        return {{bounds_.pos.x, bounds_.pos.y}, {bounds_.size.x, title_height()}};
     }
 
     // 关闭叉可见/可命中：标题栏可见且未折叠。绘制与命中共用这一条判据。
@@ -644,7 +643,7 @@ private:
         const glm::vec2 area = parent() != nullptr ? glm::vec2{parent()->width(), parent()->height()}
                                                    : glm::vec2{1280.0f, 800.0f};
         const float max_x = std::max(0.0f, area.x - keep);
-        const float min_x = keep - std::max(keep, global_.size.x);
+        const float min_x = keep - std::max(keep, bounds_.size.x);
         const float max_y = std::max(0.0f, area.y - (title_height() > 0.0f ? title_height() : keep));
         return {std::clamp(pos.x, min_x, max_x), std::clamp(pos.y, 0.0f, max_y)};
     }

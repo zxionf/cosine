@@ -60,8 +60,8 @@ public:
     {
         const auto& t = ui_theme();
         const float box = t.checkbox_size;
-        const float bx = global_.pos.x;
-        const float by = global_.pos.y + (global_.size.y - box) * 0.5f;
+        const float bx = bounds_.pos.x;
+        const float by = bounds_.pos.y + (bounds_.size.y - box) * 0.5f;
         const BoxStyle control = visual_style(StyleRole::Control, input.state());
         const glm::vec4 box_bounds{bx, by, box, box};
         // 单选标记：modern 为圆形（radius_pill 被 clamp 到半宽），classic 为方形。
@@ -91,7 +91,7 @@ public:
         if (auto* atlas = font_atlas()) {
             const glm::vec2 text_size = atlas->measure(label_, control.text_size);
             const float tx = bx + box + t.spacing;
-            const float ty = global_.pos.y + (global_.size.y - text_size.y) * 0.5f;
+            const float ty = bounds_.pos.y + (bounds_.size.y - text_size.y) * 0.5f;
             atlas->append_text(list, tx, ty, control.text_size, label_, control.text);
         }
     }

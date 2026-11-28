@@ -63,24 +63,24 @@ public:
 
     float x_at_time(float seconds) const
     {
-        const float usable = std::max(1.0f, global_.size.x - kPad * 2.0f);
-        if (duration_ <= 0.0f) return global_.pos.x + kPad;
+        const float usable = std::max(1.0f, bounds_.size.x - kPad * 2.0f);
+        if (duration_ <= 0.0f) return bounds_.pos.x + kPad;
         const float ratio = std::clamp(seconds / duration_, 0.0f, 1.0f);
-        return global_.pos.x + kPad + ratio * usable;
+        return bounds_.pos.x + kPad + ratio * usable;
     }
 
     float time_at_x(float x) const
     {
         if (duration_ <= 0.0f) return 0.0f;
-        const float usable = std::max(1.0f, global_.size.x - kPad * 2.0f);
-        const float ratio = (x - global_.pos.x - kPad) / usable;
+        const float usable = std::max(1.0f, bounds_.size.x - kPad * 2.0f);
+        const float ratio = (x - bounds_.pos.x - kPad) / usable;
         return std::clamp(ratio, 0.0f, 1.0f) * duration_;
     }
 
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         const BoxStyle track = t.style(StyleRole::Track, ControlState::Normal);
         graphics::append_rounded_rect(list, bounds, corner_radius(track.radius), track.fill);
         if (track.border_width > 0.0f) {
@@ -95,32 +95,32 @@ public:
         const float small = t.style(StyleRole::Tooltip, ControlState::Normal).text_size;
         const std::string label = std::format("{:.2f} / {:.2f}s", time_, duration_);
         const float label_w = atlas != nullptr ? atlas->measure_width(label, small) : 0.0f;
-        const float label_left = global_.pos.x + global_.size.x - kPad - label_w;
+        const float label_left = bounds_.pos.x + bounds_.size.x - kPad - label_w;
 
         const float step = tick_step();
         for (float seconds = 0.0f; seconds <= duration_ + 1.0e-4f; seconds += step) {
             const float x = x_at_time(seconds);
-            graphics::Rectangle{x, global_.pos.y + global_.size.y - kTickHeight, 1.0f, kTickHeight,
+            graphics::Rectangle{x, bounds_.pos.y + bounds_.size.y - kTickHeight, 1.0f, kTickHeight,
                                 track.border}
                 .append_to(list);
 
             // 与右侧时间文本重叠的刻度文字不画（刻度线照旧），否则叠成一团。
             if (atlas == nullptr || x + 4.0f + label_w > label_left - 8.0f) continue;
-            atlas->append_text(list, x + 4.0f, global_.pos.y + 3.0f, small,
+            atlas->append_text(list, x + 4.0f, bounds_.pos.y + 3.0f, small,
                                std::format("{:.1f}s", seconds), t.text);
         }
 
         const float head = x_at_time(time_);
-        graphics::Rectangle{head - 1.0f, global_.pos.y, 2.0f, global_.size.y, t.accent}
+        graphics::Rectangle{head - 1.0f, bounds_.pos.y, 2.0f, bounds_.size.y, t.accent}
             .append_to(list);
 
         // 当前时间 / 总时长：右侧带底色的标签，遵住下方刻度线不被文字穿插。
         if (atlas != nullptr) {
-            const glm::vec4 pill{label_left - 8.0f, global_.pos.y + 1.0f, label_w + 14.0f,
-                                 global_.size.y - 2.0f};
+            const glm::vec4 pill{label_left - 8.0f, bounds_.pos.y + 1.0f, label_w + 14.0f,
+                                 bounds_.size.y - 2.0f};
             const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
             graphics::append_rounded_rect(list, pill, corner_radius(surface.radius), surface.fill);
-            atlas->append_text(list, label_left, global_.pos.y + 3.0f, small, label, t.text);
+            atlas->append_text(list, label_left, bounds_.pos.y + 3.0f, small, label, t.text);
         }
 
         list.pop_clip();
@@ -141,7 +141,7 @@ private:
     float tick_step() const
     {
         constexpr float kCandidates[] = {0.1f, 0.2f, 0.5f, 1.0f, 2.0f, 5.0f, 10.0f, 30.0f, 60.0f};
-        const float usable = std::max(1.0f, global_.size.x - kPad * 2.0f);
+        const float usable = std::max(1.0f, bounds_.size.x - kPad * 2.0f);
         if (duration_ <= 0.0f) return 1.0f;
         for (float step : kCandidates) {
             if (step / duration_ * usable >= 72.0f) return step;

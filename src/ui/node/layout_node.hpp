@@ -101,7 +101,7 @@ public:
     // 绝对定位（Positioned）：按 (x, y) 相对父内容区定位；容器不计入其尺寸。
     void set_absolute(bool value);
     bool absolute() const { return display() == Display::Positioned; }
-    // 相对偏移与全局位置分离：arrange 会改写 local_.pos（全局）。
+    // 相对偏移与全局位置分离：arrange 会改写 bounds_.pos（全局）。
     void set_absolute_pos(glm::vec2 pos);
     glm::vec2 absolute_pos() const { return layout_.absolute_pos; }
 

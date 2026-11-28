@@ -105,7 +105,7 @@ void test_absolute_no_drift_across_layouts()
     badge->set_absolute_pos({30.0f, 40.0f});
     box.add(std::move(badge));
 
-    // 多帧布局后位置不应漂移（arrange 会改写 local_.pos，absolute_pos 必须保持不变）。
+    // 多帧布局后位置不应漂移（arrange 会改写 bounds_，absolute_pos 必须保持不变）。
     for (int i = 0; i < 4; ++i) {
         box.arrange({{0.0f, 0.0f}, {200.0f, 100.0f}});
     }

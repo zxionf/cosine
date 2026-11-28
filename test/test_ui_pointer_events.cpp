@@ -21,7 +21,7 @@ struct Probe : ui::Widget
     glm::vec2 fixed_origin{0.0f, 0.0f};
 
     glm::vec2 measure(glm::vec2) override { return {200.0f, 60.0f}; }
-    void arrange(ui::Rect) override { global_ = {fixed_origin, {200.0f, 60.0f}}; }
+    void arrange(ui::Rect) override { set_geometry({fixed_origin, {200.0f, 60.0f}}); }
     void append_to(graphics::DrawList&) const override {}
     bool hit_testable() const override { return true; }
     bool focusable() const override { return true; }

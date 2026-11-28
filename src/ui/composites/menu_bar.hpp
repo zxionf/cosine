@@ -117,7 +117,7 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        float x = global_.pos.x;
+        float x = bounds_.pos.x;
         for (std::size_t i = 0; i < titles_.size(); ++i) {
             const float width = title_width(titles_[i]);
             const bool active = static_cast<int>(i) == open_;
@@ -126,20 +126,20 @@ public:
             if (active || hovered) {
                 const BoxStyle style = t.style(StyleRole::MenuItem,
                                                active ? ControlState::Pressed : ControlState::Hovered);
-                graphics::append_rounded_rect(list, {x, global_.pos.y, width, global_.size.y},
+                graphics::append_rounded_rect(list, {x, bounds_.pos.y, width, bounds_.size.y},
                                               corner_radius(style.radius), style.fill);
             }
 
             if (auto* atlas = font_atlas()) {
                 const glm::vec2 size = atlas->measure(titles_[i], t.text_size);
                 atlas->append_text(list, x + (width - size.x) * 0.5f,
-                                   global_.pos.y + (global_.size.y - size.y) * 0.5f,
+                                   bounds_.pos.y + (bounds_.size.y - size.y) * 0.5f,
                                    t.text_size, titles_[i], t.text);
             }
             x += width + t.spacing;
         }
 
-        append_focus_ring(list, {global_.pos.x, global_.pos.y, global_.size.x, global_.size.y}, t.radius_small);
+        append_focus_ring(list, {bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y}, t.radius_small);
     }
 
     bool focusable() const override { return true; }
@@ -278,9 +278,9 @@ private:
 
     int title_index_at(glm::vec2 pos) const
     {
-        if (pos.y < global_.pos.y || pos.y > global_.pos.y + global_.size.y) return -1;
+        if (pos.y < bounds_.pos.y || pos.y > bounds_.pos.y + bounds_.size.y) return -1;
         const auto& t = ui_theme();
-        float x = global_.pos.x;
+        float x = bounds_.pos.x;
         for (std::size_t i = 0; i < titles_.size(); ++i) {
             const float width = title_width(titles_[i]);
             if (pos.x >= x && pos.x <= x + width) return static_cast<int>(i);
@@ -292,7 +292,7 @@ private:
     float title_left(int index) const
     {
         const auto& t = ui_theme();
-        float x = global_.pos.x;
+        float x = bounds_.pos.x;
         for (int i = 0; i < index && i < menu_count(); ++i) {
             x += title_width(titles_[static_cast<std::size_t>(i)]) + t.spacing;
         }
@@ -354,7 +354,7 @@ private:
         if (popups_.empty() || open_ < 0) return;
 
         const float x = title_left(open_);
-        const float y = global_.pos.y + global_.size.y + 2.0f;
+        const float y = bounds_.pos.y + bounds_.size.y + 2.0f;
         popups_[0]->arrange({{x, y}, popups_[0]->local_bounds().size});
 
         auto* root = find_root();

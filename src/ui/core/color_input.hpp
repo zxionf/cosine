@@ -69,7 +69,7 @@ public:
         // 状态映射统一走 Interaction::state()。
         const ControlState state = input.state();
 
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         const BoxStyle style = visual_style(StyleRole::Input, state);
         const float radius = corner_radius(style.radius);
         graphics::append_rounded_rect(list, bounds, radius, style.fill);
@@ -82,8 +82,8 @@ public:
         auto* atlas = font_atlas();
         if (atlas != nullptr && !label_.empty()) {
             const float line = atlas->line_height(t.text_size);
-            atlas->append_text(list, global_.pos.x + pad,
-                               global_.pos.y + (global_.size.y - line) * 0.5f, t.text_size,
+            atlas->append_text(list, bounds_.pos.x + pad,
+                               bounds_.pos.y + (bounds_.size.y - line) * 0.5f, t.text_size,
                                label_, style.text);
         }
 
@@ -102,12 +102,12 @@ public:
         const std::string text = hex();
         if (atlas != nullptr) {
             const float text_width = atlas->measure_width(text, t.text_size);
-            const float right = global_.pos.x + global_.size.x - pad;
+            const float right = bounds_.pos.x + bounds_.size.x - pad;
             const glm::vec4 last_swatch = swatch_rect(palette_.size() - 1);
             if (right - (last_swatch.x + last_swatch.z) >= text_width + pad) {
                 const float line = atlas->line_height(t.text_size);
                 atlas->append_text(list, right - text_width,
-                                   global_.pos.y + (global_.size.y - line) * 0.5f, t.text_size,
+                                   bounds_.pos.y + (bounds_.size.y - line) * 0.5f, t.text_size,
                                    text, style.text);
             }
         }
@@ -194,9 +194,9 @@ private:
     {
         const auto& t = ui_theme();
         const float pad = std::max(4.0f, t.padding * 0.5f);
-        const float swatch = std::max(12.0f, std::round(global_.size.y - pad * 2.0f));
+        const float swatch = std::max(12.0f, std::round(bounds_.size.y - pad * 2.0f));
 
-        float x = global_.pos.x + pad;
+        float x = bounds_.pos.x + pad;
         if (!label_.empty()) {
             if (auto* atlas = font_atlas()) {
                 x += atlas->measure_width(label_, t.text_size) + pad;
@@ -204,7 +204,7 @@ private:
         }
         x += (swatch + pad * 0.5f) * static_cast<float>(index);
 
-        return {std::round(x), std::round(global_.pos.y + pad), swatch, swatch};
+        return {std::round(x), std::round(bounds_.pos.y + pad), swatch, swatch};
     }
 
     int swatch_hit(glm::vec2 pos) const

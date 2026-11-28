@@ -80,7 +80,7 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
 
         const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
         // 时间轴上的标尺/轨道标签属于辅助文字，用 Small 档（与 Tooltip 同口径）。
@@ -99,7 +99,7 @@ public:
         const float duration = timeline_ != nullptr ? timeline_->duration() : 5.0f;
         const BoxStyle track_style = t.style(StyleRole::Track, ControlState::Normal);
 
-        graphics::append_rounded_rect(list, {left, global_.pos.y, area, ruler}, 3.0f,
+        graphics::append_rounded_rect(list, {left, bounds_.pos.y, area, ruler}, 3.0f,
                                       track_style.fill);
 
         auto* atlas = font_atlas();
@@ -108,14 +108,14 @@ public:
             const float x = x_at_time(time);
             if (x < left - 0.5f || x > left + area + 0.5f) continue;
 
-            graphics::Rectangle{x, global_.pos.y + ruler, 1.0f, global_.size.y - ruler,
+            graphics::Rectangle{x, bounds_.pos.y + ruler, 1.0f, bounds_.size.y - ruler,
                                 track_style.border}
                 .append_to(list);
 
             if (atlas != nullptr) {
                 const std::string text = std::format("{:.1f}s", time);
                 // 坐标轴文字用 Small 档（由角色给出）。
-                atlas->append_text(list, x + 4.0f, global_.pos.y + 6.0f, small_size, text,
+                atlas->append_text(list, x + 4.0f, bounds_.pos.y + 6.0f, small_size, text,
                                    t.text);
             }
         }
@@ -124,15 +124,15 @@ public:
             const auto& tracks = timeline_->tracks();
             for (std::size_t i = 0; i < tracks.size(); ++i) {
                 const float row_y =
-                    global_.pos.y + ruler + static_cast<float>(i) * row_height();
-                if (row_y > global_.pos.y + global_.size.y) break;
+                    bounds_.pos.y + ruler + static_cast<float>(i) * row_height();
+                if (row_y > bounds_.pos.y + bounds_.size.y) break;
 
                 const bool selected_by_node =
                     selected_node_ != scene::kInvalidNode && tracks[i].node() == selected_node_;
                 const bool selected_row =
                     selected_by_node || static_cast<int>(i) == selected_track_;
                 if (selected_row) {
-                    graphics::Rectangle{global_.pos.x, row_y, global_.size.x, row_height(),
+                    graphics::Rectangle{bounds_.pos.x, row_y, bounds_.size.x, row_height(),
                                         glm::vec4{t.accent.r, t.accent.g, t.accent.b, 0.08f}}
                         .append_to(list);
                 }
@@ -140,7 +140,7 @@ public:
                 if (atlas != nullptr) {
                     const std::string label = std::format("node {} · prop {}", tracks[i].node(),
                                                           tracks[i].property());
-                    atlas->append_text(list, global_.pos.x + 8.0f, row_y + 2.0f,
+                    atlas->append_text(list, bounds_.pos.x + 8.0f, row_y + 2.0f,
                                        small_size, label, t.text);
                 }
 
@@ -156,8 +156,8 @@ public:
 
         const float head = x_at_time(playhead_);
         if (head >= left - 1.0f && head <= left + area + 1.0f) {
-            graphics::Rectangle{head - 1.0f, global_.pos.y + ruler * 0.5f, 2.0f,
-                                global_.size.y - ruler * 0.5f, t.accent}
+            graphics::Rectangle{head - 1.0f, bounds_.pos.y + ruler * 0.5f, 2.0f,
+                                bounds_.size.y - ruler * 0.5f, t.accent}
                 .append_to(list);
         }
 
@@ -221,7 +221,7 @@ public:
         }
 
         // 标尺区：拖播放头。
-        if (pos.y < global_.pos.y + ruler_height()) {
+        if (pos.y < bounds_.pos.y + ruler_height()) {
             scrubbing_ = true;
             playhead_ = std::clamp(time_at_x(pos.x), 0.0f,
                                    timeline_ != nullptr ? timeline_->duration() : 5.0f);
@@ -415,7 +415,7 @@ private:
 
         const auto& tracks = timeline_->tracks();
         for (std::size_t i = 0; i < tracks.size(); ++i) {
-            const float row_y = global_.pos.y + ruler_height() + static_cast<float>(i) * row_height();
+            const float row_y = bounds_.pos.y + ruler_height() + static_cast<float>(i) * row_height();
             for (const anim::Keyframe& key : tracks[i].keys()) {
                 const float x = x_at_time(key.time);
                 const float y = row_y + row_height() * 0.5f;
@@ -437,8 +437,8 @@ private:
     float ruler_height() const { return 34.0f; }
     float row_height() const { return 24.0f; }
     float label_width() const { return 160.0f; }
-    float track_left() const { return global_.pos.x + label_width(); }
-    float track_area_width() const { return std::max(10.0f, global_.size.x - label_width()); }
+    float track_left() const { return bounds_.pos.x + label_width(); }
+    float track_area_width() const { return std::max(10.0f, bounds_.size.x - label_width()); }
 
     // 轨道区左侧留 8px，避免 0s 的关键帧压住左侧标签。
     float x_at_time(float seconds) const { return track_left() + 8.0f + seconds * pps_; }
@@ -460,7 +460,7 @@ private:
 
         const auto& tracks = timeline_->tracks();
         for (std::size_t i = 0; i < tracks.size(); ++i) {
-            const float row_y = global_.pos.y + ruler_height() + static_cast<float>(i) * row_height();
+            const float row_y = bounds_.pos.y + ruler_height() + static_cast<float>(i) * row_height();
             if (pos.y < row_y || pos.y > row_y + row_height()) continue;
 
             for (const anim::Keyframe& key : tracks[i].keys()) {

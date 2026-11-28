@@ -60,9 +60,7 @@ struct Counted : ui::Widget
     }
     void arrange(ui::Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
     void append_to(graphics::DrawList&) const override {}
 };
@@ -255,7 +253,7 @@ void contract_is_bounded_semantics()
           "is_bounded: [0,1e8) 有界；-1/1e9 无界");
 }
 
-// 13) arrange 写 local_：容器的 local_bounds() 跟随最近一次 slot（UI-31 修）。
+// 13) arrange 写几何：容器的 bounds 跟随最近一次 slot（UI-31 修）。
 void contract_container_local_bounds_follows_slot()
 {
     ui::Vbox box(0.0f, 0.0f, 100.0f, 100.0f);

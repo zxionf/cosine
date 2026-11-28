@@ -120,18 +120,18 @@ void UIRoot::layout_child(Widget& child)
     // 隐藏子项完全不参与布局（仍保留已有几何，重新可见时会被重排）。
     if (child.display() == Widget::Display::Hidden) return;    // 铺满父容器的控件（如模态遮罩）不做测量协商。
     if (child.fills_parent()) {
-        child.arrange({local_.pos, local_.size});
+        child.arrange({bounds_.pos, bounds_.size});
         return;
     }
     // 顶层 Fill 模式：同时声明 fill_x/fill_y 的子项（顶层 Vbox 外壳）直接铺满 root，
     // 其余子项（窗口/弹层）保留原有坐标语义。
     if (child.fill_x() && child.fill_y()) {
-        child.arrange({local_.pos, local_.size});
+        child.arrange({bounds_.pos, bounds_.size});
         return;
     }
-    const glm::vec2 child_size = Widget::measure_child(child, local_.size);
+    const glm::vec2 child_size = Widget::measure_child(child, bounds_.size);
     child.arrange({
-        {local_.pos.x + child.x(), local_.pos.y + child.y()},
+        {bounds_.pos.x + child.x(), bounds_.pos.y + child.y()},
         child_size
     });
 }
@@ -241,7 +241,7 @@ bool UIRoot::is_modal(Widget* window) const
 glm::vec2 UIRoot::measure(glm::vec2 constraints)
 {
     (void)constraints;
-    return local_.size;
+    return bounds_.size;
 }
 
 void UIRoot::arrange(Rect slot)

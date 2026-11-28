@@ -199,27 +199,27 @@ public:
     {
         const auto& t = ui_theme();
 
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
         const float panel_radius = corner_radius(surface.radius);
         graphics::append_rounded_rect(list, bounds, panel_radius, surface.fill);
 
-        list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
-                        std::round(global_.size.x), std::round(global_.size.y)});
+        list.push_clip({std::round(bounds_.pos.x), std::round(bounds_.pos.y),
+                        std::round(bounds_.size.x), std::round(bounds_.size.y)});
 
         const auto& rows = cached_visible_rows();
         const float content = static_cast<float>(rows.size()) * row_height_;
-        const float bar_w = content > global_.size.y ? t.scrollbar_width + 2.0f : 0.0f;
-        const float body_w = std::max(0.0f, global_.size.x - bar_w);
+        const float bar_w = content > bounds_.size.y ? t.scrollbar_width + 2.0f : 0.0f;
+        const float body_w = std::max(0.0f, bounds_.size.x - bar_w);
 
-        list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
-                        std::round(body_w), std::round(global_.size.y)});
+        list.push_clip({std::round(bounds_.pos.x), std::round(bounds_.pos.y),
+                        std::round(body_w), std::round(bounds_.size.y)});
 
         // 行循环统一走 ListView::append_rows（像素对齐、可见窗口、裁剪都在基类）。
-        append_rows(list, Rect{{global_.pos.x, global_.pos.y}, {body_w, global_.size.y}});
+        append_rows(list, Rect{{bounds_.pos.x, bounds_.pos.y}, {body_w, bounds_.size.y}});
         list.pop_clip();
 
-        draw_scrollbar(list, global_.pos.y, viewport_height(), bar_w);
+        draw_scrollbar(list, bounds_.pos.y, viewport_height(), bar_w);
 
         append_focus_ring(list, bounds, panel_radius);
 
@@ -248,7 +248,7 @@ public:
         const auto& row = rows[static_cast<std::size_t>(index)];
         if (row.node && row.node->has_children()) {
             // 箭头区域只切换展开状态，不改变选中。
-            const float arrow_left = global_.pos.x + ui_theme().padding +
+            const float arrow_left = bounds_.pos.x + ui_theme().padding +
                                      static_cast<float>(row.depth) * indent_;
             if (pos.x >= arrow_left && pos.x <= arrow_left + arrow_width()) {
                 toggle(row.path);
@@ -271,7 +271,7 @@ public:
         const auto& row = rows[static_cast<std::size_t>(index)];
         if (!row.node || !row.node->has_children()) return false;
 
-        const float arrow_left = global_.pos.x + ui_theme().padding +
+        const float arrow_left = bounds_.pos.x + ui_theme().padding +
                                  static_cast<float>(row.depth) * indent_;
         if (pos.x >= arrow_left && pos.x <= arrow_left + arrow_width()) return false;
 
@@ -436,9 +436,9 @@ private:
 
     int row_at(glm::vec2 pos) const
     {
-        if (!global_.contains(pos)) return -1;
+        if (!bounds_.contains(pos)) return -1;
         // 统一用 ListView 的 row_at（基于 snapped_offset，与绘制一致）。
-        return ListView::row_at(pos.y, global_.pos.y);
+        return ListView::row_at(pos.y, bounds_.pos.y);
     }
 
     void draw_row(graphics::DrawList& list, std::size_t index, Rect row_rect, bool selected) const override

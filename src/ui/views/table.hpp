@@ -71,7 +71,7 @@ public:
 
     // 选中/行高/滚动均来自 ListView；Table 只额外拥有表头与多列。
     std::size_t item_count() const override { return rows_.size(); }
-    // 视口要去掉表头高度（ListView 默认用 global_.size.y）。
+    // 视口要去掉表头高度（ListView 默认用 bounds_.size.y）。
     float viewport_height() const override { return body_height(); }
     // 单行绘制：斑马纹/选中/悬停背景 + 列循环。行窗口/像素对齐由 ListView::append_rows 负责。
     void draw_row(graphics::DrawList& list, std::size_t index, Rect row, bool selected) const override
@@ -138,7 +138,7 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        // 尺寸由 min/max 决定（构造时固定）；不读 global_，避免依赖 arrange 顺序。
+        // 尺寸由 min/max 决定（构造时固定）；不读 bounds_，避免依赖 arrange 顺序。
         return clamp_size(min_size());
     }
     bool fixed_size() const override { return true; }
@@ -154,51 +154,51 @@ public:
     {
         const auto& t = ui_theme();
 
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
         const float panel_radius = corner_radius(surface.radius);
         graphics::append_rounded_rect(list, bounds, panel_radius, surface.fill);
 
-        list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
-                        std::round(global_.size.x), std::round(global_.size.y)});
+        list.push_clip({std::round(bounds_.pos.x), std::round(bounds_.pos.y),
+                        std::round(bounds_.size.x), std::round(bounds_.size.y)});
 
         const float header_h = header_height_;
-        // const float body_top_probe = global_.pos.y + header_h;
-        const float body_h_probe = std::max(0.0f, global_.size.y - header_h);
+        // const float body_top_probe = bounds_.pos.y + header_h;
+        const float body_h_probe = std::max(0.0f, bounds_.size.y - header_h);
         const float bar_w_probe = content_height() > body_h_probe ? t.scrollbar_width + 2.0f : 0.0f;
-        const float body_w_probe = std::max(0.0f, global_.size.x - bar_w_probe);
+        const float body_w_probe = std::max(0.0f, bounds_.size.x - bar_w_probe);
         // 列宽按「去掉滚动条后的正文宽度」分配，否则右对齐的最后一列会被滚动条裁掉。
         widths_ = column_widths(body_w_probe);
 
         if (header_h > 0.0f) {
             const BoxStyle header_style = t.style(StyleRole::Control, ControlState::Pressed);
-            graphics::Rectangle header{global_.pos.x, global_.pos.y, global_.size.x, header_h,
+            graphics::Rectangle header{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, header_h,
                                        header_style.fill};
             header.append_to(list);
 
-            float x = global_.pos.x;
+            float x = bounds_.pos.x;
             for (std::size_t i = 0; i < columns_.size() && i < widths_.size(); ++i) {
-                draw_cell(list, columns_[i].title, x, global_.pos.y, widths_[i], header_h,
+                draw_cell(list, columns_[i].title, x, bounds_.pos.y, widths_[i], header_h,
                           columns_[i].align,
                           t.style(StyleRole::Row, ControlState::Normal).text, x,
-                          global_.pos.x + body_w_probe);
+                          bounds_.pos.x + body_w_probe);
                 x += widths_[i];
             }
-            graphics::Rectangle line{global_.pos.x, global_.pos.y + header_h - 1.0f,
-                                     global_.size.x, 1.0f, t.panel_border};
+            graphics::Rectangle line{bounds_.pos.x, bounds_.pos.y + header_h - 1.0f,
+                                     bounds_.size.x, 1.0f, t.panel_border};
             line.append_to(list);
         }
 
-        const float body_top = global_.pos.y + header_h;
-        const float body_h = std::max(0.0f, global_.size.y - header_h);
+        const float body_top = bounds_.pos.y + header_h;
+        const float body_h = std::max(0.0f, bounds_.size.y - header_h);
         const float bar_w = content_height() > body_h ? t.scrollbar_width + 2.0f : 0.0f;
-        const float body_w = std::max(0.0f, global_.size.x - bar_w);
+        const float body_w = std::max(0.0f, bounds_.size.x - bar_w);
 
-        list.push_clip({std::round(global_.pos.x), std::round(body_top),
+        list.push_clip({std::round(bounds_.pos.x), std::round(body_top),
                         std::round(body_w), std::round(body_h)});
 
         // 行循环统一走 ListView::append_rows（像素对齐、可见窗口、裁剪都在基类）。
-        append_rows(list, Rect{{global_.pos.x, body_top}, {body_w, body_h}});
+        append_rows(list, Rect{{bounds_.pos.x, body_top}, {body_w, body_h}});
         list.pop_clip();
 
         draw_scrollbar(list, body_top, body_h, bar_w);
@@ -242,7 +242,7 @@ private:
         return text_size_ > 0.0f ? text_size_ : t.text_size;
     }
 
-    float body_height() const { return std::max(0.0f, global_.size.y - header_height_); }
+    float body_height() const { return std::max(0.0f, bounds_.size.y - header_height_); }
     float content_height() const { return static_cast<float>(rows_.size()) * row_height_; }
 
     std::vector<float> column_widths(float available_width) const
@@ -309,9 +309,9 @@ private:
 
     int row_at(glm::vec2 pos) const
     {
-        const float body_top = global_.pos.y + header_height_;
-        if (pos.y < body_top || pos.y > global_.pos.y + global_.size.y) return -1;
-        if (pos.x < global_.pos.x || pos.x > global_.pos.x + global_.size.x) return -1;
+        const float body_top = bounds_.pos.y + header_height_;
+        if (pos.y < body_top || pos.y > bounds_.pos.y + bounds_.size.y) return -1;
+        if (pos.x < bounds_.pos.x || pos.x > bounds_.pos.x + bounds_.size.x) return -1;
         // 统一用 ListView 的 row_at（基于 snapped_offset，与绘制一致）。
         return ListView::row_at(pos.y, body_top);
     }

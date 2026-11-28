@@ -47,7 +47,7 @@ void Wrap::add(std::unique_ptr<Node> child)
 
 void Wrap::layout()
 {
-    arrange(global_);
+    arrange(bounds_);
 }
 
 void Wrap::append_to(graphics::DrawList& list) const

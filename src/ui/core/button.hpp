@@ -63,7 +63,7 @@ public:
     {
         const BoxStyle style = visual_style(StyleRole::Control, input.state());
         const float radius = corner_radius(style.radius);
-        const Rect bounds{global_.pos, global_.size};
+        const Rect bounds{bounds_.pos, bounds_.size};
 
         // 框 + 边框 + 焦点环走绘制部件（设计 §4.7）。
         paint::box_with_focus(list, bounds, style, radius, ui_theme(), focus_visible());

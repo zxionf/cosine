@@ -43,8 +43,8 @@ void LinearLayout::add(std::unique_ptr<Node> child)
 
 void LinearLayout::layout()
 {
-    // 重排用最近一次 arrange 的矩形，不要用 local_（历史坑：local_ 陈旧会把布局打回构造尺寸）。
-    arrange(global_);
+    // 重排用最近一次 arrange 的矩形，不要用 bounds_（历史坑：陈旧几何会把布局打回构造尺寸）。
+    arrange(bounds_);
 }
 
 void LinearLayout::append_to(graphics::DrawList& list) const

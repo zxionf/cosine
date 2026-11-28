@@ -49,8 +49,8 @@ public:
     {
         const auto& t = ui_theme();
         const float radius = corner_radius(t.radius_pill);
-        const Rect box_bounds{global_.pos, global_.size};
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const Rect box_bounds{bounds_.pos, bounds_.size};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
 
         // 轨道用绘制部件（无边框 → 只画一层 fill）。
         const BoxStyle track_style = visual_style(StyleRole::Track, ControlState::Normal);

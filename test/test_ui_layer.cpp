@@ -31,9 +31,7 @@ struct Layered : ui::Widget
     glm::vec2 measure(glm::vec2) override { return {100.0f, 100.0f}; }
     void arrange(ui::Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
     void append_to(graphics::DrawList&) const override {}
     bool on_click(glm::vec2, int) override

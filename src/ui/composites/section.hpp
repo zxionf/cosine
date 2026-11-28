@@ -75,7 +75,7 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         // 报“自然尺寸”：宽度 = 标题与内容的最大自然宽（实际宽度由 fill_x 在 arrange 里拉满）。
-        const float avail_w = is_bounded(constraints.x) ? constraints.x : local_.size.x;
+        const float avail_w = is_bounded(constraints.x) ? constraints.x : bounds_.size.x;
         const glm::vec2 head = header_.measure({avail_w, kUnbounded});
         float natural_w = head.x;
         float body = 0.0f;
@@ -114,7 +114,7 @@ public:
 
     bool on_mouse_down(glm::vec2 pos, int) override
     {
-        if (pos.y >= global_.pos.y + header_height()) return false;
+        if (pos.y >= bounds_.pos.y + header_height()) return false;
         expanded_ = !expanded_;
         mark_layout_dirty();
         if (auto* p = parent()) p->mark_layout_dirty();

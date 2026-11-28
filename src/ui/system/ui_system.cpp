@@ -63,7 +63,6 @@ UISystem::UISystem(backend::Window& window) : window_{&window}
 UISystem::UISystem(std::unique_ptr<UIRoot> root) : root_{std::move(root)}
 {
     if (root_) {
-        root_->set_global_bounds({{0.0f, 0.0f}, {root_->width(), root_->height()}});
         root_->mark_layout_dirty();
         install_focus_hooks();
     }
@@ -143,7 +142,6 @@ void UISystem::tick(float dt)
             const float logical_w = static_cast<float>(extent.width) / ui_scale_;
             const float logical_h = static_cast<float>(extent.height) / ui_scale_;
             root_->set_size(logical_w, logical_h);
-            root_->set_global_bounds({{0, 0}, {logical_w, logical_h}});
             root_->mark_layout_dirty();
         }
     }

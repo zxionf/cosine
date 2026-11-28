@@ -50,7 +50,7 @@ int main()
     auto* button_ptr = button.get();
     int clicks = 0;
     button_ptr->set_on_click([&clicks] { ++clicks; });
-    button_ptr->set_global_bounds({{0.0f, 0.0f}, {100.0f, 40.0f}});
+    button_ptr->set_geometry({{0.0f, 0.0f}, {100.0f, 40.0f}});
     button_ptr->set_pos(0.0f, 0.0f);
     button_ptr->set_size(100.0f, 40.0f);
     root->add(std::move(button));
@@ -59,7 +59,7 @@ int main()
     auto* checkbox_ptr = checkbox.get();
     bool checked = false;
     checkbox_ptr->set_on_change([&checked](bool value) { checked = value; });
-    checkbox_ptr->set_global_bounds({{0.0f, 100.0f}, {200.0f, 40.0f}});
+    checkbox_ptr->set_geometry({{0.0f, 100.0f}, {200.0f, 40.0f}});
     checkbox_ptr->set_pos(0.0f, 100.0f);
     checkbox_ptr->set_size(200.0f, 40.0f);
     root->add(std::move(checkbox));
@@ -68,14 +68,14 @@ int main()
     auto* slider_ptr = slider.get();
     float slider_value = -1.0f;
     slider_ptr->set_on_change([&slider_value](float value) { slider_value = value; });
-    slider_ptr->set_global_bounds({{0.0f, 200.0f}, {200.0f, 40.0f}});
+    slider_ptr->set_geometry({{0.0f, 200.0f}, {200.0f, 40.0f}});
     slider_ptr->set_pos(0.0f, 200.0f);
     slider_ptr->set_size(200.0f, 40.0f);
     root->add(std::move(slider));
 
     auto text_input = std::make_unique<xel::ui::TextInput>("", 220.0f);
     auto* text_input_ptr = text_input.get();
-    text_input_ptr->set_global_bounds({{0.0f, 300.0f}, {220.0f, 40.0f}});
+    text_input_ptr->set_geometry({{0.0f, 300.0f}, {220.0f, 40.0f}});
     text_input_ptr->set_pos(0.0f, 300.0f);
     text_input_ptr->set_size(220.0f, 40.0f);
     root->add(std::move(text_input));

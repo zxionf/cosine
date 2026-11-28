@@ -112,14 +112,14 @@ Rect ScrollView::scrollbar_track_rect(bool vertical) const
     if (vertical) {
         const float reserved_h = show_h_ ? width + margin : 0.0f;
         return {
-            {global_.pos.x + global_.size.x - width - margin, global_.pos.y + margin},
-            {width, std::max(0.0f, global_.size.y - margin * 2.0f - reserved_h)}
+            {bounds_.pos.x + bounds_.size.x - width - margin, bounds_.pos.y + margin},
+            {width, std::max(0.0f, bounds_.size.y - margin * 2.0f - reserved_h)}
         };
     }
     const float reserved_w = show_v_ ? width + margin : 0.0f;
     return {
-        {global_.pos.x + margin, global_.pos.y + global_.size.y - width - margin},
-        {std::max(0.0f, global_.size.x - margin * 2.0f - reserved_w), width}
+        {bounds_.pos.x + margin, bounds_.pos.y + bounds_.size.y - width - margin},
+        {std::max(0.0f, bounds_.size.x - margin * 2.0f - reserved_w), width}
     };
 }
 
@@ -164,7 +164,7 @@ void ScrollView::place_content()
     // 像素对齐：内容位置取整，避免停留在半像素上；
     // 滚动条 thumb 仍用原始 offset，保持滚动跟手的连续性。
     content_->arrange({
-        {global_.pos.x - std::round(offset_.x), global_.pos.y - std::round(offset_.y)},
+        {bounds_.pos.x - std::round(offset_.x), bounds_.pos.y - std::round(offset_.y)},
         content_size_
     });
 }
@@ -307,7 +307,7 @@ void ScrollView::append_to(graphics::DrawList& list) const
     // 内容只画在可滚动区域内，滚动条区域留白。
     // 裁剪边界对齐到像素网格：内容位置已取整（place_content），两者一致后
     // 渲染层向外取整的 scissor 不会比内容区多出 1px。
-    list.push_clip({std::round(global_.pos.x), std::round(global_.pos.y),
+    list.push_clip({std::round(bounds_.pos.x), std::round(bounds_.pos.y),
                     std::round(viewport_.x), std::round(viewport_.y)});
     content_->append_to(list);
     list.pop_clip();
@@ -319,7 +319,7 @@ void ScrollView::append_to(graphics::DrawList& list) const
         const Rect track = scrollbar_track_rect(vertical);
         const Rect thumb = scrollbar_thumb_rect(vertical);
 
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip({bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y});
         const float bar_radius = corner_radius(t.radius_pill);
         // 槽走 Track、滑块走独立的 Thumb 角色（同一 role 同一帧只能一个 state）。
         // 槽是静态底色，直接读主题：不用过渡，也就不会和滑块抢同一个过渡槽。

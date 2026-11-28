@@ -101,7 +101,7 @@ void test_font_atlas_and_wrap()
     assert(!label_list.batches().empty());
 
     xel::ui::TextInput input("中文", 200.0f);
-    input.set_global_bounds({{0.0f, 0.0f}, {200.0f, 40.0f}});
+    input.set_geometry({{0.0f, 0.0f}, {200.0f, 40.0f}});
     input.set_pos(0.0f, 0.0f);
     input.set_size(200.0f, 40.0f);
     input.on_mouse_down({1.0f, 20.0f}, 0);

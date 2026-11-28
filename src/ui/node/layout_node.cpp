@@ -156,15 +156,15 @@ void LayoutNode::set_aspect_ratio(float ratio)
 bool LayoutNode::content_overflows() const
 {
     constexpr float kEps = 0.5f;
-    return content_extent_.x > global_.size.x + kEps
-        || content_extent_.y > global_.size.y + kEps;
+    return content_extent_.x > bounds_.size.x + kEps
+        || content_extent_.y > bounds_.size.y + kEps;
 }
 
 void LayoutNode::set_absolute(bool value)
 {
     // 从当前位置开始（兼容旧行为）：仅当从“非 Positioned”切到 Positioned 时同步坐标。
     const bool take_current = value && display() != Display::Positioned;
-    if (take_current) layout_.absolute_pos = local_.pos;
+    if (take_current) layout_.absolute_pos = bounds_.pos;
     set_display(value ? Display::Positioned : Display::Flow);
 }
 

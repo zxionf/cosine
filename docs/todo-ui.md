@@ -27,7 +27,7 @@ K1–K8 全部断言化；唯一未达的原始指标是 M1「单文件 ≤250�
 | 文件数 / 行数 | **82 / 13,816** | `find src/ui -name '*.hpp' -o -name '*.cpp' \| xargs wc -l` |
 | 控件类 | **46** | 见 §7 |
 | 虚函数 | `Node` **17** + `LayoutNode` **22**（其中事件钩子 17） | `grep -c '^    virtual ' src/ui/node/{node,layout_node}.hpp` |
-| `sizeof(Node)` / `sizeof(LayoutNode)` | **112 B / 432 B** | 单测 `test_ui_architecture`（K8） |
+| `sizeof(Node)` / `sizeof(LayoutNode)` | **96 B / 432 B** | 单测 `test_ui_architecture`（K8） |
 | 测试 | **81 目标 / 2,032 断言 + 238 条 check()** | `ctest` |
 | 快照哈希 | dark `c8a0966c` / light `eb32c524` | `test_ui_style_snapshot` |
 
@@ -88,7 +88,7 @@ K1–K8 全部断言化；唯一未达的原始指标是 M1「单文件 ≤250�
 
 | 设计章节 | 内容 | 状态 | 缺口与原因 |
 |---|---|---|---|
-| §4.1 `Node`（身份/几何/树/层叠） | 独立基础类 | ✅ **完成** | `node/node.hpp` 291 行 / 17 虚，`sizeof = 112 B` |
+| §4.1 `Node`（身份/几何/树/层叠） | 独立基础类 | ✅ **完成** | 17 虚，`sizeof = 96 B`（几何只存一份） |
 | §4.2 `LayoutNode`（measure/arrange + 部件） | 布局机制层 | ✅ **完成** | `node/layout_node.hpp` 379 行 / 22 虚，`sizeof = 432 B`；`Widget` 是它的别名 |
 | §4.3 `Interaction` | 状态唯一所有者 | ✅ 完成 | — |
 | §4.4 `VisualState` | 104 B 内嵌 | ✅ 完成（比设计还好：没建 60 项 Theme 表） | — |

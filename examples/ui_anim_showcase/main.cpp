@@ -264,7 +264,6 @@ int run()
         // 导出尺寸与窗口 DPI 无关：root 与离屏目标使用同一逻辑尺寸。
         auto* root = app.uisys.root();
         root->set_size(kExportW, kExportH);
-        root->set_global_bounds({{0.0f, 0.0f}, {kExportW, kExportH}});
         root->mark_layout_dirty();
         root->layout();
         root->clear_layout_dirty();

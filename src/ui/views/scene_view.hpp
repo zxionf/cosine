@@ -44,9 +44,9 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         if (scene_ == nullptr) return;
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip({bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y});
         if (background_.a > 0.0f) {
-            graphics::Rectangle{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y,
+            graphics::Rectangle{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y,
                                 background_}
                 .append_to(list);
         }
@@ -113,7 +113,7 @@ private:
         const glm::vec2 pos{parent_pos.x + local.x * pc - local.y * ps,
                             parent_pos.y + local.x * ps + local.y * pc};
         const float rotation = parent_rotation + node->transform.rotation;
-        const glm::vec2 screen{global_.pos.x + pos.x, global_.pos.y + pos.y};
+        const glm::vec2 screen{bounds_.pos.x + pos.x, bounds_.pos.y + pos.y};
 
         switch (node->type) {
             case scene::NodeType::Shape: {
@@ -137,8 +137,8 @@ private:
                     atlas->append_text(
                         list, screen.x, screen.y, node->text_size * scale.y, node->text,
                         node->color,
-                        {global_.pos.x, global_.pos.y,
-                         global_.pos.x + global_.size.x, global_.pos.y + global_.size.y});
+                        {bounds_.pos.x, bounds_.pos.y,
+                         bounds_.pos.x + bounds_.size.x, bounds_.pos.y + bounds_.size.y});
                 }
                 break;
             }

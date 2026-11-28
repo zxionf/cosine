@@ -59,7 +59,7 @@ struct Counted : ui::Widget
     explicit Counted(glm::vec2 size) : natural(size) { set_preferred_size(natural); }
 
     glm::vec2 measure(glm::vec2) override { return clamp_size(preferred_size()); }
-    void arrange(ui::Rect slot) override { global_ = slot; set_geometry(slot); }
+    void arrange(ui::Rect slot) override { set_geometry(slot); }
     void append_to(graphics::DrawList&) const override {}
 };
 

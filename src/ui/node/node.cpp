@@ -168,7 +168,7 @@ void Node::append_debug_tree(graphics::DrawList& list) const
 
 void Node::debug_rect(graphics::DrawList& list) const
 {
-    auto [x, y, w, h] = global_;
+    auto [x, y, w, h] = bounds_;
     const glm::vec4 color = debug_ ? glm::vec4{1, 0, 1, 1} : glm::vec4{0, 1, 0, 1};
     graphics::Line top_l    {x,     y,      x + w,  y,      1.0f, color};
     graphics::Line right_l  {x + w, y,      x + w,  y + h,  1.0f, color};

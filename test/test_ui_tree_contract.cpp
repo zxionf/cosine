@@ -157,15 +157,16 @@ void test_indexed_access_api()
           "TabView replaces a page through replace_child()");
 }
 
-// 5) 几何唯一写入口：清空后再 arrange，local/global 同步。
+// 5) 几何唯一写入口：清空后再 arrange，几何只有一份。
 void test_geometry_single_entry()
 {
     ui::Label label("g", 12.0f);
     label.arrange({{4.0f, 5.0f}, {60.0f, 20.0f}});
-    check(label.local_bounds().pos.x == 4.0f && label.global_bounds().pos.x == 4.0f,
-          "arrange keeps local == global");
-    check(label.local_bounds().size.y == 20.0f && label.global_bounds().size.y == 20.0f,
+    check(label.global_bounds().pos.x == 4.0f, "arrange keeps the given position");
+    check(label.global_bounds().size.y == 20.0f,
           "arrange writes size through set_geometry only");
+    check(label.local_bounds().pos.x == label.global_bounds().pos.x,
+          "local_bounds is an alias of global_bounds");
 }
 
 int main()

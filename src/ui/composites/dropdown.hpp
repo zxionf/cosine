@@ -110,7 +110,7 @@ public:
 
         const auto& t = ui_theme();
         const float row = row_height();
-        const float width = std::max(global_.size.x, min_width());
+        const float width = std::max(bounds_.size.x, min_width());
         // 上下各留一份 padding：否则行从顶部开始画，底部会多出空白、顶部贴边。
         const float height = static_cast<float>(options_.size()) * row + t.padding * 2.0f;
 
@@ -121,7 +121,7 @@ public:
         scrim_ = scrim.get();
 
         auto popup = std::make_unique<detail::DropdownList>(*this, width, height);
-        popup->set_pos(global_.pos.x, global_.pos.y + global_.size.y + 2.0f);
+        popup->set_pos(bounds_.pos.x, bounds_.pos.y + bounds_.size.y + 2.0f);
         popup_ = popup.get();
 
         root->add_overlay(std::move(scrim));
@@ -155,7 +155,7 @@ public:
     void append_to(graphics::DrawList& list) const override
     {
         const auto& t = ui_theme();
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         // 展开/hover 都算作 Hovered；展开或聚焦走 Input:Checked（与 TextInput 同口径）。
         const bool active = is_hovered() || is_open();
         const BoxStyle style = visual_style(
@@ -178,15 +178,15 @@ public:
         if (auto* atlas = font_atlas()) {
             const glm::vec2 text_size = atlas->measure(selected_text(), style.text_size);
             atlas->append_text(list,
-                               global_.pos.x + t.padding,
-                               global_.pos.y + (global_.size.y - text_size.y) * 0.5f,
+                               bounds_.pos.x + t.padding,
+                               bounds_.pos.y + (bounds_.size.y - text_size.y) * 0.5f,
                                style.text_size, selected_text(), style.text);
         }
 
         // 箭头只需单个平面三角形。
         const float arrow_w = 10.0f;
-        const float ax = global_.pos.x + global_.size.x - t.padding - arrow_w;
-        const float ay = global_.pos.y + global_.size.y * 0.5f;
+        const float ax = bounds_.pos.x + bounds_.size.x - t.padding - arrow_w;
+        const float ay = bounds_.pos.y + bounds_.size.y * 0.5f;
         graphics::Triangle arrow{ax, ay - 2.0f, ax + 10.0f, ay - 2.0f, ax + 5.0f, ay + 3.0f, style.text};
         arrow.append_to(list);
     }
@@ -266,7 +266,7 @@ public:
 
     float row_height() const { return row_height_static(*this); }
 
-    float list_width() const { return std::max(global_.size.x, min_width()); }
+    float list_width() const { return std::max(bounds_.size.x, min_width()); }
 
 private:
     static float row_height_static(const Dropdown& d)
@@ -318,7 +318,7 @@ inline int DropdownList::index_at(glm::vec2 pos) const
 {
     if (!owner_) return -1;
     const float row = row_height();
-    const float top = global_.pos.y + ui_theme().padding;
+    const float top = bounds_.pos.y + ui_theme().padding;
     if (pos.y < top) return -1;
     const int index = static_cast<int>((pos.y - top) / row);
     if (index < 0 || index >= static_cast<int>(owner_->options().size())) return -1;
@@ -330,10 +330,10 @@ inline void DropdownList::append_to(graphics::DrawList& list) const
     if (!owner_) return;
     const auto& t = ui_theme();
     const float row = row_height();
-    const float width = global_.size.x;
+    const float width = bounds_.size.x;
     const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
     const float radius = corner_radius(t.radius_medium);
-    const glm::vec4 bounds{global_.pos.x, global_.pos.y, width, global_.size.y};
+    const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, width, bounds_.size.y};
 
     graphics::append_rounded_rect(list, bounds, radius, surface.fill);
     if (surface.border_width > 0.0f) {
@@ -341,7 +341,7 @@ inline void DropdownList::append_to(graphics::DrawList& list) const
     }
 
     const auto& options = owner_->options();
-    const float top = global_.pos.y + t.padding;
+    const float top = bounds_.pos.y + t.padding;
     for (std::size_t i = 0; i < options.size(); ++i) {
         const float y = top + static_cast<float>(i) * row;
         const bool highlighted = static_cast<int>(i) == hovered_
@@ -351,13 +351,13 @@ inline void DropdownList::append_to(graphics::DrawList& list) const
         if (highlighted || current) {
             const BoxStyle item = t.style(StyleRole::MenuItem,
                                           highlighted ? ControlState::Hovered : ControlState::Pressed);
-            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, width - 4.0f, row},
+            graphics::append_rounded_rect(list, {bounds_.pos.x + 2.0f, y, width - 4.0f, row},
                                           corner_radius(item.radius), item.fill);
         }
 
         if (auto* atlas = owner_->font_atlas()) {
             const glm::vec2 text_size = atlas->measure(options[i], t.text_size);
-            atlas->append_text(list, global_.pos.x + t.padding,
+            atlas->append_text(list, bounds_.pos.x + t.padding,
                                y + (row - text_size.y) * 0.5f,
                                t.text_size, options[i], t.text);
         }

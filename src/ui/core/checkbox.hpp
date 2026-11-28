@@ -52,8 +52,8 @@ public:
         // 像素对齐：外框、边框与勾选块都落在整像素上，
         // 否则半像素边缘会让勾选块看上去偏心（左右/上下留白不均）。
         const float box = std::round(t.checkbox_size);
-        const float bx = std::round(global_.pos.x);
-        const float by = std::round(global_.pos.y + (global_.size.y - box) * 0.5f);
+        const float bx = std::round(bounds_.pos.x);
+        const float by = std::round(bounds_.pos.y + (bounds_.size.y - box) * 0.5f);
         const BoxStyle control = visual_style(StyleRole::Control, input.state());
         const glm::vec4 box_bounds{bx, by, box, box};
         const float radius = std::round(corner_radius(t.radius_small));
@@ -82,7 +82,7 @@ public:
         if (auto* atlas = font_atlas()) {
             const glm::vec2 size = atlas->measure(label_, control.text_size);
             const float tx = bx + box + t.spacing;
-            const float ty = global_.pos.y + (global_.size.y - size.y) * 0.5f;
+            const float ty = bounds_.pos.y + (bounds_.size.y - size.y) * 0.5f;
             atlas->append_text(list, tx, ty, control.text_size, label_, control.text);
         }
     }

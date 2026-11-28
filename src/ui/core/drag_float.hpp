@@ -71,7 +71,7 @@ public:
         // 拖动 = Pressed，其余状态走 Interaction。
         const ControlState state = input.state();
 
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         const BoxStyle style = visual_style(StyleRole::Input, state);
         const float radius = corner_radius(style.radius);
         graphics::append_rounded_rect(list, bounds, radius, style.fill);
@@ -84,13 +84,13 @@ public:
 
         const float size = t.text_size;
         const float line = atlas->line_height(size);
-        const float text_y = global_.pos.y + (global_.size.y - line) * 0.5f;
+        const float text_y = bounds_.pos.y + (bounds_.size.y - line) * 0.5f;
         const float pad = std::max(4.0f, t.padding * 0.5f);
         // 文字色取 style.text（已按 Disabled 切换）。
         const glm::vec4 label_color = style.text;
         const glm::vec4 value_color = input.dragging && is_enabled() ? t.accent_text : style.text;
 
-        float x = global_.pos.x + pad;
+        float x = bounds_.pos.x + pad;
         if (!label_.empty()) {
             atlas->append_text(list, x, text_y, size, label_, label_color);
             x += atlas->measure_width(label_, size) + pad;
@@ -98,7 +98,7 @@ public:
 
         const std::string shown = std::format("{:.{}f}{}", value_, precision_, suffix_);
         const float shown_width = atlas->measure_width(shown, size);
-        const float shown_x = std::max(x, global_.pos.x + global_.size.x - pad - shown_width);
+        const float shown_x = std::max(x, bounds_.pos.x + bounds_.size.x - pad - shown_width);
         atlas->append_text(list, shown_x, text_y, size, shown, value_color);
     }
 

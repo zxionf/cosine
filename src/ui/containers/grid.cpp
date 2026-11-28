@@ -49,7 +49,7 @@ void Grid::add(std::unique_ptr<Node> child)
 
 void Grid::layout()
 {
-    arrange(global_);
+    arrange(bounds_);
 }
 
 void Grid::append_to(graphics::DrawList& list) const

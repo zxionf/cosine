@@ -236,15 +236,15 @@ public:
         const auto& t = ui_theme();
         if (t.border > 0.0f) {
             const float b = t.border;
-            graphics::Rectangle bottom{global_.pos.x, global_.pos.y + global_.size.y - b,
-                                       global_.size.x, b, t.panel_border};
-            graphics::Rectangle right{global_.pos.x + global_.size.x - b, global_.pos.y,
-                                      b, global_.size.y, t.panel_border};
+            graphics::Rectangle bottom{bounds_.pos.x, bounds_.pos.y + bounds_.size.y - b,
+                                       bounds_.size.x, b, t.panel_border};
+            graphics::Rectangle right{bounds_.pos.x + bounds_.size.x - b, bounds_.pos.y,
+                                      b, bounds_.size.y, t.panel_border};
             bottom.append_to(list);
             right.append_to(list);
         }
 
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip({bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y});
         tab_bar().append_to(list);
         for (std::size_t i = 1; i < child_count(); ++i) {
             const auto* child = child_at(i);

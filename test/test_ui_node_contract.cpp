@@ -90,9 +90,9 @@ void test_dead_virtuals_no_longer_dispatch()
     base->set_size({30.0f, 20.0f});
     check(base->width() == 30.0f && base->height() == 20.0f, "set_size is no longer virtual");
 
-    base->set_global_bounds({{1.0f, 2.0f}, {3.0f, 4.0f}});
+    base->set_geometry({{1.0f, 2.0f}, {3.0f, 4.0f}});
     check(same_rect(base->global_bounds(), {{1.0f, 2.0f}, {3.0f, 4.0f}}),
-          "set_global_bounds is a plain function");
+          "set_geometry is a plain function (single geometry entry)");
 
     base->debug();
     check(!probe.shadowed_debug && probe.is_debug(), "debug() is a plain function");
@@ -126,9 +126,8 @@ void test_leaf_defaults()
     check(clamped.x == 100.0f && clamped.y == 40.0f, "LayoutNode::measure clamps to max_size");
 
     leaf.arrange({{5.0f, 6.0f}, {70.0f, 25.0f}});
-    check(same_rect(leaf.local_bounds(), {{5.0f, 6.0f}, {70.0f, 25.0f}})
-              && same_rect(leaf.global_bounds(), leaf.local_bounds()),
-          "LayoutNode::arrange writes geometry only (local == global)");
+    check(same_rect(leaf.global_bounds(), {{5.0f, 6.0f}, {70.0f, 25.0f}}),
+          "LayoutNode::arrange writes geometry only");
     check(leaf.layout_dirty(), "LayoutNode::arrange does not clear the dirty flag by itself");
 }
 

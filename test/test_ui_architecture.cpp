@@ -235,8 +235,7 @@ void test_tree_storage_is_private()
 void test_geometry_single_write_entry()
 {
     int outside = 0;
-    for (const char* needle : {"global_ =", "global_.pos =", "global_.size =",
-                               "local_ =", "local_.pos =", "local_.size ="}) {
+    for (const char* needle : {"bounds_ =", "bounds_.pos =", "bounds_.size ="}) {
         for (const auto& entry : fs::recursive_directory_iterator(ui_root())) {
             if (!entry.is_regular_file()) continue;
             const auto ext = entry.path().extension().string();

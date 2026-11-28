@@ -23,9 +23,7 @@ public:
     glm::vec2 measure(glm::vec2) override { return local_bounds().size; }
     void arrange(Rect slot) override
     {
-        global_ = slot;
-        set_pos(slot.pos);
-        set_size(slot.size);
+        set_geometry(slot);
     }
     void append_to(xel::graphics::DrawList&) const override
     {
@@ -125,9 +123,9 @@ struct Fixture
         container->add(std::move(b));
         tree.root->add(std::move(container));
 
-        tree.container->set_global_bounds({{0.0f, 0.0f}, {800.0f, 600.0f}});
-        tree.a->set_global_bounds({{0.0f, 0.0f}, {100.0f, 100.0f}});
-        tree.b->set_global_bounds({{0.0f, 0.0f}, {100.0f, 100.0f}});
+        tree.container->set_geometry({{0.0f, 0.0f}, {800.0f, 600.0f}});
+        tree.a->set_geometry({{0.0f, 0.0f}, {100.0f, 100.0f}});
+        tree.b->set_geometry({{0.0f, 0.0f}, {100.0f, 100.0f}});
 
         return tree;
     }

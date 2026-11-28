@@ -113,7 +113,7 @@ class Node : public graphics::Drawable {
 public:
     // 身份与几何（只读）
     Rect local() const;  Rect global() const;
-    void set_geometry(Rect slot);        // 唯一写入口（替代 11 处直写 global_）
+    void set_geometry(Rect slot);        // 唯一写入口（替代 11 处直写几何字段）
 
     // 树（唯一入口）
     void adopt(std::unique_ptr<Node> child);
@@ -301,7 +301,7 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 |---|---|---|
 | **K1** | 一个事实一个所有者：状态只在 `Interaction`；全仓无 `bool enabled_` / `bool pressed_` / `bool dragging_` 成员 | `grep -c "bool enabled_" src/ui → 0` |
 | **K2** | 树的唯一走法：`children_` 私有，遍历只用 `for_each_child()` | `grep "children_" src/ui --include=*.hpp \| grep -v node/ → 0` |
-| **K3** | 几何唯一写入口：`geometry_` 私有，写只用 `set_geometry()` | `grep "global_ = \|global_\.pos = \|global_\.size = " → 0` |
+| **K3** | 几何唯一写入口：`bounds_` 私有，写只用 `set_geometry()` | `grep "bounds_ = \|bounds_\.pos = \|bounds_\.size = " → 0` |
 | **K4** | 语义是投影：`Semantics` 无 setter，字段全部 `const` 派生 | 编译期（无 `set_*`） |
 | **K5** | 新控件不新增基类虚函数：R1 后基类虚函数 ≤ 34（可选 R7 后 ≤ 30） | `grep -c "    virtual " node/*.hpp` |
 | **K6** | 测量缓存一套、key 可扩展 | 单一 `MeasureCache` 成员（protected）；`MeasureKey` = constraints + epoch + 派生输入（text_hash/font_size/wrap_width/…） |
@@ -381,6 +381,7 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 2026-11-27 | R11（UI-56）**真分层落地**：`node/node.hpp`(291 行/17 虚) + `node/layout_node.hpp`(379 行/22 虚) + `container_node.hpp`；`widget.hpp` 退化为 17 行别名；`sizeof(Node)=112 < LayoutNode=432`；树元素类型改为 `Node*`；Node 声明布局契约纯虚以便无转型遍历；`LayoutNode::child_at` 协变隐藏 + `for_each_layout_child`；K8 断言锁住结构 |
 | 2026-11-28 | 节点收敛为两层：删除 `LeafNode` / `ContainerNode`；「容纳子节点」直接在 `Node`（`add()` 默认 `adopt()`，无独立容器基类）；叶子默认 `measure = clamp(preferred_size)` / `arrange = set_geometry(slot)` 上移为 `LayoutNode` 的默认实现；18 个叶子控件与 3 个视图改继承 `Widget`；K8 改为「无中间基类」断言 |
 | 2026-11-28 | `node/` 头文件瘦身：`node.hpp` 288→230 行、`layout_node.hpp` 372→282 行；树操作 / 绘制顺序 / 语义投影 / `LayoutSpec` 读写 / 盒模型 / 尺寸意图等实现体移至 `node.cpp`、`layout_node.cpp`；K2 改为「`children_` 只在 `node/`（.hpp + .cpp）」 |
+| 2026-11-28 | 几何去冗余：删除 `local_`（与 `global_` 永远同值），`global_` 成为唯一几何存储（全局坐标）；`local_bounds()` 退化为别名；删除 `set_global_bounds()` / `set_arranged_pos()`（调用点均与其等价或多余）；`sizeof(Node)` 112→96；K3 只统计单一字段；随后字段统一改名为 `bounds_`（字段名不再暗示“全局”） |
 
 ---
 

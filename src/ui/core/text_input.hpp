@@ -102,7 +102,7 @@ public:
         const float pad = t.padding;
         const float line = line_height();
 
-        const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+        const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
         // 编辑中始终用强调色标出边框（鼠标点击进入编辑也应可见）；
         // 焦点环只在键盘操作期间叠加，两者职责不同。
         const BoxStyle style = visual_style(StyleRole::Input, input.state(is_focused()));
@@ -111,7 +111,7 @@ public:
         paint::box_with_focus(list, Rect{{bounds.x, bounds.y}, {bounds.z, bounds.w}}, style, radius,
                               ui_theme(), focus_visible());
 
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip({bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y});
 
         if (!multiline_) {
             draw_single_line(list, font_size, pad, line);
@@ -305,7 +305,7 @@ private:
     float max_scroll_y() const
     {
         if (!multiline_) return 0.0f;
-        return std::max(0.0f, content_height() - global_.size.y);
+        return std::max(0.0f, content_height() - bounds_.size.y);
     }
 
     void clamp_scroll()
@@ -319,7 +319,7 @@ private:
         const float pad = ui_theme().padding;
         const float top = pad + line * line_h - scroll_y_;
         const float bottom = top + line_h;
-        const float view_h = global_.size.y;
+        const float view_h = bounds_.size.y;
 
         if (top < pad) {
             scroll_y_ = pad + line * line_h - pad;
@@ -339,8 +339,8 @@ private:
         // 用字体行高而不是字号来垂直居中；不要再 max(pad, ...)，
         // 否则行高小于可用高度时会被推到偏下的位置。
         const float line_h = line_height();
-        const float text_y = global_.pos.y + std::max(0.0f, (global_.size.y - line_h) * 0.5f);
-        const float viewport_w = std::max(0.0f, global_.size.x - pad * 2.0f);
+        const float text_y = bounds_.pos.y + std::max(0.0f, (bounds_.size.y - line_h) * 0.5f);
+        const float viewport_w = std::max(0.0f, bounds_.size.x - pad * 2.0f);
         const float cursor_px = prefix_width(cursor_, font_size);
         const float total_px = text_width(0, text_.size(), font_size);
 
@@ -356,23 +356,23 @@ private:
             const float x0 = text_width(0, lo, font_size);
             const float x1 = text_width(0, hi, font_size);
             graphics::Rectangle selection{
-                global_.pos.x + pad + x0 - scroll, text_y,
+                bounds_.pos.x + pad + x0 - scroll, text_y,
                 std::max(1.0f, x1 - x0), line_h, t.text_input_selection};
             selection.append_to(list);
         }
 
         if (atlas) {
-            atlas->append_text(list, global_.pos.x + pad - scroll, text_y, font_size,
+            atlas->append_text(list, bounds_.pos.x + pad - scroll, text_y, font_size,
                                text_, text_style.text,
-                               {global_.pos.x + pad, global_.pos.y,
-                                global_.pos.x + global_.size.x - pad, global_.pos.y + global_.size.y});
+                               {bounds_.pos.x + pad, bounds_.pos.y,
+                                bounds_.pos.x + bounds_.size.x - pad, bounds_.pos.y + bounds_.size.y});
         }
 
         if (is_focused()) {
             // 光标与选区都以行盒为基准，视觉上与文字居中对齐。
             const float cursor_y = text_y + (line_h - font_size) * 0.5f;
             graphics::Rectangle cursor_bar{
-                global_.pos.x + pad + cursor_px - scroll, cursor_y, 1.0f, font_size, t.text_input_cursor};
+                bounds_.pos.x + pad + cursor_px - scroll, cursor_y, 1.0f, font_size, t.text_input_cursor};
             cursor_bar.append_to(list);
         }
         (void)line;
@@ -388,7 +388,7 @@ private:
         const float cursor_x = prefix_width(cursor_, font_size);
 
         // 水平滚动只影响当前行，长行超出部分被裁掉。
-        const float viewport_w = std::max(0.0f, global_.size.x - pad * 2.0f);
+        const float viewport_w = std::max(0.0f, bounds_.size.x - pad * 2.0f);
         float hscroll = 0.0f;
         if (cursor_x > viewport_w) hscroll = cursor_x - viewport_w + 1.0f;
         hscroll = std::max(0.0f, hscroll);
@@ -398,8 +398,8 @@ private:
         const std::size_t sel_hi = selection_end();
 
         for (std::size_t row = 0; row < lines; ++row) {
-            const float y = global_.pos.y + pad + static_cast<float>(row) * line - scroll_y_;
-            if (y + line < global_.pos.y || y > global_.pos.y + global_.size.y) continue;
+            const float y = bounds_.pos.y + pad + static_cast<float>(row) * line - scroll_y_;
+            if (y + line < bounds_.pos.y || y > bounds_.pos.y + bounds_.size.y) continue;
 
             const std::size_t begin = line_start(row);
             const std::size_t end = line_end(row);
@@ -413,7 +413,7 @@ private:
                     const float x0 = text_width(begin, lo, font_size);
                     const float x1 = text_width(begin, hi, font_size);
                     graphics::Rectangle selection{
-                        global_.pos.x + pad + x0 - row_scroll, y,
+                        bounds_.pos.x + pad + x0 - row_scroll, y,
                         std::max(1.0f, x1 - x0), line, t.text_input_selection};
                     selection.append_to(list);
                 }
@@ -421,15 +421,15 @@ private:
 
             if (atlas && begin < end) {
                 const std::string slice = text_.substr(begin, end - begin);
-                atlas->append_text(list, global_.pos.x + pad - row_scroll, y, font_size,
+                atlas->append_text(list, bounds_.pos.x + pad - row_scroll, y, font_size,
                                    slice, text_style.text,
-                                   {global_.pos.x, global_.pos.y,
-                                    global_.pos.x + global_.size.x, global_.pos.y + global_.size.y});
+                                   {bounds_.pos.x, bounds_.pos.y,
+                                    bounds_.pos.x + bounds_.size.x, bounds_.pos.y + bounds_.size.y});
             }
 
             if (is_focused() && row == cursor_line) {
                 graphics::Rectangle cursor_bar{
-                    global_.pos.x + pad + cursor_x - row_scroll, y, 1.0f, line, t.text_input_cursor};
+                    bounds_.pos.x + pad + cursor_x - row_scroll, y, 1.0f, line, t.text_input_cursor};
                 cursor_bar.append_to(list);
             }
         }
@@ -444,20 +444,20 @@ private:
             return index_from_x_single(point.x);
         }
 
-        const float local_y = point.y - (global_.pos.y + t.padding) + scroll_y_;
+        const float local_y = point.y - (bounds_.pos.y + t.padding) + scroll_y_;
         std::size_t row = static_cast<std::size_t>(std::max(0.0f, local_y) / line);
         row = std::min(row, line_count() - 1);
 
         const std::size_t cursor_line = line_of(cursor_);
         const float row_scroll = (row == cursor_line) ? scroll_offset_ : 0.0f;
-        const float local_x = point.x - (global_.pos.x + t.padding) + row_scroll;
+        const float local_x = point.x - (bounds_.pos.x + t.padding) + row_scroll;
         return index_in_line(row, local_x);
     }
 
     std::size_t index_from_x_single(float x) const
     {
         const auto& t = ui_theme();
-        const float local_x = x - (global_.pos.x + t.padding) + scroll_offset_;
+        const float local_x = x - (bounds_.pos.x + t.padding) + scroll_offset_;
         return nearest_index(0, text_.size(), local_x);
     }
 

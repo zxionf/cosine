@@ -27,7 +27,6 @@ int main()
             // 那时 layout() 会直接 return，界面会堆在左上角。
             auto* root = app.uisys.root();
             root->set_size(kExportW, kExportH);
-            root->set_global_bounds({{0.0f, 0.0f}, {kExportW, kExportH}});
             root->mark_layout_dirty();
 
             // 先定型一轮几何：Editor::tick 里的调试面板读的是当前布局结果，

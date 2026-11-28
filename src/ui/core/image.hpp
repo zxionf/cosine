@@ -124,7 +124,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        const Rect rect{global_.pos, global_.size};
+        const Rect rect{bounds_.pos, bounds_.size};
         if (texture_id_ != 0) {
             append_texture(list, rect);
             return;

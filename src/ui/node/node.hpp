@@ -61,31 +61,22 @@ public:
     graphics::TextureSlot texture_slot() const override { return graphics::TextureSlot::Texture; }
 
     // ── 几何：读随处可读，写只经 set_geometry（K3）──────────────────
-    float x()       const { return local_.pos.x; }
-    float y()       const { return local_.pos.y; }
-    float width()   const { return local_.size.x; }
-    float height()  const { return local_.size.y; }
-    Rect local_bounds()  const { return local_; }
-    Rect global_bounds() const { return global_; }
+    // 坐标只有一份存储，且一律是全局坐标：父容器 arrange 子项时传的就是绝对矩形，
+    // 没有「局部 → 全局」的变换需要维护。local_bounds() 是历史别名。
+    float x()       const { return bounds_.pos.x; }
+    float y()       const { return bounds_.pos.y; }
+    float width()   const { return bounds_.size.x; }
+    float height()  const { return bounds_.size.y; }
+    Rect global_bounds() const { return bounds_; }
+    Rect local_bounds()  const { return bounds_; }
 
-    void set_pos(float x, float y) { local_.pos = {x, y}; mark_layout_dirty(); }
-    void set_size(float width, float height) { local_.size = {width, height}; mark_layout_dirty(); }
-    void set_pos(glm::vec2 pos) { local_.pos = pos; mark_layout_dirty(); }
-    void set_size(glm::vec2 size) { local_.size = size; mark_layout_dirty(); }
-    void set_global_bounds(Rect bounds) { global_ = bounds; }
+    void set_pos(float x, float y) { bounds_.pos = {x, y}; mark_layout_dirty(); }
+    void set_size(float width, float height) { bounds_.size = {width, height}; mark_layout_dirty(); }
+    void set_pos(glm::vec2 pos) { bounds_.pos = pos; mark_layout_dirty(); }
+    void set_size(glm::vec2 size) { bounds_.size = size; mark_layout_dirty(); }
 
     // 布局写入入口（只能在 arrange 内用）：只改几何，不触发脏标记。
-    void set_geometry(Rect slot)
-    {
-        local_ = slot;
-        global_ = slot;
-    }
-    // 固定尺寸控件的变体：只跟随位置，尺寸由自己维护（Window / Splitter / Table）。
-    void set_arranged_pos(glm::vec2 pos)
-    {
-        local_.pos = pos;
-        global_.pos = pos;
-    }
+    void set_geometry(Rect slot) { bounds_ = slot; }
 
     // ── 树：存储私有，遍历只有 for_each_child 一条路（K2）─────────────
     // 「容纳子节点」是 Node 自身的能力，不再有独立的容器基类：
@@ -216,8 +207,7 @@ public:
     virtual void clear_layout_dirty_recursive() = 0;
 
 protected:
-    Rect global_;
-    Rect local_;
+    Rect bounds_;
     std::vector<std::unique_ptr<Node>> children_;
     Node* parent_ = nullptr;
     UIContext* context_ = nullptr;

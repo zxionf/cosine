@@ -59,9 +59,9 @@ public:
     {
         const auto& t = ui_theme();
         const float radius = t.slider_handle_radius;
-        const float track_x = global_.pos.x + radius;
-        const float track_w = std::max(0.0f, global_.size.x - radius * 2.0f);
-        const float center_y = global_.pos.y + global_.size.y * 0.5f;
+        const float track_x = bounds_.pos.x + radius;
+        const float track_w = std::max(0.0f, bounds_.size.x - radius * 2.0f);
+        const float center_y = bounds_.pos.y + bounds_.size.y * 0.5f;
         // 胶囊轨道：modern 取半高，classic（radius_pill=0）为直角。
         const float track_radius = std::min(t.radius_pill, t.slider_height * 0.5f);
 
@@ -105,13 +105,13 @@ public:
 
                 float bubble_x = handle_bounds.x + (handle_bounds.z - bubble_w) * 0.5f;
                 float bubble_y = handle_bounds.y - bubble_h - 6.0f;
-                if (bubble_y < global_.pos.y) {
+                if (bubble_y < bounds_.pos.y) {
                     bubble_y = handle_bounds.y + handle_bounds.w + 6.0f;
                 }
-                bubble_x = std::clamp(bubble_x, global_.pos.x,
-                                      std::max(global_.pos.x, global_.pos.x + global_.size.x - bubble_w));
-                bubble_y = std::clamp(bubble_y, global_.pos.y,
-                                      std::max(global_.pos.y, global_.pos.y + global_.size.y - bubble_h));
+                bubble_x = std::clamp(bubble_x, bounds_.pos.x,
+                                      std::max(bounds_.pos.x, bounds_.pos.x + bounds_.size.x - bubble_w));
+                bubble_y = std::clamp(bubble_y, bounds_.pos.y,
+                                      std::max(bounds_.pos.y, bounds_.pos.y + bounds_.size.y - bubble_h));
 
                 const BoxStyle bubble = visual_style(StyleRole::Tooltip, ControlState::Normal);
                 graphics::append_rounded_rect(list, {bubble_x, bubble_y, bubble_w, bubble_h},
@@ -182,8 +182,8 @@ private:
     {
         const auto& t = ui_theme();
         const float radius = t.slider_handle_radius;
-        const float track_x = global_.pos.x + radius;
-        const float track_w = std::max(1.0f, global_.size.x - radius * 2.0f);
+        const float track_x = bounds_.pos.x + radius;
+        const float track_w = std::max(1.0f, bounds_.size.x - radius * 2.0f);
         const float norm = std::clamp((pos.x - track_x) / track_w, 0.0f, 1.0f);
         set_value(min_value_ + norm * (max_value_ - min_value_));
         notify();

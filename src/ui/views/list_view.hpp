@@ -57,7 +57,7 @@ public:
     bool focusable() const override { return true; }
 
     // 视口高度：默认整块控件高度；带表头的子类（Table）覆写为内容区高度。
-    virtual float viewport_height() const { return global_.size.y; }
+    virtual float viewport_height() const { return bounds_.size.y; }
 
     // 基类不直接绘制：子类在 append_to 里用 draw_row 画自己的行。
     // （Widget 继承自 Drawable，append_to 是纯虚，这里必须给一个空实现）
@@ -68,7 +68,7 @@ public:
 
     bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
     {
-        if (!global_.contains(pos)) return false;
+        if (!bounds_.contains(pos)) return false;
         if (!scrollable()) return false;
         sync_scroll_range();
         scroll_.scroll_by(-delta.y * row_height_ * 1.5f,
@@ -176,7 +176,7 @@ protected:
         const auto& t = ui_theme();
         const float content = content_height();
         const float max_scroll = std::max(0.0f, content - body_h);
-        const float track_x = global_.pos.x + global_.size.x - bar_w;
+        const float track_x = bounds_.pos.x + bounds_.size.x - bar_w;
 
         const float bar_radius = corner_radius(t.radius_pill);
         // 槽走 Track、滑块走独立的 Thumb 角色：

@@ -138,20 +138,20 @@ public:
         // 左对齐不需要文本宽度：跳过测量，避免每帧逐字形累加。
         float offset_x = 0.0f;
         if (text_align_ != TextAlign::Left) {
-            offset_x = align_offset(text_width(size, atlas), global_.size.x);
+            offset_x = align_offset(text_width(size, atlas), bounds_.size.x);
         }
 
-        float tx = global_.pos.x + offset_x;
-        float ty = global_.pos.y;
+        float tx = bounds_.pos.x + offset_x;
+        float ty = bounds_.pos.y;
         if (pixel_snap_ && ui_theme().pixel_snap) {
             tx = std::round(tx);
             ty = std::round(ty);
         }
 
-        list.push_clip({global_.pos.x, global_.pos.y, global_.size.x, global_.size.y});
+        list.push_clip({bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y});
         if (wrap_) {
             atlas->append_text_wrapped(list, tx, ty, size, text_, text_color(),
-                                       global_.size.x, max_lines_, ellipsis_,
+                                       bounds_.size.x, max_lines_, ellipsis_,
                                        {}, line_spacing_);
         } else {
             atlas->append_text(list, tx, ty, size, text_, text_color(), {},
@@ -162,7 +162,7 @@ public:
             graphics::TextDebugOptions options = debug_;
             options.line_spacing = line_spacing_;
             if (wrap_) {
-                options.wrap_width = global_.size.x;
+                options.wrap_width = bounds_.size.x;
                 options.max_lines = max_lines_;
             }
             graphics::append_text_debug(list, *atlas, tx, ty, size, text_, options);

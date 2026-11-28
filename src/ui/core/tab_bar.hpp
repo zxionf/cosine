@@ -94,9 +94,9 @@ public:
         const float radius = corner_radius(t.radius_small);
 
         if (orientation_ == Orientation::Vertical) {
-            const float left = global_.pos.x;
-            const float width = global_.size.x;
-            float y = global_.pos.y;
+            const float left = bounds_.pos.x;
+            const float width = bounds_.size.x;
+            float y = bounds_.pos.y;
             for (std::size_t i = 0; i < tabs_.size(); ++i) {
                 const float height = t.control_height;
                 const bool active = static_cast<int>(i) == selected_;
@@ -125,16 +125,16 @@ public:
             const float content_h = static_cast<float>(tabs_.size()) * t.control_height
                 + static_cast<float>(tabs_.size() - 1) * t.spacing;
             append_focus_ring(list,
-                              {global_.pos.x, global_.pos.y, global_.size.x,
-                               std::min(global_.size.y, content_h)},
+                              {bounds_.pos.x, bounds_.pos.y, bounds_.size.x,
+                               std::min(bounds_.size.y, content_h)},
                               radius);
             return;
         }
 
-        const float top = global_.pos.y;
-        const float height = global_.size.y;
+        const float top = bounds_.pos.y;
+        const float height = bounds_.size.y;
 
-        float x = global_.pos.x;
+        float x = bounds_.pos.x;
         for (std::size_t i = 0; i < tabs_.size(); ++i) {
             const float width = tab_width(tabs_[i]);
             const bool active = static_cast<int>(i) == selected_;
@@ -161,7 +161,7 @@ public:
             x += width + t.spacing;
         }
 
-        append_focus_ring(list, {global_.pos.x, top, global_.size.x, height}, radius);
+        append_focus_ring(list, {bounds_.pos.x, top, bounds_.size.x, height}, radius);
     }
 
     bool focusable() const override { return true; }
@@ -237,8 +237,8 @@ private:
     {
         const auto& t = ui_theme();
         if (orientation_ == Orientation::Vertical) {
-            if (pos.x < global_.pos.x || pos.x > global_.pos.x + global_.size.x) return -1;
-            float y = global_.pos.y;
+            if (pos.x < bounds_.pos.x || pos.x > bounds_.pos.x + bounds_.size.x) return -1;
+            float y = bounds_.pos.y;
             for (std::size_t i = 0; i < tabs_.size(); ++i) {
                 if (pos.y >= y && pos.y <= y + t.control_height) return static_cast<int>(i);
                 y += t.control_height + t.spacing;
@@ -246,8 +246,8 @@ private:
             return -1;
         }
 
-        if (pos.y < global_.pos.y || pos.y > global_.pos.y + global_.size.y) return -1;
-        float x = global_.pos.x;
+        if (pos.y < bounds_.pos.y || pos.y > bounds_.pos.y + bounds_.size.y) return -1;
+        float x = bounds_.pos.x;
         for (std::size_t i = 0; i < tabs_.size(); ++i) {
             const float width = tab_width(tabs_[i]);
             if (pos.x >= x && pos.x <= x + width) return static_cast<int>(i);

@@ -38,7 +38,7 @@ public:
     glm::vec2 measure(glm::vec2 constraints) override
     {
         (void)constraints;
-        return local_.size;
+        return bounds_.size;
     }
     void arrange(Rect slot) override { set_geometry(slot); }
 
@@ -65,7 +65,7 @@ public:
 
     void append_to(graphics::DrawList& list) const override
     {
-        if (alpha_ > 0.0f) append_scrim(list, global_, alpha_);
+        if (alpha_ > 0.0f) append_scrim(list, bounds_, alpha_);
     }
 
 private:

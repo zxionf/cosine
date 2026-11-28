@@ -336,7 +336,7 @@ public:
     {
         if (table_ == nullptr) return false;
         // 内容不够高就不消费滚轮，让外层容器接手。
-        const float viewport = std::max(0.0f, global_.size.y - header_height());
+        const float viewport = std::max(0.0f, bounds_.size.y - header_height());
         const float content = static_cast<float>(entries_.size()) * row_height();
         if (content <= viewport) return false;
         table_->set_scroll_value(table_->scroll_offset() - delta.y * row_height() * 0.75f);
@@ -377,7 +377,7 @@ private:
     int index_at(glm::vec2 pos) const
     {
         if (entries_.empty() || !global_bounds().contains(pos)) return -1;
-        const float offset = pos.y - global_.pos.y - header_height() +
+        const float offset = pos.y - bounds_.pos.y - header_height() +
                              (table_ != nullptr ? table_->scroll_offset() : 0.0f);
         if (offset < 0.0f) return -1;
         const int index = static_cast<int>(offset / row_height());

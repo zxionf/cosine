@@ -438,11 +438,9 @@ void DebugWindow::update_layout_page()
             layout_bounds_->set_text("bounds: -");
         } else {
             const auto b = target_->global_bounds();
-            const auto l = target_->local_bounds();
             layout_bounds_->set_text(std::format(
-                "bounds: global {:.0f},{:.0f} {:.0f}x{:.0f}   local {:.0f},{:.0f} {:.0f}x{:.0f}",
-                b.pos.x, b.pos.y, b.size.x, b.size.y,
-                l.pos.x, l.pos.y, l.size.x, l.size.y));
+                "bounds: {:.0f},{:.0f} {:.0f}x{:.0f}",
+                b.pos.x, b.pos.y, b.size.x, b.size.y));
         }
     }
     if (layout_size_ != nullptr) {

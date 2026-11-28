@@ -17,7 +17,7 @@ namespace detail
 // ── MenuScrim：全屏遮罩 ────────────────────────────────────────────
 void MenuScrim::append_to(graphics::DrawList& list) const
 {
-    graphics::Rectangle backdrop{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y,
+    graphics::Rectangle backdrop{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y,
                                  glm::vec4{0.0f, 0.0f, 0.0f, 0.05f}};
     backdrop.append_to(list);
 }
@@ -106,7 +106,7 @@ float MenuPopup::content_height() const
 
 float MenuPopup::item_top(int index) const
 {
-    float y = global_.pos.y + owner_->ui_theme().padding;
+    float y = bounds_.pos.y + owner_->ui_theme().padding;
     const int count = std::min(index, static_cast<int>(items_.size()));
     for (int i = 0; i < count; ++i) {
         y += items_[static_cast<std::size_t>(i)].separator ? separator_height() : row_height();
@@ -116,8 +116,8 @@ float MenuPopup::item_top(int index) const
 
 int MenuPopup::index_at(glm::vec2 pos) const
 {
-    if (!global_.contains(pos)) return -1;
-    float y = global_.pos.y + owner_->ui_theme().padding;
+    if (!bounds_.contains(pos)) return -1;
+    float y = bounds_.pos.y + owner_->ui_theme().padding;
     for (std::size_t i = 0; i < items_.size(); ++i) {
         const float row = items_[i].separator ? separator_height() : row_height();
         if (pos.y >= y && pos.y <= y + row) return items_[i].separator ? -1 : static_cast<int>(i);
@@ -129,7 +129,7 @@ int MenuPopup::index_at(glm::vec2 pos) const
 void MenuPopup::append_to(graphics::DrawList& list) const
 {
     const auto& t = owner_->ui_theme();
-    const glm::vec4 bounds{global_.pos.x, global_.pos.y, global_.size.x, global_.size.y};
+    const glm::vec4 bounds{bounds_.pos.x, bounds_.pos.y, bounds_.size.x, bounds_.size.y};
     const BoxStyle surface = t.style(StyleRole::Surface, ControlState::Normal);
     const float radius = corner_radius(t.radius_medium);
 
@@ -139,7 +139,7 @@ void MenuPopup::append_to(graphics::DrawList& list) const
     }
 
     auto* atlas = owner_->font_atlas();
-    float y = global_.pos.y + t.padding;
+    float y = bounds_.pos.y + t.padding;
     const float line_h = atlas ? atlas->line_height(t.text_size) : t.text_size;
     const int highlighted_index = highlighted();
 
@@ -148,8 +148,8 @@ void MenuPopup::append_to(graphics::DrawList& list) const
         const float row = item.separator ? separator_height() : row_height();
 
         if (item.separator) {
-            graphics::Rectangle line{global_.pos.x + t.padding, y + row * 0.5f,
-                                     global_.size.x - t.padding * 2.0f, 1.0f, t.panel_border};
+            graphics::Rectangle line{bounds_.pos.x + t.padding, y + row * 0.5f,
+                                     bounds_.size.x - t.padding * 2.0f, 1.0f, t.panel_border};
             line.append_to(list);
             y += row;
             continue;
@@ -158,7 +158,7 @@ void MenuPopup::append_to(graphics::DrawList& list) const
         const bool active = static_cast<int>(i) == highlighted_index && item.enabled;
         if (active) {
             const BoxStyle style = t.style(StyleRole::MenuItem, ControlState::Hovered);
-            graphics::append_rounded_rect(list, {global_.pos.x + 2.0f, y, global_.size.x - 4.0f, row},
+            graphics::append_rounded_rect(list, {bounds_.pos.x + 2.0f, y, bounds_.size.x - 4.0f, row},
                                           corner_radius(style.radius), style.fill);
         }
 
@@ -169,7 +169,7 @@ void MenuPopup::append_to(graphics::DrawList& list) const
         const float arrow_space = item.has_submenu() ? t.control_height * 0.5f : 0.0f;
         if (atlas) {
             const float text_y = y + (row - line_h) * 0.5f;
-            atlas->append_text(list, global_.pos.x + t.padding * 2.0f, text_y,
+            atlas->append_text(list, bounds_.pos.x + t.padding * 2.0f, text_y,
                                item_style.text_size, item.label, color);
             if (!item.shortcut.empty()) {
                 // 快捷键属于辅助信息，用 Small 档。
@@ -177,14 +177,14 @@ void MenuPopup::append_to(graphics::DrawList& list) const
                 const float shortcut_w = atlas->measure(item.shortcut, sc_size).x;
                 const float sc_y = y + (row - atlas->line_height(sc_size)) * 0.5f;
                 atlas->append_text(list,
-                                   global_.pos.x + global_.size.x - t.padding * 2.0f - arrow_space - shortcut_w,
+                                   bounds_.pos.x + bounds_.size.x - t.padding * 2.0f - arrow_space - shortcut_w,
                                    sc_y, sc_size, item.shortcut, t.text_disabled);
             }
         }
 
         // 子菜单标记：右侧向三角。
         if (item.has_submenu()) {
-            const float ax = global_.pos.x + global_.size.x - t.padding - 4.0f;
+            const float ax = bounds_.pos.x + bounds_.size.x - t.padding - 4.0f;
             const float ay = y + row * 0.5f;
             graphics::Triangle arrow{ax, ay - 4.0f, ax, ay + 4.0f, ax + 4.0f, ay,
                                      item.enabled ? t.text_muted : t.text_disabled};
