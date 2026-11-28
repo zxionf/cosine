@@ -122,7 +122,23 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+# MTSDF 距离场生成（只取 core：不需要 freetype/libpng 扩展）
+# 用于 tools/mtsdf_gen 生成图标图集；运行时与测试都不依赖它。
+set(MSDFGEN_CORE_ONLY ON CACHE BOOL "" FORCE)
+set(MSDFGEN_BUILD_STANDALONE OFF CACHE BOOL "" FORCE)
+set(MSDFGEN_USE_VCPKG OFF CACHE BOOL "" FORCE)
+set(MSDFGEN_USE_SKIA OFF CACHE BOOL "" FORCE)
+set(MSDFGEN_USE_CPP11 OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+    msdfgen
+    GIT_REPOSITORY https://github.com/Chlumsky/msdfgen.git
+    GIT_TAG v1.12
+    GIT_SHALLOW TRUE
+)
+FetchContent_MakeAvailable(msdfgen)
+
 add_subdirectory(src)
 add_subdirectory(examples)
 add_subdirectory(test)
 add_subdirectory(interpreter)
+add_subdirectory(tools)

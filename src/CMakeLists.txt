@@ -5,10 +5,12 @@ add_library(cosine_text STATIC
     graphics/font_atlas.cpp
     graphics/font_atlas_builder.cpp
     graphics/font_face.cpp
+    graphics/sdf_atlas.cpp
 )
 target_include_directories(cosine_text PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+target_include_directories(cosine_text PRIVATE ${STB_INCLUDE_DIR})
 # vertex.hpp 公开包含 <vulkan/vulkan.hpp>，因此头文件路径要传递给所有消费者。
 target_link_libraries(cosine_text PUBLIC glm::glm freetype Vulkan::Headers)
 

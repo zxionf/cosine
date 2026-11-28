@@ -11,7 +11,7 @@
 | R14 | 单窗口 / 单 Renderer 假设 | backend |
 | R15 | 文本 shaping：BiDi / 复杂字形 / 字体回退 / IME | ui |
 | R17 | 序列化：二进制格式已定，资源引用待 CO-2 | cosine |
-| D01 | 圆角抗锯齿：已改为解析 SDF（1 quad + fwidth），圆/胶囊/边框/内阴影全覆盖；图标与字体待走 MTSDF 图集 | ui |
+| D01 | 圆角抗锯齿：解析 SDF 已覆盖圆角/胶囊/边框/内阴影；图标走 MTSDF 图集（tools/mtsdf_gen 烘焙，kind=3 采样）；字体仍位图 | ui |
 | D02 | Table/TreeView 行级背景不参与颜色过渡 | ui |
 | D03 | SceneView 椭圆/文字不随 rotation 旋转 | anim/ui |
 | D05 | File 菜单 Ctrl+N/O/S 键盘路由 | cosine（CO-2） |

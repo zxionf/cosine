@@ -1,0 +1,15 @@
+{
+  "atlas": "ui_icons.png",
+  "size": 512,
+  "cell": 96,
+  "padding": 8,
+  "px_range": 6,
+  "icons": [
+    {"name": "rounded_rect", "col": 0, "row": 0},
+    {"name": "circle", "col": 1, "row": 0},
+    {"name": "play", "col": 2, "row": 0},
+    {"name": "chevron", "col": 3, "row": 0},
+    {"name": "arrow", "col": 4, "row": 0},
+    {"name": "gear", "col": 0, "row": 1}
+  ]
+}

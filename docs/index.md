@@ -64,7 +64,7 @@ examples/
 ├── font_lab/         字体实验室
 └── moss/             手写冒烟用例
 
-test/                 CTest 用例（85 个，全部在 Release 下也真实执行）
+test/                 CTest 用例（86 个，全部在 Release 下也真实执行）
 interpreter/          XEL 解释器（与 UI 解耦，可嵌入）
 scripts/              CI、打包、冒烟脚本
 assets/               shader、字体与图集

@@ -73,4 +73,34 @@ inline void append_sdf_ring(DrawList& list, glm::vec4 rect, float radius, float 
         base + 2, base + 3, base
     });
 }
+// ── MTSDF 图集图标 ────────────────────────────────────────────────
+//
+// uv 来自 SdfAtlas::icon_uv（整张图集里的一个 cell），slot 是图片槽下标
+// （0 基，后端把它映射成纹理槽 2+index）。shader 在 kind=Atlas 时用
+// median(RGB) 重建距离、A 通道留作描边/发光。
+//
+// 建议 SDF 图集占最后一个图片槽（kMaxImageSlots-1），避免与业务图片抢号。
+inline void append_sdf_icon(DrawList& list, int image_slot_index, glm::vec4 uv, glm::vec4 rect,
+                            glm::vec4 color, float px_range = 0.0f)
+{
+    if (rect.z <= 0.0f || rect.w <= 0.0f || color.a <= 0.0f) return;
+    if (image_slot_index < 0 || image_slot_index >= static_cast<int>(kMaxImageSlots)) return;
+    list.set_texture_slot(image_slot(static_cast<uint32_t>(image_slot_index)));
+
+    auto& batch = list.batch();
+    const auto base = static_cast<uint32_t>(batch.vertices.size());
+    const auto kind = static_cast<uint32_t>(VertexKind::Atlas);
+    const glm::vec2 half{rect.z * 0.5f, rect.w * 0.5f};
+    const glm::vec2 sdf_extra{px_range, 0.0f};
+
+    // uv 四角与屏幕四角一一对应（左上、右上、右下、左下）。
+    batch.add_vertex({rect.x, rect.y}, color, {uv.x, uv.y}, half, sdf_extra, kind);
+    batch.add_vertex({rect.x + rect.z, rect.y}, color, {uv.z, uv.y}, half, sdf_extra, kind);
+    batch.add_vertex({rect.x + rect.z, rect.y + rect.w}, color, {uv.z, uv.w}, half, sdf_extra, kind);
+    batch.add_vertex({rect.x, rect.y + rect.w}, color, {uv.x, uv.w}, half, sdf_extra, kind);
+    batch.indices.insert(batch.indices.end(), {
+        base, base + 1, base + 2,
+        base + 2, base + 3, base
+    });
+}
 } // namespace xel::graphics

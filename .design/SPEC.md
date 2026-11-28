@@ -31,7 +31,7 @@
 
 ```
 src/backend/    window（GLFW+EventSource）、vulkan_context、swap_chain、renderer、render_backend、png_writer
-src/graphics/   DrawList/DrawBatch/Vertex、图元、FontAtlas、FrameStats、DisplayScale
+src/graphics/   DrawList/DrawBatch/Vertex、图元、FontAtlas、SdfAtlas、FrameStats、DisplayScale
 src/ui/         Widget 树、布局、事件、焦点、控件、主题、UISystem、UiRuntime
 src/anim/       scene/property/timeline/easing/player、Command/CommandStack
 src/cosine/     编辑器（cosine_editor + cosine 可执行）
@@ -40,7 +40,9 @@ interpreter/    XEL 解释器（与 UI 解耦，可嵌入）
 examples/       ui_demo / graphics_demo / font_lab / moss（UI 示例是「建树 + app.run()」，
                 graphics_demo 不走 UI，只向 RenderBackend 提交图元）
 test/           CTest
-assets/         shader、字体
+assets/         shader、字体、sdf/（MTSDF 图标图集，由 tools/mtsdf_gen 烘焙）
+tools/          mtsdf_gen（开发期工具，不参与运行时）
+third_party/    msdfgen（MIT，vendored；仅 core）
 ```
 
 依赖单向：`graphics` 不依赖 backend；`ui` 依赖 `graphics` + `events`；`backend` 消费 `graphics` 的 DrawList。

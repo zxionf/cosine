@@ -83,7 +83,8 @@ float4 fragMain(VSOutput vertIn) : SV_TARGET {
         float4 tex = texture.Sample(vertIn.fragTexCoord);
         float sd = msdf_median(tex.rgb);
         float w = max(fwidth(sd), 1e-5);
-        float coverage = smoothstep(0.5 - w, 0.5 + w, sd);
+        // sd < 0.5 = 内部（距离场越小越靠里），所以覆盖率要取反。
+        float coverage = 1.0 - smoothstep(0.5 - w, 0.5 + w, sd);
         return premultiply_coverage(vertIn.fragColor, coverage);
     }
 
