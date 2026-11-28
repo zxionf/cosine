@@ -12,10 +12,10 @@ int main()
     auto tooltip = std::make_unique<xel::ui::Tooltip>("hint text");
 
     auto* tip = tooltip.get();
-    root->add_overlay(std::move(tooltip));
+    root->add(std::move(tooltip));
     root->arrange({{0.0f, 0.0f}, {800.0f, 600.0f}});
 
-    const auto bounds = root->global_bounds();
+    const auto bounds = root->bounds();
     assert(bounds.size.x == 800.0f);
 
     // delay 默认 0.35s：累计不足不显示。
@@ -30,14 +30,14 @@ int main()
     // 跟随光标：右下偏移。
     tip->update_hover(0.016f, true, {200.0f, 150.0f}, bounds);
     root->layout();
-    auto global = tip->global_bounds();
+    auto global = tip->bounds();
     assert(global.pos.x > 200.0f);
     assert(global.pos.y > 150.0f);
 
     // 靠近右下角时翻到左上方，且不越界。
     tip->update_hover(0.016f, true, {795.0f, 595.0f}, bounds);
     root->layout();
-    global = tip->global_bounds();
+    global = tip->bounds();
     assert(global.pos.x < 795.0f);
     assert(global.pos.y < 595.0f);
     assert(global.pos.x + global.size.x <= bounds.pos.x + bounds.size.x + 0.5f);
@@ -61,7 +61,7 @@ int main()
     tip->update_hover(0.0f, true, {795.0f, 595.0f},
                       {{0.0f, 0.0f}, {0.0f, 0.0f}});
     root->layout();
-    global = tip->global_bounds();
+    global = tip->bounds();
     assert(global.pos.x > 795.0f);
     assert(global.pos.y > 595.0f);
 

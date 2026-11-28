@@ -7,9 +7,20 @@
 
 namespace
 {
+// 浮层 = layer 非 Content 的 root 子项（弹层 / 菜单 / 模态 / 提示）。
+// 浮层不再是单独的 overlay 列表：它们就是 root 的普通子项，靠 Layer 叠在上面。
+std::vector<xel::ui::Node*> floating(const xel::ui::UIRoot& root)
+{
+    std::vector<xel::ui::Node*> out;
+    for (const auto& child : root.children()) {
+        if (child->layer() != xel::ui::Node::Layer::Content) out.push_back(child.get());
+    }
+    return out;
+}
+
 glm::vec2 center(const xel::ui::Widget& widget)
 {
-    const auto bounds = widget.global_bounds();
+    const auto bounds = widget.bounds();
     return {bounds.pos.x + bounds.size.x * 0.5f, bounds.pos.y + bounds.size.y * 0.5f};
 }
 } // namespace
@@ -80,22 +91,22 @@ int main()
         auto* view = gallery.sections[i]->scroll_view();
         assert(view != nullptr);
         if (gallery.sections[i]->visible()) {
-            assert(view->global_bounds().size.y > 0.0f);
+            assert(view->bounds().size.y > 0.0f);
         }
     }
 
     gallery.show_section(3);
     ui.tick();
     auto* containers_scroll = gallery.sections[3]->scroll_view();
-    assert(containers_scroll->global_bounds().size.y > 0.0f);
+    assert(containers_scroll->bounds().size.y > 0.0f);
     assert(containers_scroll->content_size().y > containers_scroll->viewport_size().y);
     // 验证滚轮能驱动分区滚动：用离散模式避免平滑过渡的延迟效果。
     containers_scroll->set_scroll_mode(xel::ui::ScrollMode::Line);
     const float before_scroll = containers_scroll->scroll_offset();
     xel::event::InputEvent wheel;
     wheel.type = xel::event::InputEvent::Type::MouseScroll;
-    wheel.mouse_pos = {containers_scroll->global_bounds().pos.x + 20.0f,
-                       containers_scroll->global_bounds().pos.y + 20.0f};
+    wheel.mouse_pos = {containers_scroll->bounds().pos.x + 20.0f,
+                       containers_scroll->bounds().pos.y + 20.0f};
     wheel.scroll_delta = -1.0f;
     ui.dispatch(wheel);
     assert(containers_scroll->scroll_offset() > before_scroll);
@@ -106,7 +117,7 @@ int main()
     gallery.open_dialog();
     ui.tick();
     assert(gallery.dialog_host != nullptr);
-    assert(root_ptr->overlays().size() >= 1);
+    assert(floating(*root_ptr).size() >= 1);
     assert(gallery.dialog_state->text() == "dialog: closed");
     gallery.dialog_host->close();
     ui.tick();

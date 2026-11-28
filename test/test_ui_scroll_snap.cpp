@@ -49,7 +49,7 @@ void test_scroll_view_content_snaps()
 
     // 小数滚动偏移：内容位置必须落在整像素上。
     scroll.set_scroll_offset({0.0f, 60.4f});
-    const auto pos = inner->global_bounds().pos;
+    const auto pos = inner->bounds().pos;
     assert(is_integer(pos.x));
     assert(is_integer(pos.y));
     assert(std::fabs(pos.y - (400.0f - std::round(60.4f))) < 0.01f);

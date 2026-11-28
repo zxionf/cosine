@@ -67,7 +67,7 @@ void MenuPopup::set_items(std::vector<MenuItem> items)
     // 自然尺寸随内容走（浮层不用 measure 协商，measure() 报这个值）：
     // 不更新 preferred 的话，root 重排会把浮层按构造期的 0 高摆放。
     set_preferred_size(size);
-    set_geometry({global_bounds().pos, size});
+    set_geometry({bounds().pos, size});
 }
 
 float MenuPopup::row_height() const

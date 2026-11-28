@@ -27,8 +27,6 @@ public:
 
     void set_checked(bool checked) { checked_ = checked; }
     bool checked() const { return checked_; }
-    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
-    bool enabled() const { return is_enabled(); }
     void set_on_change(std::function<void(bool)> handler) { handler_ = std::move(handler); }
 
     glm::vec2 measure(glm::vec2 constraints) override

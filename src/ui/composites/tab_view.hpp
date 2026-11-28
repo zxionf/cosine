@@ -69,7 +69,7 @@ public:
 
     std::size_t page_count() const { return child_count() == 0 ? 0 : child_count() - 1; }
 
-    LayoutNode* page(int index) const
+    Node* page(int index) const
     {
         if (index < 0 || index >= static_cast<int>(page_count())) return nullptr;
         return child_at(static_cast<std::size_t>(index) + 1);
@@ -249,7 +249,7 @@ public:
         for (std::size_t i = 1; i < child_count(); ++i) {
             const auto* child = child_at(i);
             if (!child->visible()) continue;
-            const Rect page_bounds = child->global_bounds();
+            const Rect page_bounds = child->bounds();
             list.push_clip({page_bounds.pos.x, page_bounds.pos.y, page_bounds.size.x, page_bounds.size.y});
             child->append_to(list);
             list.pop_clip();
@@ -262,7 +262,7 @@ public:
 
 
 private:
-    LayoutNode* pages_owner(int page_index)
+    Node* pages_owner(int page_index)
     {
         return child_at(static_cast<std::size_t>(page_index) + 1);
     }

@@ -56,7 +56,7 @@ void test_no_scrollbar_takes_full_width()
     f.tick();
 
     assert(!f.scroll->scrollbar_visible(true));
-    assert(near(f.scroll->global_bounds().size.x, kOuterW));
+    assert(near(f.scroll->bounds().size.x, kOuterW));
     assert(near(f.scroll->viewport_size().x, kOuterW));
     std::printf("no scrollbar: full width ok\n");
 }
@@ -71,7 +71,7 @@ void test_scrollbar_keeps_widget_width()
     const float bar = ui::Theme{}.scrollbar_width + 2.0f;
 
     // 控件自身仍是父给的可用宽度（不被滚动条挤窄）。
-    assert(near(f.scroll->global_bounds().size.x, kOuterW));
+    assert(near(f.scroll->bounds().size.x, kOuterW));
     // 内容可视区只扣一次滚动条宽度。
     assert(near(f.scroll->viewport_size().x, kOuterW - bar));
     std::printf("scrollbar: widget width kept, viewport deducted once ok\n");
@@ -94,7 +94,7 @@ void test_width_stable_across_scrollbar_toggle()
     system.root()->add(std::move(box));
     system.tick();
 
-    const float before = view_ptr->global_bounds().size.x;
+    const float before = view_ptr->bounds().size.x;
     assert(near(before, kOuterW));
     assert(!view_ptr->scrollbar_visible(true));
 
@@ -105,7 +105,7 @@ void test_width_stable_across_scrollbar_toggle()
     system.tick();
 
     assert(view_ptr->scrollbar_visible(true));
-    assert(near(view_ptr->global_bounds().size.x, before)); // 宽度不变
+    assert(near(view_ptr->bounds().size.x, before)); // 宽度不变
     std::printf("width stable across scrollbar toggle ok\n");
 }
 } // namespace

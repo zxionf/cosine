@@ -24,8 +24,8 @@ void test_image_basic()
     assert(nearly(size.x, 120.0f) && nearly(size.y, 80.0f));
 
     image.arrange({{10.0f, 20.0f}, {120.0f, 80.0f}});
-    assert(nearly(image.global_bounds().pos.x, 10.0f));
-    assert(nearly(image.global_bounds().pos.y, 20.0f));
+    assert(nearly(image.bounds().pos.x, 10.0f));
+    assert(nearly(image.bounds().pos.y, 20.0f));
 }
 
 void test_image_properties()

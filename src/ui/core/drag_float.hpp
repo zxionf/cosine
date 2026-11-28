@@ -38,8 +38,6 @@ public:
 
     void set_precision(int digits) { precision_ = std::clamp(digits, 0, 6); }
     void set_suffix(std::string suffix) { suffix_ = std::move(suffix); }
-    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
-    bool enabled() const { return is_enabled(); }
 
     void set_value(float value)
     {

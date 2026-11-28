@@ -64,7 +64,7 @@ public:
     void append_to(graphics::DrawList&) const override {}
 
     // 子类决定尺寸来源（Table 用 min_size，TreeView 用 min/max）。
-    // 默认（首选尺寸 + clamp）由 LayoutNode 提供。
+    // 默认（首选尺寸 + clamp）由 Node 提供。
 
     bool on_scroll(glm::vec2 pos, glm::vec2 delta) override
     {

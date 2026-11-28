@@ -7,6 +7,17 @@
 
 namespace
 {
+// 浮层 = layer 非 Content 的 root 子项（弹层 / 菜单 / 模态 / 提示）。
+// 浮层不再是单独的 overlay 列表：它们就是 root 的普通子项，靠 Layer 叠在上面。
+std::vector<xel::ui::Node*> floating(const xel::ui::UIRoot& root)
+{
+    std::vector<xel::ui::Node*> out;
+    for (const auto& child : root.children()) {
+        if (child->layer() != xel::ui::Node::Layer::Content) out.push_back(child.get());
+    }
+    return out;
+}
+
 using xel::event::InputEvent;
 using xel::event::KeyCode;
 
@@ -28,7 +39,7 @@ InputEvent key(KeyCode code)
 
 glm::vec2 center(const xel::ui::Widget& widget)
 {
-    const auto bounds = widget.global_bounds();
+    const auto bounds = widget.bounds();
     return {bounds.pos.x + bounds.size.x * 0.5f, bounds.pos.y + bounds.size.y * 0.5f};
 }
 } // namespace
@@ -60,13 +71,13 @@ int main()
     ui.tick();
 
     assert(host != nullptr);
-    assert(root_ptr->overlays().size() == 1);
-    assert(root_ptr->overlays().front().get() == host);
+    assert(floating(*root_ptr).size() == 1);
+    assert(floating(*root_ptr).front() == host);
     assert(!host->closed());
     assert(host->dialog() == dialog_ptr);
 
     // 对话框内容区位于窗口中央。
-    const auto bounds = dialog_ptr->global_bounds();
+    const auto bounds = dialog_ptr->bounds();
     assert(bounds.size.x >= 420.0f - 0.5f);
     assert(bounds.pos.x > 200.0f && bounds.pos.x < 300.0f);
     assert(bounds.pos.y > 100.0f);
@@ -76,7 +87,7 @@ int main()
     ui.dispatch(mouse(InputEvent::Type::MouseButtonUp, {6.0f, 6.0f}));
     assert(close_calls == 1);
     ui.tick();
-    assert(root_ptr->overlays().empty());
+    assert(floating(*root_ptr).empty());
 
     // 点击操作按钮：先触发回调，再由调用方关闭。
     auto dialog2 = std::make_unique<xel::ui::Dialog>("Confirm", 360.0f);
@@ -94,7 +105,7 @@ int main()
     assert(delete_calls == 1);
     assert(close_calls == 2);
     ui.tick();
-    assert(root_ptr->overlays().empty());
+    assert(floating(*root_ptr).empty());
 
     // Esc 关闭（按键从焦点控件冒泡到宿主）。
     auto dialog3 = std::make_unique<xel::ui::Dialog>("Escape test", 320.0f);
@@ -105,7 +116,7 @@ int main()
     assert(host3->closed());
     assert(close_calls == 3);
     ui.tick();
-    assert(root_ptr->overlays().empty());
+    assert(floating(*root_ptr).empty());
 
     // 不可关闭的对话框：点击遮罩与 Esc 都无效。
     auto dialog4 = std::make_unique<xel::ui::Dialog>("Must answer", 320.0f);
@@ -118,7 +129,7 @@ int main()
     assert(close_calls == 3);
     host4->close();
     ui.tick();
-    assert(root_ptr->overlays().empty());
+    assert(floating(*root_ptr).empty());
     assert(close_calls == 4);
 
     // 关闭事件本身能让宿主安全移除自己（不重复回调）。

@@ -83,9 +83,8 @@ glm::vec2 LinearLayout::measure(glm::vec2 constraints)
     std::vector<MainAxisItem> items;
     float cross_max = 0.0f;
 
-    // 树存的是 Node，布局计算需要布局视图 → for_each_layout_child。
-    for_each_layout_child([&](LayoutNode& node) {
-        LayoutNode& child_ref = node;
+    // 隐藏子项不参与流式尺寸；绝对定位子项也不参与。
+    for_each_child([&](Node& child_ref) {
         auto* child = &child_ref;
         // 隐藏子项不参与流式尺寸；绝对定位子项也不参与。
         if (child->display() != Display::Flow) {
@@ -158,8 +157,8 @@ void LinearLayout::arrange(Rect slot)
     std::vector<MainAxisItem> specs;
     measured.reserve(child_count());
 
-    // 布局计算需要 LayoutNode 视图。
-    for_each_layout_child([&](LayoutNode& node) {
+    // 摆放与测量都要布局意图（size_percent / margin / min/max）。
+    for_each_child([&](Node& node) {
         auto* child = &node;
         if (child->display() != Display::Flow) return;
 
@@ -282,9 +281,9 @@ void LinearLayout::arrange(Rect slot)
     // 内容实际占用尺寸 = 子项包围盒相对自身原点的范围：
     // 用于 content_overflows() 诊断，取真实几何而不是自然尺寸。
     glm::vec2 occupied{0.0f, 0.0f};
-    for_each_layout_child([&](LayoutNode& child) {
+    for_each_child([&](Node& child) {
         if (child.display() == Display::Hidden) return;
-        const auto b = child.global_bounds();
+        const auto b = child.bounds();
         occupied.x = std::max(occupied.x, b.pos.x + b.size.x - slot.pos.x);
         occupied.y = std::max(occupied.y, b.pos.y + b.size.y - slot.pos.y);
     });

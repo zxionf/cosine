@@ -77,7 +77,7 @@ public:
     void close()
     {
         close_all_popups();
-        if (auto* root = find_root(); root && scrim_) root->remove_overlay(scrim_);
+        if (auto* root = find_root(); root && scrim_) root->remove(scrim_);
         scrim_ = nullptr;
         open_ = -1;
         active_depth_ = 0;
@@ -336,12 +336,12 @@ private:
                 [this]() { close(); },
                 [this](glm::vec2 pos) { hover_titles(pos); });
             scrim_ = scrim.get();
-            root->add_overlay(std::move(scrim));
+            root->add(std::move(scrim));
         }
 
         auto popup = std::make_unique<detail::MenuPopup>(*this, 160.0f, 0.0f);
         auto* raw = popup.get();
-        root->add_overlay(std::move(popup));
+        root->add(std::move(popup));
 
         popups_ = {raw};
         sub_items_ = {-1};
@@ -355,11 +355,11 @@ private:
 
         const float x = title_left(open_);
         const float y = bounds_.pos.y + bounds_.size.y + 2.0f;
-        popups_[0]->arrange({{x, y}, popups_[0]->local_bounds().size});
+        popups_[0]->arrange({{x, y}, popups_[0]->bounds().size});
 
         auto* root = find_root();
         // 无 root 时用"无界"宽度，而不是 1e9 这种另一个哨兵。
-        const float viewport_w = root ? root->global_bounds().size.x : kUnbounded;
+        const float viewport_w = root ? root->bounds().size.x : kUnbounded;
 
         for (std::size_t depth = 1; depth < popups_.size(); ++depth) {
             auto* parent = popups_[depth - 1];
@@ -367,8 +367,8 @@ private:
             const int item = sub_items_[depth];
             if (item < 0 || item >= static_cast<int>(parent->items().size())) break;
 
-            const auto parent_bounds = parent->global_bounds();
-            const glm::vec2 sub_size = sub->local_bounds().size;
+            const auto parent_bounds = parent->bounds();
+            const glm::vec2 sub_size = sub->bounds().size;
             float sub_x = parent_bounds.pos.x + parent_bounds.size.x - 4.0f;
             // 右边界不够时翻到父菜单左侧。
             if (sub_x + sub_size.x > viewport_w) {
@@ -416,7 +416,7 @@ private:
         auto* root = find_root();
         while (static_cast<int>(popups_.size()) > depth) {
             auto* popup = popups_.back();
-            if (root) root->remove_overlay(popup);
+            if (root) root->remove(popup);
             popups_.pop_back();
             sub_items_.pop_back();
         }
@@ -429,7 +429,7 @@ private:
     {
         auto* root = find_root();
         for (auto* popup : popups_) {
-            if (root) root->remove_overlay(popup);
+            if (root) root->remove(popup);
         }
         popups_.clear();
         sub_items_.clear();
@@ -466,7 +466,7 @@ private:
         auto sub = std::make_unique<detail::MenuPopup>(*this, 160.0f, 0.0f);
         auto* raw = sub.get();
         raw->set_items(item.children);
-        root->add_overlay(std::move(sub));
+        root->add(std::move(sub));
         popups_.push_back(raw);
         sub_items_.push_back(item_index);
         update_popup_geometry();

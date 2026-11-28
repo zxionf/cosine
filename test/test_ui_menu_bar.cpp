@@ -11,6 +11,17 @@
 
 namespace
 {
+// 浮层 = layer 非 Content 的 root 子项（弹层 / 菜单 / 模态 / 提示）。
+// 浮层不再是单独的 overlay 列表：它们就是 root 的普通子项，靠 Layer 叠在上面。
+std::vector<xel::ui::Node*> floating(const xel::ui::UIRoot& root)
+{
+    std::vector<xel::ui::Node*> out;
+    for (const auto& child : root.children()) {
+        if (child->layer() != xel::ui::Node::Layer::Content) out.push_back(child.get());
+    }
+    return out;
+}
+
 using xel::event::InputEvent;
 using xel::event::KeyCode;
 
@@ -32,7 +43,7 @@ InputEvent key(KeyCode code)
 
 glm::vec2 center(const xel::ui::Widget& widget)
 {
-    const auto bounds = widget.global_bounds();
+    const auto bounds = widget.bounds();
     return {bounds.pos.x + bounds.size.x * 0.5f, bounds.pos.y + bounds.size.y * 0.5f};
 }
 
@@ -86,7 +97,7 @@ int main()
     ui.tick();
 
     assert(!bar_ptr->is_open());
-    const auto bar_bounds = bar_ptr->global_bounds();
+    const auto bar_bounds = bar_ptr->bounds();
     assert(bar_bounds.size.y > 0.0f);
 
     // 点击 File 打开菜单，overlay 挂载 scrim + popup。
@@ -95,28 +106,28 @@ int main()
     ui.tick();
     assert(bar_ptr->is_open());
     assert(bar_ptr->open_menu() == 0);
-    assert(root_ptr->overlays().size() == 2);
+    assert(floating(*root_ptr).size() == 2);
 
     // 再次点击同一标题关闭。
     click(ui, {file_x, bar_bounds.pos.y + bar_bounds.size.y * 0.5f});
     ui.tick();
     assert(!bar_ptr->is_open());
-    assert(root_ptr->overlays().empty());
+    assert(floating(*root_ptr).empty());
 
     // 打开后点击第一个菜单项触发回调并关闭。
     click(ui, {file_x, bar_bounds.pos.y + bar_bounds.size.y * 0.5f});
     ui.tick();
     assert(bar_ptr->is_open());
-    auto* popup = root_ptr->overlays().size() == 2 ? root_ptr->overlays().back().get() : nullptr;
+    auto* popup = floating(*root_ptr).size() == 2 ? floating(*root_ptr).back() : nullptr;
     assert(popup != nullptr);
-    const auto popup_bounds = popup->global_bounds();
+    const auto popup_bounds = popup->bounds();
     // 第一项在 padding 之后一行内。
     click(ui, {popup_bounds.pos.x + popup_bounds.size.x * 0.5f,
                popup_bounds.pos.y + 16.0f});
     ui.tick();
     assert(new_calls == 1);
     assert(!bar_ptr->is_open());
-    assert(root_ptr->overlays().empty());
+    assert(floating(*root_ptr).empty());
 
     // 键盘：聚焦菜单栏，Down 打开第一项菜单，Right 切到 Edit，Esc 关闭。
     ui.set_focus(bar_ptr);
@@ -131,7 +142,7 @@ int main()
     ui.dispatch(key(KeyCode::Escape));
     ui.tick();
     assert(!bar_ptr->is_open());
-    assert(root_ptr->overlays().empty());
+    assert(floating(*root_ptr).empty());
 
     // 重新打开 File：点击标题后 current_ 归位到 0，Down 从 New 移到 Save。
     click(ui, {file_x, bar_bounds.pos.y + bar_bounds.size.y * 0.5f});
@@ -154,8 +165,8 @@ int main()
     // 禁用项不触发回调。
     bar_ptr->open(1);
     ui.tick();
-    auto* edit_popup = root_ptr->overlays().back().get();
-    const auto edit_bounds = edit_popup->global_bounds();
+    auto* edit_popup = floating(*root_ptr).back();
+    const auto edit_bounds = edit_popup->bounds();
     const float row = bar_ptr->ui_theme().control_height;
     click(ui, {edit_bounds.pos.x + edit_bounds.size.x * 0.5f,
                edit_bounds.pos.y + 16.0f + row + row * 0.5f});
@@ -165,9 +176,9 @@ int main()
     // 悬停在菜单项上应产生高亮（通过 UISystem 的 hover 链）。
     bar_ptr->open(0);
     ui.tick();
-    auto* hover_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(root_ptr->overlays().back().get());
+    auto* hover_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(floating(*root_ptr).back());
     assert(hover_popup != nullptr);
-    const auto hp = hover_popup->global_bounds();
+    const auto hp = hover_popup->bounds();
     xel::event::InputEvent hover_move;
     hover_move.type = InputEvent::Type::MouseMove;
     hover_move.mouse_pos = {hp.pos.x + hp.size.x * 0.5f,
@@ -187,9 +198,9 @@ int main()
     // hover 高亮必须真的出现在绘制列表里（不是只有状态）。
     bar_ptr->open(0);
     ui.tick();
-    auto* draw_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(root_ptr->overlays().back().get());
+    auto* draw_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(floating(*root_ptr).back());
     assert(draw_popup != nullptr);
-    const auto dp = draw_popup->global_bounds();
+    const auto dp = draw_popup->bounds();
     xel::event::InputEvent draw_move;
     draw_move.type = InputEvent::Type::MouseMove;
     draw_move.mouse_pos = {dp.pos.x + 10.0f,
@@ -219,13 +230,13 @@ int main()
     // 切换到另一个菜单后，弹层尺寸必须跟着内容变化（不能沿用上一个菜单的尺寸）。
     bar_ptr->open(0);
     ui.tick();
-    auto* size_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(root_ptr->overlays().back().get());
+    auto* size_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(floating(*root_ptr).back());
     assert(size_popup != nullptr);
-    const float file_h = size_popup->global_bounds().size.y;
-    const float file_w = size_popup->global_bounds().size.x;
+    const float file_h = size_popup->bounds().size.y;
+    const float file_w = size_popup->bounds().size.x;
     std::printf("file popup %.1fx%.1f\n", file_w, file_h);
 
-    const auto sb = bar_ptr->global_bounds();
+    const auto sb = bar_ptr->bounds();
     xel::event::InputEvent size_move;
     size_move.type = InputEvent::Type::MouseMove;
     size_move.mouse_pos = {sb.pos.x + sb.size.x - 10.0f, sb.pos.y + sb.size.y * 0.5f};
@@ -234,27 +245,27 @@ int main()
     ui.tick();
     assert(bar_ptr->open_menu() == bar_ptr->menu_count() - 1);
     std::printf("last popup %.1fx%.1f\n",
-                size_popup->global_bounds().size.x, size_popup->global_bounds().size.y);
-    assert(size_popup->global_bounds().size.y != file_h
-           || size_popup->global_bounds().size.x != file_w);
+                size_popup->bounds().size.x, size_popup->bounds().size.y);
+    assert(size_popup->bounds().size.y != file_h
+           || size_popup->bounds().size.x != file_w);
     bar_ptr->close();
     ui.tick();
 
     // 更宽的菜单必须让弹层变宽，而不是被上一次的宽度锁住。
     bar_ptr->open(3);
     ui.tick();
-    auto* wide_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(root_ptr->overlays().back().get());
+    auto* wide_popup = dynamic_cast<xel::ui::detail::MenuPopup*>(floating(*root_ptr).back());
     assert(wide_popup != nullptr);
     std::printf("tools popup %.1fx%.1f\n",
-                wide_popup->global_bounds().size.x, wide_popup->global_bounds().size.y);
-    assert(wide_popup->global_bounds().size.x > 160.0f);
+                wide_popup->bounds().size.x, wide_popup->bounds().size.y);
+    assert(wide_popup->bounds().size.x > 160.0f);
     bar_ptr->close();
     ui.tick();
 
     // 悬停切换菜单时，popup 内容必须跟着换（不能只改尺寸）。
     bar_ptr->open(0);
     ui.tick();
-    const auto bar_rect = bar_ptr->global_bounds();
+    const auto bar_rect = bar_ptr->bounds();
     const float edit_center_x = bar_rect.pos.x
         + bar_ptr->ui_theme().padding * 2.0f + bar_ptr->ui_theme().text_size * 2.2f + 40.0f;
     xel::event::InputEvent move;
@@ -265,8 +276,8 @@ int main()
     assert(bar_ptr->open_menu() == 1);
 
     // 点击第一行：应触发 Edit > Undo，而不是 File > New。
-    auto* switched_popup = root_ptr->overlays().back().get();
-    const auto switched_bounds = switched_popup->global_bounds();
+    auto* switched_popup = floating(*root_ptr).back();
+    const auto switched_bounds = switched_popup->bounds();
     const int undo_before = undo_calls;
     const int new_before = new_calls;
     click(ui, {switched_bounds.pos.x + switched_bounds.size.x * 0.5f,
@@ -279,12 +290,12 @@ int main()
     // popup 上下 padding 对称：高度 = rows + padding*2。
     bar_ptr->open(0);
     ui.tick();
-    auto* file_popup = root_ptr->overlays().back().get();
+    auto* file_popup = floating(*root_ptr).back();
     const float popup_row_h = bar_ptr->ui_theme().control_height;
     const float pad = bar_ptr->ui_theme().padding;
     float expected_h = pad * 2.0f;
     for (const auto& item : bar_ptr->items(0)) expected_h += item.separator ? 9.0f : popup_row_h;
-    assert(std::fabs(file_popup->global_bounds().size.y - expected_h) < 0.01f);
+    assert(std::fabs(file_popup->bounds().size.y - expected_h) < 0.01f);
     bar_ptr->close();
     ui.tick();
 
@@ -292,7 +303,7 @@ int main()
     click(ui, {900.0f, 600.0f});
     ui.tick();
     assert(!bar_ptr->is_open());
-    assert(root_ptr->overlays().empty());
+    assert(floating(*root_ptr).empty());
 
     std::cout << "menu bar tests passed\n";
     return 0;

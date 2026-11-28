@@ -117,7 +117,7 @@ public:
 
     // 树（唯一入口）
     void adopt(std::unique_ptr<Node> child);
-    template <class F> void for_each_child(F&& f) const;   // 含 overlays
+    template <class F> void for_each_child(F&& f) const;   // 全部子项（浮层=普通子项）
     Node* parent() const;
     const std::shared_ptr<const bool>& alive_token() const; // UISystem 悬垂检测
 
@@ -309,7 +309,7 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 补充不变量（沿用已有教训，写进测试）：
 
 - **一帧一角色一状态**（UI-46）：同一控件同一帧对同一 `StyleRole` 只能用一种 `ControlState`。用调试断言 + 单测锁。
-- **范围合法**（UI-34/UI-45）：`clear_layout_dirty` / `invalidate_measure` 必须经 `for_each_child` 递归到 overlays。
+- **范围合法**（UI-34/UI-45）：`clear_layout_dirty` / `invalidate_measure` 必须经 `for_each_child` 递归到全部子项。
 
 ---
 
@@ -382,6 +382,9 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 2026-11-28 | 节点收敛为两层：删除 `LeafNode` / `ContainerNode`；「容纳子节点」直接在 `Node`（`add()` 默认 `adopt()`，无独立容器基类）；叶子默认 `measure = clamp(preferred_size)` / `arrange = set_geometry(slot)` 上移为 `LayoutNode` 的默认实现；18 个叶子控件与 3 个视图改继承 `Widget`；K8 改为「无中间基类」断言 |
 | 2026-11-28 | `node/` 头文件瘦身：`node.hpp` 288→230 行、`layout_node.hpp` 372→282 行；树操作 / 绘制顺序 / 语义投影 / `LayoutSpec` 读写 / 盒模型 / 尺寸意图等实现体移至 `node.cpp`、`layout_node.cpp`；K2 改为「`children_` 只在 `node/`（.hpp + .cpp）」 |
 | 2026-11-28 | 几何去冗余：删除 `local_`（与 `global_` 永远同值），`global_` 成为唯一几何存储（全局坐标）；`local_bounds()` 退化为别名；删除 `set_global_bounds()` / `set_arranged_pos()`（调用点均与其等价或多余）；`sizeof(Node)` 112→96；K3 只统计单一字段；随后字段统一改名为 `bounds_`（字段名不再暗示“全局”） |
+| 2026-11-28 | **节点并回单类**：`LayoutNode` 完全并入 `Node`（布局契约、4 个部件、测量缓存、脏标记、事件钩子、样式过渡），删除 `node/layout_node.{hpp,cpp}`；`widget.hpp` 只剩 `using Widget = Node;`；`Node` 默认 `measure`/`arrange` 即叶子行为；`sizeof(Node)=432`、虚函数 38；K5/K8 断言改为单类口径（并锁住 `class LayoutNode` 不再存在） |
+| 2026-11-28 | **能力收敛 + 死代码清理**：`node.hpp` 按能力重分组（几何 / 树 / 上下文 / 可见性与层叠 / 语义 / 交互状态 / 布局意图 / 盒模型 / 测量 / 事件 / 策略 / 调试）；删除 `as_layout()`（恒等，24 处调用点）；`global_bounds()` + `local_bounds()` 合并为 `bounds()`；删除 `child()`、`clear_padding_override()`、`clear_corner_radius()`；`sorted_paint_order()` 降为 `node.cpp` 内部函数；`for_each_layout_child` 改名 `for_each_owned_child`；删除 7 个控件里与基类逐字相同的 `set_enabled` 覆写与 `enabled()` 转发（统一用 `is_enabled()`） |
+| 2026-11-28 | **删除 overlay 语义**：删除 `Node::overlays()`（唯一实现者是 `UIRoot`，且与 `Layer`/`z_index` 重复）；浮层改为宿主（root）的普通子项 + `Layer`；删除 `UIRoot::{add_overlay, remove_overlay, clear_overlays, overlays_, add() override}`、`Node::overlay_paint_order()`、`for_each_owned_child()`、`remove_children_if()`；6 处 `add_overlay`→`add`、6 处 `remove_overlay`→`remove`；`UIRoot::remove()` 改为真正走 `trash_`（原注释与实现不符）；`detach_child()` 成为唯一的所有权转移入口；`Node` 虚函数 38→37 |
 
 ---
 

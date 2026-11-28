@@ -99,8 +99,8 @@ void test_raise_on_press()
 void test_resize_grips()
 {
     Fixture f;
-    // 父容器有 padding：用 global_bounds 算真实边缘，别手写坐标。
-    const auto bounds = f.window->global_bounds();
+    // 父容器有 padding：用 bounds() 算真实边缘，别手写坐标。
+    const auto bounds = f.window->bounds();
     const float right = bounds.pos.x + bounds.size.x;
     const float bottom = bounds.pos.y + bounds.size.y;
 
@@ -112,10 +112,10 @@ void test_resize_grips()
     assert(std::fabs(f.window->height() - 300.0f) < kEps);
     f.window->on_mouse_up({right + 98.0f, bottom + 98.0f}, 0);
 
-    // 右边中间：只改宽（先重排一次，让 global_bounds 跟上新的尺寸）。
+    // 右边中间：只改宽（先重排一次，让 bounds() 跟上新的尺寸）。
     f.parent.mark_layout_dirty();
     f.parent.arrange({{0.0f, 0.0f}, {1200.0f, 800.0f}});
-    const auto grown = f.window->global_bounds();
+    const auto grown = f.window->bounds();
     const float edge = grown.pos.x + grown.size.x;
     const float height_before = f.window->height();
     assert(f.window->on_mouse_down({edge - 2.0f, grown.pos.y + 100.0f}, 0));
@@ -135,10 +135,10 @@ void test_collapse_and_close()
     f.window->set_collapsed(false);
     assert(std::fabs(f.window->height() - 200.0f) < kEps);
 
-    // 关闭叉：右上角（用 global_bounds 算，父容器 padding 会让硬编码坐标偏）。
+    // 关闭叉：右上角（用 bounds() 算，父容器 padding 会让硬编码坐标偏）。
     bool destroyed = false;
     f.window->set_on_destroy([&destroyed] { destroyed = true; });
-    const auto bounds = f.window->global_bounds();
+    const auto bounds = f.window->bounds();
     const glm::vec2 close_point{bounds.pos.x + bounds.size.x - 16.0f, bounds.pos.y + 16.0f};
     assert(f.window->on_mouse_down(close_point, 0));
     // 销毁延迟到下一次布局（避免事件派发期间销毁自身）。
@@ -173,16 +173,16 @@ void test_footer_follows_width()
 
     win.set_size({900.0f, 400.0f});
     win.arrange({{0.0f, 0.0f}, {900.0f, 400.0f}});
-    const float wide = button->global_bounds().pos.x;
+    const float wide = button->bounds().pos.x;
     win.set_size({820.0f, 400.0f});
     win.arrange({{0.0f, 0.0f}, {820.0f, 400.0f}});
-    const float narrow = button->global_bounds().pos.x;
+    const float narrow = button->bounds().pos.x;
     assert(narrow < wide);
     assert(std::fabs((wide - narrow) - 80.0f) < kEps);
 
     win.set_size({900.0f, 400.0f});
     win.arrange({{0.0f, 0.0f}, {900.0f, 400.0f}});
-    assert(std::fabs(button->global_bounds().pos.x - wide) < kEps);
+    assert(std::fabs(button->bounds().pos.x - wide) < kEps);
 }
 
 // 命中裁剪与绘制裁剪一致：布局到窗口外（画不出来）的子项不可点。
@@ -206,8 +206,8 @@ void test_clips_children()
     ui.tick();
 
     // 子项确实超出了窗口右边界（画不出来）。
-    const auto wb = ui.root()->children().front()->global_bounds();
-    const auto bb = btn_ptr->global_bounds();
+    const auto wb = ui.root()->children().front()->bounds();
+    const auto bb = btn_ptr->bounds();
     assert(bb.pos.x + bb.size.x > wb.pos.x + wb.size.x);
 
     // 点击窗口内部分：命中。
@@ -244,7 +244,7 @@ void test_collapsed_close_disabled()
     f.window->set_collapsed(true);
     assert(f.window->collapsed());
 
-    const auto bounds = f.window->global_bounds();
+    const auto bounds = f.window->bounds();
     const glm::vec2 close_point{bounds.pos.x + bounds.size.x - 16.0f, bounds.pos.y + 16.0f};
     f.window->on_mouse_down(close_point, 0);
     // 折叠态下关闭被禁用：窗口仍在、仍折叠（既没销毁也没隐藏）。
@@ -336,7 +336,7 @@ void test_title_follows_line_height()
 void test_chrome_hit_rects_consistent()
 {
     Fixture f;
-    const auto bounds = f.window->global_bounds();
+    const auto bounds = f.window->bounds();
     const auto c = f.window->chrome();
     const float title = f.window->title_height();
 
@@ -371,7 +371,7 @@ void test_fixed_size_not_stretched()
     win->arrange({{0.0f, 0.0f}, {1000.0f, 700.0f}});
     assert(std::fabs(win->width() - 300.0f) < kEps);
     assert(std::fabs(win->height() - 200.0f) < kEps);
-    assert(std::fabs(win->global_bounds().size.x - 300.0f) < kEps);
+    assert(std::fabs(win->bounds().size.x - 300.0f) < kEps);
 }
 
 // content_inset 默认 0：内容贴满窗口；resize 命中带仍独立存在（theme.resize_margin）。
@@ -381,8 +381,8 @@ void test_content_inset_defaults_to_zero()
     assert(std::fabs(f.window->content_inset()) < kEps);
 
     f.window->layout();
-    const auto wb = f.window->global_bounds();
-    const auto body = f.window->content()->global_bounds();
+    const auto wb = f.window->bounds();
+    const auto body = f.window->content()->bounds();
 
     // 无 footer 时：body 横向贴满窗口。
     assert(std::fabs(body.pos.x - wb.pos.x) < kEps);
@@ -398,7 +398,7 @@ void test_content_inset_defaults_to_zero()
     // 显式设 content_inset：内容让出边带（视觉留白，与 resize 无关）。
     f.window->set_content_inset(6.0f);
     f.window->layout();
-    const auto body2 = f.window->content()->global_bounds();
+    const auto body2 = f.window->content()->bounds();
     assert(std::fabs(body2.pos.x - (wb.pos.x + 6.0f)) < kEps);
     assert(std::fabs(body2.size.x - (wb.size.x - 12.0f)) < kEps);
 }
@@ -420,10 +420,10 @@ void test_resize_priority_over_content()
     ui.root()->add(std::move(win));
     ui.tick();
 
-    const auto b = w->global_bounds();
+    const auto b = w->bounds();
     // 右下角边缘（resize_margin=4 内）。
     const glm::vec2 corner{b.pos.x + b.size.x - 2.0f, b.pos.y + b.size.y - 2.0f};
-    assert(fill_ptr->global_bounds().contains(corner)); // 内容确实覆盖了该点
+    assert(fill_ptr->bounds().contains(corner)); // 内容确实覆盖了该点
 
     xel::event::InputEvent down;
     down.type = xel::event::InputEvent::Type::MouseButtonDown;

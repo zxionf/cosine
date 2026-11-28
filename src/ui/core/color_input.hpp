@@ -42,8 +42,6 @@ public:
 
     glm::vec4 value() const { return color_; }
 
-    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
-    bool enabled() const { return is_enabled(); }
 
     void set_on_change(std::function<void(glm::vec4)> handler) { handler_ = std::move(handler); }
     // 选中色块：上报 (before, after)，供编辑器生成一条撤销命令。

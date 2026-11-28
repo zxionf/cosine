@@ -124,8 +124,8 @@ public:
         popup->set_pos(bounds_.pos.x, bounds_.pos.y + bounds_.size.y + 2.0f);
         popup_ = popup.get();
 
-        root->add_overlay(std::move(scrim));
-        root->add_overlay(std::move(popup));
+        root->add(std::move(scrim));
+        root->add(std::move(popup));
         highlight_ = selected_;
     }
 
@@ -133,8 +133,8 @@ public:
     {
         if (!popup_ && !scrim_) return;
         if (auto* root = find_root()) {
-            root->remove_overlay(popup_);
-            root->remove_overlay(scrim_);
+            root->remove(popup_);
+            root->remove(scrim_);
         }
         popup_ = nullptr;
         scrim_ = nullptr;

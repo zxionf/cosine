@@ -38,8 +38,6 @@ public:
     }
 
     void set_on_select(std::function<void()> handler) { handler_ = std::move(handler); }
-    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
-    bool enabled() const { return is_enabled(); }
 
     glm::vec2 measure(glm::vec2 constraints) override
     {

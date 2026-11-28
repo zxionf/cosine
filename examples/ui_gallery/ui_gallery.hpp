@@ -252,7 +252,7 @@ struct UiGallery
         const std::string* text = nullptr;
         for (const auto& target : tip_targets) {
             if (!target.widget || !target.widget->visible()) continue;
-            if (!target.widget->global_bounds().contains(cursor)) continue;
+            if (!target.widget->bounds().contains(cursor)) continue;
             text = &target.text;
             break;
         }
@@ -260,7 +260,7 @@ struct UiGallery
         if (text) tooltip->set_text(*text);
 
         // 悬停延迟、跟随光标与边界翻转都由 Tooltip 自己驱动。
-        const ui::Rect bounds = root ? root->global_bounds()
+        const ui::Rect bounds = root ? root->bounds()
                                      : ui::Rect{glm::vec2{0.0f, 0.0f}, glm::vec2{0.0f, 0.0f}};
         tooltip->update_hover(dt, text != nullptr, cursor, bounds);
     }
@@ -1272,11 +1272,11 @@ inline UiGallery build(ui::UIRoot& root, std::uint32_t image_texture_id = 0,
     // ---------- Overlay 层 ----------
     auto tooltip = std::make_unique<ui::Tooltip>("");
     gallery.tooltip = tooltip.get();
-    root.add_overlay(std::move(tooltip));
+    root.add(std::move(tooltip));
 
     auto debug = std::make_unique<ui::DebugOverlay>();
     gallery.debug = debug.get();
-    root.add_overlay(std::move(debug));
+    root.add(std::move(debug));
 
     gallery.show_section(0);
     if (const char* theme = std::getenv("COSINE_GALLERY_THEME"); theme && std::strcmp(theme, "light") == 0) {

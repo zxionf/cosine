@@ -73,7 +73,7 @@ int main()
     assert(table_ptr->selected() == 0);
     assert(table_ptr->scroll_offset() == 0.0f);
 
-    const auto bounds = table_ptr->global_bounds();
+    const auto bounds = table_ptr->bounds();
     assert(bounds.size.x == 480.0f);
     assert(bounds.size.y == 200.0f);
     assert(table_ptr->header_height() > 0.0f);

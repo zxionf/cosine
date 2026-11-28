@@ -181,7 +181,7 @@ void ScrollView::arrange(Rect slot)
 
 bool ScrollView::on_scroll(glm::vec2 pos, glm::vec2 delta)
 {
-    if (!global_bounds().contains(pos)) return false;
+    if (!bounds().contains(pos)) return false;
 
     const float step = scroll_mode_ == ScrollMode::Line ? line_step_ : scroll_speed_;
     if (axis_ == Axis::Vertical || axis_ == Axis::Both) {

@@ -20,12 +20,11 @@ inline Rect content_rect(const Widget& widget, Rect slot)
 }
 
 // 摆放 Positioned（absolute）子项：相对内容区原点，尺寸走 measure_child 的统一规则。
-inline void place_positioned_children(LayoutNode& parent, Rect content, glm::vec2 constraints)
+inline void place_positioned_children(Node& parent, Rect content, glm::vec2 constraints)
 {
-    // 树存 Node，而布局摆放需要布局属性 → 走 for_each_layout_child 的布局视图。
-    parent.for_each_layout_child([&](LayoutNode& child) {
-        if (child.display() != LayoutNode::Display::Positioned) return;
-        const glm::vec2 size = LayoutNode::measure_child(child, constraints);
+    parent.for_each_child([&](Node& child) {
+        if (child.display() != Node::Display::Positioned) return;
+        const glm::vec2 size = Node::measure_child(child, constraints);
         child.arrange({{content.pos.x + child.absolute_pos().x,
                         content.pos.y + child.absolute_pos().y},
                        size});

@@ -142,8 +142,8 @@ void test_text_size_change_propagates()
     check(after > before + 1.0f, "text size change grows the nested container",
           std::to_string(before) + " -> " + std::to_string(after));
     // arrange 之后子项落在父容器内。
-    check(f.panel->global_bounds().pos.y + f.panel->global_bounds().size.y
-              <= f.outer->global_bounds().pos.y + f.outer->global_bounds().size.y + 0.51f,
+    check(f.panel->bounds().pos.y + f.panel->bounds().size.y
+              <= f.outer->bounds().pos.y + f.outer->bounds().size.y + 0.51f,
           "nested panel stays inside outer after text resize");
 }
 

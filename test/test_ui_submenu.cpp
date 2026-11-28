@@ -21,6 +21,17 @@ namespace
 {
 using namespace xel;
 
+// 浮层 = layer 非 Content 的 root 子项（弹层 / 菜单 / 模态 / 提示）。
+// 浮层不再是单独的 overlay 列表：它们就是 root 的普通子项，靠 Layer 叠在上面。
+std::vector<ui::Node*> floating(const ui::UIRoot& root)
+{
+    std::vector<ui::Node*> out;
+    for (const auto& child : root.children()) {
+        if (child->layer() != ui::Node::Layer::Content) out.push_back(child.get());
+    }
+    return out;
+}
+
 struct Fixture
 {
     ui::MenuBar* bar = nullptr;
@@ -55,12 +66,12 @@ struct Fixture
 
     ui::detail::MenuPopup* popup_at(std::size_t index) const
     {
-        const auto& overlays = ui->root()->overlays();
-        if (index >= overlays.size()) return nullptr;
-        return dynamic_cast<ui::detail::MenuPopup*>(overlays[index].get());
+        const auto list = floating(*ui->root());
+        if (index >= list.size()) return nullptr;
+        return dynamic_cast<ui::detail::MenuPopup*>(list[index]);
     }
 
-    std::size_t overlay_count() const { return ui->root()->overlays().size(); }
+    std::size_t overlay_count() const { return floating(*ui->root()).size(); }
 };
 
 void test_children_structure()
@@ -86,14 +97,14 @@ void test_hover_opens_submenus_level_by_level()
 
     auto* top = f.popup_at(1);
     assert(top != nullptr);
-    const auto top_bounds = top->global_bounds();
+    const auto top_bounds = top->bounds();
     top->on_mouse_move({top_bounds.pos.x + 10.0f, top->item_top(1) + 5.0f});
     assert(f.overlay_count() == 3); // + Export
     assert(f.bar->submenu_depth() == 1);
 
     auto* export_popup = f.popup_at(2);
     assert(export_popup != nullptr);
-    const auto export_bounds = export_popup->global_bounds();
+    const auto export_bounds = export_popup->bounds();
     // 子菜单应贴在父菜单右侧。
     assert(export_bounds.pos.x >= top_bounds.pos.x + top_bounds.size.x - 8.0f);
     export_popup->on_mouse_move({export_bounds.pos.x + 10.0f, export_popup->item_top(1) + 5.0f});
@@ -113,15 +124,15 @@ void test_click_leaf_runs_action_and_closes_all()
     f.ui->tick();
 
     auto* top = f.popup_at(1);
-    const auto top_bounds = top->global_bounds();
+    const auto top_bounds = top->bounds();
     top->on_mouse_move({top_bounds.pos.x + 10.0f, top->item_top(1) + 5.0f});
 
     auto* export_popup = f.popup_at(2);
-    const auto export_bounds = export_popup->global_bounds();
+    const auto export_bounds = export_popup->bounds();
     export_popup->on_mouse_move({export_bounds.pos.x + 10.0f, export_popup->item_top(1) + 5.0f});
 
     auto* video_popup = f.popup_at(3);
-    const auto video_bounds = video_popup->global_bounds();
+    const auto video_bounds = video_popup->bounds();
     CHECK(video_popup->on_click({video_bounds.pos.x + 10.0f, video_popup->item_top(0) + 5.0f}, 0));
 
     assert(f.mp4_count == 1);

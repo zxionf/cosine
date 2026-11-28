@@ -281,7 +281,7 @@ void test_dialog_over_modal_window()
     assert(f.root->modal_top() == host); // 对话框成为最顶层模态
 
     // 对话框内按钮可命中（不被窗口 Scrim 盖住）。
-    const auto bounds = ok->global_bounds();
+    const auto bounds = ok->bounds();
     f.click({bounds.pos.x + bounds.size.x * 0.5f, bounds.pos.y + bounds.size.y * 0.5f});
     assert(ok_calls == 1);
 
@@ -308,15 +308,15 @@ void test_modal_frame_invariants()
     assert(f.root->modal_top() == w1_ptr);
     assert(f.root->children().size() == base_children + 1);
 
-    // with_scrim=false（对话框）：不加 Scrim，children 不变。
+    // with_scrim=false（对话框）：不加 Scrim；DialogHost 现在是普通子项，所以 children +1。
     auto dialog = std::make_unique<ui::Dialog>("Confirm", 300.0f);
     dialog->add_action("OK", [] {}, true);
     auto* host = ui::show_dialog(*f.root, std::move(dialog));
     f.tick();
     assert(f.root->modal_top() == host);
-    assert(f.root->children().size() == base_children + 1);
+    assert(f.root->children().size() == base_children + 2);
 
-    // pop 对话框：窗口的 Scrim 仍在。
+    // pop 对话框：窗口的 Scrim 仍在，DialogHost 已移出。
     host->close();
     f.tick();
     assert(f.root->modal_top() == w1_ptr);

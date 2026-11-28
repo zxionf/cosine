@@ -28,8 +28,6 @@ public:
     void set_label(std::string label) { label_ = std::move(label); mark_layout_dirty(); }
     const std::string& label() const { return label_; }
     void set_on_click(std::function<void()> handler) { handler_ = std::move(handler); }
-    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
-    bool enabled() const { return is_enabled(); }
     // 伪状态：用于 gallery 与测试展示 pressed 外观，不参与事件流程。
     void set_pressed(bool pressed) { input.pressed = pressed; }
 
@@ -47,7 +45,7 @@ public:
         return {width, t.control_height};
     }
 
-    // arrange 用 LayoutNode 的默认实现：只接受父容器给的矩形。
+    // arrange 用 Node 的默认实现：只接受父容器给的矩形。
 
     // 基线对齐：按钮文字在控件内垂直居中，按行高 80% 估算基线。
     float baseline_offset_for(float h) const override

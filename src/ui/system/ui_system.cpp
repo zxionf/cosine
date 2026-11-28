@@ -11,7 +11,7 @@ template <typename Fn>
 bool bubble_to_root(xel::ui::Widget* target, Fn&& fn)
 {
     for (xel::ui::Widget* widget = target; widget != nullptr;
-         widget = xel::ui::as_layout(widget->parent())) {
+         widget = widget->parent()) {
         if (fn(widget)) return true;
     }
     return false;
@@ -22,17 +22,17 @@ bool collect_hit_path(xel::ui::Widget* widget, glm::vec2 pos, std::vector<xel::u
     if (!widget || !widget->visible()) return false;
 
     // 容器可以裁剪子控件：超出范围的内容不可命中
-    if (widget->clips_children() && !widget->global_bounds().contains(pos)) return false;
+    if (widget->clips_children() && !widget->bounds().contains(pos)) return false;
 
     path.push_back(widget);
 
-    // 统一按 layer 降序 → z 降序命中（大的先命中）；UIRoot 会合并 children_/overlays_。
+    // 按 layer 降序 → z 降序命中（大的先命中）。
     const std::vector<xel::ui::Node*> order = widget->layer_paint_order();
     for (auto it = order.rbegin(); it != order.rend(); ++it) {
-        if (collect_hit_path(xel::ui::as_layout(*it), pos, path)) return true;
+        if (collect_hit_path(*it, pos, path)) return true;
     }
     // 只在自己可命中时才返回自己
-    if (widget->hit_testable() && widget->global_bounds().contains(pos)) return true;
+    if (widget->hit_testable() && widget->bounds().contains(pos)) return true;
 
     path.pop_back();
     return false;
@@ -44,9 +44,6 @@ bool tree_contains(const xel::ui::Node* widget, const xel::ui::Node* target)
     if (widget == target) return true;
     for (const auto& child : widget->children()) {
         if (tree_contains(child.get(), target)) return true;
-    }
-    for (const auto& overlay : widget->overlays()) {
-        if (tree_contains(overlay.get(), target)) return true;
     }
     return false;
 }
@@ -159,11 +156,8 @@ void UISystem::update_tree(Widget* widget, float dt)
 {
     if (!widget || !widget->visible()) return;
     widget->update(dt);
-    for (xel::ui::Node* child : widget->paint_order()) {
-        update_tree(xel::ui::as_layout(child), dt);
-    }
-    for (xel::ui::Node* overlay : widget->overlay_paint_order()) {
-        update_tree(xel::ui::as_layout(overlay), dt);
+    for (xel::ui::Node* child : widget->layer_paint_order()) {
+        update_tree(child, dt);
     }
 }
 
@@ -231,9 +225,9 @@ void UISystem::collect_focusable(Widget* widget, std::vector<Widget*>& out) cons
 {
     if (!widget || !widget->visible()) return;
     if (widget->focusable()) out.push_back(widget);
-    // 统一按 layer 升序 → z 升序收集 Tab 顺序；UIRoot 会合并 children_/overlays_。
+    // 统一按 layer 升序 → z 升序收集 Tab 顺序。
     for (xel::ui::Node* child : widget->layer_paint_order()) {
-        collect_focusable(xel::ui::as_layout(child), out);
+        collect_focusable(child, out);
     }
 }
 
@@ -322,7 +316,7 @@ Window* UISystem::find_resize_target(Widget* widget, glm::vec2 pos) const
     // 子控件（z 降序，顶层优先）先于自身，与命中顺序一致。
     const auto order = widget->layer_paint_order();
     for (auto it = order.rbegin(); it != order.rend(); ++it) {
-        if (Window* w = find_resize_target(xel::ui::as_layout(*it), pos)) return w;
+        if (Window* w = find_resize_target(*it, pos)) return w;
     }
     if (auto* win = dynamic_cast<Window*>(widget)) {
         if (win->resize_edges_at(pos) != 0) return win;
@@ -493,7 +487,7 @@ void UISystem::update_long_press()
         return;
     }
     // 指针移出目标就取消，避免拖动时误触。
-    if (!pressed_->global_bounds().contains(pointer_pos_)) {
+    if (!pressed_->bounds().contains(pointer_pos_)) {
         press_.active = false;
         return;
     }

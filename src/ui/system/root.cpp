@@ -13,9 +13,6 @@ bool widget_in_tree(xel::ui::Node* root, xel::ui::Node* target)
     for (const auto& child : root->children()) {
         if (widget_in_tree(child.get(), target)) return true;
     }
-    for (const auto& overlay : root->overlays()) {
-        if (widget_in_tree(overlay.get(), target)) return true;
-    }
     return false;
 }
 
@@ -24,8 +21,8 @@ xel::ui::Widget* first_focusable(xel::ui::Widget* root)
 {
     if (!root) return nullptr;
     for (xel::ui::Node* child : root->layer_paint_order()) {
-        if (child->focusable()) return xel::ui::as_layout(child);
-        if (xel::ui::Widget* w = first_focusable(xel::ui::as_layout(child))) return w;
+        if (child->focusable()) return child;
+        if (xel::ui::Widget* w = first_focusable(child)) return w;
     }
     return nullptr;
 }
@@ -40,19 +37,16 @@ UIRoot::UIRoot(float x, float y, float width, float height)
     set_context(&context_storage_);
 }
 
-void UIRoot::add(std::unique_ptr<Node> child)
-{
-    adopt(std::move(child));
-}
-
 void UIRoot::remove(Node* child)
 {
     if (!child) return;
     for (std::size_t i = 0; i < child_count(); ++i) {
         if (child_at(i) != child) continue;
-        // 先移入 trash_ 延后销毁（事件回调里可能还在使用该控件）
-        remove_children_if([child](const std::unique_ptr<Node>& c) { return c.get() == child; });
-        mark_layout_dirty();
+        // 先移入 trash_ 延后销毁：事件回调里可能还在使用该控件。
+        if (auto owned = detach_child(i)) {
+            trash_.push_back(std::move(owned));
+            mark_layout_dirty();
+        }
         return;
     }
 }
@@ -67,27 +61,6 @@ void UIRoot::clear_focus_hooks()
 {
     focus_getter_ = {};
     focus_setter_ = {};
-}
-
-void UIRoot::add_overlay(std::unique_ptr<Node> child)
-{
-    child->set_parent(this);
-    child->set_context(context());
-    overlays_.push_back(std::move(child));
-    mark_layout_dirty();
-}
-
-void UIRoot::remove_overlay(Widget* overlay)
-{
-    if (!overlay) return;
-    for (auto it = overlays_.begin(); it != overlays_.end(); ++it) {
-        if (it->get() == overlay) {
-            trash_.push_back(std::move(*it));
-            overlays_.erase(it);
-            mark_layout_dirty();
-            return;
-        }
-    }
 }
 
 void UIRoot::purge_trash()
@@ -145,9 +118,7 @@ void UIRoot::layout()
     for (std::size_t i = 0; i < modal_frames_.size(); ++i) {
         if (!widget_in_tree(this, modal_frames_[i].window)) {
             if (Widget* scrim = modal_frames_[i].scrim) {
-                remove_children_if([scrim](const std::unique_ptr<Node>& c) {
-                    return c.get() == scrim;
-                });
+                remove(scrim); // 延迟销毁：与事件回调期间的移除同语义
             }
             continue;
         }
@@ -170,8 +141,7 @@ void UIRoot::layout()
     // 轮次推进：measure 缓存以它为键，保证只在本轮内命中。
     advance_layout_epoch();
     LayoutPassScope layout_pass;
-    for (auto& child : children()) layout_child(as_layout(*child));
-    for (auto& overlay : overlays()) layout_child(as_layout(*overlay));
+    for (auto& child : children()) layout_child(*child);
     // 收尾：清除整棵树的本轮脏标记（早退传播依赖它）。
     clear_layout_dirty_recursive();
 }
@@ -200,7 +170,7 @@ void UIRoot::push_modal(Widget* window, bool with_scrim)
     if (current != nullptr && widget_in_tree(window, current)) {
         return; // 已在子树内
     }
-    Widget* target = as_layout(window->preferred_focus());
+    Widget* target = window->preferred_focus();
     if (target == nullptr || !widget_in_tree(window, target)) {
         target = first_focusable(window);
     }
@@ -217,9 +187,7 @@ void UIRoot::pop_modal(Widget* window)
     Widget* restore = it->prev_focus;
     modal_frames_.erase(it);
     if (scrim != nullptr) {
-        remove_children_if([scrim](const std::unique_ptr<Node>& child) {
-            return child.get() == scrim;
-        });
+        remove(scrim);
     }
     mark_layout_dirty();
 

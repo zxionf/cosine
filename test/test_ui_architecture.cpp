@@ -16,7 +16,6 @@
 #include <utility>
 #include <vector>
 
-#include "ui/node/layout_node.hpp"
 #include "ui/node/node.hpp"
 #include "ui/node/widget.hpp"
 
@@ -253,12 +252,12 @@ void test_geometry_single_write_entry()
           "outside_hits=" + std::to_string(outside));
 }
 
-// K5：基类虚函数数量上限（UI-56 分层后：Node + LayoutNode 合计）。
+// K5：基类虚函数数量上限（布局机制已合并进 Node）。
 void test_base_virtual_budget()
 {
     int virtuals = 0;
     int on_hooks = 0;
-    for (const char* file : {"node/node.hpp", "node/layout_node.hpp"}) {
+    for (const char* file : {"node/node.hpp"}) {
         std::istringstream in(read_file(ui_root() / file));
         std::string line;
         while (std::getline(in, line)) {
@@ -269,9 +268,9 @@ void test_base_virtual_budget()
             if (line.find(" on_") != std::string::npos) ++on_hooks;
         }
     }
-    check(virtuals <= 45, "K5: Node+LayoutNode virtual budget (<= 45)",
+    check(virtuals <= 45, "K5: Node virtual budget (<= 45)",
           "virtuals=" + std::to_string(virtuals));
-    check(on_hooks == 17, "K5: the 17 event hooks still live in LayoutNode",
+    check(on_hooks == 17, "K5: the 17 event hooks still live in Node",
           "hooks=" + std::to_string(on_hooks));
 }
 
@@ -297,7 +296,7 @@ void test_state_and_cache_ownership()
 void test_layout_single_writer()
 {
     int writes = 0;
-    for (const char* file : {"node/layout_node.hpp", "node/layout_node.cpp"}) {
+    for (const char* file : {"node/node.hpp", "node/node.cpp"}) {
         const std::string text = read_file(ui_root() / file);
         for (const char* field : {"align_self", "has_align", "flex_grow", "size_percent",
                                   "aspect_ratio", "fill_x", "fill_y", "min_size", "max_size",
@@ -316,23 +315,22 @@ void test_layout_single_writer()
           "found=" + std::to_string(writes));
 }
 
-// K8（UI-56 + 节点改造）：两层结构成立——Node ⊂ LayoutNode，Widget 是 LayoutNode 的别名；
+// K8：单类结构——Widget 是 Node 的别名；布局机制不再有第二个类。
 // 「容纳子节点」直接在 Node 上抽象（add → adopt），LeafNode / ContainerNode 已删除。
-void test_three_layer_structure()
+void test_node_single_class()
 {
-    static_assert(std::is_base_of_v<xel::ui::Node, xel::ui::LayoutNode>, "LayoutNode must derive from Node");
-    static_assert(std::is_same_v<xel::ui::Widget, xel::ui::LayoutNode>, "Widget is an alias of LayoutNode");
-    static_assert(!std::is_same_v<xel::ui::Node, xel::ui::LayoutNode>, "Node and LayoutNode are distinct");
+    static_assert(std::is_same_v<xel::ui::Widget, xel::ui::Node>,
+                  "Widget is an alias of Node");
 
-    check(sizeof(xel::ui::Node) < sizeof(xel::ui::LayoutNode), "Node is lighter than LayoutNode",
-          "node=" + std::to_string(sizeof(xel::ui::Node))
-              + " layout=" + std::to_string(sizeof(xel::ui::LayoutNode)));
-    // 树的元素类型是 Node（不是 Widget）——这是分层的核心事实。
+    // 树元素类型、布局节点、控件都是同一个类，不存在需要下行的分层。
+    check(sizeof(xel::ui::Node) == sizeof(xel::ui::Widget), "Node and Widget have one size",
+          "node=" + std::to_string(sizeof(xel::ui::Node)));
     check(sizeof(decltype(std::declval<const xel::ui::Node&>().children()))
               == sizeof(std::vector<std::unique_ptr<xel::ui::Node>>),
-          "children() stores Node, not Widget");
-    check(fs::exists(ui_root() / "node" / "node.hpp") && fs::exists(ui_root() / "node" / "layout_node.hpp"),
-          "two-layer headers exist (node.hpp / layout_node.hpp)");
+          "children() stores Node");
+    check(fs::exists(ui_root() / "node" / "node.hpp")
+              && !fs::exists(ui_root() / "node" / "layout_node.hpp"),
+          "K8: node.hpp is the only node header (layout_node.hpp is gone)");
 
     // 中间基类不许复活：头文件不存在，源码里也没有引用。
     check(!fs::exists(ui_root() / "node" / "leaf_node.hpp")
@@ -343,6 +341,9 @@ void test_three_layer_structure()
         + count_occurrences(ui_root(), "ContainerNode", exts);
     check(legacy == 0, "K8: no LeafNode / ContainerNode references in src/ui",
           "hits=" + std::to_string(legacy));
+    const int classes = count_occurrences(ui_root(), "class LayoutNode", exts);
+    check(classes == 0, "K8: LayoutNode class no longer exists",
+          "hits=" + std::to_string(classes));
 
     // 容纳子节点的能力在 Node：add() 默认转发到 adopt()。
     const std::string node_text = read_file(ui_root() / "node" / "node.hpp");
@@ -361,7 +362,7 @@ int main()
     test_base_virtual_budget();
     test_state_and_cache_ownership();
     test_layout_single_writer();
-    test_three_layer_structure();
+    test_node_single_class();
 
     std::printf("architecture: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;

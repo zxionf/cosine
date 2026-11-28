@@ -421,7 +421,7 @@ public:
             body_->append_to(list);
             // debug 时把内容区（Vbox）的布局框也画出来。
             if (debug_.any()) {
-                const Rect& box = body_->global_bounds();
+                const Rect& box = body_->bounds();
                 const glm::vec4 dbg_color = debug_.color;
                 const float th = debug_.thickness;
                 graphics::Rectangle{box.pos.x, box.pos.y, box.size.x, th, dbg_color}.append_to(list);
@@ -503,7 +503,7 @@ public:
         // 有标题栏时只认标题条（高度为 0 时 hit_title 永不命中）；
         // 无标题栏时整块都是拖动带（内容里的控件会先接点击，到不了这里）。
         const bool drag_area =
-            hit_title(pos) || (!title_bar_visible_ && global_bounds().contains(pos));
+            hit_title(pos) || (!title_bar_visible_ && bounds().contains(pos));
         if (drag_area) {
             mode_ = Mode::Drag;
             grab_ = pos - absolute_pos();
@@ -522,7 +522,7 @@ public:
             // UIRoot 是自由画布：每帧用 child.x()/y() 重定位，所以几何也必须更新，
             // 否则拖动会被下一帧 layout 撤销。Vbox 下则用 absolute_pos，两者同时保持。
             set_pos(next);
-            set_geometry({next, global_bounds().size});
+            set_geometry({next, bounds().size});
         } else {
             const glm::vec2 delta = pos - grab_;
             glm::vec2 next_pos = resize_start_pos_;

@@ -11,6 +11,17 @@
 
 namespace
 {
+// 浮层 = layer 非 Content 的 root 子项（弹层 / 菜单 / 模态 / 提示）。
+// 浮层不再是单独的 overlay 列表：它们就是 root 的普通子项，靠 Layer 叠在上面。
+std::vector<xel::ui::Node*> floating(const xel::ui::UIRoot& root)
+{
+    std::vector<xel::ui::Node*> out;
+    for (const auto& child : root.children()) {
+        if (child->layer() != xel::ui::Node::Layer::Content) out.push_back(child.get());
+    }
+    return out;
+}
+
 using xel::event::KeyCode;
 using xel::event::Modifier;
 } // namespace
@@ -40,7 +51,7 @@ int main()
         xel::ui::UISystem ui{std::move(root)};
         ui.tick();
 
-        const std::size_t base = ui.root()->overlays().size();
+        const std::size_t base = floating(*ui.root()).size();
 
         // 焦点转移必须真正清掉 focused：否则 Dropdown 选完后边框会一直是强调色。
         ui.set_focus(dd);
@@ -51,7 +62,7 @@ int main()
         dd->open();
         ui.tick();
         assert(dd->is_open());
-        assert(ui.root()->overlays().size() == base + 2); // scrim + list
+        assert(floating(*ui.root()).size() == base + 2); // scrim + list
         assert(dd->highlight() == 0);
 
         assert(dd->on_key_down(KeyCode::Down, Modifier::None));
@@ -70,7 +81,7 @@ int main()
         assert(changes == 1);
         assert(last == 1);
         ui.tick();
-        assert(ui.root()->overlays().size() == base);
+        assert(floating(*ui.root()).size() == base);
 
         // Esc 关闭且不改变选择。
         dd->open();
@@ -80,7 +91,7 @@ int main()
         assert(!dd->is_open());
         assert(dd->selected() == 1);
         ui.tick();
-        assert(ui.root()->overlays().size() == base);
+        assert(floating(*ui.root()).size() == base);
 
         // Tab 关闭，不消费焦点事件。
         dd->open();
@@ -88,24 +99,24 @@ int main()
         assert(!dd->on_key_down(KeyCode::Tab, Modifier::None));
         assert(!dd->is_open());
         ui.tick();
-        assert(ui.root()->overlays().size() == base);
+        assert(floating(*ui.root()).size() == base);
 
         // 点击遮罩关闭。
         dd->open();
         ui.tick();
-        assert(ui.root()->overlays().size() == base + 2);
-        auto* scrim = xel::ui::as_layout(ui.root()->overlays()[base].get());
+        assert(floating(*ui.root()).size() == base + 2);
+        auto* scrim = floating(*ui.root())[base];
         assert(scrim->on_mouse_down({10.0f, 10.0f}, 0));
         assert(!dd->is_open());
         ui.tick();
-        assert(ui.root()->overlays().size() == base);
+        assert(floating(*ui.root()).size() == base);
 
         // 点击列表选项提交。
         dd->open();
         ui.tick();
-        assert(ui.root()->overlays().size() == base + 2);
-        auto* list = xel::ui::as_layout(ui.root()->overlays()[base + 1].get());
-        const auto bounds = list->global_bounds();
+        assert(floating(*ui.root()).size() == base + 2);
+        auto* list = floating(*ui.root())[base + 1];
+        const auto bounds = list->bounds();
         assert(bounds.size.x >= 160.0f);
         assert(bounds.size.y > 0.0f);
 
@@ -119,19 +130,19 @@ int main()
         assert(dd->selected() == 0);
         assert(!dd->is_open());
         ui.tick();
-        assert(ui.root()->overlays().size() == base);
+        assert(floating(*ui.root()).size() == base);
 
         // 列表行悬停高亮。
         dd->open();
         ui.tick();
-        list = xel::ui::as_layout(ui.root()->overlays()[base + 1].get());
-        const auto list_bounds = list->global_bounds();
+        list = floating(*ui.root())[base + 1];
+        const auto list_bounds = list->bounds();
         const float second_row_y = list_bounds.pos.y + pad + row * 1.5f;
         assert(list->on_mouse_move({list_bounds.pos.x + 4.0f, second_row_y}));
         assert(list->on_click({list_bounds.pos.x + 4.0f, second_row_y}, 0));
         assert(dd->selected() == 1);
         ui.tick();
-        assert(ui.root()->overlays().size() == base);
+        assert(floating(*ui.root()).size() == base);
     }
 
     // ---------- 再次点击自身按钮关闭 ----------
@@ -144,16 +155,16 @@ int main()
 
         xel::ui::UISystem ui{std::move(root)};
         ui.tick();
-        const auto base = ui.root()->overlays().size();
+        const auto base = floating(*ui.root()).size();
 
         assert(dd->on_mouse_down({30.0f, 30.0f}, 0));
         ui.tick();
         assert(dd->is_open());
-        assert(ui.root()->overlays().size() == base + 2);
+        assert(floating(*ui.root()).size() == base + 2);
         assert(dd->on_mouse_down({30.0f, 30.0f}, 0));
         assert(!dd->is_open());
         ui.tick();
-        assert(ui.root()->overlays().size() == base);
+        assert(floating(*ui.root()).size() == base);
     }
 
     // ---------- 空选项不展开 ----------
@@ -164,11 +175,11 @@ int main()
         root->add(std::move(dropdown));
         xel::ui::UISystem ui{std::move(root)};
         ui.tick();
-        const auto before = ui.root()->overlays().size();
+        const auto before = floating(*ui.root()).size();
         dd->open();
         ui.tick();
         assert(!dd->is_open());
-        assert(ui.root()->overlays().size() == before);
+        assert(floating(*ui.root()).size() == before);
     }
 
     // ---------- 回归：通过事件系统点击下拉项后不悬垂 ----------
@@ -198,8 +209,8 @@ int main()
         assert(ui.hovered() == dd);
 
         // 悬停到列表第二行
-        auto* list = ui.root()->overlays().back().get();
-        const auto bounds = list->global_bounds();
+        auto* list = floating(*ui.root()).back();
+        const auto bounds = list->bounds();
         const glm::vec2 row{bounds.pos.x + 8.0f, bounds.pos.y + 40.0f};
         ui.dispatch(mouse(xel::event::InputEvent::Type::MouseMove, row));
         ui.tick();

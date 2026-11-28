@@ -405,7 +405,7 @@ void test_focus_visibility()
     assert_inside(border_list, control_bounds);
 
     // Always：鼠标点击聚焦也显示边框，不要求先切到键盘模式。
-    const auto button_bounds = button_ptr->global_bounds();
+    const auto button_bounds = button_ptr->bounds();
     event::InputEvent mouse_down;
     mouse_down.type = event::InputEvent::Type::MouseButtonDown;
     mouse_down.mouse_pos = {button_bounds.pos.x + button_bounds.size.x * 0.5f,
@@ -451,7 +451,7 @@ void test_widget_migration()
     // 迁移后的控件仍按主题取色：禁用态文字降级、强调色来自 accent。
     ui::Button disabled_button("off");
     disabled_button.set_enabled(false);
-    assert(disabled_button.enabled() == false);
+    assert(disabled_button.is_enabled() == false);
 
     ui::Checkbox checkbox("check", true);
     assert(checkbox.checked());

@@ -4,7 +4,7 @@
 //   1. 16 个「从未被任何子类覆写」的虚函数已降级为普通函数——派生类即使写同名函数，
 //      经基类指针调用也不会被多态分派（这是「假扩展点」的反证）；
 //   2. 叶子默认 measure/arrange 与旧样板等价（首选取 clamp、arrange 只写几何），
-//      二者现在是 LayoutNode 的默认实现（不再有 LeafNode 中间基类）；
+//      二者现在是 Node 的默认实现（不再有 LeafNode / LayoutNode 中间基类）；
 //   3. clips_children() 由 overflow() 派生（不再是可覆写的独立开关）。
 #include "ui/core/button.hpp"
 #include "ui/core/label.hpp"
@@ -61,7 +61,7 @@ public:
     bool shadowed_debug = false;
 };
 
-// 探针：叶子，验证 LayoutNode 的默认 measure/arrange。
+// 探针：叶子，验证 Node 的默认 measure/arrange。
 class LeafProbe : public ui::Widget
 {
 public:
@@ -91,7 +91,7 @@ void test_dead_virtuals_no_longer_dispatch()
     check(base->width() == 30.0f && base->height() == 20.0f, "set_size is no longer virtual");
 
     base->set_geometry({{1.0f, 2.0f}, {3.0f, 4.0f}});
-    check(same_rect(base->global_bounds(), {{1.0f, 2.0f}, {3.0f, 4.0f}}),
+    check(same_rect(base->bounds(), {{1.0f, 2.0f}, {3.0f, 4.0f}}),
           "set_geometry is a plain function (single geometry entry)");
 
     base->debug();
@@ -111,24 +111,24 @@ void test_dead_virtuals_no_longer_dispatch()
     check(base->parent() == nullptr, "parent() is a plain function");
 }
 
-// 2) 叶子的默认实现与旧样板等价（现居 LayoutNode）。
+// 2) 叶子的默认实现与旧样板等价（现居 Node）。
 void test_leaf_defaults()
 {
     LeafProbe leaf;
 
     const glm::vec2 measured = leaf.measure({1000.0f, 1000.0f});
     check(measured.x == 42.0f && measured.y == 18.0f,
-          "LayoutNode::measure returns preferred size (clamped)");
+          "Node::measure returns preferred size (clamped)");
 
     // min/max clamp 生效：preferred 超出 max 时被截断。
     leaf.set_preferred_size({500.0f, 500.0f});
     const glm::vec2 clamped = leaf.measure({1000.0f, 1000.0f});
-    check(clamped.x == 100.0f && clamped.y == 40.0f, "LayoutNode::measure clamps to max_size");
+    check(clamped.x == 100.0f && clamped.y == 40.0f, "Node::measure clamps to max_size");
 
     leaf.arrange({{5.0f, 6.0f}, {70.0f, 25.0f}});
-    check(same_rect(leaf.global_bounds(), {{5.0f, 6.0f}, {70.0f, 25.0f}}),
-          "LayoutNode::arrange writes geometry only");
-    check(leaf.layout_dirty(), "LayoutNode::arrange does not clear the dirty flag by itself");
+    check(same_rect(leaf.bounds(), {{5.0f, 6.0f}, {70.0f, 25.0f}}),
+          "Node::arrange writes geometry only");
+    check(leaf.layout_dirty(), "Node::arrange does not clear the dirty flag by itself");
 }
 
 // 3) 叶子控件（直接继承 Widget）的契约仍是「arrange 只写几何」。
@@ -142,7 +142,7 @@ void test_leaf_controls_keep_contract()
     for (ui::Widget* w : {static_cast<ui::Widget*>(&button), static_cast<ui::Widget*>(&label),
                           static_cast<ui::Widget*>(&progress), static_cast<ui::Widget*>(&slider)}) {
         w->arrange({{3.0f, 4.0f}, {55.0f, 22.0f}});
-        check(same_rect(w->global_bounds(), {{3.0f, 4.0f}, {55.0f, 22.0f}}),
+        check(same_rect(w->bounds(), {{3.0f, 4.0f}, {55.0f, 22.0f}}),
               "migrated leaf accepts the given rect");
         check(w->overflow() == ui::Widget::Overflow::Visible && !w->clips_children(),
               "migrated leaf keeps clips_children == false");

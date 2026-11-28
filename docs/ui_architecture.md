@@ -13,8 +13,7 @@
 └────────────────────────────┬─────────────────────────────────────┘
                              │ append_to(DrawList&)
 ┌─ ui/ ──────────────────────▼─────────────────────────────────────┐
-│ Node          身份 / 几何 / 树 / 可见性 / 层叠 / 语义钩子 (96 B) │
-│ LayoutNode    布局契约 + 4 部件 + 测量缓存 + 脏标记 (432 B)      │
+│ Node          身份 / 几何 / 树 / 层级 / 语义 + 布局契约 + 4 部件 (432 B)│
 │               (= `Widget` 别名，400+ 调用点不变)                 │
 │               默认 measure = clamp(preferred)，默认 arrange 只写几何│
 │ 布局容器       Vbox Hbox Grid Wrap Panel Splitter ScrollView     │
@@ -46,28 +45,27 @@ layout/      LayoutParams / LayoutUtils / MeasureCache     布局意图与测量
 style/       Theme / Style / StyleTypes / VisualState / WidgetStyle / BoxMetrics / Painters
 input/       Interaction                                   交互状态
 semantics/   语义投影（WidgetRole / Semantics）
-node/        Node / LayoutNode / Widget（无叶子/容器中间基类）
+node/        Node / Widget（后者是 Node 的别名）
 system/      UIRoot / UISystem / UIContext                 调度与资源
 core/ containers/ composites/ views/                       控件（按复杂度分四级）
 ```
 
 `test/test_ui_architecture.cpp` 用断言锁住这些结构（D1–D5 / K1–K8）：目录依赖方向、
-根目录无文件、`children_` 单人、几何写入口唯一、`layout_` 单人、两层继承关系。
+根目录无文件、`children_` 单人、几何写入口唯一、`layout_` 单人、单类节点。
 
-**两层节点**（设计 §4.1–§4.3）
+**节点：一个类**（设计 §4.1–§4.3）
 
 ```text
-Drawable → Node(96 B, 17 虚)
-             └─ LayoutNode(432 B, 22 虚)  ← `Widget` 是它的别名
+Drawable → Node(432 B, 39 虚)  ← `Widget` 是它的别名
 ```
 
-`Node` 只持身份/几何/树/可见性/层叠/语义钩子，并把布局契约以**纯虚**形式声明——
-所以 `for_each_child` 里可以直接调 `child->measure()`，不需要向下转型。
-`Node` 同时提供「容纳子节点」的全部能力（`children_` / `add()` / `adopt()` / `clear_children()` / …），
-没有独立的容器基类。
-`LayoutNode` 落地布局契约（默认即叶子行为：`measure = clamp(preferred_size)`、
-`arrange = set_geometry(slot)`）并持有 4 个部件：`layout_`（意图）/ `box`（盒模型）/
-`input`（交互状态）/ `visual`（样式过渡）+ `measure_cache_`。
+`Node` 同时持有：身份/几何/树/可见性/层叠/语义钩子、布局契约（含默认叶子行为
+`measure = clamp(preferred_size)` / `arrange = set_geometry(slot)`）、4 个部件
+`layout_`（意图）/ `box`（盒模型）/ `input`（交互状态）/ `visual`（样式过渡），
+以及 `measure_cache_` 与脏标记。容纳子节点的能力（`children_` / `add()` / `adopt()` /
+`clear_children()` / …）也在 Node 上，没有独立的容器或布局基类。
+
+历史遗留的 `as_layout()` 已删除：节点只有一个类型，不再需要“拿布局视图”的下行。
 
 **自动断言的契约**（`test/test_ui_architecture.cpp`，31 条）
 
@@ -81,10 +79,10 @@ Drawable → Node(96 B, 17 虚)
 | K1 | 无每控件 `enabled_`/`pressed_`/`dragging_`，无 `control_state()` |
 | K2 | `children_` 只在 `node/`（`node.hpp` + `node.cpp`） |
 | K3 | 几何只经 `set_geometry` 家族写 |
-| K5 | Node+LayoutNode 虚函数 ≤45，17 个事件钩子仍在 LayoutNode |
+| K5 | Node 虚函数 ≤45，17 个事件钩子仍在 Node |
 | K6 | `MeasureKey` 只有一份定义 |
 | K7 | `layout_` 只由 2 个函数写入（12 处赋值） |
-| K8 | 两层继承成立、`sizeof(Node) < sizeof(LayoutNode)`、无 `LeafNode`/`ContainerNode` |
+| K8 | 单类节点：`Widget` 是 `Node` 的别名，无 `LayoutNode`/`LeafNode`/`ContainerNode` |
 
 ### 控件间依赖
 
@@ -94,16 +92,16 @@ Drawable → Node(96 B, 17 虚)
 
 ```
 Drawable (graphics)
-  └─ Node ─── LayoutNode（= `Widget`）
-                ├─ Vbox ─── Panel ─── ScrollPanel
-                ├─ Hbox / Grid / Wrap / LinearLayout
-                ├─ Splitter / ScrollView / UIRoot / Scrim / RadioGroup
-                ├─ ListView ─── Table / TreeView
-                ├─ Section / Window / Dialog / MenuBar / TabView / …（复合）
-                └─ Label / Button / Image / Tag / …（叶子）
+  └─ Node（= `Widget`）
+       ├─ Vbox ─── Panel ─── ScrollPanel
+       ├─ Hbox / Grid / Wrap / LinearLayout
+       ├─ Splitter / ScrollView / UIRoot / Scrim / RadioGroup
+       ├─ ListView ─── Table / TreeView
+       ├─ Section / Window / Dialog / MenuBar / TabView / …（复合）
+       └─ Label / Button / Image / Tag / …（叶子）
 ```
 
-叶子与容器**共用同一个基类**：`LayoutNode` 的默认 `measure`/`arrange` 就是叶子语义，
+叶子与容器**共用同一个类**：`Node` 的默认 `measure`/`arrange` 就是叶子语义，
 不需要子类的控件不写；语义不同的控件自己覆写（例如 `TextInput` 的 arrange 还要夹滚动、
 `FileBrowser` 要把几何转给内部 Table）。容器的布局算法（Vbox/Grid/Wrap…）是各容器自己的事，
 基础能力（`add → adopt`、`children_`）由 `Node` 提供。
@@ -131,7 +129,7 @@ Drawable (graphics)
 | `Table` | `ListView` | 继承，覆写 `viewport_height()` 扣除表头 |
 | `FileBrowser` | `Table` | 持有 `table_`；事件自己算命中，选中同步给它 |
 | `Dialog` | `Button` `Hbox` `Label` `Panel` `UIRoot` `Scrim` `Vbox` | 组合最多的一类 |
-| `MenuBar` | `UIRoot` | 需 `add_overlay` 挂弹出菜单 |
+| `MenuBar` | `UIRoot` | 需要 root 不裁剪才能挂弹出菜单 |
 | `Dropdown` | `UIRoot` | 同上（选项列表是浮层） |
 | `TabView` | `TabBar` | 标签条 + 内容页 |
 | `RadioGroup` | `Vbox` + `Radio` | 纵向排列互斥项 |
@@ -151,7 +149,7 @@ Drawable (graphics)
 **两条约束**
 
 1. **`graphics` 不认识 `ui`** —— 单向依赖；`ui` 只产出 `DrawList`，不直接调 Vulkan
-2. **需浮层的控件依赖 `UIRoot`**（`MenuBar` / `Dropdown` / `Dialog`）—— 为拿 `add_overlay`，不是类型继承关系
+2. **需浮层的控件依赖 `UIRoot`**（`MenuBar` / `Dropdown` / `Dialog`）—— 因为浮层必须是 root 的子项才能逃逸裁剪，不是类型继承关系
 
 ## 二、五个核心契约
 
@@ -231,7 +229,7 @@ void Widget::set_preferred_size(glm::vec2);   // 构造期确定的自然尺寸
 glm::vec2 Widget::preferred_size() const;
 ```
 
-- `measure()` 读 `preferred_size()`，**不读** `bounds_.size` / `local_bounds().size`
+- `measure()` 读 `preferred_size()`，**不读** `bounds_.size`
   （后者是最近一次 `arrange` 的结果，被 stretch 放大后会让控件"只涨不缩"）
 - 已迁移：`ColorRect` / `Image` / `ListView` / `SceneView` / `TimelineView` / `TreeView` /
   `CollapsibleHeader`（按标题文字算）/ `DropdownList` / `MenuPopup`
@@ -303,7 +301,7 @@ bool content_overflows() const;                  // 内容 > 自身尺寸（任�
 void Widget::set_geometry(Rect slot);   // arrange 内使用：写唯一几何字段，不触发脏标记
 ```
 
-- 几何只有一份（`bounds_`，全局坐标）；`local_bounds()` 是 `global_bounds()` 的历史别名
+- 几何只有一份（`bounds_`，全局坐标），只有 `bounds()` 一个读入口；`local_bounds()` 已删除
 - `arrange()` 只能用 `set_geometry` 写几何；`set_pos/set_size` 代表“外部请求”，会把树标脏
 - 容器 `layout()` 用最近一次 `arrange` 的几何重排，不能用构造期的陈旧值（会把布局打回构造尺寸）
 - 整轮 `UIRoot::layout()` 处于 `LayoutPassScope` 内：期间的脏标记只失效缓存、不重新标脏，
@@ -324,7 +322,7 @@ virtual Layer layer() const { return Layer::Content; }
 ```
 
 - `fills_parent()`：不参与测量协商，直接铺满父容器（`Scrim`）
-- `Layer` 是跨 `children_` 与 `overlays_` 的**唯一主排序键**，`z_index` 只在同一 layer 内生效。
+- `Layer` 是子项的**唯一主排序键**，`z_index` 只在同一 layer 内生效。
 
 **排序契约**（`UIRoot::layer_paint_order()` 是唯一消费入口）：
 
@@ -335,10 +333,10 @@ Content < Floating < Modal
 Tab collect_focusable：layer 升序 → z 升序
 ```
 
-- `overlays_` 保留 API，但**不再是一等顺序来源**，只作为 `layer_paint_order()` 的输入之一。
+- 没有独立的 overlay 列表：浮层就是所属宿主（通常是 `UIRoot`）的普通子项，靠 `Layer` 叠上去。
 - 典型归属：普通子项与控件默认 `Content`；`Window`（模态）、`Scrim` 与 `DialogHost` 为 `Modal`；
   `MenuPopup` / `MenuScrim` / `DropdownList` / `Tooltip` 为 `Floating`。
-- `DialogHost` 虽是 overlay 宿主，但它经 `push_modal(host, with_scrim=false)` 进入模态栈（有键盘/焦点隔离），
+- `DialogHost` 虽在普通子项里，但它经 `push_modal(host, with_scrim=false)` 进入模态栈（有键盘/焦点隔离），
   层级也必须是 `Modal`，否则会被模态 `Window`（同为 Modal 层）盖住。
 - 模态帧的 z 在 `UIRoot::layout()` 归一化：frame `i` → scrim `2i+1`、window `2i+2`，保证嵌套模态
   不会因 `kOnTopZ` 撞 z 而靠插入顺序兜底。
@@ -394,7 +392,7 @@ class Hbox : public LinearLayout;   // Axis::Horizontal，cross_align 默认 cen
 
 // src/ui/layout/layout_utils.hpp
 Rect content_rect(const Widget&, Rect slot);                       // 扣 padding 的内容区
-void place_positioned_children(LayoutNode&, Rect content, vec2 cons);  // 摆 Positioned 子项
+void place_positioned_children(Node&, Rect content, vec2 cons);  // 摆 Positioned 子项
 ```
 
 - 主轴解算、margin、cross 轴 stretch、主轴对齐（Start/Center/End/SpaceBetween）、
@@ -407,7 +405,7 @@ Widget::LayoutSpec spec = w.layout_spec();   // align / flex / pct / aspect / fi
 w.set_layout_spec(spec);                      // 回写，等价于逐个 setter
 ```
 
-- **基线对齐**：`Align::baseline_align()` + `LayoutNode::baseline_offset_for(h)`（Label/Button 覆写）。
+- **基线对齐**：`Align::baseline_align()` + `Node::baseline_offset_for(h)`（Label/Button 覆写）。
   Hbox 先算行内最大基线，再把子项对齐到它；Settings 的“标签 + 控件”行已改用基线对齐
 - **布局调试面板**：DebugWindow 第三页 `Layout`（只读）：bounds、临时 measure、
   display/overflow/overflows/dirty/measure_valid/baseline、content extent、clips、LayoutSpec。
@@ -444,8 +442,8 @@ chrome_ (Vbox, padding 0, spacing 0, cross_align = h_stretch, fill_x+fill_y)
 ```
 dispatch(InputEvent)
    └─▶ collect_hit_path(root)
-         ├─ overlay 优先（按 z 降序）
-         ├─ 然后 children（按 z 降序）
+         ├─ layer 降序：Modal → Floating → Content
+         ├─ 同层内按 z 降序（稳定，同值按加入顺序）
          └─ 尊重 clips_children 与 hit_testable
    └─▶ pressed_ = path.back()
    └─▶ 冒泡：bubble_to_root(pressed_) → 逐层 on_mouse_*，返回 true 即停
@@ -458,7 +456,7 @@ dispatch(InputEvent)
 
 不给基类加职责，而是做成可持有的小类型。
 
-**四个内嵌部件**（`LayoutNode` 成员，全部按值持有、不堆分配）
+**四个内嵌部件**（`Node` 成员，全部按值持有、不堆分配）
 
 | 部件 | 大小 | 职责 | 头文件 |
 |---|---|---|---|
@@ -506,7 +504,7 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
 - `UISystem::focus_next` 在有模态时把收集范围收窄到 `modal_top()`
 - `dispatch_key` / `dispatch_char` 在模态打开时只作用于最上层模态子树；焦点在作用域外则忽略
 - `pop_modal` 恢复打开前的焦点快照（仍在树中且不在被弹出子树内才恢复，否则清空）
-- `DialogHost`（overlay 宿主）经 `push_modal(host, with_scrim=false)` 纳入模态作用域，自带遮罩、层级为 Modal
+- `DialogHost`（root 的 Modal 子项）经 `push_modal(host, with_scrim=false)` 纳入模态作用域，自带遮罩、层级为 Modal
 - 解除路径统一走 `release_modal()`，避免「遮罩残留、界面永久不可点」；窗口被直接销毁时 `layout()` 剔除悬空帧
 
 ## 六、主题
@@ -525,7 +523,7 @@ Window::close()/destroy()/set_modal(false) → release_modal() → pop_modal()
   - 验收点：`test_ui_style_snapshot`（角色不串色的语义断言 + 480×320 整幅像素哈希）
 - **绘制部件**（`style/painters.hpp`）：`paint::box` / `focus_ring` / `box_with_focus` /
   `centered_text` 四个纯函数（零状态、零虚函数）。控件只选角色与矩形，不再手写框+边框+焦点环。
-  `LayoutNode::append_focus_ring` 只是它的转发（给“环心不是控件 bounds”的场景用）。
+  `Node::append_focus_ring` 只是它的转发（给“环心不是控件 bounds”的场景用）。
 - **布局字面量收口**（UI-35）：原先散在各控件里的魔法数字进了 `Theme`，并随 `with_density` 缩放——
   `dialog_margin / dialog_min_width / dialog_min_height`（DialogHost）、
   `window_min_width / window_min_extra_height / window_keep_visible`（Window）、

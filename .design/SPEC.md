@@ -83,7 +83,7 @@ assets/         shader、字体
 
 ### 层级与排序
 
-- `Layer{Content, Floating, Modal}`；`Widget::layer_paint_order()` 是跨 `children_`/`overlays_` 的唯一排序入口。
+- `Layer{Content, Floating, Modal}`；`Widget::layer_paint_order()` 是子项的唯一排序入口（浮层不是单独列表）。
 - 排序键：layer 升序 → z 升序（稳定）；绘制正序、命中反序、Tab 正序；`z_index` 仅层内生效。
 - 归属：普通控件 `Content`；`Tooltip`/`MenuPopup`/`MenuScrim`/`DropdownList` `Floating`；`Scrim`/模态 `Window`/`DialogHost` `Modal`。
 

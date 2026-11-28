@@ -46,32 +46,35 @@ struct Collector
     void operator()(const ui::Node& n) { seen.push_back(&n); }
 };
 
-// 带 overlays 的容器：用于验证"树遍历包含浮层"。
-class OverlayHost : public ui::Widget
+// 探针：浮层子项（Layer::Floating）。
+class FloatingLabel : public ui::Label
 {
 public:
-    OverlayHost()
+    FloatingLabel(std::string text, float size) : ui::Label(std::move(text), size) {}
+    Layer layer() const override { return Layer::Floating; }
+};
+
+// 带浮层的容器：用于验证“浮层就是普通子项、遍历/调试一律覆盖”。
+class FloatingHost : public ui::Widget
+{
+public:
+    FloatingHost()
     {
         auto child = std::make_unique<ui::Label>("child", 12.0f);
         child_ = child.get();
         adopt(std::move(child));
 
-        auto over = std::make_unique<ui::Label>("overlay", 12.0f);
-        overlay_ = over.get();
-        overlays_.push_back(std::move(over));
-        overlays_.back()->set_parent(this);
+        auto floating = std::make_unique<FloatingLabel>("floating", 12.0f);
+        floating_ = floating.get();
+        adopt(std::move(floating));
     }
-    const std::vector<std::unique_ptr<ui::Node>>& overlays() const override { return overlays_; }
 
     glm::vec2 measure(glm::vec2) override { return {100.0f, 40.0f}; }
     void arrange(ui::Rect slot) override { set_geometry(slot); }
     void append_to(graphics::DrawList&) const override {}
 
     ui::Widget* child_ = nullptr;
-    ui::Widget* overlay_ = nullptr;
-
-private:
-    std::vector<std::unique_ptr<ui::Node>> overlays_;
+    ui::Widget* floating_ = nullptr;
 };
 
 // 探针：自定义遍历入口不可用（children() 已是普通函数），只能经 for_each_child。
@@ -90,32 +93,32 @@ public:
 };
 } // namespace
 
-// 1) for_each_child 覆盖 children + overlays；访问器只能读。
-void test_traversal_covers_overlays()
+// 1) for_each_child 覆盖全部子项（含浮层）；浮层不是第二种存储。
+void test_traversal_covers_floating_children()
 {
-    OverlayHost host;
-    Collector c;
+    FloatingHost host;
     TraversalProbe probe;
-    probe.adopt(std::make_unique<OverlayHost>());
+    probe.adopt(std::make_unique<FloatingHost>());
     probe.walk();
     check(probe.visited == 1, "for_each_child visits adopted children");
 
-    // overlays 通过虚 overlays() 参与同一条遍历路径
-    const auto& list = host.overlays();
-    check(list.size() == 1 && list.front().get() == host.overlay_,
-          "overlays() still exposes the overlay list");
-    check(host.children().size() == 1 && host.children().front().get() == host.child_,
-          "children() returns the base-owned storage");
+    check(host.child_count() == 2, "floating children live in the same child list");
+    check(host.children().front().get() == host.child_, "first child is the plain one");
+    check(host.children().back().get() == host.floating_, "last child is the floating one");
+    // 绘制/命中顺序由 layer 决定（Content 先、Floating 后 = 浮层在上）。
+    const auto order = host.layer_paint_order();
+    check(order.size() == 2 && order.front() == host.child_ && order.back() == host.floating_,
+          "layer_paint_order puts the floating child last (painted on top)");
 }
 
-// 2) debug_recursive 现在覆盖 overlays（旧实现漏掉）。
-void test_debug_recursive_reaches_overlays()
+// 2) debug_recursive 覆盖浮层（因为它们是普通子项）。
+void test_debug_recursive_reaches_floating_children()
 {
-    OverlayHost host;
+    FloatingHost host;
     host.debug_recursive();
     check(host.is_debug(), "debug_recursive marks the host");
     check(host.child_->is_debug(), "debug_recursive reaches children");
-    check(host.overlay_->is_debug(), "debug_recursive reaches overlays (UI-49 fix)");
+    check(host.floating_->is_debug(), "debug_recursive reaches floating children");
 }
 
 // 3) Section：content 是真正的子节点，脏标记链不断。
@@ -145,7 +148,7 @@ void test_indexed_access_api()
     splitter.arrange({{0.0f, 0.0f}, {200.0f, 100.0f}});
     const auto& kids = splitter.children();
     check(kids.size() == 2, "Splitter keeps two panes in base storage");
-    check(kids[0]->global_bounds().size.x > 0.0f && kids[1]->global_bounds().size.x > 0.0f,
+    check(kids[0]->bounds().size.x > 0.0f && kids[1]->bounds().size.x > 0.0f,
           "Splitter arranges both panes through child_at()");
 
     ui::TabView tabs;
@@ -162,17 +165,17 @@ void test_geometry_single_entry()
 {
     ui::Label label("g", 12.0f);
     label.arrange({{4.0f, 5.0f}, {60.0f, 20.0f}});
-    check(label.global_bounds().pos.x == 4.0f, "arrange keeps the given position");
-    check(label.global_bounds().size.y == 20.0f,
+    check(label.bounds().pos.x == 4.0f, "arrange keeps the given position");
+    check(label.bounds().size.y == 20.0f,
           "arrange writes size through set_geometry only");
-    check(label.local_bounds().pos.x == label.global_bounds().pos.x,
-          "local_bounds is an alias of global_bounds");
+    check(label.bounds().pos.x == label.bounds().pos.x,
+          "bounds() is the single geometry accessor");
 }
 
 int main()
 {
-    test_traversal_covers_overlays();
-    test_debug_recursive_reaches_overlays();
+    test_traversal_covers_floating_children();
+    test_debug_recursive_reaches_floating_children();
     test_section_is_a_real_parent();
     test_indexed_access_api();
     test_geometry_single_entry();

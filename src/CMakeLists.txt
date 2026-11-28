@@ -30,7 +30,6 @@ target_link_libraries(cosine_anim PUBLIC glm::glm)
 # UI 库：布局、控件、事件、DrawList 消费端；测试和 ex4 不再各自重复编译。
 add_library(cosine_ui STATIC
     ui/node/node.cpp
-    ui/node/layout_node.cpp
     ui/composites/menu_popup.cpp
     ui/style/theme.cpp
     ui/system/root.cpp

@@ -24,7 +24,7 @@ int main()
         assert(tabs.measure({400.0f, 30.0f}).y == tabs.height());
 
         // 点击第二个标签。
-        const float second_x = tabs.global_bounds().pos.x + 60.0f;
+        const float second_x = tabs.bounds().pos.x + 60.0f;
         assert(tabs.on_click({second_x, 10.0f}, 0));
         assert(tabs.selected() == 1);
         assert(changes >= 1);
@@ -107,7 +107,7 @@ int main()
         xel::ui::UISystem ui{std::move(root)};
         ui.tick();
 
-        assert(tabs_ptr->global_bounds().size.x > 0.0f);
+        assert(tabs_ptr->bounds().size.x > 0.0f);
         tabs_ptr->set_selected(1);
         assert(tabs_ptr->selected() == 1);
     }

@@ -376,7 +376,7 @@ private:
 
     int index_at(glm::vec2 pos) const
     {
-        if (entries_.empty() || !global_bounds().contains(pos)) return -1;
+        if (entries_.empty() || !bounds().contains(pos)) return -1;
         const float offset = pos.y - bounds_.pos.y - header_height() +
                              (table_ != nullptr ? table_->scroll_offset() : 0.0f);
         if (offset < 0.0f) return -1;

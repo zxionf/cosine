@@ -80,7 +80,7 @@ int main()
     xel::ui::UISystem ui{std::move(root)};
     ui.tick();
 
-    const auto bounds = tree_ptr->global_bounds();
+    const auto bounds = tree_ptr->bounds();
     const float row_h = tree_ptr->row_height();
     const float pad = xel::ui::theme().padding;
     const float indent = tree_ptr->indent();

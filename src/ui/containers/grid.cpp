@@ -147,7 +147,7 @@ glm::vec2 Grid::measure(glm::vec2 constraints)
 
     // 隐藏与绝对定位子项不占格：行数只按流式子项计算。
     std::size_t flow_count = 0;
-    for_each_layout_child([&](LayoutNode& child) {
+    for_each_child([&](Node& child) {
         if (child.display() == Display::Flow) {
             ++flow_count;
         } else {

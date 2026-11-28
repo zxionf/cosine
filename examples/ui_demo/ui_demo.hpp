@@ -155,7 +155,7 @@ inline TextLab build(ui::UIRoot& root)
 
     auto overlay = std::make_unique<ui::DebugOverlay>();
     lab.overlay = overlay.get();
-    root.add_overlay(std::move(overlay));
+    root.add(std::move(overlay));
 
     if (std::getenv("COSINE_TEXT_DEBUG")) {
         lab.options.glyph_boxes = true;

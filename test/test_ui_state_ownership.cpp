@@ -55,8 +55,8 @@ void test_parts_are_inline()
     check(sizeof(ui::BoxMetrics) == 36, "BoxMetrics is 9 floats (padding/override/margin)");
     // UI-56：Display 从布局意图移到 Node 层（可见性是节点身份属性）。
     check(sizeof(ui::LayoutParams) == 68, "LayoutParams holds layout intent only (Display moved to Node)");
-    // 三层是包含关系：Node ⊂ LayoutNode。节点比布局节点轻（实测 112 vs 432）。
-    check(sizeof(ui::Node) < sizeof(ui::LayoutNode), "Node is lighter than LayoutNode");
+    // 布局机制已合并进 Node：Widget 是同一个类型。
+    check(sizeof(ui::Node) == sizeof(ui::Widget), "Widget is Node (single class, no layout layer)");
     // UI-50 后 VisualState 内嵌 12 个 8 B 槽 + revision，总大小 ≤ 128 B。
     check(sizeof(ui::VisualState) <= 128, "VisualState stays under 128 bytes (inline, no heap)");
     check(sizeof(ui::Widget) <= 440, "Widget stays under 440 bytes after inline transition state");

@@ -42,9 +42,6 @@ bool widget_in_tree(const ui::Node* root, const ui::Node* target)
     for (const auto& child : root->children()) {
         if (widget_in_tree(child.get(), target)) return true;
     }
-    for (const auto& overlay : root->overlays()) {
-        if (widget_in_tree(overlay.get(), target)) return true;
-    }
     return false;
 }
 
@@ -78,9 +75,7 @@ void set_debug_recursive(ui::Node* widget, bool enabled)
 {
     if (widget == nullptr) return;
     widget->set_debug(enabled);
-    for (const auto& child : widget->children()) set_debug_recursive(child.get(), enabled);
-    for (const auto& overlay : widget->overlays()) set_debug_recursive(overlay.get(), enabled);
-}
+    for (const auto& child : widget->children()) set_debug_recursive(child.get(), enabled);}
 
 void apply_text_debug_recursive(ui::Node* widget, const ui::Node* skip,
                                 const graphics::TextDebugOptions& options)
@@ -95,9 +90,6 @@ void apply_text_debug_recursive(ui::Node* widget, const ui::Node* skip,
     }
     for (const auto& child : widget->children()) {
         apply_text_debug_recursive(child.get(), skip, options);
-    }
-    for (const auto& overlay : widget->overlays()) {
-        apply_text_debug_recursive(overlay.get(), skip, options);
     }
 }
 
@@ -122,7 +114,7 @@ DebugWindow::DebugWindow(ui::UIRoot& root) : root_(&root)
 
     // 验证用：COSINE_DEBUG_TARGET=1 直接抓 root 的第一个子项作为目标（离屏截图核对 Layout 页）。
     if (std::getenv("COSINE_DEBUG_TARGET") != nullptr && !root.children().empty()) {
-        target_ = ui::as_layout(root.children().front().get());
+        target_ = root.children().front().get();
         rebuild_children();
     }
 }
@@ -237,28 +229,28 @@ void DebugWindow::build_widget_page(ui::ScrollPanel& page)
 
     pos_x_ = add_drag("Pos X", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
-        auto pos = target_->global_bounds().pos;
+        auto pos = target_->bounds().pos;
         pos.x = value;
         target_->set_pos(pos);
         notify_layout(target_);
     });
     pos_y_ = add_drag("Pos Y", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
-        auto pos = target_->global_bounds().pos;
+        auto pos = target_->bounds().pos;
         pos.y = value;
         target_->set_pos(pos);
         notify_layout(target_);
     });
     size_w_ = add_drag("Size W", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
-        auto size = target_->global_bounds().size;
+        auto size = target_->bounds().size;
         size.x = value;
         target_->request_size(size);
         notify_layout(target_);
     });
     size_h_ = add_drag("Size H", 0.0f, [this](float value) {
         if (updating_ || target_ == nullptr) return;
-        auto size = target_->global_bounds().size;
+        auto size = target_->bounds().size;
         size.y = value;
         target_->request_size(size);
         notify_layout(target_);
@@ -392,7 +384,7 @@ void DebugWindow::rebuild_children()
     if (auto* parent = target_->parent()) {
         children_box_->add(std::make_unique<ui::Button>(
             "^ parent: " + widget_name(parent), [this, parent] {
-                target_ = ui::as_layout(parent);
+                target_ = parent;
                 follow_ = false;
                 if (follow_box_ != nullptr) follow_box_->set_checked(false);
                 rebuild_children();
@@ -404,7 +396,7 @@ void DebugWindow::rebuild_children()
         auto* ptr = child.get();
         children_box_->add(std::make_unique<ui::Button>(
             widget_name(ptr), [this, ptr] {
-                target_ = ui::as_layout(ptr);
+                target_ = ptr;
                 follow_ = false;
                 if (follow_box_ != nullptr) follow_box_->set_checked(false);
                 rebuild_children();
@@ -416,7 +408,7 @@ void DebugWindow::update_props()
 {
     updating_ = true;
     const bool has = target_ != nullptr;
-    const ui::Rect bounds = has ? target_->global_bounds() : ui::Rect{};
+    const ui::Rect bounds = has ? target_->bounds() : ui::Rect{};
 
     if (pos_x_ != nullptr) pos_x_->set_value(bounds.pos.x);
     if (pos_y_ != nullptr) pos_y_->set_value(bounds.pos.y);
@@ -437,7 +429,7 @@ void DebugWindow::update_layout_page()
         if (!has) {
             layout_bounds_->set_text("bounds: -");
         } else {
-            const auto b = target_->global_bounds();
+            const auto b = target_->bounds();
             layout_bounds_->set_text(std::format(
                 "bounds: {:.0f},{:.0f} {:.0f}x{:.0f}",
                 b.pos.x, b.pos.y, b.size.x, b.size.y));
@@ -533,7 +525,7 @@ void DebugWindow::update(const ui::UISystem& uisys, float dt)
         if (target_ == nullptr) {
             info_label_->set_text("hover a widget");
         } else {
-            const auto& bounds = target_->global_bounds();
+            const auto& bounds = target_->bounds();
             info_label_->set_text(std::format(
                 "pos {:.0f},{:.0f}  size {:.0f}x{:.0f}  visible {}  z {}  children {}",
                 bounds.pos.x, bounds.pos.y, bounds.size.x, bounds.size.y,

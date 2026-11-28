@@ -25,7 +25,7 @@ InputEvent mouse(InputEvent::Type type, glm::vec2 pos)
 
 glm::vec2 center(const xel::ui::Widget& widget)
 {
-    const auto bounds = widget.global_bounds();
+    const auto bounds = widget.bounds();
     return {bounds.pos.x + bounds.size.x * 0.5f, bounds.pos.y + bounds.size.y * 0.5f};
 }
 
@@ -77,13 +77,13 @@ int main()
     // 标签栏高度进入 TabView 的测量结果。
     const auto measured = view_ptr->measure({400.0f, 300.0f});
     assert(measured.y > view_ptr->tab_bar().measure({400.0f, 300.0f}).y);
-    assert(view_ptr->global_bounds().size.x >= 360.0f);
+    assert(view_ptr->bounds().size.x >= 360.0f);
 
     // 点击第二个标签切换页面。
     const auto& tabs = view_ptr->tab_bar();
     assert(tabs.tabs().size() == 3);
     // 第二个标签中心：标签栏起点 + 第一个标签宽度 + spacing + 半个标签宽度。
-    const auto bar_bounds = tabs.global_bounds();
+    const auto bar_bounds = tabs.bounds();
     glm::vec2 click{bar_bounds.pos.x + 8.0f, bar_bounds.pos.y + bar_bounds.size.y * 0.5f};
     // 逐像素向右找第二段标签的可点击位置。
     bool clicked = false;
@@ -168,12 +168,12 @@ int main()
     const float control_h = ui.context()->theme().control_height;
     const float spacing = ui.context()->theme().spacing;
     assert(side_bar.measure({300.0f, 300.0f}).y >= control_h * 2.0f);
-    assert(side_bar.global_bounds().size.x < side_ptr->global_bounds().size.x);
-    assert(side_bar.global_bounds().size.y >= control_h * 2.0f);
-    assert(side_ptr->page(0)->global_bounds().pos.x > side_bar.global_bounds().pos.x);
+    assert(side_bar.bounds().size.x < side_ptr->bounds().size.x);
+    assert(side_bar.bounds().size.y >= control_h * 2.0f);
+    assert(side_ptr->page(0)->bounds().pos.x > side_bar.bounds().pos.x);
 
     // 第二项位于竖条下半部分；点击切换。
-    const auto side_bar_bounds = side_bar.global_bounds();
+    const auto side_bar_bounds = side_bar.bounds();
     const glm::vec2 second{side_bar_bounds.pos.x + 8.0f,
                            side_bar_bounds.pos.y + control_h + spacing + control_h * 0.5f};
     ui.dispatch(mouse(InputEvent::Type::MouseButtonDown, second));
@@ -211,9 +211,9 @@ int main()
     }
     assert(tight_ptr->padding().left == 0.0f);
 
-    const auto tight_bounds = tight_ptr->global_bounds();
-    const auto tight_bar = tight_ptr->tab_bar().global_bounds();
-    const auto tight_page = tight_ptr->page(0)->global_bounds();
+    const auto tight_bounds = tight_ptr->bounds();
+    const auto tight_bar = tight_ptr->tab_bar().bounds();
+    const auto tight_page = tight_ptr->page(0)->bounds();
     assert(std::fabs(tight_bar.pos.x - tight_bounds.pos.x) < 0.01f);
     assert(std::fabs(tight_bar.pos.y - tight_bounds.pos.y) < 0.01f);
     assert(std::fabs(tight_page.pos.x - tight_bounds.pos.x) < 0.01f);

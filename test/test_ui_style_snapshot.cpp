@@ -166,7 +166,7 @@ int check_pixels()
         };
 
         // 滑轨上下两端：左侧为已填充（accent），右侧为未填充（track）。
-        const auto bounds = scene.slider->global_bounds();
+        const auto bounds = scene.slider->bounds();
         const float cy = bounds.pos.y + bounds.size.y * 0.5f;
         const auto left = at(bounds.pos.x + bounds.size.x * 0.25f, cy);
         const auto right = at(bounds.pos.x + bounds.size.x * 0.85f, cy);

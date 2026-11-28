@@ -254,16 +254,16 @@ void contract_is_bounded_semantics()
 }
 
 // 13) arrange 写几何：容器的 bounds 跟随最近一次 slot（UI-31 修）。
-void contract_container_local_bounds_follows_slot()
+void contract_container_bounds_follows_slot()
 {
     ui::Vbox box(0.0f, 0.0f, 100.0f, 100.0f);
     box.set_padding(0.0f);
     add_counted(box);
     box.arrange({{50.0f, 60.0f}, {400.0f, 300.0f}});
-    check(near(box.local_bounds().size.x, 400.0f) && near(box.local_bounds().size.y, 300.0f)
+    check(near(box.bounds().size.x, 400.0f) && near(box.bounds().size.y, 300.0f)
               && near(box.x(), 50.0f) && near(box.y(), 60.0f),
-          "container local_bounds == last arranged slot",
-          std::to_string(box.local_bounds().size.x) + "@" + std::to_string(box.x()));
+          "container bounds == last arranged slot",
+          std::to_string(box.bounds().size.x) + "@" + std::to_string(box.x()));
 }
 
 // 14) layout() 用最近 slot 重排，不会回退到构造矩形（UI-31 修）。
@@ -330,7 +330,7 @@ void contract_wrap_measure_within_constraints()
 
 // D3 → UI-31 已修：见 contract_splitter_measures_panes。
 
-// D4 → UI-31 已修：见 contract_container_local_bounds_follows_slot。
+// D4 → UI-31 已修：见 contract_container_bounds_follows_slot。
 
 // D5 → UI-33 已修：见 contract_hidden_child_does_not_reserve_space。
 
@@ -353,7 +353,7 @@ void contract_pct_budget()
     const glm::vec2 m = box.measure({400.0f, 300.0f});
     box.arrange({{0.0f, 0.0f}, {400.0f, 300.0f}});
     check(near(m.y, 300.0f) && near(a->height(), 150.0f) && near(b->height(), 150.0f)
-              && b->global_bounds().pos.y + b->height() <= 300.0f + 0.01f,
+              && b->bounds().pos.y + b->height() <= 300.0f + 0.01f,
           "pct budget: 2x pct_y=1 -> 150/150, no overflow",
           std::to_string(a->height()) + "/" + std::to_string(b->height()));
 }
@@ -493,13 +493,13 @@ void contract_root_fill_child()
     check(near(chrome_ptr->width(), 400.0f) && near(chrome_ptr->height(), 300.0f),
           "root fill child covers the whole root", std::to_string(chrome_ptr->width()) + "x" +
               std::to_string(chrome_ptr->height()));
-    check(near(chrome_ptr->global_bounds().pos.x, 0.0f)
-              && near(chrome_ptr->global_bounds().pos.y, 0.0f)
-              && near(chrome_ptr->global_bounds().size.x, 400.0f)
-              && near(chrome_ptr->global_bounds().size.y, 300.0f),
+    check(near(chrome_ptr->bounds().pos.x, 0.0f)
+              && near(chrome_ptr->bounds().pos.y, 0.0f)
+              && near(chrome_ptr->bounds().size.x, 400.0f)
+              && near(chrome_ptr->bounds().size.y, 300.0f),
           "fill child global bounds equal the root rect",
-          std::to_string(chrome_ptr->global_bounds().size.x) + "x"
-              + std::to_string(chrome_ptr->global_bounds().size.y));
+          std::to_string(chrome_ptr->bounds().size.x) + "x"
+              + std::to_string(chrome_ptr->bounds().size.y));
     check(near(rows[0]->y(), 0.0f) && near(rows[0]->height(), 24.0f)
               && near(rows[1]->y(), 24.0f) && near(rows[1]->height(), 32.0f)
               && near(rows[2]->y(), 56.0f) && near(rows[2]->height(), 220.0f)
@@ -538,7 +538,7 @@ int main()
     contract_wrap_unbounded_single_row();
     contract_scroll_panel_no_unbounded_leak();
     contract_is_bounded_semantics();
-    contract_container_local_bounds_follows_slot();
+    contract_container_bounds_follows_slot();
     contract_layout_reuses_last_slot();
     contract_layout_does_not_leave_tree_dirty();
     contract_margin_on_main_axis();

@@ -20,7 +20,7 @@ public:
         set_size(w, h);
     }
 
-    glm::vec2 measure(glm::vec2) override { return local_bounds().size; }
+    glm::vec2 measure(glm::vec2) override { return bounds().size; }
     void arrange(Rect slot) override
     {
         set_geometry(slot);
@@ -77,12 +77,11 @@ public:
 
     void add(std::unique_ptr<Node> child) override { adopt(std::move(child)); }
 
-    glm::vec2 measure(glm::vec2) override { return local_bounds().size; }
+    glm::vec2 measure(glm::vec2) override { return bounds().size; }
     void arrange(Rect slot) override
     {
         set_geometry(slot);
-        for_each_child([&](Node& node) {
-            auto& child = as_layout(node);
+        for_each_child([&](Node& child) {
             child.arrange({{slot.pos.x + child.x(), slot.pos.y + child.y()}, child.measure(slot.size)});
         });
     }
@@ -229,7 +228,7 @@ int main()
         auto* normal_ptr = normal.get();
         auto* overlay_ptr = overlay.get();
         root->add(std::move(normal));
-        root->add_overlay(std::move(overlay));
+        root->add(std::move(overlay));
 
         xel::ui::UISystem ui{std::move(root)};
         ui.tick();
@@ -267,7 +266,7 @@ int main()
         auto* normal_ptr = normal.get();
         auto* pass_ptr = pass.get();
         root->add(std::move(normal));
-        root->add_overlay(std::move(pass));
+        root->add(std::move(pass));
 
         xel::ui::UISystem ui{std::move(root)};
         ui.tick();

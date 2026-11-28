@@ -176,7 +176,7 @@ public:
 
         for (const auto& child : children()) {
             if (child->visible()) {
-                const auto b = child->global_bounds();
+                const auto b = child->bounds();
                 list.push_clip({b.pos.x, b.pos.y, b.size.x, b.size.y});
                 child->append_to(list);
                 list.pop_clip();

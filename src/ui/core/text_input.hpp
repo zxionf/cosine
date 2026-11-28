@@ -40,8 +40,6 @@ public:
     }
 
     const std::string& text() const { return text_; }
-    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
-    bool enabled() const { return is_enabled(); }
     void set_on_change(std::function<void(const std::string&)> handler) { handler_ = std::move(handler); }
 
     // 多行模式：Enter 换行、Up/Down 跨行、Home/End 行内跳转。

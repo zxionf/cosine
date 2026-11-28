@@ -177,7 +177,7 @@ void set_debug_recursive(xel::ui::Widget* widget, bool enabled)
     if (widget == nullptr) return;
     widget->set_debug(enabled);
     for (const auto& child : widget->children()) {
-        set_debug_recursive(xel::ui::as_layout(child.get()), enabled);
+        set_debug_recursive(child.get(), enabled);
     }
 }
 
@@ -187,9 +187,6 @@ bool widget_in_tree(const xel::ui::Node* root, const xel::ui::Node* target)
     if (root == target) return true;
     for (const auto& child : root->children()) {
         if (widget_in_tree(child.get(), target)) return true;
-    }
-    for (const auto& overlay : root->overlays()) {
-        if (widget_in_tree(overlay.get(), target)) return true;
     }
     return false;
 }
@@ -386,8 +383,7 @@ void apply_label_debug(xel::ui::Widget* widget, const xel::graphics::TextDebugOp
     if (auto* label = dynamic_cast<Label*>(widget)) label->set_text_debug(options);
     else if (auto* button = dynamic_cast<Button*>(widget)) button->set_text_debug(options);
     else if (auto* window = dynamic_cast<xel::ui::Window*>(widget)) window->set_text_debug(options);
-    for (const auto& child : widget->children()) apply_label_debug(xel::ui::as_layout(child.get()), options);
-    for (const auto& overlay : widget->overlays()) apply_label_debug(xel::ui::as_layout(overlay.get()), options);
+    for (const auto& child : widget->children()) apply_label_debug(child.get(), options);
 }
 
 void build(Lab& lab, xel::ui::UIRoot& root)
@@ -512,7 +508,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
         lab.widget_pos_x = px.get();
         px->set_on_change([&lab](float value) {
             if (lab.widget_updating || lab.widget_target == nullptr) return;
-            const auto b = lab.widget_target->local_bounds();
+            const auto b = lab.widget_target->bounds();
             lab.widget_target->set_pos(value, b.pos.y);
         });
         pos_row->add(std::move(px));
@@ -521,7 +517,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
         lab.widget_pos_y = py.get();
         py->set_on_change([&lab](float value) {
             if (lab.widget_updating || lab.widget_target == nullptr) return;
-            const auto b = lab.widget_target->local_bounds();
+            const auto b = lab.widget_target->bounds();
             lab.widget_target->set_pos(b.pos.x, value);
         });
         pos_row->add(std::move(py));
@@ -537,7 +533,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
         lab.widget_size_w = sw.get();
         sw->set_on_change([&lab](float value) {
             if (lab.widget_updating || lab.widget_target == nullptr) return;
-            const auto b = lab.widget_target->local_bounds();
+            const auto b = lab.widget_target->bounds();
             lab.widget_target->request_size({value, b.size.y});
         });
         size_row->add(std::move(sw));
@@ -546,7 +542,7 @@ void build(Lab& lab, xel::ui::UIRoot& root)
         lab.widget_size_h = sh.get();
         sh->set_on_change([&lab](float value) {
             if (lab.widget_updating || lab.widget_target == nullptr) return;
-            const auto b = lab.widget_target->local_bounds();
+            const auto b = lab.widget_target->bounds();
             lab.widget_target->request_size({b.size.x, value});
         });
         size_row->add(std::move(sh));
@@ -765,7 +761,7 @@ void Lab::rebuild_widget_children()
     if (auto* parent = widget_target->parent()) {
         widget_children_box->add(std::make_unique<Button>(
             "^ parent: " + widget_name(parent), [this, parent] {
-                widget_target = xel::ui::as_layout(parent);
+                widget_target = parent;
                 widget_follow = false;
                 if (widget_follow_box != nullptr) widget_follow_box->set_checked(false);
                 rebuild_widget_children();
@@ -774,7 +770,7 @@ void Lab::rebuild_widget_children()
 
     widget_children_box->add(std::make_unique<Label>("children:", 16.0f));
     for (const auto& child : widget_target->children()) {
-        auto* ptr = xel::ui::as_layout(child.get());
+        auto* ptr = child.get();
         widget_children_box->add(std::make_unique<Button>(
             widget_name(ptr), [this, ptr] {
                 widget_target = ptr;
@@ -828,7 +824,7 @@ void Lab::update_widget_debug(const xel::ui::Widget* hovered, const xel::ui::Wid
         if (widget_target == nullptr) {
             widget_info_label->set_text("hover a widget");
         } else {
-            const auto& bounds = widget_target->global_bounds();
+            const auto& bounds = widget_target->bounds();
             widget_info_label->set_text(std::format(
                 "pos {:.0f},{:.0f}  size {:.0f}x{:.0f}  visible {}  z {}  children {}",
                 bounds.pos.x, bounds.pos.y, bounds.size.x, bounds.size.y,
@@ -843,7 +839,7 @@ void Lab::update_widget_props()
 {
     widget_updating = true;
     const xel::ui::Widget* target = widget_target;
-    const xel::ui::Rect bounds = target ? target->local_bounds() : xel::ui::Rect{};
+    const xel::ui::Rect bounds = target ? target->bounds() : xel::ui::Rect{};
     if (widget_pos_x != nullptr) widget_pos_x->set_value(bounds.pos.x);
     if (widget_pos_y != nullptr) widget_pos_y->set_value(bounds.pos.y);
     if (widget_size_w != nullptr) widget_size_w->set_value(bounds.size.x);

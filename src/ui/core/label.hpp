@@ -174,7 +174,7 @@ public:
     // 非换行时的文本宽度；只用于居中/右对齐。与 measure() 共用同一份缓存。
     float text_width(float size, graphics::FontAtlas* atlas) const
     {
-        if (wrap_) return global_bounds().size.x;
+        if (wrap_) return bounds().size.x;
         MeasureKey key;
         key.epoch = layout_epoch();
         key.text_hash = measure_hash_text(text_);

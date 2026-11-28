@@ -163,14 +163,14 @@ public:
 
     void set_on_close(std::function<void()> handler) { on_close_ = std::move(handler); }
 
-    // 关闭并从 root.overlays 中移除（延迟销毁，事件派发期间安全）；同时退出模态作用域。
+    // 关闭并从 root 的子项中移除（延迟销毁，事件派发期间安全）；同时退出模态作用域。
     void close()
     {
         if (closed_) return;
         closed_ = true;
         if (auto* root = find_root()) {
             root->pop_modal(this);
-            root->remove_overlay(this);
+            root->remove(this);
         }
         if (on_close_) on_close_();
     }
@@ -224,7 +224,7 @@ public:
     bool on_mouse_down(glm::vec2 pos, int) override
     {
         if (!dialog_) return true;
-        if (!dialog_->global_bounds().contains(pos) && dialog_->dismissable()) {
+        if (!dialog_->bounds().contains(pos) && dialog_->dismissable()) {
             dialog_->dismiss();
         }
         // 无论命中与否都吞掉点击，避免穿透到下层控件。
@@ -265,7 +265,7 @@ inline DialogHost* show_dialog(UIRoot& root, std::unique_ptr<Dialog> dialog,
     auto host = std::make_unique<DialogHost>(std::move(dialog));
     auto* raw = host.get();
     raw->set_on_close(std::move(on_close));
-    root.add_overlay(std::move(host));
+    root.add(std::move(host));
     // 纳入模态作用域：自带遮罩（append_scrim），不额外造 Scrim；初始焦点按 preferred_focus 自动落到按钮。
     root.push_modal(raw, /*with_scrim=*/false);
     return raw;

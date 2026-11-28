@@ -188,10 +188,10 @@ void test_rebuild_relayouts()
 
     assert(sec->children().size() == 1);
     const ui::Node* row = sec->children().front().get();
-    if (!(row->global_bounds().size.y > 0.0f)) {
-        std::fprintf(stderr, "rebuilt row height = %f\n", row->global_bounds().size.y);
+    if (!(row->bounds().size.y > 0.0f)) {
+        std::fprintf(stderr, "rebuilt row height = %f\n", row->bounds().size.y);
     }
-    assert(row->global_bounds().size.y > 0.0f);
+    assert(row->bounds().size.y > 0.0f);
     std::printf("rebuild relayouts ok\n");
 }
 } // namespace

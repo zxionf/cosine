@@ -42,8 +42,6 @@ public:
 
     float value() const { return value_; }
     void set_step(float step) { step_ = step; set_value(value_); }
-    void set_enabled(bool enabled) override { input.enabled = enabled; mark_layout_dirty(); }
-    bool enabled() const { return is_enabled(); }
     void set_on_change(std::function<void(float)> handler) { handler_ = std::move(handler); }
 
     glm::vec2 measure(glm::vec2 constraints) override

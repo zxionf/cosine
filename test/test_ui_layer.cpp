@@ -1,4 +1,4 @@
-// Layer 排序契约测试：layer 是跨 children_/overlays_ 的主排序键，z 仅层内生效。
+// Layer 排序契约测试：layer 是子项的主排序键，z 仅在层内生效。
 // 覆盖：layer_paint_order 顺序、命中优先级、模态盖浮层、嵌套模态 z、悬空帧清理。
 #include "events/event.hpp"
 #include "ui/containers/vbox.hpp"
