@@ -14,7 +14,7 @@
 
 int main()
 {
-    xel::Application app{600,400,"moss"};
+    xel::Application app{{600, 400, "moss"}};
 
     std::cout << "xel" << xel::version_string() << std::endl;
 
@@ -25,7 +25,7 @@ int main()
         .with_transition_ms(60.0f);
     base_theme.scroll_mode = xel::ui::ScrollMode::Smooth;
     base_theme.padding = 2.0f;
-    app.ui.root().set_theme(base_theme);
+    app.ui().root().set_theme(base_theme);
     app.set_ui_scale(2.0f);
 
     auto panel = std::make_unique<xel::ui::Panel>(20,20, 600,400);
@@ -49,21 +49,9 @@ int main()
     // panel->add(std::move(color_rect));
     // scroll_view->set_content(std::move(panel));
     // panel->add(std::move(vbox));
-    // app.ui.root().add(std::move(panel));
-    app.ui.root().add(std::move(window));
-    // app.ui.root().debug_recursive();
+    // app.ui().root().add(std::move(panel));
+    app.ui().root().add(std::move(window));
+    // app.ui().root().debug_recursive();
 
-    while(!app.window_.quit_requested()) {
-        app.poll_events();
-
-        app.gfx().begin(app.ui.context()->theme().window_bg);
-
-        app.ui.tick();
-
-        app.gfx().draw(app.ui.root());
-        app.gfx().end();
-    }
-
-    app.vulkan_context_.device().waitIdle();
-    return 0;
+    return app.run();
 }

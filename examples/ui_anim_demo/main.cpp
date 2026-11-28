@@ -143,36 +143,13 @@ void build(Demo& demo, xel::ui::UIRoot& root)
 
 int run()
 {
-    xel::Application app{1200, 800, "XEL Animation Demo"};
+    xel::Application app{{1200, 800, "XEL Animation Demo"}};
 
     // Demo 必须先于 build 存在：SceneView 持有 &demo.scene。
     Demo demo;
-    build(demo, app.ui.root());
+    build(demo, app.ui().root());
 
-    const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER");
-    const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
-    float total_time = 0.0f;
-
-    while (!app.window_.quit_requested()) {
-        app.poll_events();
-
-        app.gfx().begin(app.ui.context()->theme().window_bg);
-
-        const auto& stats = app.gfx().stats();
-        const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
-
-        demo.update(dt);
-        app.ui.tick(dt);
-
-        app.gfx().draw(app.ui.root());
-        app.gfx().end();
-
-        total_time += dt;
-        if (exit_after > 0.0f && total_time >= exit_after) {
-            app.window_.request_quit();
-        }
-    }
-    return 0;
+    return app.run([&](float dt) { demo.update(dt); });
 }
 } // namespace
 

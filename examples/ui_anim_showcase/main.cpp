@@ -248,58 +248,23 @@ void build(Showcase& demo, xel::ui::UIRoot& root)
 
 int run()
 {
-    xel::Application app{1200, 800, "XEL Animation Showcase"};
+    xel::Application app{{1200, 800, "XEL Animation Showcase"}};
 
     Showcase demo;
-    build(demo, app.ui.root());
+    build(demo, app.ui().root());
 
-    // 离屏导出：推进一次布局与动画后渲染到 PNG，然后退出（M6.0）。
+    // 离屏导出：推进一次动画后渲染到 PNG，然后退出（M6.0）。
     if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
-        constexpr float kExportW = 1200.0f;
-        constexpr float kExportH = 800.0f;
-
+        constexpr std::uint32_t kExportW = 1200;
+        constexpr std::uint32_t kExportH = 800;
         demo.update(1.0f);
-        app.ui.tick(1.0f / 60.0f);
-
-        // 导出尺寸与窗口 DPI 无关：root 与离屏目标使用同一逻辑尺寸。
-        auto* root = &app.ui.root();
-        root->set_size(kExportW, kExportH);
-        root->mark_layout_dirty();
-        root->layout();
-        root->clear_layout_dirty();
-
-        const auto pixels = app.gfx().capture(*root, static_cast<uint32_t>(kExportW),
-                                                          static_cast<uint32_t>(kExportH));
-        const bool ok = xel::backend::write_png(
-            png, static_cast<uint32_t>(kExportW), static_cast<uint32_t>(kExportH), pixels);
+        app.ui().tick(1.0f / 60.0f);
+        const bool ok = app.save_png(png, kExportW, kExportH);
         std::cout << (ok ? "exported " : "export failed ") << png << '\n';
         return ok ? 0 : 1;
     }
 
-    const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER");
-    const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
-    float total_time = 0.0f;
-
-    while (!app.window_.quit_requested()) {
-        app.poll_events();
-
-        app.gfx().begin(app.ui.context()->theme().window_bg);
-
-        const auto& stats = app.gfx().stats();
-        const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
-
-        demo.update(dt);
-        app.ui.tick(dt);
-
-        app.gfx().draw(app.ui.root());
-        app.gfx().end();
-
-        total_time += dt;
-        if (exit_after > 0.0f && total_time >= exit_after) {
-            app.window_.request_quit();
-        }
-    }
-    return 0;
+    return app.run([&](float dt) { demo.update(dt); });
 }
 } // namespace
 

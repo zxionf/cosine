@@ -15,7 +15,7 @@ namespace
 {
 int run()
 {
-    xel::Application app{1200, 800, "XEL UI Gallery"};
+    xel::Application app{{1200, 800, "XEL UI Gallery"}};
 
     // Image 纹理示例：内存生成 8×4 棋盘 + 渐变，上传到图片槽 0。
     std::uint32_t image_texture_id = 0;
@@ -33,28 +33,26 @@ int run()
                 pixels[i + 3] = 255;
             }
         }
-        if (app.renderer_.upload_texture(0, kTexW, kTexH, pixels.data())) image_texture_id = 1;
+        if (app.renderer().upload_texture(0, kTexW, kTexH, pixels.data())) image_texture_id = 1;
     }
 
-    auto gallery = xel::demo::build(app.ui.root(), image_texture_id, {8.0f, 4.0f});
-    gallery.ui_system = &app.ui.uisys();
+    auto gallery = xel::demo::build(app.ui().root(), image_texture_id, {8.0f, 4.0f});
+    gallery.ui_system = &app.ui().uisys();
 
     bool f1_prev = false;
     bool open_dropdown_once = std::getenv("COSINE_GALLERY_DROPDOWN") != nullptr;
 
-    while (!app.window_.quit_requested()) {
-        app.poll_events();
-
-        const bool f1_pressed = app.window_.key_down(xel::event::KeyCode::F1);
+    // 每帧：调试开关 + 状态文本 + 首次布局后的待定滚动。
+    return app.run([&](float dt) {
+        const bool f1_pressed = app.window().key_down(xel::event::KeyCode::F1);
         if (f1_pressed && !f1_prev) gallery.debug->toggle();
         f1_prev = f1_pressed;
-
-        app.gfx().begin(app.ui.context()->theme().window_bg);
 
         const auto& stats = app.gfx().stats();
 
         // 光标：UISystem 已在 dispatch 里维护逻辑坐标，直接读取即可。
-        gallery.update_tooltip(app.ui.pointer_pos(), static_cast<float>(stats.frame_time_ms) / 1000.0f);
+        gallery.update_tooltip(app.ui().pointer_pos(),
+                              static_cast<float>(stats.frame_time_ms) / 1000.0f);
 
         gallery.stats->set_text(std::format(
             "fps: {:.1f}   frame: {:.2f} ms   draw calls: {}   vertices: {}   indices: {}",
@@ -66,20 +64,8 @@ int run()
             gallery.scroll_both->content_size().x, gallery.scroll_both->content_size().y));
 
         if (gallery.debug->visible()) {
-            gallery.debug->update(stats, app.ui.hovered(), app.ui.focused(),
+            gallery.debug->update(stats, app.ui().hovered(), app.ui().focused(),
                                   gallery.scroll_vertical->scroll_offset_vec());
-        }
-
-        const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
-        app.ui.tick(dt);
-
-        // 冒烟钩子：到时正常关窗，确保析构路径（Vulkan 资源释放）被执行。
-        if (const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER")) {
-            static float total_time = 0.0f;
-            total_time += dt;
-            if (total_time >= static_cast<float>(std::atof(exit_after_env))) {
-                app.window_.request_quit();
-            }
         }
 
         // 首帧布局完成后再应用待定滚动（build 时还没有 viewport 尺寸）。
@@ -97,12 +83,8 @@ int run()
             gallery.dropdown->open();
         }
 
-        app.gfx().draw(app.ui.root());
-        app.gfx().end();
-    }
-
-    app.vulkan_context_.device().waitIdle();
-    return 0;
+        (void)dt;
+    });
 }
 } // namespace
 

@@ -30,8 +30,8 @@
 ## 分层与目录
 
 ```
-src/backend/    window（GLFW+DPR）、vulkan_context、swap_chain、renderer、asset_path
-src/graphics/   DrawList/DrawBatch/Vertex、图元、FontAtlas、FrameStats
+src/backend/    window（GLFW+EventSource）、vulkan_context、swap_chain、renderer、render_backend、png_writer
+src/graphics/   DrawList/DrawBatch/Vertex、图元、FontAtlas、FrameStats、DisplayScale
 src/ui/         Widget 树、布局、事件、焦点、控件、主题、UISystem、UiRuntime
 src/anim/       scene/property/timeline/easing/player、Command/CommandStack
 src/cosine/     编辑器（cosine_editor + cosine 可执行）
@@ -43,6 +43,22 @@ assets/         shader、字体
 ```
 
 依赖单向：`graphics` 不依赖 backend；`ui` 依赖 `graphics` + `events`；`backend` 消费 `graphics` 的 DrawList。
+
+## 应用装配（Application）
+
+`xel::Application` 是**组合根**：只负责装配 + 一个标准主循环，不含业务。
+
+```
+xel::Application app{{1280, 840, "cosine"}};   // window / vulkan / renderer / ui 全部私有成员
+editor = ...(app.ui().root(), app.ui().uisys(), app.renderer())
+return app.run([&](float dt) { editor.tick(dt); });
+```
+
+- `run(frame)` 每帧：`poll_events()` → `gfx().begin(主题背景)` → `frame(dt)` → `ui().tick(dt)` → `gfx().draw(ui().root())` → `gfx().end()`；
+  `dt` 取上一帧耗时并夹到 [0, 0.1]；`COSINE_EXIT_AFTER` 在 `run()` 内统一处理，退出前 `device().waitIdle()`。
+- 对外只有窄接口：`ui()`（UiRuntime）、`gfx()`（RenderBackend）、`renderer()`（Vulkan 专用：图片槽）、`window()`；数据成员全部私有。
+- `save_png(path, w, h)`：固定逻辑尺寸离屏导出（内部 `capture` + `write_png`），examples 的导出分支共用它。
+- 由此全仓只有 **1 份主循环**（在 `Application::run`）；examples 只写建树 + 每帧回调。
 
 ## UI 架构
 

@@ -18,7 +18,7 @@ cd build/examples && ./ui_gallery
 | `COSINE_CJK_FONT` | 字体文件路径 | 指定生成图集用字体；缺省时按系统字体列表探测，全部失败则回退 `assets/fonts/default8.png` |
 | `COSINE_CJK_FONT_FACE` | 整数 | TTC/OTC 集合内的 face 索引；选错会导致字形错位或加载失败 |
 | `COSINE_UI_SCALE` | `auto` 或 `0.25`–`4` | UI 逻辑像素相对 framebuffer 的缩放比。`auto` 跟随 `framebuffer/window` 比值；数值按倍数放大（2 = 界面整体放大两倍，字形按 `字号×倍数` 重新栅格化，不会糊）。默认 1.0，等价于旧行为 |
-| `COSINE_EXIT_AFTER` | 秒（浮点） | 运行到该秒数后正常关窗退出（走析构，释放 Vulkan 资源）。用于冒烟与截图；`ui_demo` 未接此变量 |
+| `COSINE_EXIT_AFTER` | 秒（浮点） | 运行到该秒数后正常关窗退出（走析构，释放 Vulkan 资源）。用于冒烟与截图；由 `Application::run()` 统一处理，所有示例都生效 |
 
 冒烟建议（正常退出，不要用 `timeout` 强杀，否则会跳过析构）：
 
@@ -69,7 +69,7 @@ COSINE_TEXT_DEBUG=1 ./build/examples/ui_demo     # 调试层全开
 | `COSINE_TEXT_DEBUG` | 任意非空 | 启动即打开字形框 + 行框 + 基线 + advance（等价于连按 F2–F4） |
 | `COSINE_TEXT_SNAP` | `0` / 其他 | `0` 关闭像素对齐，绘制原点保留小数；其他值（或缺省）保持对齐 |
 
-> `ui_demo` 没有接 `COSINE_EXIT_AFTER`，自动化脚本请用窗口关闭或 `timeout` 兜底。
+> `COSINE_EXIT_AFTER` 由 `Application::run()` 统一处理，所有示例都生效（不再需要逐个示例实现）。
 
 ---
 

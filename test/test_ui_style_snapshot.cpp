@@ -145,14 +145,14 @@ int check_pixels()
 {
     int failures = 0;
     try {
-        xel::Application app{480, 320, "style snapshot"};
+        xel::Application app{{480, 320, "style snapshot"}};
         Scene scene;
-        app.ui.root().add(build_scene(scene));
-        app.ui.tick();
+        app.ui().root().add(build_scene(scene));
+        app.ui().tick();
 
         constexpr uint32_t kW = 480;
         constexpr uint32_t kH = 320;
-        auto pixels = app.gfx().capture(app.ui.root(), kW, kH);
+        auto pixels = app.gfx().capture(app.ui().root(), kW, kH);
         if (pixels.empty()) {
             std::printf("skip  render_offscreen empty\n");
             return 0;
@@ -188,9 +188,9 @@ int check_pixels()
         if (failures == 0) std::printf("ok    style snapshot pixels\n");
 
         // 同一场景切浅色主题：验证 accent_on / 浅色调色板不发散。
-        app.ui.root().set_theme(ui::Theme::light());
-        app.ui.tick();
-        auto light_pixels = app.gfx().capture(app.ui.root(), kW, kH);
+        app.ui().root().set_theme(ui::Theme::light());
+        app.ui().tick();
+        auto light_pixels = app.gfx().capture(app.ui().root(), kW, kH);
         if (!light_pixels.empty()) {
             const uint32_t light_hash = fnv1a(light_pixels.data(), light_pixels.size());
             std::printf("light snapshot: fnv1a=%08x\n", light_hash);

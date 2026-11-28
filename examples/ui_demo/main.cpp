@@ -24,8 +24,8 @@ struct KeyLatch
 
 int run()
 {
-    xel::Application app{1200, 800, "XEL Text Lab"};
-    auto lab = xel::demo::build(app.ui.root());
+    xel::Application app{{1200, 800, "XEL Text Lab"}};
+    auto lab = xel::demo::build(app.ui().root());
 
     KeyLatch f1{xel::event::KeyCode::F1};
     KeyLatch f2{xel::event::KeyCode::F2};
@@ -33,29 +33,19 @@ int run()
     KeyLatch f4{xel::event::KeyCode::F4};
     KeyLatch f5{xel::event::KeyCode::F5};
 
-    while (!app.window_.quit_requested()) {
-        app.poll_events();
-
-        if (f1.pressed(app.window_.key_down(f1.key))) lab.overlay->toggle();
-        if (f2.pressed(app.window_.key_down(f2.key))) lab.toggle_glyph_boxes();
-        if (f3.pressed(app.window_.key_down(f3.key))) lab.toggle_line_box();
-        if (f4.pressed(app.window_.key_down(f4.key))) lab.toggle_advance();
-        if (f5.pressed(app.window_.key_down(f5.key))) lab.toggle_pixel_snap();
-
-        app.gfx().begin(app.ui.context()->theme().window_bg);
+    // 每帧：F1–F5 调试开关 + 覆盖层状态跟着指针/焦点刷新。
+    return app.run([&](float) {
+        if (f1.pressed(app.window().key_down(f1.key))) lab.overlay->toggle();
+        if (f2.pressed(app.window().key_down(f2.key))) lab.toggle_glyph_boxes();
+        if (f3.pressed(app.window().key_down(f3.key))) lab.toggle_line_box();
+        if (f4.pressed(app.window().key_down(f4.key))) lab.toggle_advance();
+        if (f5.pressed(app.window().key_down(f5.key))) lab.toggle_pixel_snap();
 
         if (lab.overlay->visible()) {
-            lab.overlay->update(app.gfx().stats(), app.ui.hovered(),
-                                app.ui.focused(), {0.0f, 0.0f});
+            lab.overlay->update(app.gfx().stats(), app.ui().hovered(),
+                                app.ui().focused(), {0.0f, 0.0f});
         }
-
-        app.ui.tick();
-        app.gfx().draw(app.ui.root());
-        app.gfx().end();
-    }
-
-    app.vulkan_context_.device().waitIdle();
-    return 0;
+    });
 }
 } // namespace
 

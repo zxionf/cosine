@@ -50,13 +50,13 @@ std::unique_ptr<xel::ui::Table> build_table()
 int main()
 {
     try {
-        xel::Application app{480, 320, "render snapshot"};
-        app.ui.root().add(build_table());
-        app.ui.tick();
+        xel::Application app{{480, 320, "render snapshot"}};
+        app.ui().root().add(build_table());
+        app.ui().tick();
 
         constexpr uint32_t kW = 480;
         constexpr uint32_t kH = 320;
-        auto pixels = app.gfx().capture(app.ui.root(), kW, kH);
+        auto pixels = app.gfx().capture(app.ui().root(), kW, kH);
         if (pixels.empty()) {
             std::printf("skip: render_offscreen returned empty\n");
             return 0;

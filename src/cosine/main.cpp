@@ -12,27 +12,26 @@
 int main()
 {
     try {
-        xel::Application app{1280, 840, "cosine"};
+        xel::Application app{{1280, 840, "cosine"}};
 
         // Editor 在 Application 之后构造，保证 root/uisys 已就绪；
         // 析构顺序相反，Editor 先销毁。
-        xel::editor::Editor editor{app.ui.root(), app.ui.uisys(), app.renderer_};
+        xel::editor::Editor editor{app.ui().root(), app.ui().uisys(), app.renderer()};
 
         // 离屏导出（与 ui_anim_showcase 同一机制）：完成一次布局后渲染到 PNG 并退出。
         if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
-            constexpr float kExportW = 1280.0f;
-            constexpr float kExportH = 840.0f;
+            constexpr std::uint32_t kExportW = 1280;
+            constexpr std::uint32_t kExportH = 840;
 
-            // 不依赖窗口尺寸：窗口可能还没收到 framebuffer 回调（root 尺寸为 0），
-            // 那时 layout() 会直接 return，界面会堆在左上角。
-            auto* root = &app.ui.root();
-            root->set_size(kExportW, kExportH);
-            root->mark_layout_dirty();
+            // 不依赖窗口尺寸：导出尺寸固定，与窗口 DPI 无关。
+            auto& root = app.ui().root();
+            root.set_size({static_cast<float>(kExportW), static_cast<float>(kExportH)});
+            root.mark_layout_dirty();
 
             // 先定型一轮几何：Editor::tick 里的调试面板读的是当前布局结果，
-            // 不先 layout 的话首帧会显示构造期的坐标（global 还是 0）。
-            root->layout();
-            root->clear_layout_dirty();
+            // 不先 layout 的话首帧会显示构造期的坐标。
+            root.layout();
+            root.clear_layout_dirty();
 
             editor.tick(1.0f / 60.0f);
 
@@ -41,41 +40,13 @@ int main()
                 const int steps = static_cast<int>(std::atof(seconds) * 60.0f);
                 for (int i = 0; i < steps; ++i) editor.tick(1.0f / 60.0f);
             }
-            root->layout();
-            root->clear_layout_dirty();
 
-            const auto pixels = app.gfx().capture(
-                *root, static_cast<uint32_t>(kExportW), static_cast<uint32_t>(kExportH));
-            const bool ok = xel::backend::write_png(
-                png, static_cast<uint32_t>(kExportW), static_cast<uint32_t>(kExportH), pixels);
+            const bool ok = app.save_png(png, kExportW, kExportH);
             std::cout << (ok ? "exported " : "export failed ") << png << '\n';
             return ok ? 0 : 1;
         }
 
-        const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER");
-        const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
-        float total_time = 0.0f;
-
-        while (!app.window_.quit_requested()) {
-            app.poll_events();
-
-            app.gfx().begin(app.ui.context()->theme().window_bg);
-
-            const auto& stats = app.gfx().stats();
-            const float dt =
-                std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
-
-            editor.tick(dt);
-            app.ui.tick(dt);
-            app.gfx().draw(app.ui.root());
-            app.gfx().end();
-
-            total_time += dt;
-            if (exit_after > 0.0f && total_time >= exit_after) {
-                app.window_.request_quit();
-            }
-        }
-        return 0;
+        return app.run([&](float dt) { editor.tick(dt); });
     } catch (const std::exception& error) {
         std::cerr << "fatal: " << error.what() << '\n';
         return 1;

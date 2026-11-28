@@ -204,53 +204,23 @@ void build(Lab& lab, xel::ui::UIRoot& root)
 
 int run()
 {
-    xel::Application app{static_cast<int>(kW), static_cast<int>(kH), "font_lab"};
+    xel::Application app{{static_cast<int>(kW), static_cast<int>(kH), "font_lab"}};
 
     Lab lab;
-    build(lab, app.ui.root());
-    lab.atlas = app.ui.context()->font_atlas;
+    build(lab, app.ui().root());
+    lab.atlas = app.ui().context()->font_atlas;
     update_debug(lab);
     update_measures(lab);
 
     if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
-        app.ui.tick(1.0f / 60.0f);
-
-        auto* root = &app.ui.root();
-        root->set_size(kW, kH);
-        root->mark_layout_dirty();
-        root->layout();
-        root->clear_layout_dirty();
-
-        const auto pixels = app.gfx().capture(*root, static_cast<uint32_t>(kW),
-                                                          static_cast<uint32_t>(kH));
-        const bool ok = xel::backend::write_png(
-            png, static_cast<uint32_t>(kW), static_cast<uint32_t>(kH), pixels);
+        app.ui().tick(1.0f / 60.0f);
+        const bool ok = app.save_png(png, static_cast<std::uint32_t>(kW),
+                                     static_cast<std::uint32_t>(kH));
         std::cout << (ok ? "exported " : "export failed ") << png << '\n';
         return ok ? 0 : 1;
     }
 
-    const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER");
-    const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
-    float total_time = 0.0f;
-
-    while (!app.window_.quit_requested()) {
-        app.poll_events();
-
-        app.gfx().begin(app.ui.context()->theme().window_bg);
-
-        const auto& stats = app.gfx().stats();
-        const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
-        app.ui.tick(dt);
-
-        app.gfx().draw(app.ui.root());
-        app.gfx().end();
-
-        total_time += dt;
-        if (exit_after > 0.0f && total_time >= exit_after) {
-            app.window_.request_quit();
-        }
-    }
-    return 0;
+    return app.run();
 }
 } // namespace
 
