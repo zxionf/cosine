@@ -11,7 +11,7 @@
 | R14 | 单窗口 / 单 Renderer 假设 | backend |
 | R15 | 文本 shaping：BiDi / 复杂字形 / 字体回退 / IME | ui |
 | R17 | 序列化：二进制格式已定，资源引用待 CO-2 | cosine |
-| D01 | 圆角抗锯齿：解析 SDF 已覆盖圆角/胶囊/边框/内阴影；图标走 MTSDF 图集（tools/mtsdf_gen 烘焙，kind=3 采样）；字体仍位图 | ui |
+| D01 | 圆角抗锯齿：解析 SDF 已覆盖圆角/胶囊/边框/内阴影；图标走 MTSDF 图集。剩余项见 `docs/todo-graphics.md` | ui |
 | D02 | Table/TreeView 行级背景不参与颜色过渡 | ui |
 | D03 | SceneView 椭圆/文字不随 rotation 旋转 | anim/ui |
 | D05 | File 菜单 Ctrl+N/O/S 键盘路由 | cosine（CO-2） |
@@ -26,7 +26,7 @@
 | 排版（kerning / 避头尾 / justify） | 中文排版够用 | 有排版质量硬需求 |
 | 亚像素策略 | 需与 pixel_snap 做矩阵实验 | 有实测数据后 |
 | TextSpan 文本片段 | 无富文本需求 | 编辑器行内多色 |
-| SDF / MSDF | 逐字号栅格化够用 | 超大字号 / 描边 / 发光 |
+| SDF / MSDF | 圆角与图标已走 SDF；字体仍逐字号栅格化 | 超大字号 / 描边字体（见 docs/todo-graphics.md G5） |
 | IME preedit | 无中文输入实测 | 真实输入法场景 |
 | TreeView 可见行缓存（UI-4） | 节点规模远未到瓶颈 | 节点上千 |
 | 弹层出现/消失过渡 | 需 alpha 合成 + 生命周期改造 | 有动画资源时 |

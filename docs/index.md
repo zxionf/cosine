@@ -7,6 +7,7 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 
 1. `../.design/SPEC.md` — 当前设计事实（唯一真相源）
 2. `todo.md` — 待办：欠账、暂停池、风险、未决问题、有意不做的决策
+   （图形/抗锯齿专题见 `todo-graphics.md`）
 3. `plan_archive.md` — 已完成阶段的计划原文归档
 4. `project_format.md` — `.cosine` 项目文件格式
 5. `examples.md` — 示例用途、按键、环境变量
@@ -19,6 +20,7 @@ cosine 是一个 C++20 + Vulkan 的 2D GUI 与动画引擎项目，XEL 是它的
 |---|---|
 | `index.md` | 本页：入口与索引 |
 | `todo.md` | 待办：欠账（R/D）、暂停池、风险、未决问题、有意不做的决策 |
+| `todo-graphics.md` | 图形与抗锯齿专题待办：SDF 现状、G1–G7 任务、已决策项、验证命令 |
 | `../.design/uml/` | UI 层架构图：包依赖、`Node`、控件分类、层叠、布局流水线、事件派发、模态、主题（PlantUML） |
 | `ui_theme_tokens.md` | 主题令牌 ↔ 样式角色对照表（12 个角色） |
 | `examples.md` | 示例用途、按键、环境变量 |
