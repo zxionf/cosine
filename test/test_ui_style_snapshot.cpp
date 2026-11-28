@@ -152,7 +152,7 @@ int check_pixels()
 
         constexpr uint32_t kW = 480;
         constexpr uint32_t kH = 320;
-        auto pixels = app.renderer_.render_offscreen(app.ui.root(), kW, kH);
+        auto pixels = app.gfx().capture(app.ui.root(), kW, kH);
         if (pixels.empty()) {
             std::printf("skip  render_offscreen empty\n");
             return 0;
@@ -181,7 +181,7 @@ int check_pixels()
             std::printf("record baseline: set kSceneBaselineHash = 0x%08x\n", hash);
         } else if (hash != kSceneBaselineHash) {
             std::printf("FAIL  scene hash mismatch: expected %08x\n", kSceneBaselineHash);
-            app.renderer_.write_png("style_snapshot.png", kW, kH, pixels);
+            xel::backend::write_png("style_snapshot.png", kW, kH, pixels);
             ++failures;
         }
 
@@ -190,7 +190,7 @@ int check_pixels()
         // 同一场景切浅色主题：验证 accent_on / 浅色调色板不发散。
         app.ui.root().set_theme(ui::Theme::light());
         app.ui.tick();
-        auto light_pixels = app.renderer_.render_offscreen(app.ui.root(), kW, kH);
+        auto light_pixels = app.gfx().capture(app.ui.root(), kW, kH);
         if (!light_pixels.empty()) {
             const uint32_t light_hash = fnv1a(light_pixels.data(), light_pixels.size());
             std::printf("light snapshot: fnv1a=%08x\n", light_hash);
@@ -198,7 +198,7 @@ int check_pixels()
                 std::printf("record baseline: set kLightBaselineHash = 0x%08x\n", light_hash);
             } else if (light_hash != kLightBaselineHash) {
                 std::printf("FAIL  light hash mismatch: expected %08x\n", kLightBaselineHash);
-                app.renderer_.write_png("style_snapshot_light.png", kW, kH, light_pixels);
+                xel::backend::write_png("style_snapshot_light.png", kW, kH, light_pixels);
                 ++failures;
             }
         }

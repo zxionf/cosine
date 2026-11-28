@@ -12,9 +12,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image.h>
-#include <stb_image_write.h>
 
 namespace xel::backend::vulkan
 {
@@ -1279,12 +1277,7 @@ std::vector<unsigned char> Renderer::render_offscreen(const graphics::Drawable& 
 bool Renderer::write_png(const std::string& path, uint32_t width, uint32_t height,
                          const std::vector<unsigned char>& rgba)
 {
-    if (width == 0 || height == 0) return false;
-    const auto expected = static_cast<std::size_t>(width) * height * 4;
-    if (rgba.size() < expected) return false;
-
-    return stbi_write_png(path.c_str(), static_cast<int>(width), static_cast<int>(height), 4,
-                          rgba.data(), static_cast<int>(width) * 4) != 0;
+    return backend::write_png(path, width, height, rgba);
 }
 
 void Renderer::record_batches(vk::raii::CommandBuffer& command_buffer, const RenderTarget& target,

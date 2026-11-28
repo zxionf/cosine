@@ -42,16 +42,16 @@ int run()
         if (f4.pressed(app.window_.key_down(f4.key))) lab.toggle_advance();
         if (f5.pressed(app.window_.key_down(f5.key))) lab.toggle_pixel_snap();
 
-        app.renderer_.begin();
+        app.gfx().begin(app.ui.context()->theme().window_bg);
 
         if (lab.overlay->visible()) {
-            lab.overlay->update(app.renderer_.frame_stats(), app.ui.hovered(),
+            lab.overlay->update(app.gfx().stats(), app.ui.hovered(),
                                 app.ui.focused(), {0.0f, 0.0f});
         }
 
         app.ui.tick();
-        app.renderer_.draw(app.ui.root());
-        app.renderer_.end();
+        app.gfx().draw(app.ui.root());
+        app.gfx().end();
     }
 
     app.vulkan_context_.device().waitIdle();

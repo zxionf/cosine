@@ -56,13 +56,12 @@ int main()
     while(!app.window_.quit_requested()) {
         app.poll_events();
 
-        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
-        app.renderer_.begin();
+        app.gfx().begin(app.ui.context()->theme().window_bg);
 
         app.ui.tick();
 
-        app.renderer_.draw(app.ui.root());
-        app.renderer_.end();
+        app.gfx().draw(app.ui.root());
+        app.gfx().end();
     }
 
     app.vulkan_context_.device().waitIdle();

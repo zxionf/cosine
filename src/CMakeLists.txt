@@ -81,6 +81,7 @@ endif()
 
 add_library(cosine_backend STATIC
     backend/asset_path.cpp
+    backend/png_writer.cpp
     backend/window.cpp
     backend/vulkan/vulkan_context.cpp
     backend/vulkan/swap_chain.cpp

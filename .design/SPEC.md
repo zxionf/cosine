@@ -129,7 +129,11 @@ assets/         shader、字体
 
 - `DrawList`/`DrawBatch`：顶点、scissor、纹理槽、透明度栈。
 - 纹理槽：0=White、1=字体图集、2–15=图片（`texture_id` = 槽索引 + 1）。
-- 离屏：`Renderer::render_offscreen` + `write_png`。
+- 应用层只依赖 `backend::RenderBackend`（`backend/render_backend.hpp`）：
+  `begin(clear) → draw(Drawable) → end()`（窗口目标在 `end()` 内 present），
+  离屏读回统一为 `capture(Drawable, w, h)`，PNG 写出是不绑后端的 `backend::write_png`。
+- 实现：`vulkan::Renderer : RenderBackend`（`set_scale` 同时管投影与字体栅格化）；
+  新后端（Null/软件）只需实现该接口，examples 与快照测试不用改。
 
 ## 事件模型
 

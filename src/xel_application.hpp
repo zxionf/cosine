@@ -18,6 +18,9 @@ public:
     // UI 运行时（root + 调度 + DPI + 宿主注入）；不含任何平台或渲染依赖。
     ui::UiRuntime ui;
 
+    // 渲染后端接口：examples / 快照测试只依赖它，不依赖 Vulkan。
+    backend::RenderBackend& gfx() { return renderer_; }
+
     // DPI：逻辑像素 → framebuffer 像素的缩放比（COSINE_UI_SCALE，默认 1.0）。
     float ui_scale() const { return ui.ui_scale(); }
     // 转发到 UiRuntime：唯一扇出点（UISystem / renderer / 字体栅格化 / 输入换算）。

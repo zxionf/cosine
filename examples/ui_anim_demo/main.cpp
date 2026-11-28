@@ -156,17 +156,16 @@ int run()
     while (!app.window_.quit_requested()) {
         app.poll_events();
 
-        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
-        app.renderer_.begin();
+        app.gfx().begin(app.ui.context()->theme().window_bg);
 
-        const auto& stats = app.renderer_.frame_stats();
+        const auto& stats = app.gfx().stats();
         const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
 
         demo.update(dt);
         app.ui.tick(dt);
 
-        app.renderer_.draw(app.ui.root());
-        app.renderer_.end();
+        app.gfx().draw(app.ui.root());
+        app.gfx().end();
 
         total_time += dt;
         if (exit_after > 0.0f && total_time >= exit_after) {

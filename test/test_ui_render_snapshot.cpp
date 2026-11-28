@@ -56,7 +56,7 @@ int main()
 
         constexpr uint32_t kW = 480;
         constexpr uint32_t kH = 320;
-        auto pixels = app.renderer_.render_offscreen(app.ui.root(), kW, kH);
+        auto pixels = app.gfx().capture(app.ui.root(), kW, kH);
         if (pixels.empty()) {
             std::printf("skip: render_offscreen returned empty\n");
             return 0;
@@ -68,7 +68,7 @@ int main()
             return 0;
         }
         std::printf("snapshot MISMATCH: expected %08x, got %08x\n", kBaselineHash, hash);
-        app.renderer_.write_png("table_snapshot.png", kW, kH, pixels);
+        xel::backend::write_png("table_snapshot.png", kW, kH, pixels);
         return 1;
     } catch (const std::exception& error) {
         std::printf("skip (no vulkan?): %s\n", error.what());

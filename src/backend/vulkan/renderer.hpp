@@ -3,6 +3,7 @@
 #include "vulkan_context.hpp"
 #include "swap_chain.hpp"
 #include "render_target.hpp"
+#include "../render_backend.hpp"
 #include "../../graphics/drawable.hpp"
 #include "../../graphics/font_atlas.hpp"
 #include "../../graphics/font_face.hpp"
@@ -33,16 +34,17 @@ struct PushConstant
     float time;
 };
 
-class Renderer
+class Renderer : public RenderBackend
 {
 public:
     constexpr static int MAX_FRAMES_IN_FLIGHT = 2;
 
     Renderer(VulkanContext& context, SwapChain& swap_chain);
-    ~Renderer();
+    ~Renderer() override;
 
-    graphics::FontAtlas& font_atlas() { return font_atlas_; }
+    graphics::FontAtlas& font_atlas() override { return font_atlas_; }
     const graphics::FontAtlas& font_atlas() const { return font_atlas_; }
+    const graphics::FrameStats& stats() const override { return frame_stats_; }
     const graphics::FrameStats& frame_stats() const { return frame_stats_; }
 
     // 窗口背景色（主题 window_bg），下一帧生效。
@@ -50,9 +52,16 @@ public:
     glm::vec4 clear_color() const { return clear_color_; }
 
     void begin();
-    void end();
+    void end() override;
 
-    void draw(const graphics::Drawable& d);
+    // RenderBackend：一帧的入口/出口（窗口目标在 end() 内 present）。
+    void begin(glm::vec4 clear_color) override
+    {
+        set_clear_color(clear_color);
+        begin();
+    }
+
+    void draw(const graphics::Drawable& d) override;
     void set_scissor(float x, float y, float w, float h);
     void reset_scissor();
 
@@ -60,6 +69,12 @@ public:
     void set_ui_scale(float scale) { ui_scale_ = scale > 0.0f ? scale : 1.0f; }
     float ui_scale() const { return ui_scale_; }
     void set_font_pixel_ratio(float ratio) { font_atlas_.set_pixel_ratio(ratio); }
+    // RenderBackend：一个比例同时作用于渲染投影与字体栅格化。
+    void set_scale(float scale) override
+    {
+        set_ui_scale(scale);
+        set_font_pixel_ratio(scale);
+    }
 
     // 图片槽（CO-2）：RGBA8 上传到第 index 个图片槽（0 基，最多 kMaxImageSlots 张）。
     // 槽位重建 image/view 后，会把它写回所有帧的 descriptor set，下一帧生效。
@@ -75,7 +90,13 @@ public:
     std::vector<unsigned char> render_offscreen(const graphics::Drawable& drawable,
                                                uint32_t width, uint32_t height,
                                                float ui_scale = 1.0f);
-    // 把 RGBA8 像素写成 PNG（stb_image_write）。
+    // RenderBackend：离屏读回（用当前 ui_scale_）。
+    std::vector<unsigned char> capture(const graphics::Drawable& drawable, std::uint32_t width,
+                                       std::uint32_t height) override
+    {
+        return render_offscreen(drawable, width, height, ui_scale_);
+    }
+    // 旧入口：PNG 写出已移到 backend::write_png（不绑后端）。
     static bool write_png(const std::string& path, uint32_t width, uint32_t height,
                           const std::vector<unsigned char>& rgba);
 

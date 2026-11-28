@@ -49,10 +49,9 @@ int run()
         if (f1_pressed && !f1_prev) gallery.debug->toggle();
         f1_prev = f1_pressed;
 
-        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
-        app.renderer_.begin();
+        app.gfx().begin(app.ui.context()->theme().window_bg);
 
-        const auto& stats = app.renderer_.frame_stats();
+        const auto& stats = app.gfx().stats();
 
         // 光标：UISystem 已在 dispatch 里维护逻辑坐标，直接读取即可。
         gallery.update_tooltip(app.ui.pointer_pos(), static_cast<float>(stats.frame_time_ms) / 1000.0f);
@@ -98,8 +97,8 @@ int run()
             gallery.dropdown->open();
         }
 
-        app.renderer_.draw(app.ui.root());
-        app.renderer_.end();
+        app.gfx().draw(app.ui.root());
+        app.gfx().end();
     }
 
     app.vulkan_context_.device().waitIdle();

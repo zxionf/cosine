@@ -27,7 +27,11 @@ package "src/graphics  只产出顶点" as graphics {
   package "Drawable（append_to 接口）" as drawable
 }
 
-package "src/backend/vulkan  渲染后端" as backend
+package "src/backend  渲染后端" as backend {
+  package "RenderBackend\n（begin/draw/end/capture）" as render_backend
+  package "png_writer（不绑后端）" as png_writer
+  package "vulkan/ VulkanContext SwapChain Renderer" as backend_vk
+}
 package "src/events  输入事件" as events
 
 examples --> app
@@ -54,10 +58,12 @@ ui_geom ..> events
 ui_style ..> events
 ui ..> events
 
-backend --> drawlist
-backend ..> primitives
+backend_vk --> drawlist
+backend_vk ..> primitives
+backend_vk ..> render_backend
+app ..> render_backend : gfx()
 
 note "架构断言（test/test_ui_architecture.cpp）\nD1  geom/ 与 layout/measure_cache 不得 include 控件树\nD2  core/、containers/ 不得 include composites/、views/\nD3  style/ 不得 include 具体控件\nD4  semantics/ 只用标准库\nD5  src/ui 根目录不放任何 .hpp/.cpp\nK1—K8  状态/缓存/写入点/虚函数预算/单类节点" as N1
 
-note "graphics 不认识 ui：\n只接收 DrawList，不认识控件类型。\n\nui 不调 Vulkan：只产出 DrawList，\n提交与管线状态全在 backend。" as N2
+note "graphics 不认识 ui：\n只接收 DrawList，不认识控件类型。\n\nui 不调 Vulkan：只产出 DrawList，\n提交与管线状态全在 backend。\n\n应用层只依赖 RenderBackend 接口：\nexamples/测试用 begin/draw/end/capture，\n不 include vulkan/*。" as N2
 @enduml

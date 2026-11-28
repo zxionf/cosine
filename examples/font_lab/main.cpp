@@ -221,10 +221,9 @@ int run()
         root->layout();
         root->clear_layout_dirty();
 
-        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
-        const auto pixels = app.renderer_.render_offscreen(*root, static_cast<uint32_t>(kW),
+        const auto pixels = app.gfx().capture(*root, static_cast<uint32_t>(kW),
                                                           static_cast<uint32_t>(kH));
-        const bool ok = xel::backend::vulkan::Renderer::write_png(
+        const bool ok = xel::backend::write_png(
             png, static_cast<uint32_t>(kW), static_cast<uint32_t>(kH), pixels);
         std::cout << (ok ? "exported " : "export failed ") << png << '\n';
         return ok ? 0 : 1;
@@ -237,15 +236,14 @@ int run()
     while (!app.window_.quit_requested()) {
         app.poll_events();
 
-        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
-        app.renderer_.begin();
+        app.gfx().begin(app.ui.context()->theme().window_bg);
 
-        const auto& stats = app.renderer_.frame_stats();
+        const auto& stats = app.gfx().stats();
         const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
         app.ui.tick(dt);
 
-        app.renderer_.draw(app.ui.root());
-        app.renderer_.end();
+        app.gfx().draw(app.ui.root());
+        app.gfx().end();
 
         total_time += dt;
         if (exit_after > 0.0f && total_time >= exit_after) {

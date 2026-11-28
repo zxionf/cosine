@@ -31,10 +31,8 @@ Application::Application(int window_w, int window_h, const std::string& title)
     ui.set_font_atlas(&renderer_.font_atlas());
     ui.bind_host({
         [this](ui::CursorShape shape) { window_.set_cursor(to_window_cursor(shape)); },
-        [this](float scale) {
-            renderer_.set_ui_scale(scale);
-            renderer_.set_font_pixel_ratio(scale);
-        },
+        // 一个比例同时作用于渲染投影与字体栅格化（后端自己扇出）。
+        [this](float scale) { renderer_.set_scale(scale); },
     });
 
     // 视图尺寸也由宿主推：UISystem 不认识 backend::Window。
