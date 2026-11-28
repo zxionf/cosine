@@ -3,7 +3,7 @@
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
 #include "ui/system/uicontext.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "anim/timeline.hpp"
 #include "events/event.hpp"
 #include "graphics/box.hpp"
@@ -29,7 +29,7 @@ struct KeyMove
 
 // 时间轴编辑视图（M6.3）：标尺 + 轨道行 + 关键帧菱形 + 播放头。
 // 只依赖 anim::Timeline；点击标尺 seek，拖动关键帧改时间。
-class TimelineView : public LeafNode
+class TimelineView : public Widget
 {
 public:
     explicit TimelineView(anim::Timeline* timeline = nullptr) : timeline_(timeline) {}

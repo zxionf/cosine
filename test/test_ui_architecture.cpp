@@ -16,10 +16,9 @@
 #include <utility>
 #include <vector>
 
-#include "ui/node/container_node.hpp"
-#include "ui/node/leaf_node.hpp"
 #include "ui/node/layout_node.hpp"
 #include "ui/node/node.hpp"
+#include "ui/node/widget.hpp"
 
 namespace fs = std::filesystem;
 
@@ -207,7 +206,7 @@ void test_lower_layers_do_not_include_upper_layers()
           "hits=" + std::to_string(containers_up));
 }
 
-// K2：树存储私有——只有 node/node.hpp 能碰 children_（UI-56 后存储下沉到 Node）。
+// K2：树存储私有——只有 Node 的实现（node/node.hpp + node/node.cpp）能碰 children_。
 void test_tree_storage_is_private()
 {
     int outside = 0;
@@ -216,17 +215,19 @@ void test_tree_storage_is_private()
         if (!entry.is_regular_file()) continue;
         const auto ext = entry.path().extension().string();
         if (ext != ".hpp" && ext != ".cpp") continue;
-        const bool is_self = entry.path().filename() == "node.hpp";
+        const std::string name = entry.path().filename().string();
+        const bool is_node_module = entry.path().parent_path().filename() == "node"
+            && (name == "node.hpp" || name == "node.cpp");
         std::istringstream in(read_file(entry.path()));
         std::string line;
         while (std::getline(in, line)) {
             if (!has_token(strip_line_comment(line), "children_")) continue;
-            if (is_self) ++inside;
+            if (is_node_module) ++inside;
             else ++outside;
         }
     }
-    check(inside > 0, "K2: node/node.hpp owns the child storage");
-    check(outside == 0, "K2: no children_ access outside node/node.hpp",
+    check(inside > 0, "K2: node/ (node.hpp + node.cpp) owns the child storage");
+    check(outside == 0, "K2: no children_ access outside the node module",
           "hits=" + std::to_string(outside));
 }
 
@@ -316,14 +317,12 @@ void test_layout_single_writer()
           "found=" + std::to_string(writes));
 }
 
-// K8（UI-56）：三层结构成立——Node ⊂ LayoutNode，Widget 是 LayoutNode 的别名；
-// LeafNode / ContainerNode 都挂在 LayoutNode 下。用编译期断言锁住，防止“拆回去”。
+// K8（UI-56 + 节点改造）：两层结构成立——Node ⊂ LayoutNode，Widget 是 LayoutNode 的别名；
+// 「容纳子节点」直接在 Node 上抽象（add → adopt），LeafNode / ContainerNode 已删除。
 void test_three_layer_structure()
 {
     static_assert(std::is_base_of_v<xel::ui::Node, xel::ui::LayoutNode>, "LayoutNode must derive from Node");
     static_assert(std::is_same_v<xel::ui::Widget, xel::ui::LayoutNode>, "Widget is an alias of LayoutNode");
-    static_assert(std::is_base_of_v<xel::ui::LayoutNode, xel::ui::LeafNode>, "LeafNode : LayoutNode");
-    static_assert(std::is_base_of_v<xel::ui::LayoutNode, xel::ui::ContainerNode>, "ContainerNode : LayoutNode");
     static_assert(!std::is_same_v<xel::ui::Node, xel::ui::LayoutNode>, "Node and LayoutNode are distinct");
 
     check(sizeof(xel::ui::Node) < sizeof(xel::ui::LayoutNode), "Node is lighter than LayoutNode",
@@ -334,7 +333,22 @@ void test_three_layer_structure()
               == sizeof(std::vector<std::unique_ptr<xel::ui::Node>>),
           "children() stores Node, not Widget");
     check(fs::exists(ui_root() / "node" / "node.hpp") && fs::exists(ui_root() / "node" / "layout_node.hpp"),
-          "three-layer headers exist (node.hpp / layout_node.hpp)");
+          "two-layer headers exist (node.hpp / layout_node.hpp)");
+
+    // 中间基类不许复活：头文件不存在，源码里也没有引用。
+    check(!fs::exists(ui_root() / "node" / "leaf_node.hpp")
+              && !fs::exists(ui_root() / "node" / "container_node.hpp"),
+          "K8: leaf_node.hpp / container_node.hpp are gone");
+    const std::vector<std::string> exts{".hpp", ".cpp"};
+    const int legacy = count_occurrences(ui_root(), "LeafNode", exts)
+        + count_occurrences(ui_root(), "ContainerNode", exts);
+    check(legacy == 0, "K8: no LeafNode / ContainerNode references in src/ui",
+          "hits=" + std::to_string(legacy));
+
+    // 容纳子节点的能力在 Node：add() 默认转发到 adopt()。
+    const std::string node_text = read_file(ui_root() / "node" / "node.hpp");
+    check(contains(node_text, "void add(std::unique_ptr<Node> child) { adopt(std::move(child)); }"),
+          "K8: Node::add defaults to adopt() (containment lives on Node)");
 }
 
 int main()

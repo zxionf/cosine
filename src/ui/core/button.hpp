@@ -3,7 +3,7 @@
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
 #include "ui/style/painters.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/text_debug.hpp"
 #include "graphics/box.hpp"
@@ -15,7 +15,7 @@
 
 namespace xel::ui
 {
-class Button : public LeafNode
+class Button : public Widget
 {
 public:
     // 语义：让通用代码不必 dynamic_cast 就知道这是按钮。
@@ -47,7 +47,7 @@ public:
         return {width, t.control_height};
     }
 
-    // arrange 由 LeafNode 提供：叶子只接受父容器给的矩形。
+    // arrange 用 LayoutNode 的默认实现：只接受父容器给的矩形。
 
     // 基线对齐：按钮文字在控件内垂直居中，按行高 80% 估算基线。
     float baseline_offset_for(float h) const override

@@ -10,7 +10,7 @@ namespace xel::ui
 // 用途：让通用代码（调试面板、Tab 顺序、测试断言、未来的无障碍导出）不必
 // dynamic_cast 就能知道一个控件是什么、能不能点、叫什么名字。
 //
-// 注意：这是**给外部看的语义**，与内部实现分类（LeafNode / ContainerNode / ListView）
+// 注意：这是**给外部看的语义**，与内部实现分类（叶子 / 容器 / ListView）
 // 是两件事——Panel 既可能是一个 Vbox，也可能是一个自绘容器。
 enum class WidgetRole : std::uint8_t
 {

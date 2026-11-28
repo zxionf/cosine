@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "ui/style/painters.hpp"
 #include "ui/style/style.hpp"
 #include "ui/style/theme.hpp"
@@ -15,12 +15,12 @@ namespace xel::ui
 //
 // 它的需求覆盖了典型交互叶子：可点、可禁用、有 hover/pressed、带焦点环、文字居中。
 // 这些全部由基类与绘制部件提供，本类只剩「我是什么」：
-//   - 尺寸：首选尺寸（构造期定），measure/arrange 由 LeafNode 给
+//   - 尺寸：首选尺寸（构造期定），measure/arrange 用 LayoutNode 的默认实现
 //   - 外观：StyleRole::Control 的一帧样式（painters 画框 + 焦点环 + 文字）
 //   - 交互：pressed 状态、点击回调、Enter/Space 触发
 //   - 语义：role/label 供通用代码查询
 //
-class Tag : public LeafNode
+class Tag : public Widget
 {
 public:
     explicit Tag(std::string label, std::function<void()> on_click = {})

@@ -2,7 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
 
@@ -14,7 +14,7 @@
 namespace xel::ui
 {
 // 标签栏：水平或竖向排列。水平时选中项下方有强调线，竖向时强调线在左侧。
-class TabBar : public LeafNode
+class TabBar : public Widget
 {
 public:
     enum class Orientation

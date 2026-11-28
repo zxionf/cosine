@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui/style/theme.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/text_debug.hpp"
 #include "graphics/utf8.hpp"
@@ -20,7 +20,7 @@ enum class TextAlign
     Right,
 };
 
-class Label : public LeafNode
+class Label : public Widget
 {
 public:
     WidgetRole semantics_role() const override { return WidgetRole::Label; }

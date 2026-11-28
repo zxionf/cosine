@@ -16,8 +16,7 @@
 │ Node          身份 / 几何 / 树 / 可见性 / 层叠 / 语义钩子 (112 B)│
 │ LayoutNode    布局契约 + 4 部件 + 测量缓存 + 脏标记 (432 B)      │
 │               (= `Widget` 别名，400+ 调用点不变)                 │
-│ ContainerNode 容器基类（add → adopt，is_container）                │
-│ LeafNode      叶子基类（measure = clamp(preferred)，arrange = set_geometry）│
+│               默认 measure = clamp(preferred)，默认 arrange 只写几何│
 │ 布局容器       Vbox Hbox Grid Wrap Panel Splitter ScrollView     │
 │               ScrollPanel UIRoot                                 │
 │ 叶子控件       Label Button Checkbox Radio Slider Progress Tag   │
@@ -47,26 +46,27 @@ layout/      LayoutParams / LayoutUtils / MeasureCache     布局意图与测量
 style/       Theme / Style / StyleTypes / VisualState / WidgetStyle / BoxMetrics / Painters
 input/       Interaction                                   交互状态
 semantics/   语义投影（WidgetRole / Semantics）
-node/        Node / LayoutNode / ContainerNode / LeafNode / Widget
+node/        Node / LayoutNode / Widget（无叶子/容器中间基类）
 system/      UIRoot / UISystem / UIContext                 调度与资源
 core/ containers/ composites/ views/                       控件（按复杂度分四级）
 ```
 
 `test/test_ui_architecture.cpp` 用断言锁住这些结构（D1–D5 / K1–K8）：目录依赖方向、
-根目录无文件、`children_` 单人、几何写入口唯一、`layout_` 单人、三层继承关系。
+根目录无文件、`children_` 单人、几何写入口唯一、`layout_` 单人、两层继承关系。
 
-**三层节点**（设计 §4.1–§4.3）
+**两层节点**（设计 §4.1–§4.3）
 
 ```text
 Drawable → Node(112 B, 17 虚)
              └─ LayoutNode(432 B, 22 虚)  ← `Widget` 是它的别名
-                  ├─ LeafNode
-                  └─ ContainerNode
 ```
 
 `Node` 只持身份/几何/树/可见性/层叠/语义钩子，并把布局契约以**纯虚**形式声明——
 所以 `for_each_child` 里可以直接调 `child->measure()`，不需要向下转型。
-`LayoutNode` 落地这些契约并持有 4 个部件：`layout_`（意图）/ `box`（盒模型）/
+`Node` 同时提供「容纳子节点」的全部能力（`children_` / `add()` / `adopt()` / `clear_children()` / …），
+没有独立的容器基类。
+`LayoutNode` 落地布局契约（默认即叶子行为：`measure = clamp(preferred_size)`、
+`arrange = set_geometry(slot)`）并持有 4 个部件：`layout_`（意图）/ `box`（盒模型）/
 `input`（交互状态）/ `visual`（样式过渡）+ `measure_cache_`。
 
 **自动断言的契约**（`test/test_ui_architecture.cpp`，31 条）
@@ -79,12 +79,12 @@ Drawable → Node(112 B, 17 虚)
 | D4 | `semantics/` 只用标准库 |
 | D5 | `src/ui` 根目录无头文件、无转发 shim |
 | K1 | 无每控件 `enabled_`/`pressed_`/`dragging_`，无 `control_state()` |
-| K2 | `children_` 只在 `node/node.hpp` |
+| K2 | `children_` 只在 `node/`（`node.hpp` + `node.cpp`） |
 | K3 | 几何只经 `set_geometry` 家族写 |
 | K5 | Node+LayoutNode 虚函数 ≤45，17 个事件钩子仍在 LayoutNode |
 | K6 | `MeasureKey` 只有一份定义 |
 | K7 | `layout_` 只由 2 个函数写入（12 处赋值） |
-| K8 | 三层继承成立且 `sizeof(Node) < sizeof(LayoutNode)` |
+| K8 | 两层继承成立、`sizeof(Node) < sizeof(LayoutNode)`、无 `LeafNode`/`ContainerNode` |
 
 ### 控件间依赖
 
@@ -95,19 +95,18 @@ Drawable → Node(112 B, 17 虚)
 ```
 Drawable (graphics)
   └─ Node ─── LayoutNode（= `Widget`）
-                ├─ ContainerNode ─┬─ Vbox ─── Panel ─── ScrollPanel
-                │                 ├─ Hbox / Grid / Wrap / LinearLayout
-                │                 ├─ Splitter / ScrollView / UIRoot / Scrim
-                │                 ├─ ListView ─── Table
-                │                 └─ Section / Window / Dialog / MenuBar /
-                │                    TabView / TreeView / …（复合）
-                └─ LeafNode ─── Label / Button / Image / Tag / …（叶子）
+                ├─ Vbox ─── Panel ─── ScrollPanel
+                ├─ Hbox / Grid / Wrap / LinearLayout
+                ├─ Splitter / ScrollView / UIRoot / Scrim / RadioGroup
+                ├─ ListView ─── Table / TreeView
+                ├─ Section / Window / Dialog / MenuBar / TabView / …（复合）
+                └─ Label / Button / Image / Tag / …（叶子）
 ```
 
-`LeafNode` 提供两个默认实现：`measure = clamp(preferred_size)`、
-`arrange = set_geometry(slot)`。不满足这个判据的控件**不要**继承它（例如 `TextInput`
-的 arrange 还要夹滚动、`FileBrowser` 要把几何转给内部 Table）。
-`ContainerNode` 只给 `add() → adopt()` 与 `is_container()`，不规定布局算法。
+叶子与容器**共用同一个基类**：`LayoutNode` 的默认 `measure`/`arrange` 就是叶子语义，
+不需要子类的控件不写；语义不同的控件自己覆写（例如 `TextInput` 的 arrange 还要夹滚动、
+`FileBrowser` 要把几何转给内部 Table）。容器的布局算法（Vbox/Grid/Wrap…）是各容器自己的事，
+基础能力（`add → adopt`、`children_`）由 `Node` 提供。
 
 **叶子控件：纹理与占位**
 

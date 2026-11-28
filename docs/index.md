@@ -53,7 +53,7 @@ src/
 │   ├── style/        主题 / 样式角色 / 过渡槽 / 绘制部件
 │   ├── input/        Interaction（交互状态唯一所有者）
 │   ├── semantics/    语义投影（WidgetRole / Semantics）
-│   ├── node/         Node / LayoutNode / ContainerNode / LeafNode / Widget
+│   ├── node/         Node / LayoutNode / Widget
 │   ├── system/       UIRoot / UISystem / UIContext
 │   └── core/ containers/ composites/ views/    控件（按复杂度分四级）
 ├── cosine/           编辑器产品层（cosine_editor + cosine 可执行）

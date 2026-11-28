@@ -17,6 +17,149 @@ LayoutNode::LayoutNode() = default;
 
 LayoutNode::~LayoutNode() = default;
 
+// ── 语义投影：状态从 Interaction 现读 ────────────────────────────────
+Semantics LayoutNode::semantics() const
+{
+    Semantics s;
+    s.role = semantics_role();
+    s.label = semantics_label();
+    s.enabled = input.enabled;
+    s.focused = input.focused;
+    s.selected = input.selected;
+    s.checkable = role_is_checkable(s.role);
+    s.editable = role_is_editable(s.role);
+    s.expanded = semantics_expanded();
+    return s;
+}
+
+void LayoutNode::set_enabled(bool enabled)
+{
+    input.enabled = enabled;
+    mark_layout_dirty();
+}
+
+// ── 布局意图：LayoutSpec 是唯一的快照形态，写入只经 set_layout_spec ─
+void LayoutNode::set_align(Align a)
+{
+    LayoutSpec spec = layout_spec();
+    spec.align = a;
+    set_layout_spec(spec);
+}
+
+LayoutNode::LayoutSpec LayoutNode::layout_spec() const
+{
+    return {align_self(), layout_.flex_grow, layout_.size_percent, layout_.aspect_ratio,
+            layout_.fill_x, layout_.fill_y, layout_.min_size, layout_.max_size,
+            layout_.preferred};
+}
+
+void LayoutNode::set_layout_spec(const LayoutSpec& spec)
+{
+    layout_.align_self = spec.align.value_or(Align::top_left());
+    layout_.has_align = spec.align.has_value();
+    layout_.flex_grow = spec.flex_grow < 0.0f ? 0.0f : spec.flex_grow;
+    layout_.size_percent = spec.size_percent;
+    layout_.aspect_ratio = spec.aspect_ratio > 0.0f ? spec.aspect_ratio : 0.0f;
+    layout_.fill_x = spec.fill_x;
+    layout_.fill_y = spec.fill_y;
+    layout_.min_size = spec.min_size;
+    layout_.max_size = spec.max_size;
+    layout_.preferred = spec.preferred;
+    mark_layout_dirty();
+}
+
+// ── 盒模型 ──────────────────────────────────────────────────────────
+void LayoutNode::set_padding(Edges edges)
+{
+    box.padding = edges;
+    box.padding_override = true;
+    mark_layout_dirty();
+}
+
+void LayoutNode::apply_theme_padding(float all)
+{
+    if (box.padding_override) return;
+    box.padding = {all, all, all, all};
+    mark_layout_dirty();
+}
+
+void LayoutNode::set_margin(Edges edges)
+{
+    box.margin = edges;
+    mark_layout_dirty();
+}
+
+// ── 尺寸意图 ────────────────────────────────────────────────────────
+void LayoutNode::set_flex_grow(float grow)
+{
+    LayoutSpec spec = layout_spec();
+    spec.flex_grow = grow;
+    set_layout_spec(spec);
+}
+
+void LayoutNode::set_absolute_pos(glm::vec2 pos)
+{
+    layout_.absolute_pos = pos;
+    set_display(Display::Positioned);
+}
+
+void LayoutNode::set_min_size(glm::vec2 size)
+{
+    LayoutSpec spec = layout_spec();
+    spec.min_size = size;
+    set_layout_spec(spec);
+}
+
+void LayoutNode::set_max_size(glm::vec2 size)
+{
+    LayoutSpec spec = layout_spec();
+    spec.max_size = size;
+    set_layout_spec(spec);
+}
+
+void LayoutNode::set_preferred_size(glm::vec2 size)
+{
+    LayoutSpec spec = layout_spec();
+    spec.preferred = size;
+    set_layout_spec(spec);
+}
+
+void LayoutNode::request_size(glm::vec2 size)
+{
+    set_preferred_size(size);
+    set_size(size);
+}
+
+void LayoutNode::set_size_percent(glm::vec2 pct)
+{
+    LayoutSpec spec = layout_spec();
+    spec.size_percent = pct;
+    set_layout_spec(spec);
+}
+
+void LayoutNode::set_fill(bool x, bool y)
+{
+    LayoutSpec spec = layout_spec();
+    spec.fill_x = x;
+    spec.fill_y = y;
+    set_layout_spec(spec);
+}
+
+void LayoutNode::set_aspect_ratio(float ratio)
+{
+    LayoutSpec spec = layout_spec();
+    spec.aspect_ratio = ratio;
+    set_layout_spec(spec);
+}
+
+// ── 内容溢出 ────────────────────────────────────────────────────────
+bool LayoutNode::content_overflows() const
+{
+    constexpr float kEps = 0.5f;
+    return content_extent_.x > global_.size.x + kEps
+        || content_extent_.y > global_.size.y + kEps;
+}
+
 void LayoutNode::set_absolute(bool value)
 {
     // 从当前位置开始（兼容旧行为）：仅当从“非 Positioned”切到 Positioned 时同步坐标。

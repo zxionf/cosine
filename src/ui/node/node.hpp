@@ -9,7 +9,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <stdexcept>
 #include <string_view>
 #include <vector>
 #include <algorithm>
@@ -89,12 +88,11 @@ public:
     }
 
     // ── 树：存储私有，遍历只有 for_each_child 一条路（K2）─────────────
-    // 非容器控件调用 add() 会抛异常（“是不是容器”无处藏身）。
-    virtual void add(std::unique_ptr<Node> child)
-    {
-        (void)child;
-        throw std::logic_error("Node::add is not supported by this node");
-    }
+    // 「容纳子节点」是 Node 自身的能力，不再有独立的容器基类：
+    //   - 任何 Node 都能 add()（默认转发到 adopt()）
+    //   - 是否真的容纳子节点由 children_ 的存储派生（child_count()/children()）
+    // 需要改写挂载目标的复合控件（Window/Section/TabView…）仍可覆写 add()。
+    virtual void add(std::unique_ptr<Node> child) { adopt(std::move(child)); }
     const std::vector<std::unique_ptr<Node>>& children() const { return children_; }
     // overlay 是顶层绘制/命中层：先画普通子项，再画 overlay；命中反序。
     virtual const std::vector<std::unique_ptr<Node>>& overlays() const
@@ -112,28 +110,11 @@ public:
     }
 
     // 唯一合法的子项挂载入口：设 parent / context 并加入 children_。
-    void adopt(std::unique_ptr<Node> child)
-    {
-        child->set_parent(this);
-        child->set_context(context());
-        children_.push_back(std::move(child));
-        mark_layout_dirty();
-    }
+    void adopt(std::unique_ptr<Node> child);
     // 清空子项（销毁）。公开：与 add()/adopt() 同级（容器内容整体重建）。
-    void clear_children()
-    {
-        children_.clear();
-        mark_layout_dirty();
-    }
+    void clear_children();
     // 替换第 index 个子项（TabView 换页用）。
-    void replace_child(std::size_t index, std::unique_ptr<Node> child)
-    {
-        if (index >= children_.size() || !child) return;
-        child->set_parent(this);
-        child->set_context(context());
-        children_[index] = std::move(child);
-        mark_layout_dirty();
-    }
+    void replace_child(std::size_t index, std::unique_ptr<Node> child);
     // 按谓词移除子项（模态关闭清 scrim 用）。
     template <class Pred>
     void remove_children_if(Pred pred)
@@ -143,19 +124,7 @@ public:
         if (children_.size() != before) mark_layout_dirty();
     }
     // 把已有子项移到末尾（插入序置顶，不改 z_index）。
-    void raise_child(Node* child)
-    {
-        if (!child) return;
-        for (auto it = children_.begin(); it != children_.end(); ++it) {
-            if (it->get() != child) continue;
-            if (std::next(it) == children_.end()) return;
-            auto owned = std::move(*it);
-            children_.erase(it);
-            children_.push_back(std::move(owned));
-            mark_layout_dirty();
-            return;
-        }
-    }
+    void raise_child(Node* child);
     // 树的唯一遍历入口：children_ + overlays()。
     template <class F>
     void for_each_child(F&& f) const
@@ -168,11 +137,7 @@ public:
     const std::shared_ptr<const bool>& alive_token() const { return alive_token_; }
 
     // ── 上下文 / 主题 ────────────────────────────────────────────────
-    virtual void set_context(UIContext* context)
-    {
-        context_ = context;
-        for_each_child([context](Node& child) { child.set_context(context); });
-    }
+    virtual void set_context(UIContext* context);
     UIContext* context() const
     {
         if (context_) return context_;
@@ -186,12 +151,7 @@ public:
     using Display = ::xel::ui::Display;
 
     Display display() const { return !visible_ ? Display::Hidden : display_; }
-    void set_display(Display value)
-    {
-        display_ = value == Display::Hidden ? Display::Flow : value;
-        visible_ = value != Display::Hidden;
-        mark_layout_dirty();
-    }
+    void set_display(Display value);
     bool visible() const { return visible_; }
     void set_visible(bool visible) { visible_ = visible; mark_layout_dirty(); }
 
@@ -218,19 +178,9 @@ public:
     void set_z_index(int value) { z_index_ = value; }
 
     // 排序与命中（layer 升序 → z 升序；稳定）。
-    static std::vector<Node*> sorted_paint_order(const std::vector<std::unique_ptr<Node>>& list)
-    {
-        std::vector<Node*> order;
-        order.reserve(list.size());
-        for (const auto& item : list) order.push_back(item.get());
-        if (std::any_of(order.begin(), order.end(), [](Node* n) { return n->z_index() != 0; })) {
-            std::stable_sort(order.begin(), order.end(),
-                             [](Node* a, Node* b) { return a->z_index() < b->z_index(); });
-        }
-        return order;
-    }
-    std::vector<Node*> paint_order() const { return sorted_paint_order(children()); }
-    std::vector<Node*> overlay_paint_order() const { return sorted_paint_order(overlays()); }
+    static std::vector<Node*> sorted_paint_order(const std::vector<std::unique_ptr<Node>>& list);
+    std::vector<Node*> paint_order() const;
+    std::vector<Node*> overlay_paint_order() const;
     std::vector<Node*> layer_paint_order() const;
 
     virtual bool hit_testable() const { return true; }
@@ -249,11 +199,7 @@ public:
     void debug() { debug_ = true; }
     void set_debug(bool enabled) { debug_ = enabled; mark_layout_dirty(); }
     bool is_debug() const { return debug_; }
-    void debug_recursive()
-    {
-        debug();
-        for_each_child([](Node& child) { child.debug_recursive(); });
-    }
+    void debug_recursive();
     void append_debug_tree(graphics::DrawList& list) const;
     void debug_rect(graphics::DrawList& list) const;
 
@@ -264,11 +210,7 @@ public:
     virtual void mark_layout_dirty() = 0;
     virtual void invalidate_measure() = 0;
     // 递归失效：主题/密度/字号切换后必须走这个。
-    void invalidate_measure_recursive()
-    {
-        invalidate_measure();
-        for_each_child([](Node& child) { child.invalidate_measure_recursive(); });
-    }
+    void invalidate_measure_recursive();
     // 清除脏标记与「已通知祖先」标记（必须递归）。
     void clear_layout_dirty() { clear_layout_dirty_recursive(); }
     virtual void clear_layout_dirty_recursive() = 0;

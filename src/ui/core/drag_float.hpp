@@ -2,7 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "events/event.hpp"
 #include "graphics/box.hpp"
 
@@ -17,7 +17,7 @@ namespace xel::ui
 // 拖动改值的数值框（属性面板用）。
 // 左键按住横向拖动改变数值；方向键微调；Home/End 到边界。
 // 显示 `label  value`，label 为空时只显示数值。
-class DragFloat : public LeafNode
+class DragFloat : public Widget
 {
 public:
     WidgetRole semantics_role() const override { return WidgetRole::TextField; }

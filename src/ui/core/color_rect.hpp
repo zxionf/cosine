@@ -1,11 +1,11 @@
 #pragma once
 
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/rectangle.hpp"
 
 namespace xel::ui
 {
-class ColorRect : public LeafNode
+class ColorRect : public Widget
 {
 public:
     ColorRect(glm::vec2 pos, glm::vec2 size, glm::vec4 color)

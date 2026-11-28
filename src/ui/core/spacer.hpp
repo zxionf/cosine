@@ -1,10 +1,10 @@
 #pragma once
 
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 
 namespace xel::ui
 {
-class Spacer : public LeafNode
+class Spacer : public Widget
 {
 public:
     explicit Spacer(glm::vec2 size) : preferred_{size}

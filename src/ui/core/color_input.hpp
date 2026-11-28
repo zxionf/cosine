@@ -2,7 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "events/event.hpp"
 #include "graphics/box.hpp"
 
@@ -18,7 +18,7 @@ namespace xel::ui
 // 颜色输入：一排预设色块 + 当前色十六进制显示。
 // 点击色块即选中；键盘 Left/Right 在预设间移动。
 // 十六进制文本只读（文本输入留待 TextInput 组合，见 M6.2 边界）。
-class ColorInput : public LeafNode
+class ColorInput : public Widget
 {
 public:
     WidgetRole semantics_role() const override { return WidgetRole::TextField; }

@@ -3,7 +3,7 @@
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
 #include "ui/style/painters.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/font_atlas.hpp"
 #include "graphics/box.hpp"
 
@@ -15,7 +15,7 @@
 
 namespace xel::ui
 {
-class Checkbox : public LeafNode
+class Checkbox : public Widget
 {
 public:
     WidgetRole semantics_role() const override { return WidgetRole::CheckBox; }

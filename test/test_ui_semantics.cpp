@@ -145,7 +145,7 @@ void test_tag_widget()
     check(!tag.on_key_down(event::KeyCode::Enter, event::Modifier::None) && clicks == 2,
           "disabled Tag ignores keys");
 
-    // 尺寸来自 preferred size（LeafNode 的默认 measure）。
+    // 尺寸来自 preferred size（LayoutNode 的默认 measure）。
     const glm::vec2 measured = ui::Widget::measure_child(tag, {500.0f, 500.0f});
     check(measured.x > 0.0f && measured.y > 0.0f, "Tag measures from its preferred size");
 }

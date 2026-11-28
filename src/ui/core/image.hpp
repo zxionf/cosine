@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ui/style/theme.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/box.hpp"
 #include "graphics/line.hpp"
 #include "graphics/sprite.hpp"
@@ -16,7 +16,7 @@ namespace xel::ui
 {
 // 图像控件：texture_id 非 0 时按 fit 绘制真实纹理（直角、可选底板/边框），
 // 为 0 时画占位（圆角底色 + 边框 + 对角交叉 + 居中文案）。
-class Image : public LeafNode
+class Image : public Widget
 {
 public:
     WidgetRole semantics_role() const override { return WidgetRole::Image; }

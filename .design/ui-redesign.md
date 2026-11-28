@@ -379,6 +379,8 @@ struct TextPainter {  // 字号档位 + 基线 + debug 叠加
 | 2026-11-27 | R8（UI-54）include 重写：259 处改到新路径（22 条映射，前后计数均 259）；删除 22 个转发头，`src/ui` 根目录文件数归 0；D5 改为“根目录无头文件 + 无转发头”；修复遗漏的 `test/CMakeLists.txt` PCH 路径 |
 | 2026-11-27 | R10（UI-55）`menu_bar.hpp` 867→562（拆出 menu_item/menu_popup）；语义钩子 5→3（checkable/editable 改 role 派生） |
 | 2026-11-27 | R11（UI-56）**真分层落地**：`node/node.hpp`(291 行/17 虚) + `node/layout_node.hpp`(379 行/22 虚) + `container_node.hpp`；`widget.hpp` 退化为 17 行别名；`sizeof(Node)=112 < LayoutNode=432`；树元素类型改为 `Node*`；Node 声明布局契约纯虚以便无转型遍历；`LayoutNode::child_at` 协变隐藏 + `for_each_layout_child`；K8 断言锁住结构 |
+| 2026-11-28 | 节点收敛为两层：删除 `LeafNode` / `ContainerNode`；「容纳子节点」直接在 `Node`（`add()` 默认 `adopt()`，无独立容器基类）；叶子默认 `measure = clamp(preferred_size)` / `arrange = set_geometry(slot)` 上移为 `LayoutNode` 的默认实现；18 个叶子控件与 3 个视图改继承 `Widget`；K8 改为「无中间基类」断言 |
+| 2026-11-28 | `node/` 头文件瘦身：`node.hpp` 288→230 行、`layout_node.hpp` 372→282 行；树操作 / 绘制顺序 / 语义投影 / `LayoutSpec` 读写 / 盒模型 / 尺寸意图等实现体移至 `node.cpp`、`layout_node.cpp`；K2 改为「`children_` 只在 `node/`（.hpp + .cpp）」 |
 
 ---
 

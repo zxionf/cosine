@@ -33,26 +33,10 @@ public:
     LayoutNode& operator=(const LayoutNode&) = delete;
     ~LayoutNode() override;
 
-    // ── 语义投影：状态从 Interaction 现读 ────────────────────────────
-    Semantics semantics() const override
-    {
-        Semantics s;
-        s.role = semantics_role();
-        s.label = semantics_label();
-        s.enabled = input.enabled;
-        s.focused = input.focused;
-        s.selected = input.selected;
-        s.checkable = role_is_checkable(s.role);
-        s.editable = role_is_editable(s.role);
-        s.expanded = semantics_expanded();
-        return s;
-    }
+    // ── 语义投影：状态从 Interaction 现读 ─────────────────────────────
+    Semantics semantics() const override;
     bool is_enabled() const { return input.enabled; }
-    virtual void set_enabled(bool enabled)
-    {
-        input.enabled = enabled;
-        mark_layout_dirty();
-    }
+    virtual void set_enabled(bool enabled);
     bool enabled() const { return is_enabled(); }
 
     // ── 交互状态（由 UISystem 写入）──────────────────────────────────
@@ -65,12 +49,7 @@ public:
     void append_focus_ring(graphics::DrawList& list, glm::vec4 rect, float radius) const;
 
     // ── 对齐与布局意图快照 ──────
-    void set_align(Align a)
-    {
-        LayoutSpec spec = layout_spec();
-        spec.align = a;
-        set_layout_spec(spec);
-    }
+    void set_align(Align a);
     std::optional<Align> align_self() const
     {
         return layout_.has_align ? std::optional<Align>(layout_.align_self) : std::nullopt;
@@ -90,51 +69,19 @@ public:
         glm::vec2 max_size{0.0f, 0.0f};
         glm::vec2 preferred{0.0f, 0.0f};
     };
-    LayoutSpec layout_spec() const
-    {
-        return {align_self(), layout_.flex_grow, layout_.size_percent, layout_.aspect_ratio,
-                layout_.fill_x, layout_.fill_y, layout_.min_size, layout_.max_size,
-                layout_.preferred};
-    }
+    LayoutSpec layout_spec() const;
     // 布局字段的唯一写入者。
-    void set_layout_spec(const LayoutSpec& spec)
-    {
-        layout_.align_self = spec.align.value_or(Align::top_left());
-        layout_.has_align = spec.align.has_value();
-        layout_.flex_grow = spec.flex_grow < 0.0f ? 0.0f : spec.flex_grow;
-        layout_.size_percent = spec.size_percent;
-        layout_.aspect_ratio = spec.aspect_ratio > 0.0f ? spec.aspect_ratio : 0.0f;
-        layout_.fill_x = spec.fill_x;
-        layout_.fill_y = spec.fill_y;
-        layout_.min_size = spec.min_size;
-        layout_.max_size = spec.max_size;
-        layout_.preferred = spec.preferred;
-        mark_layout_dirty();
-    }
+    void set_layout_spec(const LayoutSpec& spec);
 
     // ── 盒模型：显式调用即「锁住」，主题重刷不覆盖 ──────────────────────
-    void set_padding(Edges edges)
-    {
-        box.padding = edges;
-        box.padding_override = true;
-        mark_layout_dirty();
-    }
+    void set_padding(Edges edges);
     void set_padding(float all) { set_padding(Edges{all, all, all, all}); }
     Edges padding() const { return box.padding; }
     bool padding_override() const { return box.padding_override; }
     void clear_padding_override() { box.padding_override = false; }
     // 主题套用入口（Panel / TabView 的 set_context 用）：显式设定过的内边距不覆盖。
-    void apply_theme_padding(float all)
-    {
-        if (box.padding_override) return;
-        box.padding = {all, all, all, all};
-        mark_layout_dirty();
-    }
-    void set_margin(Edges edges)
-    {
-        box.margin = edges;
-        mark_layout_dirty();
-    }
+    void apply_theme_padding(float all);
+    void set_margin(Edges edges);
     void set_margin(float all) { set_margin(Edges{all, all, all, all}); }
     Edges margin() const { return box.margin; }
 
@@ -148,37 +95,18 @@ public:
     float margin_bottom()  const { return box.margin.bottom; }
 
     // ── 尺寸意图 ───────────────────────────────────────────────────
-    void set_flex_grow(float grow)
-    {
-        LayoutSpec spec = layout_spec();
-        spec.flex_grow = grow;
-        set_layout_spec(spec);
-    }
+    void set_flex_grow(float grow);
     float flex_grow() const { return layout_.flex_grow; }
 
     // 绝对定位（Positioned）：按 (x, y) 相对父内容区定位；容器不计入其尺寸。
     void set_absolute(bool value);
     bool absolute() const { return display() == Display::Positioned; }
     // 相对偏移与全局位置分离：arrange 会改写 local_.pos（全局）。
-    void set_absolute_pos(glm::vec2 pos)
-    {
-        layout_.absolute_pos = pos;
-        set_display(Display::Positioned);
-    }
+    void set_absolute_pos(glm::vec2 pos);
     glm::vec2 absolute_pos() const { return layout_.absolute_pos; }
 
-    void set_min_size(glm::vec2 size)
-    {
-        LayoutSpec spec = layout_spec();
-        spec.min_size = size;
-        set_layout_spec(spec);
-    }
-    void set_max_size(glm::vec2 size)
-    {
-        LayoutSpec spec = layout_spec();
-        spec.max_size = size;
-        set_layout_spec(spec);
-    }
+    void set_min_size(glm::vec2 size);
+    void set_max_size(glm::vec2 size);
     glm::vec2 min_size() const { return layout_.min_size; }
     glm::vec2 max_size() const { return layout_.max_size; }
     glm::vec2 clamp_size(glm::vec2 size) const
@@ -187,46 +115,21 @@ public:
     }
 
     // 叶子的自然尺寸：构造期确定，与 arrange 的几何分离。
-    void set_preferred_size(glm::vec2 size)
-    {
-        LayoutSpec spec = layout_spec();
-        spec.preferred = size;
-        set_layout_spec(spec);
-    }
+    void set_preferred_size(glm::vec2 size);
     glm::vec2 preferred_size() const { return layout_.preferred; }
 
     // 外部显式指定尺寸：几何与自然尺寸一起改（调试面板「用户改 Size」用）。
-    void request_size(glm::vec2 size)
-    {
-        set_preferred_size(size);
-        set_size(size);
-    }
+    void request_size(glm::vec2 size);
 
-    void set_size_percent(glm::vec2 pct)
-    {
-        LayoutSpec spec = layout_spec();
-        spec.size_percent = pct;
-        set_layout_spec(spec);
-    }
+    void set_size_percent(glm::vec2 pct);
     void set_size_percent(float x, float y) { set_size_percent({x, y}); }
     glm::vec2 size_percent() const { return layout_.size_percent; }
 
     // Fill 尺寸模式：沿该轴吃满父级内容区（语义显式，等价 pct=1）。
-    void set_fill(bool x, bool y)
-    {
-        LayoutSpec spec = layout_spec();
-        spec.fill_x = x;
-        spec.fill_y = y;
-        set_layout_spec(spec);
-    }
+    void set_fill(bool x, bool y);
     bool fill_x() const { return layout_.fill_x; }
     bool fill_y() const { return layout_.fill_y; }
-    void set_aspect_ratio(float ratio)
-    {
-        LayoutSpec spec = layout_spec();
-        spec.aspect_ratio = ratio;
-        set_layout_spec(spec);
-    }
+    void set_aspect_ratio(float ratio);
     float aspect_ratio() const { return layout_.aspect_ratio; }
 
     // ── 子项访问：隐藏基类同名函数，返回 LayoutNode* ─────────────
@@ -301,6 +204,17 @@ public:
     bool transition_active() const;
 
     // ── 布局契约（Node 声明的纯虚在这里落地）─────────────────────────
+    // 叶子默认实现：首选尺寸经 clamp 即自然尺寸；arrange 只写几何、
+    // 不触发脏标记。语义不同的控件自己覆写，差异显式留在控件身上
+    // （CollapsibleHeader 由标题定高、TextInput 的 arrange 要夹滚动等）。
+    // 判据：若控件的 measure/arrange 只是「preferred → clamp / slot → set_geometry」，
+    // 就不必写；否则必须覆写。
+    glm::vec2 measure(glm::vec2 /*constraints*/) override
+    {
+        return clamp_size(preferred_size());
+    }
+    void arrange(Rect slot) override { set_geometry(slot); }
+
     void mark_layout_dirty() override;
     void invalidate_measure() override { measure_cache_.invalidate(); }
     void clear_layout_dirty_recursive() override;
@@ -326,11 +240,7 @@ public:
 
     // 内容实际占用尺寸（容器在 arrange 里写入）；用于判断是否溢出。
     glm::vec2 content_extent() const { return content_extent_; }
-    bool content_overflows() const
-    {
-        constexpr float kEps = 0.5f;
-        return content_extent_.x > global_.size.x + kEps || content_extent_.y > global_.size.y + kEps;
-    }
+    bool content_overflows() const;
 
 protected:
     virtual void on_update(float /*dt*/) {}

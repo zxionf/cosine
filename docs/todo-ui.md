@@ -71,7 +71,7 @@ K1–K8 全部断言化；唯一未达的原始指标是 M1「单文件 ≤250�
 | D4 | `semantics/` 只依赖标准库 |
 | D5 | `src/ui` 根目录无头/源文件、无转发头 |
 | K1 | 无 per-widget `enabled_`/`pressed_`/`dragging_`；`control_state()` 已消失 |
-| K2 | `children_` 只在 `node/node.hpp` |
+| K2 | `children_` 只在 `node/`（`node.hpp` + `node.cpp`） |
 | K3 | 几何写只在 `set_geometry` 家族 |
 | K5 | Node+LayoutNode 虚函数 ≤45，17 个事件钩子仍在 LayoutNode |
 | K6 | `MeasureKey` 只有一处定义 |
@@ -93,7 +93,7 @@ K1–K8 全部断言化；唯一未达的原始指标是 M1「单文件 ≤250�
 | §4.3 `Interaction` | 状态唯一所有者 | ✅ 完成 | — |
 | §4.4 `VisualState` | 104 B 内嵌 | ✅ 完成（比设计还好：没建 60 项 Theme 表） | — |
 | §4.5 `Semantics` | 派生投影 | ✅ 完成 | 27 个控件覆写；其余按 `Custom`，`test_ui_semantics` 锁住 |
-| §4.6 四类节点（Leaf/Container/ListView/浮层） | 分类 | ✅ **完成** | `LeafNode` / `ContainerNode` 均已落地 |
+| §4.6 四类节点（Leaf/Container/ListView/浮层） | 分类 | ⏹ **已收敛** | 2026-11-28 删除 `LeafNode`/`ContainerNode`：容纳子节点直接在 `Node`，叶子默认行为在 `LayoutNode`；分类改由 `child_count()` / `layer()` / 语义派生事实表达 |
 | §4.7 `BoxPainter` / `TextPainter` | 绘制部件 | ✅ **完成** | `style/painters.hpp` 4 个纯函数；焦点环 12 → 6 处直调 |
 | §7 43 控件 role 映射 | 语义角色 | ✅ 完成 | 交互控件全覆盖，装饰控件白名单化 |
 | §8 新控件 ≤60 行 | — | ⚠️ 实际 66（超 6 行） | `Tag` 实证；5 个事件钩子占 24 行，M9 修订为“交互叶子 ≤70” |
@@ -324,6 +324,7 @@ system/     UIRoot
 | R1–R10 | done | 见 §2 | 见各批记录 |
 | Q1 能力接口 | **待定（§5-D2）** | — | — |
 | Q2 三层拆类 | **done（真分层，UI-56）** | `node.hpp` 291 行/17 虚；`layout_node.hpp` 379 行/22 虚；`widget.hpp` 17 行别名；`container_node.hpp` 新增；`sizeof(Node)=112 < LayoutNode=432`；原 750 行 widget.hpp 拆分完毕；ctest 80/80；快照不变 | 树元素类型改 `Node*` 后，容器/调试面板共约 10 处需 `as_layout()` 下行（设计稿未预见，已在 §4 补说明） |
+| Q6 节点收敛 | **done（2026-11-28）** | 删除 `leaf_node.hpp` / `container_node.hpp`；`Node::add → adopt` 提供容纳子节点能力；叶子默认 `measure/arrange` 上移至 `LayoutNode`；18 个叶子控件 + 3 个视图改继承 `Widget`；`test_ui_node_contract` 新增“叶子也能挂子节点”；ctest 81/81 | 分类查询统一用 `child_count()` / `layer()`：不存在独立的“是不是容器”开关 |
 | Q3 绘制部件 | **done（UI-57）** | `style/painters.hpp` 80 行（box / focus_ring / box_with_focus / centered_text）；7 控件迁移（Button/Checkbox/Radio/TextInput/Dropdown/Tooltip/Progress）；控件内手写焦点环 12→6；`LayoutNode::append_focus_ring` 改为转发（实现只剩一份）；快照不变 | 剩余 6 处是“环心不是控件 bounds”的合法直调（Slider 手柄 / TabBar 页签 / Table、TreeView 面板 / MenuBar） |
 | Q4 新控件 + 语义 | **done（UI-58）** | `core/tag.hpp`（可点/可禁用/焦点环/语义，非注释 66 行）；`test_ui_semantics` 15 断言（可聚焦控件 role≠Custom + 装饰白名单 + Tag 行为）；Tag 进 ui_gallery；ctest 81/81 | **超了 §8 的 ≤60**：5 个事件钩子占 24 行；要再压需抽“按下-弹起”行为部件（设计 §4.7 之外）。M9 指标改为「静态叶子 ≤56 / 交互叶子 ≤70」 |
 | Q5 大文件收尾 | **不做（评估后否决）** | — | M1 已修订为 ≤700 且当前最大 680 已达标；两份文件的“大”是内联实现体积而非职责混杂；拆 `ui_system.cpp` 反需引入内部头共享私有状态，性价比不成立 |

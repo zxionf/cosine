@@ -3,18 +3,20 @@
 // 三条不变量（对应 .design/ui-redesign.md K5 与 docs/todo-ui.md R1）：
 //   1. 16 个「从未被任何子类覆写」的虚函数已降级为普通函数——派生类即使写同名函数，
 //      经基类指针调用也不会被多态分派（这是「假扩展点」的反证）；
-//   2. LeafNode 的默认 measure/arrange 与旧的样板完全等价（首选取 clamp、arrange 只写几何）；
+//   2. 叶子默认 measure/arrange 与旧样板等价（首选取 clamp、arrange 只写几何），
+//      二者现在是 LayoutNode 的默认实现（不再有 LeafNode 中间基类）；
 //   3. clips_children() 由 overflow() 派生（不再是可覆写的独立开关）。
 #include "ui/core/button.hpp"
 #include "ui/core/label.hpp"
 #include "ui/core/progress.hpp"
 #include "ui/core/slider.hpp"
-#include "ui/node/leaf_node.hpp"
-#include "ui/style/theme.hpp"
+#include "ui/core/spacer.hpp"
 #include "ui/node/widget.hpp"
+#include "ui/style/theme.hpp"
 
 #include <cmath>
 #include <cstdio>
+#include <memory>
 #include <string>
 
 using namespace xel;
@@ -59,8 +61,8 @@ public:
     bool shadowed_debug = false;
 };
 
-// 探针：叶子，验证 LeafNode 的默认实现。
-class LeafProbe : public ui::LeafNode
+// 探针：叶子，验证 LayoutNode 的默认 measure/arrange。
+class LeafProbe : public ui::Widget
 {
 public:
     LeafProbe()
@@ -109,29 +111,29 @@ void test_dead_virtuals_no_longer_dispatch()
     check(base->parent() == nullptr, "parent() is a plain function");
 }
 
-// 2) LeafNode 的默认实现与旧样板等价。
-void test_leaf_node_defaults()
+// 2) 叶子的默认实现与旧样板等价（现居 LayoutNode）。
+void test_leaf_defaults()
 {
     LeafProbe leaf;
 
     const glm::vec2 measured = leaf.measure({1000.0f, 1000.0f});
     check(measured.x == 42.0f && measured.y == 18.0f,
-          "LeafNode::measure returns preferred size (clamped)");
+          "LayoutNode::measure returns preferred size (clamped)");
 
     // min/max clamp 生效：preferred 超出 max 时被截断。
     leaf.set_preferred_size({500.0f, 500.0f});
     const glm::vec2 clamped = leaf.measure({1000.0f, 1000.0f});
-    check(clamped.x == 100.0f && clamped.y == 40.0f, "LeafNode::measure clamps to max_size");
+    check(clamped.x == 100.0f && clamped.y == 40.0f, "LayoutNode::measure clamps to max_size");
 
     leaf.arrange({{5.0f, 6.0f}, {70.0f, 25.0f}});
     check(same_rect(leaf.local_bounds(), {{5.0f, 6.0f}, {70.0f, 25.0f}})
               && same_rect(leaf.global_bounds(), leaf.local_bounds()),
-          "LeafNode::arrange writes geometry only (local == global)");
-    check(leaf.layout_dirty(), "LeafNode::arrange does not clear the dirty flag by itself");
+          "LayoutNode::arrange writes geometry only (local == global)");
+    check(leaf.layout_dirty(), "LayoutNode::arrange does not clear the dirty flag by itself");
 }
 
-// 3) 迁移到 LeafNode 的具体控件：契约仍是「arrange 只写几何」。
-void test_migrated_controls_keep_contract()
+// 3) 叶子控件（直接继承 Widget）的契约仍是「arrange 只写几何」。
+void test_leaf_controls_keep_contract()
 {
     ui::Button button("b");
     ui::Label label("l", 16.0f);
@@ -148,22 +150,22 @@ void test_migrated_controls_keep_contract()
     }
 }
 
-// 4) 保留自己 arrange 的三个控件没被误迁移（语义差异仍在）。
-void test_special_arrange_still_owned_by_widgets()
+// 4) 容纳子节点是 Node 的能力：叶子控件同样能 add（默认转发 adopt）。
+void test_containment_lives_on_node()
 {
-    // TextInput 的 arrange 会夹滚动；CollapsibleHeader 的高度由标题决定。
-    // 这里只验证它们仍然可实例化且非 LeafNode 的默认行为可区分：
-    // 用 dynamic_cast 到 LeafNode 应失败（说明没有误继承）。
-    ui::Button leaf_button("b");
-    check(dynamic_cast<ui::LeafNode*>(&leaf_button) != nullptr, "Button is a LeafNode");
+    ui::Spacer spacer(glm::vec2{8.0f, 8.0f});
+    spacer.add(std::make_unique<ui::Label>("child"));
+    check(spacer.child_count() == 1, "any node can host children (Node::add defaults to adopt)");
+    check(spacer.child_at(0) != nullptr && spacer.child_at(0)->parent() == &spacer,
+          "Node::add wires the parent link through adopt()");
 }
 
 int main()
 {
     test_dead_virtuals_no_longer_dispatch();
-    test_leaf_node_defaults();
-    test_migrated_controls_keep_contract();
-    test_special_arrange_still_owned_by_widgets();
+    test_leaf_defaults();
+    test_leaf_controls_keep_contract();
+    test_containment_lives_on_node();
 
     std::printf("node contract: %d passed, %d failed\n", g_passed, g_failed);
     return g_failed == 0 ? 0 : 1;

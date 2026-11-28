@@ -2,7 +2,7 @@
 
 #include "ui/style/theme.hpp"
 #include "ui/style/style.hpp"
-#include "ui/node/leaf_node.hpp"
+#include "ui/node/widget.hpp"
 #include "graphics/box.hpp"
 
 #include <algorithm>
@@ -14,7 +14,7 @@
 
 namespace xel::ui
 {
-class Slider : public LeafNode
+class Slider : public Widget
 {
 public:
     WidgetRole semantics_role() const override { return WidgetRole::Slider; }
