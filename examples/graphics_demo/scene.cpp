@@ -9,6 +9,27 @@
 
 namespace gdemo
 {
+namespace sdf
+{
+float circle(glm::vec2 p, float radius)
+{
+    return glm::length(p) - radius;
+}
+
+float rounded_box(glm::vec2 p, glm::vec2 half, float radius)
+{
+    const float r = std::max(radius, 0.0f);
+    const glm::vec2 q = glm::abs(p) - half + glm::vec2{r, r};
+    return glm::length(glm::max(q, glm::vec2{0.0f})) + std::min(std::max(q.x, q.y), 0.0f) - r;
+}
+
+float coverage(float distance, float step)
+{
+    if (!(step > 0.0f)) return 0.0f;
+    return std::clamp(0.5f - distance / step, 0.0f, 1.0f);
+}
+} // namespace sdf
+
 namespace
 {
 // ── 固定色板（不依赖主题：这一层只谈绘制）─────────────────────────
@@ -323,6 +344,173 @@ void build_batching(Canvas& c, const SceneOptions& options, float)
            "同一渐变不裁剪：右侧溢出 100 照样画出 —— 裁剪切的是 batch，不是几何", kMuted);
 }
 
+// ── 页 6：SDF 对照 ────────────────────────────────────────────────
+//
+// 同一形状用两种策略上屏：
+//   几何细分：把边界拆成三角形（段数固定，放大后是折线）
+//   SDF 采样：逐格算到边界的距离 → 覆盖率（格子随 zoom 变细，边界一直平滑）
+// 真正的 GPU SDF 是在 fragment 里算距离；这里用 CPU 采样做可比较的对照，
+// 代价直接体现在顶点数上（HUD 的 verts）。
+
+// 逐格画一个 SDF 图形，返回用到的格子数、采样数与实际步长。
+struct SdfDrawStats
+{
+    int samples = 0; // 实际画出（覆盖率 > 0）的格子
+    int cells = 0;   // 总采样格数
+    float step = 0.0f;
+};
+
+// screen_step 是希望的单格屏幕边长；上限 96×72 格，避免缩小时顶点爆炸。
+template <typename DistanceFn>
+SdfDrawStats draw_sdf(Canvas& c, glm::vec2 origin, glm::vec2 size, float screen_step,
+                      glm::vec4 color, DistanceFn distance)
+{
+    const float zoom = std::max(c.camera().zoom, 1e-3f);
+    const float step = std::max({screen_step / zoom, size.x / 96.0f, size.y / 72.0f});
+    const glm::vec2 half = size * 0.5f;
+    SdfDrawStats stats;
+    stats.step = step;
+    for (float y = 0.0f; y < size.y; y += step) {
+        for (float x = 0.0f; x < size.x; x += step) {
+            ++stats.cells;
+            const glm::vec2 local{x + step * 0.5f, y + step * 0.5f};
+            const float d = distance(local - half, half);
+            const float alpha = sdf::coverage(d, step);
+            if (alpha <= 0.0f) continue;
+            ++stats.samples;
+            // 尺寸略微放大，避免格子间出现缝。
+            c.rect(origin + glm::vec2{x, y}, {step + 0.4f, step + 0.4f},
+                   {color.r, color.g, color.b, color.a * alpha});
+        }
+    }
+    return stats;
+}
+
+// 距离场热图：蓝=内部、红=外部、白=零等值线（不叠加覆盖率，全部格子都上色）。
+glm::vec4 field_color(float d, float span)
+{
+    const float t = std::clamp(d / span, -1.0f, 1.0f);
+    if (std::fabs(d) < span * 0.012f) return {0.95f, 0.96f, 0.98f, 1.0f};
+    if (t < 0.0f) return glm::mix(kBlue * 0.6f, kBlue, 1.0f + t);
+    return glm::mix(kPanel, kOrange, t);
+}
+
+void draw_sdf_field(Canvas& c, glm::vec2 origin, glm::vec2 size, float step, float span,
+                    const std::function<float(glm::vec2, glm::vec2)>& distance)
+{
+    const glm::vec2 half = size * 0.5f;
+    for (float y = 0.0f; y < size.y; y += step) {
+        for (float x = 0.0f; x < size.x; x += step) {
+            const glm::vec2 local{x + step * 0.5f, y + step * 0.5f};
+            const float d = distance(local - half, half);
+            c.rect(origin + glm::vec2{x, y}, {step + 0.4f, step + 0.4f},
+                   field_color(d, span));
+        }
+    }
+}
+
+void build_sdf(Canvas& c, const SceneOptions&, float)
+{
+    c.text({-780.0f, -500.0f}, 22.0f, "SDF 对照：几何细分 vs 距离场采样", kInk);
+    c.text({-780.0f, -462.0f}, 14.0f,
+           "同一圆角矩形：左侧把边界拆成三角形（半径 56 → 每角 16 段），右侧逐格算到边界的距离",
+           kMuted);
+
+    // 圆角矩形对照（尺寸 / 圆角半径完全一样）。
+    const glm::vec2 box{340.0f, 220.0f};
+    const float radius = 56.0f;
+    const glm::vec2 geo_origin{-780.0f, -420.0f};
+    const glm::vec2 sdf_origin{-400.0f, -420.0f};
+
+    c.text({geo_origin.x, geo_origin.y - 22.0f}, 14.0f, "几何：rounded_rect", kMuted);
+    c.rounded_rect(geo_origin, box, radius, kViolet);
+
+    c.text({sdf_origin.x, sdf_origin.y - 22.0f}, 14.0f, "SDF：逐格覆盖率", kMuted);
+    const SdfDrawStats box_stats = draw_sdf(
+        c, sdf_origin, box, 1.5f, kViolet, [radius](glm::vec2 p, glm::vec2 half) {
+            return sdf::rounded_box(p, half, radius);
+        });
+
+    // 圆对照。
+    const glm::vec2 circle_center_a{-610.0f, -90.0f};
+    const glm::vec2 circle_center_b{-230.0f, -90.0f};
+    const float circle_radius = 110.0f;
+    c.text({circle_center_a.x - circle_radius, 60.0f}, 14.0f, "几何：circle", kMuted);
+    c.circle(circle_center_a, circle_radius, kCyan);
+    c.text({circle_center_b.x - circle_radius, 60.0f}, 14.0f, "SDF：逐格覆盖率", kMuted);
+    const SdfDrawStats circle_stats = draw_sdf(
+        c, {circle_center_b.x - circle_radius, -200.0f}, {circle_radius * 2.0f, circle_radius * 2.0f},
+        1.5f, kCyan, [circle_radius](glm::vec2 p, glm::vec2) {
+            return sdf::circle(p, circle_radius);
+        });
+
+    // 距离场热图（右侧）：圆角矩形 + 圆的 SDF 值直接映射成颜色。
+    const glm::vec2 field_origin{60.0f, -420.0f};
+    const glm::vec2 field_size{720.0f, 560.0f};
+    c.text({field_origin.x, field_origin.y - 22.0f}, 14.0f,
+           "SDF 距离场：蓝=内部，红=外部，白=零等值线", kMuted);
+    draw_sdf_field(c, field_origin, field_size, 8.0f, 180.0f,
+                   [](glm::vec2 p, glm::vec2 half) {
+                       const float d_box = sdf::rounded_box(p, {half.x * 0.62f, half.y * 0.62f}, 60.0f);
+                       const float d_circle = sdf::circle(p - glm::vec2{half.x * 0.62f, 0.0f}, 70.0f);
+                       return std::min(d_box, d_circle);
+                   });
+    c.outline(field_origin, field_size, 1.0f, kMuted);
+
+    // 结论行：把两边的代价都摆出来。
+    char geometry_text[160];
+    std::snprintf(geometry_text, sizeof(geometry_text),
+                  "几何：顶点数固定（半径 56 → 每角 16 段），放大后是折线");
+    c.text({-780.0f, 220.0f}, 14.0f, geometry_text, kMuted);
+
+    char sdf_text[200];
+    std::snprintf(sdf_text, sizeof(sdf_text),
+                  "SDF：%d 格 / 步长 %.2f world（屏幕 %.1fpx）→ %d 顶点；预算固定，放大后格子跟着变大",
+                  box_stats.cells, static_cast<double>(box_stats.step),
+                  static_cast<double>(box_stats.step * c.camera().zoom), box_stats.samples * 4);
+    c.text({-780.0f, 248.0f}, 14.0f, sdf_text, kMuted);
+
+    c.text({-780.0f, 276.0f}, 14.0f,
+           "两者都是近似：几何受段数限制（放大见折线），CPU-SDF 受采样预算限制（放大见阶梯）", kMuted);
+
+    // SDF 的参数化：同一个函数，只改半径参数。
+    c.text({-780.0f, 310.0f}, 14.0f,
+           "SDF 的参数化：同一个 rounded_box，半径 0 / 32 / 64（格数不变，轮廓跟着变）", kMuted);
+    const float radii[3] = {0.0f, 32.0f, 64.0f};
+    for (int i = 0; i < 3; ++i) {
+        const glm::vec2 origin{-780.0f + static_cast<float>(i) * 230.0f, 330.0f};
+        const glm::vec4 tint = (i == 2) ? kGreen : kViolet;
+        draw_sdf(c, origin, {200.0f, 120.0f}, 2.5f, tint,
+                 [&](glm::vec2 p, glm::vec2 half) {
+                     return sdf::rounded_box(p, half, radii[i]);
+                 });
+        char text[48];
+        std::snprintf(text, sizeof(text), "radius %.0f", static_cast<double>(radii[i]));
+        c.text({origin.x, origin.y + 128.0f}, 14.0f, text, kMuted);
+    }
+
+    // SDF 的核心优势：形状组合只是对距离场做 min / max。
+    const char* const csg_names[3] = {"并集 min(a, b)", "交集 max(a, b)", "差集 max(a, -b)"};
+    for (int i = 0; i < 3; ++i) {
+        const glm::vec2 origin{60.0f + static_cast<float>(i) * 245.0f, 190.0f};
+        const glm::vec2 size{210.0f, 210.0f};
+        draw_sdf_field(c, origin, size, 8.0f, 90.0f, [i](glm::vec2 p, glm::vec2) {
+            const float a = sdf::circle(p - glm::vec2{-28.0f, -22.0f}, 62.0f);
+            const float b = sdf::circle(p - glm::vec2{30.0f, 24.0f}, 48.0f);
+            if (i == 0) return std::min(a, b);
+            if (i == 1) return std::max(a, b);
+            return std::max(a, -b);
+        });
+        c.outline(origin, size, 1.0f, kMuted);
+        c.text({origin.x, origin.y + 216.0f}, 14.0f, csg_names[i], kMuted);
+    }
+
+    c.text({60.0f, 468.0f}, 14.0f,
+           "GPU 上的 SDF 在 fragment 里按像素算距离，与 zoom 无关：那是分辨率无关的那一档", kMuted);
+
+    (void)circle_stats;
+}
+
 // ── 注册表 ────────────────────────────────────────────────────────
 const std::vector<Page>& table()
 {
@@ -332,6 +520,7 @@ const std::vector<Page>& table()
         {"curves", "曲线与细分", &build_curves},
         {"text", "文字", &build_text},
         {"batching", "批处理与裁剪", &build_batching},
+        {"sdf", "SDF 对照", &build_sdf},
     };
     return kPages;
 }
@@ -390,8 +579,9 @@ void build_hud(Canvas& canvas, const SceneOptions& options, const HudInfo& info)
     canvas.screen_text({16.0f, 9.0f}, 18.0f,
                        "graphics demo · " + std::string{page.title}, kInk);
     canvas.screen_text({16.0f, 33.0f}, 12.0f,
-                       "1-5 切页 · 滚轮缩放 · 左键拖动平移 · 0 适配 · +/- 缩放 · "
-                       "G 网格 · H HUD · [ ] 密度 · Esc 退出",
+                       "1-" + std::to_string(list.size()) +
+                           " 切页 · 滚轮缩放 · 左键拖动平移 · 0 适配 · +/- 缩放 · "
+                           "G 网格 · H HUD · [ ] 密度 · Esc 退出",
                        kMuted);
 
     char zoom_text[96];

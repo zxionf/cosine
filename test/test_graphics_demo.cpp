@@ -461,6 +461,60 @@ void test_scene_hud()
           "verts=" + std::to_string(canvas.vertex_count()));
 }
 
+// ── SDF ──────────────────────────────────────────────────────────────────
+void test_sdf_math()
+{
+    using gdemo::sdf::circle;
+    using gdemo::sdf::coverage;
+    using gdemo::sdf::rounded_box;
+
+    check(near(circle({0.0f, 0.0f}, 10.0f), -10.0f), "sdf: circle center distance is -r");
+    check(near(circle({10.0f, 0.0f}, 10.0f), 0.0f), "sdf: circle boundary is 0");
+    check(near(circle({20.0f, 0.0f}, 10.0f), 10.0f), "sdf: outside distance is positive");
+
+    const glm::vec2 half{10.0f, 5.0f};
+    check(near(rounded_box({0.0f, 0.0f}, half, 2.0f), -5.0f),
+          "sdf: rounded box center distance is -min(half)");
+    check(near(rounded_box({10.0f, 0.0f}, half, 2.0f), 0.0f),
+          "sdf: rounded box right edge is 0");
+    // 角点距离 = r·(√2 - 1)，因为半径 2 的圆心在 (8, 3)。
+    check(near(rounded_box({10.0f, 5.0f}, half, 2.0f), 2.0f * 0.41421356f, 0.001f),
+          "sdf: rounded box corner distance follows the corner arc");
+    check(near(rounded_box({40.0f, 0.0f}, half, 2.0f), 30.0f),
+          "sdf: rounded box outside distance is positive");
+
+    check(near(coverage(0.0f, 1.0f), 0.5f), "sdf: coverage on the boundary is 0.5");
+    check(near(coverage(-0.5f, 1.0f), 1.0f), "sdf: coverage one half-cell inside is 1");
+    check(near(coverage(0.5f, 1.0f), 0.0f), "sdf: coverage one half-cell outside is 0");
+    check(near(coverage(-10.0f, 1.0f), 1.0f), "sdf: coverage is clamped to [0, 1]");
+    check(near(coverage(0.0f, 0.0f), 0.0f), "sdf: zero step yields no coverage (no divide by zero)");
+}
+
+// SDF 页的采样预算：缩小时格子变粗（顶点变少），放大到上限后饱和。
+void test_scene_sdf_sampling_budget()
+{
+    gdemo::Canvas canvas;
+    gdemo::SceneOptions options;
+    options.page = gdemo::page_index("sdf");
+    options.grid = false;
+    options.axes = false;
+
+    gdemo::Camera camera = centered({1280.0f, 840.0f});
+    camera.fit({1280.0f, 840.0f}, gdemo::kContentSize);
+    canvas.begin(nullptr, camera, {1280.0f, 840.0f});
+    gdemo::build_scene(canvas, options, 0.0f);
+    const std::size_t fitted = canvas.vertex_count();
+
+    // 缩得很小：格子变粗 → 几何版不变，SDF 部分变少。
+    camera.zoom = 0.1f;
+    canvas.begin(nullptr, camera, {1280.0f, 840.0f});
+    gdemo::build_scene(canvas, options, 0.0f);
+    const std::size_t zoomed_out = canvas.vertex_count();
+    check(zoomed_out < fitted, "sdf: zooming out makes the sampling grid coarser",
+          std::to_string(fitted) + " -> " + std::to_string(zoomed_out));
+    check(zoomed_out > 0, "sdf: page still draws geometry when zoomed out");
+}
+
 // ── 分层：这个示例不得依赖 UI ─────────────────────────────────────
 void test_dependency_boundary()
 {
@@ -515,6 +569,8 @@ int main()
     test_scene_grid_toggle();
     test_scene_density_grows_vertices();
     test_scene_hud();
+    test_sdf_math();
+    test_scene_sdf_sampling_budget();
 
     test_dependency_boundary();
 

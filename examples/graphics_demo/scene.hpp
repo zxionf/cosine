@@ -15,6 +15,20 @@ namespace gdemo
 // 场景内容的世界包围盒（以原点为中心，相机 fit 用它）。
 inline constexpr glm::vec2 kContentSize{1680.0f, 1040.0f};
 
+// ── SDF（有符号距离场）基础函数：以图形中心为原点、y 向下 ─────────
+//
+// 负值 = 内部，0 = 边界，正值 = 外部。页 6 用它做「几何细分 vs SDF 采样」的对照。
+namespace sdf
+{
+// 圆：|p| - r
+float circle(glm::vec2 p, float radius);
+// 圆角矩形：half 是未含圆角的外半尺寸，radius 向内侧收。
+float rounded_box(glm::vec2 p, glm::vec2 half, float radius);
+// 距离 → 单格覆盖率：格中心距边界 d、格边长 step。
+//   d = -step/2 → 1（完全在内部）；d = 0 → 0.5；d = +step/2 → 0。
+float coverage(float distance, float step);
+} // namespace sdf
+
 struct SceneOptions
 {
     int page = 0;    // 当前页下标

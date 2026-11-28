@@ -83,16 +83,13 @@ void handle_event(State& state, const xel::event::InputEvent& event, xel::Applic
             }
             break;
         case InputEvent::Type::KeyDown:
+            // 数字键 1–9 切页：页数增长时不需要改这里。
+            if (event.key >= KeyCode::Digit1 && event.key <= KeyCode::Digit9) {
+                const int index = static_cast<int>(event.key) - static_cast<int>(KeyCode::Digit1);
+                if (index < static_cast<int>(gdemo::pages().size())) state.options.page = index;
+                break;
+            }
             switch (event.key) {
-                case KeyCode::Digit1:
-                case KeyCode::Digit2:
-                case KeyCode::Digit3:
-                case KeyCode::Digit4:
-                case KeyCode::Digit5: {
-                    const int index = static_cast<int>(event.key) - static_cast<int>(KeyCode::Digit1);
-                    state.options.page = std::clamp(index, 0, static_cast<int>(gdemo::pages().size()) - 1);
-                    break;
-                }
                 case KeyCode::Digit0:
                     fit_view(state);
                     break;

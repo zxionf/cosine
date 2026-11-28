@@ -121,7 +121,7 @@ COSINE_EXPORT_SCALE=2 COSINE_EXPORT_PNG=shot2x.png ./build/examples/graphics_dem
 依赖边界（`test_graphics_demo` 里有断言）：
 `examples/graphics_demo` 不 `#include "ui/..."`，也不 `#include "backend/vulkan/..."`。
 
-### 五个页
+### 六个页
 
 | 页 | id | 覆盖内容 |
 |---|---|---|
@@ -130,6 +130,22 @@ COSINE_EXPORT_SCALE=2 COSINE_EXPORT_PNG=shot2x.png ./build/examples/graphics_dem
 | 曲线与细分 | `curves` | 二次/三次贝塞尔（8/24/96 段叠加）、玫瑰线、阿基米德螺旋、多边形近似圆 |
 | 文字 | `text` | 字号阶梯、`text_width()` 右对齐、多行、96px 特写 |
 | 批处理与裁剪 | `batching` | N×N 方块（顶点变多而 draw call 不变）、三张带 clip 的卡片、不裁剪对照组 |
+| SDF 对照 | `sdf` | 同一圆角矩形 / 圆：几何细分 vs 逐格 SDF 覆盖率；距离场热图（蓝内/红外/白等值线）；CSG 并/交/差；半径参数化 |
+
+### 页 6 的结论（SDF 对照）
+
+两种策略都是近似，代价不同：
+
+| | 几何细分 | CPU 逐格 SDF |
+|---|---|---|
+| 分辨率 | 由段数决定，放大后看到折线 | 由采样预算决定（≤ 96×72 格），放大后看到阶梯 |
+| 顶点数 | 固定（与形状复杂度相关） | 固定预算（与形状复杂度无关） |
+| 组合形状 | 需要布尔运算/额外几何 | 只是 `min` / `max`（并/交/差） |
+| 抗锯齿 | 靠几何或 MSAA | 覆盖率 = `clamp(0.5 - d/step)` 自带 |
+
+真正的 **GPU SDF** 在 fragment 里按像素算距离，与 zoom 无关（分辨率无关）。
+这个示例不引入额外 shader：用 CPU 采样把两种近似的差别摆出来，
+所以缩放时能直接看到「几何段数」与「采样预算」两种限制的样子。
 
 ### 缩放怎么工作
 
@@ -147,7 +163,7 @@ COSINE_EXPORT_SCALE=2 COSINE_EXPORT_PNG=shot2x.png ./build/examples/graphics_dem
 | 左键拖动 | 平移 |
 | `0` | 适配内容（`Camera::fit`） |
 | `+` / `-` | 以视口中心缩放 |
-| `1`–`5` | 切页 |
+| `1`–`6` | 切页 |
 | `G` / `H` | 网格 / HUD 开关 |
 | `[` / `]` | batching 页的网格密度（4–24） |
 | `Esc` | 退出 |
