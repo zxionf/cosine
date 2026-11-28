@@ -16,7 +16,7 @@ int main()
 
         // Editor 在 Application 之后构造，保证 root/uisys 已就绪；
         // 析构顺序相反，Editor 先销毁。
-        xel::editor::Editor editor{*app.uisys.root(), app.uisys, app.renderer_};
+        xel::editor::Editor editor{app.ui.root(), app.ui.uisys(), app.renderer_};
 
         // 离屏导出（与 ui_anim_showcase 同一机制）：完成一次布局后渲染到 PNG 并退出。
         if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
@@ -25,7 +25,7 @@ int main()
 
             // 不依赖窗口尺寸：窗口可能还没收到 framebuffer 回调（root 尺寸为 0），
             // 那时 layout() 会直接 return，界面会堆在左上角。
-            auto* root = app.uisys.root();
+            auto* root = &app.ui.root();
             root->set_size(kExportW, kExportH);
             root->mark_layout_dirty();
 
@@ -44,7 +44,7 @@ int main()
             root->layout();
             root->clear_layout_dirty();
 
-            app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+            app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
             const auto pixels = app.renderer_.render_offscreen(
                 *root, static_cast<uint32_t>(kExportW), static_cast<uint32_t>(kExportH));
             const bool ok = xel::backend::vulkan::Renderer::write_png(
@@ -60,7 +60,7 @@ int main()
         while (!app.window_.should_close()) {
             glfwPollEvents();
 
-            app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+            app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
             app.renderer_.begin();
 
             const auto& stats = app.renderer_.frame_stats();
@@ -68,8 +68,8 @@ int main()
                 std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
 
             editor.tick(dt);
-            app.uisys.tick(dt);
-            app.renderer_.draw(*app.uisys.root());
+            app.ui.tick(dt);
+            app.renderer_.draw(app.ui.root());
             app.renderer_.end();
 
             total_time += dt;

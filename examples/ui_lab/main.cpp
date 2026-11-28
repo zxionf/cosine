@@ -870,20 +870,20 @@ int run()
     xel::Application app{static_cast<int>(kW), static_cast<int>(kH), "ui_lab"};
 
     Lab lab;
-    build(lab, *app.uisys.root());
+    build(lab, app.ui.root());
 
     // 离屏导出：与其它示例一致的固定尺寸，便于人工核对布局。
     if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
-        app.uisys.tick(1.0f / 60.0f);
-        lab.update_widget_debug(app.uisys.hovered(), app.uisys.focused(), 1.0f / 60.0f);
+        app.ui.tick(1.0f / 60.0f);
+        lab.update_widget_debug(app.ui.hovered(), app.ui.focused(), 1.0f / 60.0f);
 
-        auto* root = app.uisys.root();
+        auto* root = &app.ui.root();
         root->set_size(kW, kH);
         root->mark_layout_dirty();
         root->layout();
         root->clear_layout_dirty();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         const auto pixels = app.renderer_.render_offscreen(*root, static_cast<uint32_t>(kW),
                                                           static_cast<uint32_t>(kH));
         const bool ok = xel::backend::vulkan::Renderer::write_png(
@@ -899,15 +899,15 @@ int run()
     while (!app.window_.should_close()) {
         glfwPollEvents();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         app.renderer_.begin();
 
         const auto& stats = app.renderer_.frame_stats();
         const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
-        app.uisys.tick(dt);
-        lab.update_widget_debug(app.uisys.hovered(), app.uisys.focused(), dt);
+        app.ui.tick(dt);
+        lab.update_widget_debug(app.ui.hovered(), app.ui.focused(), dt);
 
-        app.renderer_.draw(*app.uisys.root());        app.renderer_.end();
+        app.renderer_.draw(app.ui.root());        app.renderer_.end();
 
         total_time += dt;
         if (exit_after > 0.0f && total_time >= exit_after) {

@@ -16,8 +16,8 @@ public:
     explicit UISystem(std::unique_ptr<UIRoot> root);
     ~UISystem();
 
-    UIRoot* root() { return root_.get(); }
-    UIContext* context() { return root_ ? root_->context() : nullptr; }
+    UIRoot* root() const { return root_.get(); }
+    UIContext* context() const { return root_ ? root_->context() : nullptr; }
     void set_theme(const Theme& theme) { if (root_) root_->set_theme(theme); }
     void tick();
     // dt 单位为秒；UI 状态过渡用它推进。无参重载按 1/60s 处理，保持旧调用点不变。

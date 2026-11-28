@@ -4,7 +4,7 @@ title 图5 布局流水线（失效 → measure → arrange → layout → 绘�
 skinparam defaultFontName "Microsoft YaHei"
 skinparam shadowing false
 
-participant "UISystem" as SYS
+participant "UiRuntime" as SYS
 participant "UIRoot" as ROOT
 participant "Node（容器）" as C
 participant "Node（子项）" as L
@@ -13,7 +13,9 @@ participant "Node（子项）" as L
 WIN -> SYS : set_viewport(物理像素)
 note right
   宿主（app）在初始化与 resize 回调里推入；
-  UISystem 不再轮询 backend::Window。
+  UiRuntime 是 DPI 单一入口：ui_scale 一次扇出
+  到 root 逻辑尺寸 / 渲染缩放 / 字体栅格化。
+  UiRuntime → UISystem 纯转发，不增加状态。
 end note
 SYS -> ROOT : set_size / set_theme / 控件 setter
 ROOT -> ROOT : mark_layout_dirty()

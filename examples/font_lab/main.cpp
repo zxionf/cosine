@@ -207,21 +207,21 @@ int run()
     xel::Application app{static_cast<int>(kW), static_cast<int>(kH), "font_lab"};
 
     Lab lab;
-    build(lab, *app.uisys.root());
-    lab.atlas = app.uisys.context()->font_atlas;
+    build(lab, app.ui.root());
+    lab.atlas = app.ui.context()->font_atlas;
     update_debug(lab);
     update_measures(lab);
 
     if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
-        app.uisys.tick(1.0f / 60.0f);
+        app.ui.tick(1.0f / 60.0f);
 
-        auto* root = app.uisys.root();
+        auto* root = &app.ui.root();
         root->set_size(kW, kH);
         root->mark_layout_dirty();
         root->layout();
         root->clear_layout_dirty();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         const auto pixels = app.renderer_.render_offscreen(*root, static_cast<uint32_t>(kW),
                                                           static_cast<uint32_t>(kH));
         const bool ok = xel::backend::vulkan::Renderer::write_png(
@@ -237,14 +237,14 @@ int run()
     while (!app.window_.should_close()) {
         glfwPollEvents();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         app.renderer_.begin();
 
         const auto& stats = app.renderer_.frame_stats();
         const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
-        app.uisys.tick(dt);
+        app.ui.tick(dt);
 
-        app.renderer_.draw(*app.uisys.root());
+        app.renderer_.draw(app.ui.root());
         app.renderer_.end();
 
         total_time += dt;

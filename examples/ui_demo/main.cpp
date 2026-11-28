@@ -25,7 +25,7 @@ struct KeyLatch
 int run()
 {
     xel::Application app{1200, 800, "XEL Text Lab"};
-    auto lab = xel::demo::build(*app.uisys.root());
+    auto lab = xel::demo::build(app.ui.root());
 
     KeyLatch f1{GLFW_KEY_F1};
     KeyLatch f2{GLFW_KEY_F2};
@@ -46,12 +46,12 @@ int run()
         app.renderer_.begin();
 
         if (lab.overlay->visible()) {
-            lab.overlay->update(app.renderer_.frame_stats(), app.uisys.hovered(),
-                                app.uisys.focused(), {0.0f, 0.0f});
+            lab.overlay->update(app.renderer_.frame_stats(), app.ui.hovered(),
+                                app.ui.focused(), {0.0f, 0.0f});
         }
 
-        app.uisys.tick();
-        app.renderer_.draw(*app.uisys.root());
+        app.ui.tick();
+        app.renderer_.draw(app.ui.root());
         app.renderer_.end();
     }
 

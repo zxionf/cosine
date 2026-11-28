@@ -147,7 +147,7 @@ int run()
 
     // Demo 必须先于 build 存在：SceneView 持有 &demo.scene。
     Demo demo;
-    build(demo, *app.uisys.root());
+    build(demo, app.ui.root());
 
     const char* exit_after_env = std::getenv("COSINE_EXIT_AFTER");
     const float exit_after = exit_after_env != nullptr ? std::atof(exit_after_env) : 0.0f;
@@ -156,16 +156,16 @@ int run()
     while (!app.window_.should_close()) {
         glfwPollEvents();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         app.renderer_.begin();
 
         const auto& stats = app.renderer_.frame_stats();
         const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
 
         demo.update(dt);
-        app.uisys.tick(dt);
+        app.ui.tick(dt);
 
-        app.renderer_.draw(*app.uisys.root());
+        app.renderer_.draw(app.ui.root());
         app.renderer_.end();
 
         total_time += dt;

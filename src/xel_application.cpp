@@ -60,14 +60,21 @@ xel::backend::Window::Cursor to_window_cursor(xel::ui::CursorShape shape)
 namespace xel
 {
 Application::Application(int window_w, int window_h, const std::string& title)
-: window_{window_w, window_h, title}, vulkan_context_{window_}, swap_chain_{vulkan_context_, window_}, renderer_{vulkan_context_, swap_chain_}, uisys{std::make_unique<ui::UIRoot>(0.0f, 0.0f, 0.0f, 0.0f)}
+: window_{window_w, window_h, title}, vulkan_context_{window_}, swap_chain_{vulkan_context_, window_}, renderer_{vulkan_context_, swap_chain_}, ui{}
 {
-    uisys.root()->context()->font_atlas = &renderer_.font_atlas();
+    // 宿主能力一次性注入：字体图集、系统光标、渲染缩放（DPI 扇出）。
+    ui.set_font_atlas(&renderer_.font_atlas());
+    ui.bind_host({
+        [this](ui::CursorShape shape) { window_.set_cursor(to_window_cursor(shape)); },
+        [this](float scale) {
+            renderer_.set_ui_scale(scale);
+            renderer_.set_font_pixel_ratio(scale);
+        },
+    });
 
-    // 视图尺寸与光标都由这里推给 UI：UISystem 不认识 backend::Window。
+    // 视图尺寸也由宿主推：UISystem 不认识 backend::Window。
     const auto extent = window_.get_extent();
-    uisys.set_viewport({static_cast<float>(extent.width), static_cast<float>(extent.height)});
-    uisys.bind_host({[this](ui::CursorShape shape) { window_.set_cursor(to_window_cursor(shape)); }});
+    ui.set_viewport({static_cast<float>(extent.width), static_cast<float>(extent.height)});
 
     glfwSetWindowUserPointer(window_.get_glfw_window(), this);
 
@@ -92,10 +99,7 @@ Application::Application(int window_w, int window_h, const std::string& title)
 
 void Application::set_ui_scale(float scale)
 {
-    ui_scale_ = std::clamp(scale, 0.25f, 4.0f);
-    renderer_.set_ui_scale(ui_scale_);
-    uisys.set_ui_scale(ui_scale_);
-    renderer_.set_font_pixel_ratio(ui_scale_);
+    ui.set_ui_scale(scale);
 }
 
 Application::~Application()
@@ -105,7 +109,7 @@ void Application::framebuffer_resize_callback(GLFWwindow* window, int width, int
 {
     auto* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     app->window_.set_framebuffer_size(width, height);
-    app->uisys.set_viewport({static_cast<float>(width), static_cast<float>(height)});
+    app->ui.set_viewport({static_cast<float>(width), static_cast<float>(height)});
 }
 
 void Application::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -120,9 +124,9 @@ void Application::mouse_button_callback(GLFWwindow* window, int button, int acti
     // 鼠标事件也带修饰键：Shift/Ctrl 追加选择靠它。
     event.mods = map_mods(mods);
 
-    event.mouse_pos = app->uisys.framebuffer_to_logical(app->window_.cursor_to_framebuffer());
+    event.mouse_pos = app->ui.framebuffer_to_logical(app->window_.cursor_to_framebuffer());
 
-    app->uisys.dispatch(event);
+    app->ui.dispatch(event);
 }
 
 void Application::key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -137,7 +141,7 @@ void Application::key_callback(GLFWwindow* window, int key, int scancode, int ac
         : event::InputEvent::Type::KeyUp;
     event.key = map_key(key);
     event.mods = map_mods(mods);
-    app->uisys.dispatch(event);
+    app->ui.dispatch(event);
 }
 
 void Application::char_callback(GLFWwindow* window, unsigned int codepoint)
@@ -146,7 +150,7 @@ void Application::char_callback(GLFWwindow* window, unsigned int codepoint)
     event::InputEvent event;
     event.type = event::InputEvent::Type::CharInput;
     event.codepoint = static_cast<char32_t>(codepoint);
-    app->uisys.dispatch(event);
+    app->ui.dispatch(event);
 }
 
 void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)
@@ -154,11 +158,11 @@ void Application::cursor_pos_callback(GLFWwindow* window, double mx, double my)
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     event::InputEvent event;
     event.type = event::InputEvent::Type::MouseMove;
-    event.mouse_pos = app->uisys.framebuffer_to_logical(
+    event.mouse_pos = app->ui.framebuffer_to_logical(
         app->window_.window_to_framebuffer({static_cast<float>(mx), static_cast<float>(my)}));
     //e.mouse_delta = e.mouse_pos - app->last_mouse_;
     //app->last_mouse_ = e.mouse_pos;
-    app->uisys.dispatch(event);
+    app->ui.dispatch(event);
 }
 
 void Application::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -168,8 +172,8 @@ void Application::scroll_callback(GLFWwindow* window, double xoffset, double yof
     event.type = event::InputEvent::Type::MouseScroll;
     event.scroll_delta_x = static_cast<float>(xoffset);
     event.scroll_delta = static_cast<float>(yoffset);
-    event.mouse_pos = app->uisys.framebuffer_to_logical(app->window_.cursor_to_framebuffer());
-    app->uisys.dispatch(event);
+    event.mouse_pos = app->ui.framebuffer_to_logical(app->window_.cursor_to_framebuffer());
+    app->ui.dispatch(event);
 }
 
 } // namespace xel

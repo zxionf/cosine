@@ -4,7 +4,7 @@
 #include "backend/vulkan/vulkan_context.hpp"
 #include "backend/vulkan/swap_chain.hpp"
 #include "backend/vulkan/renderer.hpp"
-#include "ui/system/ui_system.hpp"
+#include "ui/system/ui_runtime.hpp"
 
 namespace xel
 {
@@ -15,18 +15,17 @@ public:
     backend::vulkan::VulkanContext vulkan_context_;
     backend::vulkan::SwapChain swap_chain_;
     backend::vulkan::Renderer renderer_;
-    ui::UISystem uisys;
+    // UI 运行时（root + 调度 + DPI + 宿主注入）；不含任何平台或渲染依赖。
+    ui::UiRuntime ui;
 
     // DPI：逻辑像素 → framebuffer 像素的缩放比（COSINE_UI_SCALE，默认 1.0）。
-    float ui_scale() const { return ui_scale_; }
-    // 单一入口：同步 ui_scale_ / renderer / uisys / 字体栅格化比例。
+    float ui_scale() const { return ui.ui_scale(); }
+    // 转发到 UiRuntime：唯一扇出点（UISystem / renderer / 字体栅格化）。
     void set_ui_scale(float scale);
 
     Application(int window_w, int window_h, const std::string& title);
     ~Application();
 private:
-    float ui_scale_ = 1.0f;
-
     static void framebuffer_resize_callback(GLFWwindow* window, int width, int height);
     static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
     static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);

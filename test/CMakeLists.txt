@@ -62,6 +62,10 @@ add_executable(test_ui_architecture test_ui_architecture.cpp)
 target_link_libraries(test_ui_architecture PRIVATE cosine_ui)
 target_compile_definitions(test_ui_architecture PRIVATE COSINE_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
+# UiRuntime 契约：只链接 cosine_ui（无 backend/vulkan）——测试能编过就证明 UI 运行时不依赖平台。
+add_executable(test_ui_runtime test_ui_runtime.cpp)
+target_link_libraries(test_ui_runtime PRIVATE cosine_ui)
+
 add_executable(test_ui_transition test_ui_transition.cpp)
 target_link_libraries(test_ui_transition PRIVATE cosine_ui)
 
@@ -331,6 +335,7 @@ set(COSINE_TEST_TARGETS
     test_ui_measure_cache
     test_ui_semantics
     test_ui_architecture
+    test_ui_runtime
     test_ui_transition
     test_ui_style_snapshot
     test_ui_pointer_events
@@ -459,6 +464,7 @@ add_test(NAME ui_visual_state COMMAND test_ui_visual_state)
 add_test(NAME ui_measure_cache COMMAND test_ui_measure_cache)
 add_test(NAME ui_semantics COMMAND test_ui_semantics)
 add_test(NAME ui_architecture COMMAND test_ui_architecture)
+add_test(NAME ui_runtime COMMAND test_ui_runtime)
 add_test(NAME ui_transition COMMAND test_ui_transition)
 add_test(NAME ui_style_snapshot COMMAND test_ui_style_snapshot)
 add_test(NAME ui_pointer_events COMMAND test_ui_pointer_events)

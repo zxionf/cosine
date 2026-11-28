@@ -10,7 +10,7 @@ package "examples/*  演示程序" as examples
 package "src/cosine  编辑器（App 层）" as app
 
 package "src/ui  控件树与调度" as ui {
-  package "ui/system\nUIRoot / UISystem / UIContext" as ui_system
+  package "ui/system\nUiRuntime UIRoot UISystem\nUIContext UiHost" as ui_system
   package "ui/composites\nWindow Dialog Dropdown MenuBar\nTabView Section ScrollPanel" as ui_composites
   package "ui/views\nListView Table TreeView FileBrowser\nSceneView TimelineView" as ui_views
   package "ui/containers\nLinearLayout(Vbox/Hbox) Grid Wrap\nPanel ScrollView Splitter" as ui_containers

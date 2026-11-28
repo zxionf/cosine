@@ -25,7 +25,7 @@ int main()
         .with_transition_ms(60.0f);
     base_theme.scroll_mode = xel::ui::ScrollMode::Smooth;
     base_theme.padding = 2.0f;
-    app.uisys.root()->set_theme(base_theme);
+    app.ui.root().set_theme(base_theme);
     app.set_ui_scale(2.0f);
 
     auto panel = std::make_unique<xel::ui::Panel>(20,20, 600,400);
@@ -49,19 +49,19 @@ int main()
     // panel->add(std::move(color_rect));
     // scroll_view->set_content(std::move(panel));
     // panel->add(std::move(vbox));
-    // app.uisys.root()->add(std::move(panel));
-    app.uisys.root()->add(std::move(window));
-    // app.uisys.root()->debug_recursive();
+    // app.ui.root().add(std::move(panel));
+    app.ui.root().add(std::move(window));
+    // app.ui.root().debug_recursive();
 
     while(!app.window_.should_close()) {
         glfwPollEvents();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         app.renderer_.begin();
 
-        app.uisys.tick();
+        app.ui.tick();
 
-        app.renderer_.draw(*app.uisys.root());
+        app.renderer_.draw(app.ui.root());
         app.renderer_.end();
     }
 

@@ -251,7 +251,7 @@ int run()
     xel::Application app{1200, 800, "XEL Animation Showcase"};
 
     Showcase demo;
-    build(demo, *app.uisys.root());
+    build(demo, app.ui.root());
 
     // 离屏导出：推进一次布局与动画后渲染到 PNG，然后退出（M6.0）。
     if (const char* png = std::getenv("COSINE_EXPORT_PNG")) {
@@ -259,16 +259,16 @@ int run()
         constexpr float kExportH = 800.0f;
 
         demo.update(1.0f);
-        app.uisys.tick(1.0f / 60.0f);
+        app.ui.tick(1.0f / 60.0f);
 
         // 导出尺寸与窗口 DPI 无关：root 与离屏目标使用同一逻辑尺寸。
-        auto* root = app.uisys.root();
+        auto* root = &app.ui.root();
         root->set_size(kExportW, kExportH);
         root->mark_layout_dirty();
         root->layout();
         root->clear_layout_dirty();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         const auto pixels = app.renderer_.render_offscreen(*root, static_cast<uint32_t>(kExportW),
                                                           static_cast<uint32_t>(kExportH));
         const bool ok = xel::backend::vulkan::Renderer::write_png(
@@ -284,16 +284,16 @@ int run()
     while (!app.window_.should_close()) {
         glfwPollEvents();
 
-        app.renderer_.set_clear_color(app.uisys.context()->theme().window_bg);
+        app.renderer_.set_clear_color(app.ui.context()->theme().window_bg);
         app.renderer_.begin();
 
         const auto& stats = app.renderer_.frame_stats();
         const float dt = std::clamp(static_cast<float>(stats.frame_time_ms) / 1000.0f, 0.0f, 0.1f);
 
         demo.update(dt);
-        app.uisys.tick(dt);
+        app.ui.tick(dt);
 
-        app.renderer_.draw(*app.uisys.root());
+        app.renderer_.draw(app.ui.root());
         app.renderer_.end();
 
         total_time += dt;

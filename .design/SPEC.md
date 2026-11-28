@@ -32,7 +32,7 @@
 ```
 src/backend/    window（GLFW+DPR）、vulkan_context、swap_chain、renderer、asset_path
 src/graphics/   DrawList/DrawBatch/Vertex、图元、FontAtlas、FrameStats
-src/ui/         Widget 树、布局、事件、焦点、控件、主题、UISystem
+src/ui/         Widget 树、布局、事件、焦点、控件、主题、UISystem、UiRuntime
 src/anim/       scene/property/timeline/easing/player、Command/CommandStack
 src/cosine/     编辑器（cosine_editor + cosine 可执行）
 src/events/     InputEvent、KeyCode/Modifier
@@ -119,7 +119,8 @@ assets/         shader、字体
 - 坐标三跳：GLFW 窗口坐标 → `Window::cursor_to_framebuffer`（×DPR）→ `UISystem::framebuffer_to_logical`（÷ui_scale）→ UI 逻辑坐标。
 - 视图尺寸是**推模型**：宿主在初始化与 framebuffer resize 回调里调 `UISystem::set_viewport(物理像素)`，tick 时统一落地为 root 逻辑尺寸（不在 dispatch 中途重排）。`ui` 不 include `backend/*`（`test_ui_architecture` 的 D6 断言）。
 - 光标同理：`UISystem` 只持有 `UiHost::set_cursor` 回调（`ui/system/ui_host.hpp`），`CursorShape` 是 ui 自己的枚举，平台映射留在 app 层。
-- `Application::set_ui_scale` 是单一入口，同步 `ui_scale_`/renderer/uisys/字体栅格化比例；运行时变化触发重布局。
+- `Application::set_ui_scale` 转给 `ui::UiRuntime::set_ui_scale`（**DPI 单一入口**）：夹到 [0.25, 4] 后一次扇出到 root 逻辑尺寸 / 渲染缩放 / 字体栅格化比例；运行时变化触发重布局。
+- `ui::UiRuntime`（`ui/system/ui_runtime.hpp`）是 UI 侧的组合根：拥有 root + UISystem，注入宿主能力（`Hooks{set_cursor, set_render_scale}` + 字体图集），**零平台/渲染依赖**（`test_ui_runtime` 只链接 `cosine_ui`，能编过就是约束成立）。无窗口逻辑测试与离屏导出直接用它。
 - `UISystem::pointer_pos()` 提供已缓存的逻辑坐标（tooltip 等每帧跟随用）。
 
 ## 渲染
