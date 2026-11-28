@@ -39,6 +39,25 @@ event::KeyCode map_key(int key)
         case GLFW_KEY_F11:        return event::KeyCode::F11;
         case GLFW_KEY_F12:        return event::KeyCode::F12;
         case GLFW_KEY_A:          return event::KeyCode::A;
+        case GLFW_KEY_D:          return event::KeyCode::D;
+        case GLFW_KEY_G:          return event::KeyCode::G;
+        case GLFW_KEY_H:          return event::KeyCode::H;
+        case GLFW_KEY_R:          return event::KeyCode::R;
+        case GLFW_KEY_Z:          return event::KeyCode::Z;
+        case GLFW_KEY_0:          return event::KeyCode::Digit0;
+        case GLFW_KEY_1:          return event::KeyCode::Digit1;
+        case GLFW_KEY_2:          return event::KeyCode::Digit2;
+        case GLFW_KEY_3:          return event::KeyCode::Digit3;
+        case GLFW_KEY_4:          return event::KeyCode::Digit4;
+        case GLFW_KEY_5:          return event::KeyCode::Digit5;
+        case GLFW_KEY_6:          return event::KeyCode::Digit6;
+        case GLFW_KEY_7:          return event::KeyCode::Digit7;
+        case GLFW_KEY_8:          return event::KeyCode::Digit8;
+        case GLFW_KEY_9:          return event::KeyCode::Digit9;
+        case GLFW_KEY_MINUS:      return event::KeyCode::Minus;
+        case GLFW_KEY_EQUAL:      return event::KeyCode::Equal;
+        case GLFW_KEY_LEFT_BRACKET:  return event::KeyCode::LeftBracket;
+        case GLFW_KEY_RIGHT_BRACKET: return event::KeyCode::RightBracket;
         default:                  return event::KeyCode::Unknown;
     }
 }
@@ -75,6 +94,25 @@ int glfw_key_of(event::KeyCode key)
         case event::KeyCode::F11:         return GLFW_KEY_F11;
         case event::KeyCode::F12:         return GLFW_KEY_F12;
         case event::KeyCode::A:           return GLFW_KEY_A;
+        case event::KeyCode::D:           return GLFW_KEY_D;
+        case event::KeyCode::G:           return GLFW_KEY_G;
+        case event::KeyCode::H:           return GLFW_KEY_H;
+        case event::KeyCode::R:           return GLFW_KEY_R;
+        case event::KeyCode::Z:           return GLFW_KEY_Z;
+        case event::KeyCode::Digit0:      return GLFW_KEY_0;
+        case event::KeyCode::Digit1:      return GLFW_KEY_1;
+        case event::KeyCode::Digit2:      return GLFW_KEY_2;
+        case event::KeyCode::Digit3:      return GLFW_KEY_3;
+        case event::KeyCode::Digit4:      return GLFW_KEY_4;
+        case event::KeyCode::Digit5:      return GLFW_KEY_5;
+        case event::KeyCode::Digit6:      return GLFW_KEY_6;
+        case event::KeyCode::Digit7:      return GLFW_KEY_7;
+        case event::KeyCode::Digit8:      return GLFW_KEY_8;
+        case event::KeyCode::Digit9:      return GLFW_KEY_9;
+        case event::KeyCode::Minus:       return GLFW_KEY_MINUS;
+        case event::KeyCode::Equal:       return GLFW_KEY_EQUAL;
+        case event::KeyCode::LeftBracket: return GLFW_KEY_LEFT_BRACKET;
+        case event::KeyCode::RightBracket: return GLFW_KEY_RIGHT_BRACKET;
         case event::KeyCode::Unknown:     break;
     }
     return GLFW_KEY_UNKNOWN;

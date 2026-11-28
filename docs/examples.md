@@ -97,6 +97,73 @@ examples/ui_demo/
 
 ---
 
+## graphics_demo — 图形绘制实验台（不依赖 UI）
+
+只通过 `RenderBackend` + `FontAtlas` 画图：没有控件树、没有布局引擎、没有主题。
+用来实验**基本图形绘制能力**与**缩放**，是 UI 层之外最小的一条「绘制 → 上屏」链路。
+
+```bash
+./build/examples/graphics_demo
+COSINE_START_PAGE=curves ./build/examples/graphics_demo        # 直达某一页
+COSINE_EXPORT_PNG=shot.png ./build/examples/graphics_demo      # 离屏导出
+COSINE_EXPORT_SCALE=2 COSINE_EXPORT_PNG=shot2x.png ./build/examples/graphics_demo  # 2× 超采样
+```
+
+### 结构（三层，都在 `examples/graphics_demo/`）
+
+| 文件 | 职责 |
+|---|---|
+| `camera.hpp` | 纯数学：`screen = world * zoom + pan`；`zoom_at(anchor)` 锚点不动；`fit()` 适配内容 |
+| `canvas.{hpp,cpp}` | 立即模式画布：世界坐标图元 → 顶点，实现 `graphics::Drawable`（窗口帧与 `capture()` 都能用） |
+| `scene.{hpp,cpp}` | 页注册表 + 各页内容 + 屏幕空间 HUD |
+| `main.cpp` | 只做输入与 `app.run()` 回调 |
+
+依赖边界（`test_graphics_demo` 里有断言）：
+`examples/graphics_demo` 不 `#include "ui/..."`，也不 `#include "backend/vulkan/..."`。
+
+### 五个页
+
+| 页 | id | 覆盖内容 |
+|---|---|---|
+| 基本图元 | `shapes` | 色板、半透明叠加（预乘 alpha）、圆/环/圆角/三角/描边/渐变、圆角半径与描边宽度阶梯 |
+| 线段与描边 | `lines` | 线宽阶梯、虚线、折线、400 点正弦、细线屏幕宽度下限 |
+| 曲线与细分 | `curves` | 二次/三次贝塞尔（8/24/96 段叠加）、玫瑰线、阿基米德螺旋、多边形近似圆 |
+| 文字 | `text` | 字号阶梯、`text_width()` 右对齐、多行、96px 特写 |
+| 批处理与裁剪 | `batching` | N×N 方块（顶点变多而 draw call 不变）、三张带 clip 的卡片、不裁剪对照组 |
+
+### 缩放怎么工作
+
+- **滚轮**以光标为锚点缩放：锚点下的世界坐标保持不动（`Camera::zoom_at`）。
+- 世界图元经相机变到逻辑坐标；**线宽、字号、圆角半径、圆的段数**都按缩放后的屏幕尺寸重算
+  （线宽下限 0.75px，圆的段数 12–180 自适应）。
+- **屏幕空间**的 HUD 不受缩放影响（`screen_rect` / `screen_text`），始终贴着窗口边。
+- 网格在步长小于 3px 时自动隐藏，放大后才出现细线。
+
+### 操作
+
+| 输入 | 作用 |
+|---|---|
+| 滚轮 | 以光标为锚点缩放 |
+| 左键拖动 | 平移 |
+| `0` | 适配内容（`Camera::fit`） |
+| `+` / `-` | 以视口中心缩放 |
+| `1`–`5` | 切页 |
+| `G` / `H` | 网格 / HUD 开关 |
+| `[` / `]` | batching 页的网格密度（4–24） |
+| `Esc` | 退出 |
+
+### 本示例专属环境变量
+
+| 变量 | 取值 | 影响 |
+|---|---|---|
+| `COSINE_START_PAGE` | 页 id（如 `curves`） | 启动直达该页 |
+| `COSINE_EXPORT_SCALE` | 浮点，默认 1 | 离屏导出的超采样倍数（像素 = 逻辑 × 倍数），用于看细节 |
+
+> 这个示例的 `COSINE_EXPORT_PNG` 自己调 `RenderBackend::capture()`，
+> 不走 `app.save_png()`（那条路径渲的是 UI 树）。
+
+---
+
 ## font_lab — 字体实验室
 
 字形与排版实验台：左侧一列控件，右侧大字号字符串预览。
@@ -145,7 +212,7 @@ COSINE_EXIT_AFTER=2 ./build/examples/moss
 cmake --build build -j
 
 # 逐个冒烟（正常退出 + 校验错误计数）
-for ex in ui_demo font_lab moss; do
+for ex in ui_demo graphics_demo font_lab moss; do
   (cd build/examples && COSINE_EXIT_AFTER=2 ./$ex 2>&1 \
      | grep -Ei 'VUID-|validation (error|warning)' && echo "$ex: 有校验问题" || echo "$ex: ok")
 done

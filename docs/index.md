@@ -60,10 +60,11 @@ src/
 
 examples/
 ├── ui_demo/          UI 展示台（分区式，注册表驱动）
+├── graphics_demo/    图形绘制实验台（不依赖 UI，支持缩放）
 ├── font_lab/         字体实验室
 └── moss/             手写冒烟用例
 
-test/                 CTest 用例（82 个，全部在 Release 下也真实执行）
+test/                 CTest 用例（83 个，全部在 Release 下也真实执行）
 interpreter/          XEL 解释器（与 UI 解耦，可嵌入）
 scripts/              CI、打包、冒烟脚本
 assets/               shader、字体与图集
@@ -77,6 +78,7 @@ assets/               shader、字体与图集
 
 # 运行示例
 ./build/examples/ui_demo        # UI 展示台（第二行标签页切分区）
+./build/examples/graphics_demo   # 图形实验台（滚轮缩放 / 拖拽平移）
 
 # 运行编辑器（产品）
 ./build/src/cosine/cosine

@@ -45,6 +45,7 @@ public:
     // Vulkan 专用面：图片槽上传、设备等待等。
     backend::vulkan::Renderer& renderer() { return renderer_; }
     backend::Window& window() { return window_; }
+    const backend::Window& window() const { return window_; }
 
     const graphics::DisplayScale& display_scale() const { return scale_; }
     float ui_scale() const { return scale_.ui_scale; }

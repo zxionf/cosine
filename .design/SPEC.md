@@ -37,7 +37,8 @@ src/anim/       scene/property/timeline/easing/player、Command/CommandStack
 src/cosine/     编辑器（cosine_editor + cosine 可执行）
 src/events/     InputEvent、KeyCode/Modifier
 interpreter/    XEL 解释器（与 UI 解耦，可嵌入）
-examples/       font_lab / moss（每个都只是「建树 + app.run()」）
+examples/       ui_demo / graphics_demo / font_lab / moss（UI 示例是「建树 + app.run()」，
+                graphics_demo 不走 UI，只向 RenderBackend 提交图元）
 test/           CTest
 assets/         shader、字体
 ```

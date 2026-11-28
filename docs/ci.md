@@ -90,7 +90,7 @@ COSINE_UI_SCALE=2 COSINE_EXIT_AFTER=3 ./font_lab
 tooltip 与应用内命中位置不偏移。
 
 当前测试规模：`ctest` 共 **81** 个用例（含 ASAN 构建，同一份源码）；
-82 个测试源文件，含 `assert(` 2032 处与自写 `check()` 238 处；全部在 Release 下也真实执行。
+85 个测试源文件，含 `assert(` 2032 处与自写 `check()` 238 处；全部在 Release 下也真实执行。
 
 ## lavapipe 冒烟
 

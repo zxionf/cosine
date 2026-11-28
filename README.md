@@ -56,6 +56,7 @@ M4.6 文本/图集打磨进行中，下一步是 M5 XEL 绑定。路线见 `.des
 | 示例 | 用途 |
 |---|---|
 | `examples/ui_demo` | XEL UI Demo：分区式展示台（控件/布局/视图/浮层），注册表驱动、可扩展 |
+| `examples/graphics_demo` | XEL Graphics Demo：不依赖 UI 的图形绘制实验台（图元/曲线/文字/批处理），支持缩放与超采样导出 |
 | `examples/font_lab` | XEL Font Lab：字号、字符串、字形度量与文字调试层 |
 | `examples/moss` | 手写冒烟用例：Window → Panel → ScrollView → ColorRect 最小链路 |
 
@@ -65,6 +66,7 @@ M4.6 文本/图集打磨进行中，下一步是 M5 XEL 绑定。路线见 `.des
 cmake --build build -j
 ./build/examples/ui_demo
 COSINE_DEMO_SECTION=layout ./build/examples/ui_demo   # 直达某个分区
+COSINE_START_PAGE=curves ./build/examples/graphics_demo  # 图形实验台：直达某一页
 ```
 
 ## 构建

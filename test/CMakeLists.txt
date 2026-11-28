@@ -81,6 +81,16 @@ target_include_directories(test_ui_demo PRIVATE
 )
 target_link_libraries(test_ui_demo PRIVATE cosine_ui)
 
+# graphics_demo 的纯逻辑测试（相机/画布/场景），无窗口无 GPU。
+add_executable(test_graphics_demo
+    test_graphics_demo.cpp
+    ${PROJECT_SOURCE_DIR}/examples/graphics_demo/canvas.cpp
+    ${PROJECT_SOURCE_DIR}/examples/graphics_demo/scene.cpp
+)
+target_include_directories(test_graphics_demo PRIVATE ${PROJECT_SOURCE_DIR}/examples/graphics_demo)
+target_compile_definitions(test_graphics_demo PRIVATE COSINE_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_link_libraries(test_graphics_demo PRIVATE cosine_text)
+
 add_executable(test_display_scale test_display_scale.cpp)
 target_link_libraries(test_display_scale PRIVATE cosine_text)
 
@@ -340,6 +350,7 @@ set(COSINE_TEST_TARGETS
     test_ui_architecture
     test_ui_runtime
     test_display_scale
+    test_graphics_demo
     test_ui_demo
     test_ui_transition
     test_ui_style_snapshot
@@ -469,6 +480,7 @@ add_test(NAME ui_semantics COMMAND test_ui_semantics)
 add_test(NAME ui_architecture COMMAND test_ui_architecture)
 add_test(NAME ui_runtime COMMAND test_ui_runtime)
 add_test(NAME display_scale COMMAND test_display_scale)
+add_test(NAME graphics_demo COMMAND test_graphics_demo)
 add_test(NAME ui_demo COMMAND test_ui_demo)
 add_test(NAME ui_transition COMMAND test_ui_transition)
 add_test(NAME ui_style_snapshot COMMAND test_ui_style_snapshot)
